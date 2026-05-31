@@ -6,11 +6,16 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/go-chi/chi/v5"
 	"ntech/internal/config"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	// učitaj .env fajl ako postoji
+	godotenv.Load()
+
 	if config.JelPrvoPokretanje() {
 		config.PokreniSetup()
 		return
