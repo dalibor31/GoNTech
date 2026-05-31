@@ -1,0 +1,58 @@
+{{define "base"}}
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{block "naslov" .}}NTech{{end}}</title>
+
+    <!-- tema — učitava se prva -->
+    <link rel="stylesheet" href="/static/css/teme/{{.Tema}}.css">
+
+    <!-- glavni stilovi -->
+    <link rel="stylesheet" href="/static/css/main.css">
+
+    <!-- tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    {{block "dodatni-css" .}}{{end}}
+</head>
+<body>
+    <div class="raspored">
+        {{template "sidebar" .}}
+
+        <div class="glavni-sadrzaj">
+            {{template "topbar" .}}
+
+            <main class="sadrzaj">
+                {{block "sadrzaj" .}}{{end}}
+            </main>
+        </div>
+    </div>
+
+    <!-- alpine.js za interaktivnost -->
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
+    <!-- htmx za komunikaciju sa serverom -->
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.x.x/dist/htmx.min.js"></script>
+
+    <!-- sidebar logika -->
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const hamburger = document.getElementById('hamburger');
+
+        // učitaj stanje iz localStorage
+        if (localStorage.getItem('sidebar-skupljen') === 'true') {
+            sidebar.classList.add('skupljen');
+        }
+
+        hamburger.addEventListener('click', () => {
+            sidebar.classList.toggle('skupljen');
+            localStorage.setItem('sidebar-skupljen', sidebar.classList.contains('skupljen'));
+        });
+    </script>
+
+    {{block "dodatni-js" .}}{{end}}
+</body>
+</html>
+{{end}}
