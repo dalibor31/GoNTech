@@ -1,0 +1,27 @@
+# Binarne datoteke
+ntech
+ntech.exe
+
+# Baza podataka
+*.db
+*.db-shm
+*.db-wal
+
+# Promenljive okruženja
+.env
+.env.*
+
+# Privremeni fajlovi
+*.tmp
+*.log
+
+# Kate
+*.kate-swp
+.*.kate-swp
+
+# VSCodium/VSCode
+.vscode/
+
+# IDE podešavanja
+.idea/
+*.swp
