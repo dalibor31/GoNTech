@@ -1,13 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
 
 	"ntech/internal/config"
 	"ntech/internal/db/sqlite"
+	"ntech/internal/handler"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
@@ -48,9 +48,15 @@ func main() {
 	log.Println("Migracije uspešno izvršene")
 
 	r := chi.NewRouter()
+
+	// statični fajlovi — CSS, JS, slike
+	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
+
+	// rute
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "Zdravo iz NTech-a")
+		http.Redirect(w, r, "/dashboard", http.StatusFound)
 	})
+	r.Get("/dashboard", handler.Dashboard)
 
 	log.Printf("NTech pokrenut na portu %s", port)
 	err = http.ListenAndServe(":"+port, r)
