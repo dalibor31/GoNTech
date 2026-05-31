@@ -1,0 +1,259 @@
+/* osnovna podešavanja */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: var(--pozadina);
+    color: var(--tekst-glavni);
+}
+
+/* layout */
+.raspored {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* sidebar */
+.sidebar {
+    width: 220px;
+    background: var(--sb-pozadina);
+    display: flex;
+    flex-direction: column;
+    transition: width 0.28s cubic-bezier(.4,0,.2,1);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.sidebar.skupljen {
+    width: 60px;
+}
+
+/* vrh sidebara — logo zona */
+.sidebar-vrh {
+    display: flex;
+    align-items: center;
+    height: 72px;
+    padding: 0 12px;
+    gap: 10px;
+    border-bottom: 0.5px solid rgba(255,255,255,0.07);
+    flex-shrink: 0;
+}
+
+/* hamburger dugme */
+.hamburger {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--sb-tekst-aktivan);
+    padding: 6px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+
+.hamburger:hover {
+    background: var(--sb-hover);
+}
+
+/* logo zona */
+.logo-zona {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    overflow: hidden;
+    opacity: 1;
+    transition: opacity 0.28s, width 0.28s;
+    width: 160px;
+}
+
+.sidebar.skupljen .logo-zona {
+    opacity: 0;
+    width: 0;
+    pointer-events: none;
+}
+
+.logo-naziv {
+    color: var(--sb-tekst-aktivan);
+    font-weight: 500;
+    font-size: 15px;
+    white-space: nowrap;
+}
+
+.logo-podnazlov {
+    color: var(--sb-tekst);
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+/* navigacija */
+.sidebar-nav {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px 0;
+    scrollbar-width: none;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+    display: none;
+}
+
+.nav-oznaka {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--sb-tekst);
+    padding: 12px 16px 4px;
+    white-space: nowrap;
+    opacity: 1;
+    transition: opacity 0.28s;
+}
+
+.sidebar.skupljen .nav-oznaka {
+    opacity: 0;
+}
+
+.nav-stavka {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 16px;
+    cursor: pointer;
+    color: var(--sb-tekst);
+    white-space: nowrap;
+    position: relative;
+    text-decoration: none;
+    transition: background 0.2s, color 0.2s;
+}
+
+.nav-stavka:hover {
+    background: var(--sb-hover);
+    color: var(--sb-tekst-aktivan);
+}
+
+.nav-stavka.aktivan {
+    background: var(--sb-aktivan);
+    color: var(--sb-tekst-aktivan);
+}
+
+.nav-stavka.aktivan::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 4px;
+    bottom: 4px;
+    width: 3px;
+    background: var(--sb-akcent);
+    border-radius: 0 3px 3px 0;
+}
+
+.nav-stavka svg {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+}
+
+.nav-stavka span {
+    font-size: 14px;
+    opacity: 1;
+    transition: opacity 0.28s;
+}
+
+.sidebar.skupljen .nav-stavka span {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.nav-separator {
+    height: 0.5px;
+    background: rgba(255,255,255,0.07);
+    margin: 8px 12px;
+}
+
+/* tooltip kada je sidebar skupljen */
+.nav-tooltip {
+    position: absolute;
+    left: 68px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0,0,0,0.85);
+    color: #fff;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 100;
+}
+
+.sidebar:not(.skupljen) .nav-tooltip {
+    display: none;
+}
+
+.nav-stavka:hover .nav-tooltip {
+    opacity: 1;
+}
+
+/* dno sidebara */
+.sidebar-dno {
+    padding: 8px 0;
+    border-top: 0.5px solid rgba(255,255,255,0.07);
+}
+
+/* glavni sadržaj */
+.glavni-sadrzaj {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* topbar */
+.topbar {
+    height: 56px;
+    background: var(--topbar);
+    border-bottom: 0.5px solid var(--ivica);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.topbar-naslov {
+    font-weight: 500;
+    font-size: 15px;
+    color: var(--tekst-glavni);
+    flex: 1;
+}
+
+/* sadržaj stranice */
+.sadrzaj {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+/* kartice */
+.kartica {
+    background: var(--kartica);
+    border: 0.5px solid var(--ivica);
+    border-radius: 12px;
+    padding: 16px;
+    transition: transform 0.25s cubic-bezier(.4,0,.2,1), box-shadow 0.25s;
+}
+
+.kartica:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
