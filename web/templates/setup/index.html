@@ -9,6 +9,7 @@
         margin: 0;
         padding: 0;
       }
+
       body {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         background: #1a1a2e;
@@ -17,6 +18,7 @@
         align-items: center;
         height: 100vh;
       }
+
       .kartica {
         background: #16213e;
         padding: 2rem;
@@ -25,26 +27,31 @@
         width: 410px;
         border: 1px solid #0f3460;
       }
+
       .zaglavlje {
         text-align: center;
         margin-bottom: 1.3rem;
       }
+
       .zaglavlje h1 {
         color: #f8e45c;
         font-size: 1.4rem;
         margin-bottom: 0.25rem;
       }
+
       .zaglavlje p {
         color: #a0a0b0;
         font-size: 0.85rem;
       }
+
       .sekcija-naslov {
         color: #a0a0b0;
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.4rem;
       }
+
       .port-opcija {
         display: flex;
         justify-content: space-between;
@@ -57,30 +64,37 @@
         transition: all 0.2s;
         color: #e0e0e0;
       }
+
       .port-opcija:hover {
         border-color: #e94560;
       }
+
       .port-opcija.izabran {
         border-color: #e94560;
         background: rgba(233, 69, 96, 0.1);
       }
+
       .port-opcija.zauzet {
         opacity: 0.5;
         cursor: not-allowed;
       }
+
       .slobodan {
         color: #2ecc71;
         font-size: 0.85rem;
       }
+
       .zauzet-tekst {
         color: #e74c3c;
         font-size: 0.85rem;
       }
+
       .razdvojnik {
         border: none;
         border-top: 1px solid #0f3460;
-        margin: 1rem 0;
+        margin: 0.75rem 0;
       }
+
       input[type="number"] {
         width: 100%;
         padding: 0.5rem 0.75rem;
@@ -92,36 +106,43 @@
         outline: none;
         transition: border-color 0.2s;
       }
+
       input[type="number"]:focus {
         border-color: #e94560;
       }
+
       input[type="number"]::placeholder {
         color: #606080;
       }
+
       button {
         width: 100%;
-        padding: 0.55rem;
+        padding: 0.65rem;
         margin-top: 0.75rem;
         background: #e94560;
         color: white;
         border: none;
         border-radius: 8px;
-        font-size: 1rem;
+        font-size: 0.95rem;
         font-weight: 600;
         cursor: pointer;
         transition: background 0.2s;
       }
+
       button:hover {
         background: #c73652;
       }
+
       .poruka {
         text-align: center;
-        padding: 1rem;
+        padding: 0.5rem;
+        font-size: 0.85rem;
         color: #2ecc71;
         display: none;
       }
     </style>
   </head>
+
   <body>
     <div class="kartica">
       <div class="zaglavlje">
