@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="sr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>NTech — Konfiguracija</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #1a1a2e;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+      .kartica {
+        background: #16213e;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        width: 410px;
+        border: 1px solid #0f3460;
+      }
+      .zaglavlje {
+        text-align: center;
+        margin-bottom: 1.3rem;
+      }
+      .zaglavlje h1 {
+        color: #f8e45c;
+        font-size: 1.4rem;
+        margin-bottom: 0.25rem;
+      }
+      .zaglavlje p {
+        color: #a0a0b0;
+        font-size: 0.85rem;
+      }
+      .sekcija-naslov {
+        color: #a0a0b0;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+      }
+      .port-opcija {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0.75rem;
+        margin: 0.25rem 0;
+        border: 2px solid #0f3460;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: #e0e0e0;
+      }
+      .port-opcija:hover {
+        border-color: #e94560;
+      }
+      .port-opcija.izabran {
+        border-color: #e94560;
+        background: rgba(233, 69, 96, 0.1);
+      }
+      .port-opcija.zauzet {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .slobodan {
+        color: #2ecc71;
+        font-size: 0.85rem;
+      }
+      .zauzet-tekst {
+        color: #e74c3c;
+        font-size: 0.85rem;
+      }
+      .razdvojnik {
+        border: none;
+        border-top: 1px solid #0f3460;
+        margin: 1rem 0;
+      }
+      input[type="number"] {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        background: #0f3460;
+        border: 2px solid #0f3460;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        color: #e0e0e0;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+      input[type="number"]:focus {
+        border-color: #e94560;
+      }
+      input[type="number"]::placeholder {
+        color: #606080;
+      }
+      button {
+        width: 100%;
+        padding: 0.55rem;
+        margin-top: 0.75rem;
+        background: #e94560;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      button:hover {
+        background: #c73652;
+      }
+      .poruka {
+        text-align: center;
+        padding: 1rem;
+        color: #2ecc71;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="kartica">
+      <div class="zaglavlje">
+        <h1>NTech</h1>
+        <p>Početna konfiguracija</p>
+      </div>
+
+      <p class="sekcija-naslov">Dostupni portovi</p>
+      <div id="portovi"></div>
+
+      <hr class="razdvojnik" />
+
+      <p class="sekcija-naslov">Ili unesite drugi port</p>
+      <input
+        type="number"
+        id="vlastitiPort"
+        min="1024"
+        max="65535"
+        placeholder="npr. 8080"
+      />
+
+      <button onclick="potvrdi()">Potvrdi i pokreni</button>
+      <div class="poruka" id="poruka">
+        NTech je konfigurisan! Možete zatvoriti ovaj prozor.
+      </div>
+    </div>
+
+    <script>
+      let izabranPort = null;
+      const portovi = PORT_PODACI;
+      const kontejner = document.getElementById("portovi");
+
+      portovi.forEach((p) => {
+        const div = document.createElement("div");
+        div.className = "port-opcija" + (p.slobodan ? "" : " zauzet");
+        div.innerHTML = `
+                <span>Port ${p.port}</span>
+                <span class="${p.slobodan ? "slobodan" : "zauzet-tekst"}">
+                    ${p.slobodan ? "✓ slobodan" : "✗ zauzet"}
+                </span>
+            `;
+        if (p.slobodan) {
+          div.onclick = () => {
+            document
+              .querySelectorAll(".port-opcija")
+              .forEach((el) => el.classList.remove("izabran"));
+            div.classList.add("izabran");
+            izabranPort = p.port;
+            document.getElementById("vlastitiPort").value = "";
+          };
+          if (izabranPort === null) {
+            div.classList.add("izabran");
+            izabranPort = p.port;
+          }
+        }
+        kontejner.appendChild(div);
+      });
+
+      function potvrdi() {
+        const vlastiti = document.getElementById("vlastitiPort").value;
+        const port = vlastiti ? parseInt(vlastiti) : izabranPort;
+
+        if (!port) {
+          alert("Molimo izaberite ili unesite port.");
+          return;
+        }
+
+        if (vlastiti && (port < 1024 || port > 65535)) {
+          alert("Port mora biti između 1024 i 65535.");
+          return;
+        }
+
+        fetch("/setup/proveriPort?port=" + port)
+          .then((r) => r.json())
+          .then((d) => {
+            if (!d.slobodan) {
+              alert("Port " + port + " je zauzet. Molimo izaberite drugi.");
+              return;
+            }
+            fetch("/setup/potvrdi", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ port: port }),
+            })
+              .then((r) => r.json())
+              .then((d) => {
+                if (d.ok) {
+                  document.getElementById("poruka").style.display = "block";
+                  document.querySelector("button").disabled = true;
+                }
+              });
+          });
+      }
+    </script>
+  </body>
+</html>
