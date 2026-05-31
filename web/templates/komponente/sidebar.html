@@ -1,6 +1,5 @@
 {{define "sidebar"}}
 <aside class="sidebar" id="sidebar">
-    <!-- vrh sidebara — hamburger i logo -->
     <div class="sidebar-vrh">
         <button class="hamburger" id="hamburger" aria-label="Otvori/zatvori meni">
             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -10,19 +9,27 @@
             </svg>
         </button>
         <div class="logo-zona">
-            {{if .Logo}}
-                <img src="/static/{{.Logo}}" alt="Logo" style="width:36px;height:36px;object-fit:contain;border-radius:6px;">
+            {{if eq .LogoTip "slika"}}
+                <img src="/static/{{.LogoPutanja}}" alt="Logo" style="width:36px;height:36px;object-fit:contain;border-radius:6px;flex-shrink:0;">
+                <div>
+                    <div class="logo-naziv">{{.NazivFirme}}</div>
+                    <div class="logo-podnazlov">{{.Podnazlov}}</div>
+                </div>
+            {{else if eq .LogoTip "tekst"}}
+                <div>
+                    <div class="logo-naziv">{{.NazivFirme}}</div>
+                    <div class="logo-podnazlov">{{.Podnazlov}}</div>
+                </div>
             {{else}}
                 <div style="width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,0.1);border:1.5px dashed rgba(255,255,255,0.25);flex-shrink:0;"></div>
+                <div>
+                    <div class="logo-naziv">{{.NazivFirme}}</div>
+                    <div class="logo-podnazlov">{{.Podnazlov}}</div>
+                </div>
             {{end}}
-            <div>
-                <div class="logo-naziv">{{if .NazivFirme}}{{.NazivFirme}}{{else}}NTech{{end}}</div>
-                <div class="logo-podnazlov">Servis računara</div>
-            </div>
         </div>
     </div>
 
-    <!-- navigacija -->
     <nav class="sidebar-nav" aria-label="Glavna navigacija">
         <div class="nav-oznaka">Glavni meni</div>
 
@@ -66,13 +73,12 @@
         <div class="nav-oznaka">Sistem</div>
 
         <a href="/podesavanja" class="nav-stavka {{if eq .Stranica "podesavanja"}}aktivan{{end}}">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             <span>Podešavanja</span>
             <span class="nav-tooltip">Podešavanja</span>
         </a>
     </nav>
 
-    <!-- dno sidebara -->
     <div class="sidebar-dno">
         <a href="/odjava" class="nav-stavka">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
