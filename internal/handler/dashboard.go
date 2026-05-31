@@ -4,18 +4,28 @@ import (
 	"html/template"
 	"net/http"
 
+	"ntech/internal/db/sqlite"
 	"ntech/internal/model"
 )
 
 // Dashboard renderuje početnu stranicu
-func Dashboard(w http.ResponseWriter, r *http.Request) {
-	// za sad koristimo testne podatke — kasnije će ići iz baze
+func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
+	// čitamo sva podešavanja iz baze
+	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
+		return
+	}
+
 	podaci := model.PodaciDashboarda{
 		PodaciStranice: model.PodaciStranice{
 			Stranica:       "dashboard",
 			NaslovStranice: "Dashboard",
-			Tema:           "tamna",
-			NazivFirme:     "NTech",
+			Tema:           podesavanja["tema"],
+			NazivFirme:     podesavanja["naziv_firme"],
+			Podnazlov:      podesavanja["podnazlov"],
+			LogoTip:        podesavanja["logo_tip"],
+			LogoPutanja:    podesavanja["logo_putanja"],
 			Korisnik:       "Admin",
 		},
 		BrojArtikala:      0,
@@ -26,7 +36,6 @@ func Dashboard(w http.ResponseWriter, r *http.Request) {
 		KriticneZalihe:    []model.StavkaZalihe{},
 	}
 
-	// učitavamo sve potrebne šablone zajedno
 	tmpl, err := template.ParseFiles(
 		"web/templates/teme/podrazumevana/base.html",
 		"web/templates/komponente/sidebar.html",
@@ -38,7 +47,6 @@ func Dashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// renderujemo base šablon sa podacima
 	if err := tmpl.ExecuteTemplate(w, "base", podaci); err != nil {
 		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
 		return

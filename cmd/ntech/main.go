@@ -47,16 +47,19 @@ func main() {
 	}
 	log.Println("Migracije uspešno izvršene")
 
+	// kreiramo handler sa bazom
+	h := handler.Novi(db)
+
 	r := chi.NewRouter()
 
-	// statični fajlovi — CSS, JS, slike
+	// statični fajlovi
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
 
 	// rute
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/dashboard", http.StatusFound)
 	})
-	r.Get("/dashboard", handler.Dashboard)
+	r.Get("/dashboard", h.Dashboard)
 
 	log.Printf("NTech pokrenut na portu %s", port)
 	err = http.ListenAndServe(":"+port, r)
