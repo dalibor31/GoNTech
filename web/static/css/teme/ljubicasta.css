@@ -1,0 +1,15 @@
+:root {
+    --sb-pozadina:        #1e1535;
+    --sb-hover:           #2d2050;
+    --sb-aktivan:         #3d2b6e;
+    --sb-tekst:           #a78bca;
+    --sb-tekst-aktivan:   #ffffff;
+    --sb-akcent:          #a855f7;
+
+    --pozadina:           #f5f0ff;
+    --kartica:            #ffffff;
+    --tekst-glavni:       #1a1d2e;
+    --tekst-sporedni:     #6b7280;
+    --ivica:              #e5e7eb;
+    --topbar:             #ffffff;
+}
