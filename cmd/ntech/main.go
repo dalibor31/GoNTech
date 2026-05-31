@@ -56,6 +56,7 @@ func main() {
 	r.Get("/dashboard", h.Dashboard)
 	r.Get("/podesavanja", h.Podesavanja)
 	r.Post("/podesavanja/sacuvaj", h.SacuvajPodesavanja)
+	r.Get("/tema/{tema}", h.PromeniTemu)
 
 	log.Printf("NTech pokrenut na portu %s", port)
 	err = http.ListenAndServe(":"+port, r)

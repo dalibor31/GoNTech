@@ -6,6 +6,8 @@ import (
 
 	"ntech/internal/db/sqlite"
 	"ntech/internal/model"
+
+	"github.com/go-chi/chi/v5"
 )
 
 // PodaciPodesavanja su podaci za stranicu podešavanja
@@ -88,4 +90,30 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/podesavanja?sacuvano=1", http.StatusSeeOther)
+}
+
+// PromeniTemu menja aktivnu temu i vraća na prethodnu stranicu
+func (h *Handler) PromeniTemu(w http.ResponseWriter, r *http.Request) {
+	tema := chi.URLParam(r, "tema")
+
+	// proveravamo da li je validna tema
+	validne := map[string]bool{
+		"tamna": true, "svetla": true, "zelena": true, "ljubicasta": true,
+	}
+	if !validne[tema] {
+		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+		return
+	}
+
+	if err := sqlite.SacuvajPodesavanje(r.Context(), h.DB, "tema", tema); err != nil {
+		http.Error(w, "Greška pri promeni teme", http.StatusInternalServerError)
+		return
+	}
+
+	// vraćamo se na stranicu sa koje je kliknut dugmić
+	referer := r.Header.Get("Referer")
+	if referer == "" {
+		referer = "/dashboard"
+	}
+	http.Redirect(w, r, referer, http.StatusSeeOther)
 }
