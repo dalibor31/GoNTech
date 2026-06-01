@@ -11,7 +11,6 @@ type Artikal struct {
 	Kolicina     int
 	KolicinMin   int
 	Lokacija     string
-	NabavnaCena  float64
 	ProdajnaCena float64
 	Napomena     string
 	DatumUnosa   time.Time
@@ -28,5 +27,5 @@ type Kategorija struct {
 type ArtikalSaKategorijom struct {
 	Artikal
 	KategorijaNaziv string
-	KriticnaZaliha  bool // true ako je kolicina <= kolicina_min
+	KriticnaZaliha  bool
 }
