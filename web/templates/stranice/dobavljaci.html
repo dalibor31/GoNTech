@@ -1,0 +1,198 @@
+{{template "base" .}}
+
+{{define "naslov"}}Dobavljači — NTech{{end}}
+
+{{define "dodatni-css"}}
+<style>
+    @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .poruka-animacija {
+        animation: slideDown 0.3s ease forwards;
+    }
+
+    .dobavljaci-tabela tbody tr {
+        animation: fadeInUp 0.25s ease forwards;
+        opacity: 0;
+    }
+
+    /* stagger — svaki red se pojavljuje malo kasnije */
+    .dobavljaci-tabela tbody tr:nth-child(1)  { animation-delay: 0.04s; }
+    .dobavljaci-tabela tbody tr:nth-child(2)  { animation-delay: 0.08s; }
+    .dobavljaci-tabela tbody tr:nth-child(3)  { animation-delay: 0.12s; }
+    .dobavljaci-tabela tbody tr:nth-child(4)  { animation-delay: 0.16s; }
+    .dobavljaci-tabela tbody tr:nth-child(5)  { animation-delay: 0.20s; }
+    .dobavljaci-tabela tbody tr:nth-child(6)  { animation-delay: 0.24s; }
+    .dobavljaci-tabela tbody tr:nth-child(7)  { animation-delay: 0.28s; }
+    .dobavljaci-tabela tbody tr:nth-child(8)  { animation-delay: 0.32s; }
+    .dobavljaci-tabela tbody tr:nth-child(9)  { animation-delay: 0.36s; }
+    .dobavljaci-tabela tbody tr:nth-child(10) { animation-delay: 0.40s; }
+
+    .dobavljaci-kartice {
+        display: none;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .dobavljac-kartica {
+        animation: fadeInUp 0.25s ease forwards;
+        opacity: 0;
+    }
+
+    .dobavljac-kartica:nth-child(1)  { animation-delay: 0.04s; }
+    .dobavljac-kartica:nth-child(2)  { animation-delay: 0.10s; }
+    .dobavljac-kartica:nth-child(3)  { animation-delay: 0.16s; }
+    .dobavljac-kartica:nth-child(4)  { animation-delay: 0.22s; }
+    .dobavljac-kartica:nth-child(5)  { animation-delay: 0.28s; }
+
+    @media (max-width: 768px) {
+        .dobavljaci-tabela  { display: none; }
+        .dobavljaci-kartice { display: flex; }
+    }
+</style>
+{{end}}
+
+{{define "sadrzaj"}}
+<div style="display:flex;flex-direction:column;gap:16px;">
+
+    {{if .Sacuvano}}
+    <div class="poruka-uspeh poruka-animacija">Dobavljač je uspešno sačuvan.</div>
+    {{end}}
+    {{if .Obrisan}}
+    <div class="poruka-uspeh poruka-animacija">Dobavljač je uspešno obrisan.</div>
+    {{end}}
+
+    <!-- gornja traka: dugme + pretraga -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <a href="/dobavljaci/novi"
+            style="padding:8px 16px;background:var(--sb-akcent);color:#fff;border-radius:8px;font-size:14px;font-weight:500;text-decoration:none;white-space:nowrap;transition:opacity 0.2s;"
+            onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+            + Novi dobavljač
+        </a>
+        <form method="GET" action="/dobavljaci" style="display:flex;gap:8px;flex:1;min-width:200px;">
+            <input type="text" name="pretraga" value="{{.Pretraga}}"
+                placeholder="Pretraži dobavljače..."
+                style="flex:1;">
+            <button type="submit"
+                style="padding:8px 16px;background:var(--sb-aktivan);color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;white-space:nowrap;transition:opacity 0.2s;"
+                onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                Traži
+            </button>
+        </form>
+    </div>
+
+    <!-- desktop tabela -->
+    <div class="kartica dobavljaci-tabela" style="padding:0;overflow:hidden;">
+        <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;">
+                <thead>
+                    <tr style="border-bottom:0.5px solid var(--ivica);">
+                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Naziv</th>
+                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Kontakt osoba</th>
+                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Telefon</th>
+                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">E-pošta</th>
+                        <th style="padding:12px 16px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Akcije</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Dobavljaci}}
+                    <tr style="border-bottom:0.5px solid var(--ivica);transition:background 0.15s;"
+                        onmouseover="this.style.background='var(--pozadina)'"
+                        onmouseout="this.style.background=''">
+                        <td style="padding:12px 16px;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{.Naziv}}</td>
+                        <td style="padding:12px 16px;font-size:13px;color:var(--tekst-sporedni);">
+                            {{if .KontaktOsoba}}{{.KontaktOsoba}}{{else}}—{{end}}
+                        </td>
+                        <td style="padding:12px 16px;font-size:13px;color:var(--tekst-sporedni);">
+                            {{if .Telefon}}{{.Telefon}}{{else}}—{{end}}
+                        </td>
+                        <td style="padding:12px 16px;font-size:13px;color:var(--tekst-sporedni);">
+                            {{if .Email}}{{.Email}}{{else}}—{{end}}
+                        </td>
+                        <td style="padding:12px 16px;text-align:center;">
+                            <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+                                <a href="/dobavljaci/izmeni/{{.ID}}"
+                                    style="padding:4px 10px;background:var(--sb-aktivan);color:#fff;border-radius:6px;font-size:12px;text-decoration:none;transition:opacity 0.2s;"
+                                    onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                                    Izmeni
+                                </a>
+                                <form method="POST" action="/dobavljaci/obrisi/{{.ID}}" style="display:inline;">
+                                    <button type="submit"
+                                        onclick="return confirm('Da li ste sigurni da želite da obrišete dobavljača {{.Naziv}}?')"
+                                        style="padding:4px 10px;background:#dc2626;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;transition:opacity 0.2s;"
+                                        onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                                        Obriši
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {{else}}
+                    <tr>
+                        <td colspan="5" style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
+                            Nema dobavljača. <a href="/dobavljaci/novi" style="color:var(--sb-akcent);">Dodaj prvog dobavljača.</a>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- mobilne kartice -->
+    <div class="dobavljaci-kartice">
+        {{range .Dobavljaci}}
+        <div class="kartica dobavljac-kartica">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;">
+                <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">{{.Naziv}}</span>
+                <div style="display:flex;gap:8px;flex-shrink:0;">
+                    <a href="/dobavljaci/izmeni/{{.ID}}"
+                        style="padding:4px 10px;background:var(--sb-aktivan);color:#fff;border-radius:6px;font-size:12px;text-decoration:none;">
+                        Izmeni
+                    </a>
+                    <form method="POST" action="/dobavljaci/obrisi/{{.ID}}" style="display:inline;">
+                        <button type="submit"
+                            onclick="return confirm('Da li ste sigurni da želite da obrišete dobavljača {{.Naziv}}?')"
+                            style="padding:4px 10px;background:#dc2626;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;">
+                            Obriši
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+                {{if .KontaktOsoba}}
+                <div style="font-size:13px;color:var(--tekst-sporedni);">
+                    <span style="color:var(--tekst-glavni);font-weight:500;">Kontakt:</span> {{.KontaktOsoba}}
+                </div>
+                {{end}}
+                {{if .Telefon}}
+                <div style="font-size:13px;color:var(--tekst-sporedni);">
+                    <span style="color:var(--tekst-glavni);font-weight:500;">Telefon:</span> {{.Telefon}}
+                </div>
+                {{end}}
+                {{if .Email}}
+                <div style="font-size:13px;color:var(--tekst-sporedni);">
+                    <span style="color:var(--tekst-glavni);font-weight:500;">E-pošta:</span> {{.Email}}
+                </div>
+                {{end}}
+                {{if not .KontaktOsoba}}{{if not .Telefon}}{{if not .Email}}
+                <div style="font-size:13px;color:var(--tekst-sporedni);">Nema dodatnih kontakt podataka.</div>
+                {{end}}{{end}}{{end}}
+            </div>
+        </div>
+        {{else}}
+        <div style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
+            Nema dobavljača. <a href="/dobavljaci/novi" style="color:var(--sb-akcent);">Dodaj prvog dobavljača.</a>
+        </div>
+        {{end}}
+    </div>
+
+</div>
+{{end}}

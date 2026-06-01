@@ -1,6 +1,6 @@
 # Binarne datoteke
-ntech
-ntech.exe
+/ntech
+/ntech.exe
 
 # Baza podataka
 *.db
@@ -25,3 +25,5 @@ ntech.exe
 # IDE podešavanja
 .idea/
 *.swp
+
+

@@ -23,7 +23,25 @@ type KategorijaRepository interface {
 
 // ArtikalFilter definiše parametre za filtriranje liste artikala
 type ArtikalFilter struct {
-	Pretraga       string
-	KategorijaID   *int64
-	SamoKriticni   bool
+	Pretraga     string
+	KategorijaID *int64
+	SamoKriticni bool
+}
+
+// NabavkaRepository definiše operacije nad nabavkama
+type NabavkaRepository interface {
+	Lista(ctx context.Context) ([]model.NabavkaSaDetaljem, error)
+	DohvatiID(ctx context.Context, id int64) (*model.Nabavka, error)
+	DohvatiStavke(ctx context.Context, nabavkaID int64) ([]model.StavkaSaArtiklom, error)
+	Kreiraj(ctx context.Context, n *model.Nabavka, stavke []model.StavkaNabavke) (int64, error)
+	Obrisi(ctx context.Context, id int64) error
+}
+
+// DobavljacRepository definiše operacije nad dobavljačima
+type DobavljacRepository interface {
+	Lista(ctx context.Context, pretraga string) ([]model.Dobavljac, error)
+	DohvatiID(ctx context.Context, id int64) (*model.Dobavljac, error)
+	Kreiraj(ctx context.Context, d *model.Dobavljac) (int64, error)
+	Izmeni(ctx context.Context, d *model.Dobavljac) error
+	Obrisi(ctx context.Context, id int64) error
 }
