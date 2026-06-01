@@ -15,6 +15,7 @@ type Handler struct {
 	DobavljaciRepo db.DobavljacRepository
 	NabavkeRepo    db.NabavkaRepository
 	KlijentiRepo   db.KlijentRepository
+	ServisRepo     db.ServisRepository
 }
 
 // Novi kreira novi Handler sa datom bazom
@@ -26,5 +27,6 @@ func Novi(baza *sql.DB) *Handler {
 		DobavljaciRepo: sqlite.NoviDobavljacRepo(baza),
 		NabavkeRepo:    sqlite.NoviNabavkaRepo(baza),
 		KlijentiRepo:   sqlite.NoviKlijentRepo(baza),
+		ServisRepo:     sqlite.NoviServisRepo(baza),
 	}
 }

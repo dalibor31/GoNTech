@@ -1,0 +1,197 @@
+{{template "base" .}}
+
+{{define "naslov"}}{{if .Izmena}}Izmeni nalog{{else}}Novi nalog{{end}} — NTech{{end}}
+
+{{define "dodatni-css"}}
+<style>
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        20%       { transform: translateX(-6px); }
+        40%       { transform: translateX(6px); }
+        60%       { transform: translateX(-4px); }
+        80%       { transform: translateX(4px); }
+    }
+
+    .forma-kartica    { animation: fadeInUp 0.3s ease forwards; }
+    .greska-animacija { animation: shake 0.4s ease; }
+
+    .sekcija-naslov {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--tekst-sporedni);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 10px;
+    }
+
+    @media (max-width: 768px) {
+        .forma-grid-2 { grid-template-columns: 1fr !important; }
+        .forma-grid-4 { grid-template-columns: 1fr 1fr !important; }
+    }
+</style>
+{{end}}
+
+{{define "sadrzaj"}}
+<div style="width:100%;">
+
+    <!-- nazad dugme -->
+    <a href="/servis"
+        style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--tekst-sporedni);text-decoration:none;margin-bottom:20px;transition:color 0.2s;"
+        onmouseover="this.style.color='var(--tekst-glavni)'" onmouseout="this.style.color='var(--tekst-sporedni)'">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Nazad na servis
+    </a>
+
+    <div class="kartica forma-kartica">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);flex-wrap:wrap;gap:10px;">
+            <span style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">
+                {{if .Izmena}}Izmeni nalog{{else}}Novi nalog{{end}}
+            </span>
+            <span style="font-size:14px;font-weight:500;color:var(--tekst-sporedni);font-family:monospace;">
+                {{.Nalog.BrojNaloga}}
+            </span>
+        </div>
+
+        {{if .Greska}}
+        <div class="greska-animacija"
+            style="background:var(--kartica);border:0.5px solid #dc2626;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:#dc2626;">
+            {{.Greska}}
+        </div>
+        {{end}}
+
+        <form method="POST" action="{{if .Izmena}}/servis/izmeni/{{.Nalog.ID}}{{else}}/servis/novi{{end}}">
+
+            <!-- broj naloga ide kao hidden — server ga je generisao, vraćamo ga pri POST-u -->
+            <input type="hidden" name="broj_naloga" value="{{.Nalog.BrojNaloga}}">
+
+            <div style="display:flex;flex-direction:column;gap:20px;">
+
+                <!-- uređaj -->
+                <div>
+                    <div class="sekcija-naslov">Uređaj</div>
+                    <div style="display:flex;flex-direction:column;gap:12px;">
+                        <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                            <div>
+                                <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">
+                                    Uređaj <span style="color:#dc2626;">*</span>
+                                </label>
+                                <input type="text" name="uredjaj" value="{{.Nalog.Uredjaj}}"
+                                    placeholder="npr. Laptop HP EliteBook 840"
+                                    style="width:100%;">
+                            </div>
+                            <div>
+                                <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Serijski broj</label>
+                                <input type="text" name="serijski_broj" value="{{.Nalog.SerijskiBroj}}"
+                                    placeholder="npr. 5CD1234XYZ"
+                                    style="width:100%;">
+                            </div>
+                        </div>
+                        <div>
+                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">
+                                Opis kvara <span style="color:#dc2626;">*</span>
+                            </label>
+                            <textarea name="opis_kvara" rows="3"
+                                placeholder="Opišite problem koji je klijent prijavio..."
+                                style="width:100%;resize:vertical;">{{.Nalog.OpisKvara}}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- klijent -->
+                <div>
+                    <div class="sekcija-naslov">Klijent</div>
+                    <select name="klijent_id" style="width:100%;">
+                        <option value="">— bez klijenta —</option>
+                        {{range .Klijenti}}
+                        <option value="{{.ID}}"
+                            {{if $.Nalog.KlijentID}}{{if eq .ID $.Nalog.KlijentID}}selected{{end}}{{end}}>
+                            {{if .NazivFirme}}{{.NazivFirme}}{{else}}{{.Ime}} {{.Prezime}}{{end}}
+                        </option>
+                        {{end}}
+                    </select>
+                </div>
+
+                <!-- status i datum završetka -->
+                <div>
+                    <div class="sekcija-naslov">Status</div>
+                    <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <div>
+                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Status naloga</label>
+                            <select name="status" style="width:100%;">
+                                {{range .SviStatusi}}
+                                <option value="{{.}}" {{if eq . $.Nalog.Status}}selected{{end}}>{{.}}</option>
+                                {{end}}
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Datum završetka</label>
+                            <input type="date" name="datum_zavrsetka"
+                                value="{{if .Nalog.DatumZavrsetka}}{{.Nalog.DatumZavrsetka.Format "2006-01-02"}}{{end}}"
+                                style="width:100%;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- cene -->
+                <div>
+                    <div class="sekcija-naslov">Cene (din)</div>
+                    <div class="forma-grid-4" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;">
+                        <div>
+                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Procena od</label>
+                            <input type="number" name="cena_od" min="0" step="0.01"
+                                value="{{if .Nalog.CenaOd}}{{.Nalog.CenaOd}}{{end}}"
+                                placeholder="0" style="width:100%;">
+                        </div>
+                        <div>
+                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Procena do</label>
+                            <input type="number" name="cena_do" min="0" step="0.01"
+                                value="{{if .Nalog.CenaDo}}{{.Nalog.CenaDo}}{{end}}"
+                                placeholder="0" style="width:100%;">
+                        </div>
+                        <div>
+                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Konačna cena</label>
+                            <input type="number" name="cena_konacna" min="0" step="0.01"
+                                value="{{if .Nalog.CenaKonacna}}{{.Nalog.CenaKonacna}}{{end}}"
+                                placeholder="0" style="width:100%;">
+                        </div>
+                        <div>
+                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Avans</label>
+                            <input type="number" name="avans" min="0" step="0.01"
+                                value="{{if .Nalog.Avans}}{{.Nalog.Avans}}{{end}}"
+                                placeholder="0" style="width:100%;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- napomena -->
+                <div>
+                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Napomena</label>
+                    <textarea name="napomena" rows="2"
+                        placeholder="Interna napomena o nalogu..."
+                        style="width:100%;resize:vertical;">{{.Nalog.Napomena}}</textarea>
+                </div>
+
+                <!-- dugmad -->
+                <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:6px;">
+                    <a href="/servis"
+                        style="padding:9px 20px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;color:var(--tekst-sporedni);text-decoration:none;transition:background 0.2s;"
+                        onmouseover="this.style.background='var(--pozadina)'" onmouseout="this.style.background=''">
+                        Odustani
+                    </a>
+                    <button type="submit"
+                        style="padding:9px 20px;background:var(--sb-akcent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:opacity 0.2s;"
+                        onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                        {{if .Izmena}}Sačuvaj izmene{{else}}Sačuvaj nalog{{end}}
+                    </button>
+                </div>
+
+            </div>
+        </form>
+    </div>
+</div>
+{{end}}

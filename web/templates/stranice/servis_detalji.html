@@ -1,0 +1,202 @@
+{{template "base" .}}
+
+{{define "naslov"}}Detalji naloga — NTech{{end}}
+
+{{define "dodatni-css"}}
+<style>
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .detalji-kartica {
+        animation: fadeInUp 0.3s ease forwards;
+        opacity: 0;
+    }
+
+    .detalji-kartica:nth-child(1) { animation-delay: 0.04s; }
+    .detalji-kartica:nth-child(2) { animation-delay: 0.12s; }
+    .detalji-kartica:nth-child(3) { animation-delay: 0.20s; }
+    .detalji-kartica:nth-child(4) { animation-delay: 0.28s; }
+    .detalji-kartica:nth-child(5) { animation-delay: 0.36s; }
+
+    .poruka-animacija { animation: slideDown 0.3s ease forwards; }
+
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    .status-primljeno    { background: rgba(148,163,184,0.15); color: #94a3b8; }
+    .status-dijagnostika { background: rgba(59,130,246,0.15);  color: #3b82f6; }
+    .status-ceka         { background: rgba(249,115,22,0.15);  color: #f97316; }
+    .status-popravka     { background: rgba(234,179,8,0.15);   color: #ca8a04; }
+    .status-zavrseno     { background: rgba(34,197,94,0.15);   color: #16a34a; }
+    .status-preuzeto     { background: rgba(21,128,61,0.15);   color: #15803d; }
+</style>
+{{end}}
+
+{{define "status-badge-detalji"}}
+{{if eq . "Primljeno"}}<span class="status-badge status-primljeno">{{.}}</span>
+{{else if eq . "U dijagnostici"}}<span class="status-badge status-dijagnostika">{{.}}</span>
+{{else if eq . "Čeka delove"}}<span class="status-badge status-ceka">{{.}}</span>
+{{else if eq . "U popravci"}}<span class="status-badge status-popravka">{{.}}</span>
+{{else if eq . "Završeno"}}<span class="status-badge status-zavrseno">{{.}}</span>
+{{else if eq . "Preuzeto"}}<span class="status-badge status-preuzeto">{{.}}</span>
+{{else}}<span class="status-badge status-primljeno">{{.}}</span>
+{{end}}
+{{end}}
+
+{{define "sadrzaj"}}
+<div style="display:flex;flex-direction:column;gap:16px;">
+
+    {{if .Sacuvano}}
+    <div class="poruka-uspeh poruka-animacija">Nalog je uspešno sačuvan.</div>
+    {{end}}
+
+    <!-- nazad dugme -->
+    <a href="/servis"
+        style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--tekst-sporedni);text-decoration:none;transition:color 0.2s;"
+        onmouseover="this.style.color='var(--tekst-glavni)'" onmouseout="this.style.color='var(--tekst-sporedni)'">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Nazad na servis
+    </a>
+
+    <!-- zaglavlje naloga -->
+    <div class="kartica detalji-kartica">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);">
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <span style="font-size:20px;font-weight:600;color:var(--tekst-glavni);font-family:monospace;">
+                    {{.Nalog.BrojNaloga}}
+                </span>
+                {{template "status-badge-detalji" .Nalog.Status}}
+            </div>
+            <a href="/servis/izmeni/{{.Nalog.ID}}"
+                style="padding:8px 18px;background:var(--sb-aktivan);color:#fff;border-radius:8px;font-size:14px;font-weight:500;text-decoration:none;transition:opacity 0.2s;white-space:nowrap;"
+                onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                Izmeni nalog
+            </a>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:16px;">
+            <div>
+                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Datum prijema</div>
+                <div style="font-size:14px;color:var(--tekst-glavni);">{{.Nalog.DatumPrijema.Format "02.01.2006. u 15:04"}}</div>
+            </div>
+            {{if .Nalog.DatumZavrsetka}}
+            <div>
+                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Datum završetka</div>
+                <div style="font-size:14px;color:var(--tekst-glavni);">{{.Nalog.DatumZavrsetka.Format "02.01.2006."}}</div>
+            </div>
+            {{end}}
+            <div>
+                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Klijent</div>
+                <div style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">
+                    {{if .KlijentNaziv}}{{.KlijentNaziv}}{{else}}—{{end}}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- podaci o uređaju -->
+    <div class="kartica detalji-kartica">
+        <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);">
+            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Uređaj</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:16px;">
+                <div>
+                    <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Naziv uređaja</div>
+                    <div style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{.Nalog.Uredjaj}}</div>
+                </div>
+                <div>
+                    <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Serijski broj</div>
+                    <div style="font-size:14px;color:var(--tekst-glavni);">
+                        {{if .Nalog.SerijskiBroj}}{{.Nalog.SerijskiBroj}}{{else}}—{{end}}
+                    </div>
+                </div>
+            </div>
+            <div>
+                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:6px;">Opis kvara</div>
+                <div style="font-size:14px;color:var(--tekst-glavni);line-height:1.6;white-space:pre-wrap;">{{.Nalog.OpisKvara}}</div>
+            </div>
+            {{if .Nalog.Napomena}}
+            <div>
+                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:6px;">Napomena</div>
+                <div style="font-size:13px;color:var(--tekst-sporedni);line-height:1.6;white-space:pre-wrap;">{{.Nalog.Napomena}}</div>
+            </div>
+            {{end}}
+        </div>
+    </div>
+
+    <!-- cene -->
+    <div class="kartica detalji-kartica">
+        <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);">
+            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Cene</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:16px;">
+            <div>
+                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Procena od</div>
+                <div style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">
+                    {{with .Nalog.CenaOd}}{{printf "%.2f" .}} din{{else}}—{{end}}
+                </div>
+            </div>
+            <div>
+                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Procena do</div>
+                <div style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">
+                    {{with .Nalog.CenaDo}}{{printf "%.2f" .}} din{{else}}—{{end}}
+                </div>
+            </div>
+            <div>
+                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Konačna cena</div>
+                <div style="font-size:20px;font-weight:600;color:var(--sb-akcent);">
+                    {{with .Nalog.CenaKonacna}}{{printf "%.2f" .}} din{{else}}—{{end}}
+                </div>
+            </div>
+            <div>
+                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Avans</div>
+                <div style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">
+                    {{with .Nalog.Avans}}{{printf "%.2f" .}} din{{else}}—{{end}}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- placeholder za buduće funkcije -->
+    <div class="kartica detalji-kartica" style="border-style:dashed;">
+        <div style="display:flex;align-items:center;gap:10px;color:var(--tekst-sporedni);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span style="font-size:13px;">Istorija promena statusa i vezani artikli biće dostupni u narednoj verziji.</span>
+        </div>
+    </div>
+
+    <!-- zona za brisanje -->
+    <div class="kartica detalji-kartica" style="border-color:#dc262633;">
+        <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:200px;">
+                <div style="font-size:14px;font-weight:500;color:#dc2626;margin-bottom:4px;">Brisanje naloga</div>
+                <div style="font-size:13px;color:var(--tekst-sporedni);">
+                    Brisanje je trajno. Nalog i svi vezani podaci biće trajno uklonjeni.
+                </div>
+            </div>
+            <form method="POST" action="/servis/obrisi/{{.Nalog.ID}}">
+                <button type="submit"
+                    onclick="return confirm('Da li ste sigurni da želite da obrišete nalog {{.Nalog.BrojNaloga}}?')"
+                    style="padding:9px 20px;background:#dc2626;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap;transition:opacity 0.2s;"
+                    onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                    Obriši nalog
+                </button>
+            </form>
+        </div>
+    </div>
+
+</div>
+{{end}}
