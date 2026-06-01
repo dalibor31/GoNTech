@@ -45,3 +45,12 @@ type DobavljacRepository interface {
 	Izmeni(ctx context.Context, d *model.Dobavljac) error
 	Obrisi(ctx context.Context, id int64) error
 }
+
+// KlijentRepository definiše operacije nad klijentima
+type KlijentRepository interface {
+	Lista(ctx context.Context, pretraga string) ([]model.Klijent, error)
+	DohvatiID(ctx context.Context, id int64) (*model.Klijent, error)
+	Kreiraj(ctx context.Context, k *model.Klijent) (int64, error)
+	Izmeni(ctx context.Context, k *model.Klijent) error
+	Obrisi(ctx context.Context, id int64) error
+}
