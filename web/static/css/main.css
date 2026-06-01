@@ -393,3 +393,54 @@ select:focus {
 .tema-krug-aktivan {
     border-color: var(--tekst-glavni) !important;
 }
+
+/* forme — responsive */
+@media (max-width: 768px) {
+    .forma-grid-2 {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* gornja traka magacina — responsive */
+.magacin-traka {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.magacin-traka form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 200px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    .magacin-traka {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .magacin-traka form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .magacin-traka a {
+        text-align: center;
+    }
+}
+
+/* dodatna korekcija magacin trake */
+@media (max-width: 768px) {
+    .magacin-traka form input,
+    .magacin-traka form select,
+    .magacin-traka form button,
+    .magacin-traka form label {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
