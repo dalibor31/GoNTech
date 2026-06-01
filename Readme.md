@@ -131,12 +131,3 @@ ntech/
 ├── go.mod
 └── go.sum
 ```
-
----
-
-## Licenca
-
-© 2026 Dalibor Marković
-
-Slobodno korišćenje i modifikovanje za lične i nekomercijalnu svrhe.  
-Za komercijalnu upotrebu obavezno kontaktirati autora.
