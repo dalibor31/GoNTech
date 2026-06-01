@@ -54,3 +54,13 @@ type KlijentRepository interface {
 	Izmeni(ctx context.Context, k *model.Klijent) error
 	Obrisi(ctx context.Context, id int64) error
 }
+
+// ServisRepository definiše operacije nad servisnim nalozima
+type ServisRepository interface {
+	Lista(ctx context.Context, pretraga, status string) ([]model.ServisniNalogSaKlijentom, error)
+	DohvatiID(ctx context.Context, id int64) (*model.ServisniNalog, error)
+	Kreiraj(ctx context.Context, n *model.ServisniNalog) (int64, error)
+	Izmeni(ctx context.Context, n *model.ServisniNalog) error
+	Obrisi(ctx context.Context, id int64) error
+	SledeciBroj(ctx context.Context) (string, error)
+}
