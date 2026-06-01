@@ -294,3 +294,102 @@ select:focus {
     font-size: 14px;
     color: var(--sb-akcent);
 }
+
+/* overlay za mobilni — tamni sloj iza sidebara */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 9;
+}
+
+.sidebar-overlay.aktivan {
+    display: block;
+}
+
+/* mobilni ekrani */
+@media (max-width: 768px) {
+    .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        z-index: 10;
+        transform: translateX(-100%);
+        transition: transform 0.28s cubic-bezier(.4,0,.2,1);
+        width: 220px !important;
+    }
+
+    .sidebar.otvoren {
+        transform: translateX(0);
+    }
+
+    /* na mobilnom logo zona uvek vidljiva kada je sidebar otvoren */
+    .sidebar.otvoren .logo-zona {
+        opacity: 1;
+        width: 160px;
+        pointer-events: auto;
+    }
+
+    .sidebar.otvoren .nav-oznaka {
+        opacity: 1;
+    }
+
+    .sidebar.otvoren .nav-stavka span {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    /* glavni sadržaj zauzima celu širinu */
+    .glavni-sadrzaj {
+        width: 100%;
+    }
+
+    /* sakrij tooltip na mobilnom */
+    .nav-tooltip {
+        display: none !important;
+    }
+}
+
+/* hamburger u topbaru — samo na mobilnom */
+@media (max-width: 768px) {
+    #hamburger-topbar {
+        display: flex !important;
+        color: var(--tekst-glavni);
+    }
+
+    #hamburger-topbar:hover {
+        background: var(--pozadina);
+    }
+}
+
+/* tačkice za teme u topbaru — sakrij na mobilnom */
+@media (max-width: 768px) {
+    .topbar-teme {
+        display: none;
+    }
+
+    /* teme u podešavanjima — jedna ispod druge na mobilnom */
+    .teme-grid {
+        flex-direction: column !important;
+    }
+}
+
+/* tačkice za teme */
+.tema-krug {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-block;
+    border: 2px solid transparent;
+    transition: border-color 0.2s;
+}
+
+.tema-krug:hover {
+    border-color: var(--tekst-sporedni);
+}
+
+.tema-krug-aktivan {
+    border-color: var(--tekst-glavni) !important;
+}

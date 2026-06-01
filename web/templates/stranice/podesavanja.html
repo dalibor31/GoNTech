@@ -64,7 +64,7 @@
 
             <div>
                 <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:8px;">Tema</label>
-                <div style="display:flex;gap:10px;">
+                <div class="teme-grid" style="display:flex;gap:10px;">
                     <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;cursor:pointer;flex:1;{{if eq .Tema "tamna"}}border-color:var(--sb-akcent);{{end}}">
                         <input type="radio" name="tema" value="tamna" {{if eq .Tema "tamna"}}checked{{end}} style="accent-color:var(--sb-akcent);">
                         <div style="width:16px;height:16px;border-radius:50%;background:#1a1d2e;flex-shrink:0;"></div>

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"html/template"
+	"log"
 	"net/http"
 
 	"ntech/internal/db/sqlite"
@@ -48,6 +49,7 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := tmpl.ExecuteTemplate(w, "base", podaci); err != nil {
+		log.Printf("greška pri renderovanju: %v", err)
 		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
 		return
 	}
