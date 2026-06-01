@@ -1,13 +1,24 @@
 package handler
 
-import "database/sql"
+import (
+	"database/sql"
+
+	"ntech/internal/db"
+	"ntech/internal/db/sqlite"
+)
 
 // Handler drži zavisnosti koje su potrebne svim handlerima
 type Handler struct {
-	DB *sql.DB
+	DB             *sql.DB
+	Artikli        db.ArtikalRepository
+	KategorijeRepo db.KategorijaRepository
 }
 
 // Novi kreira novi Handler sa datom bazom
-func Novi(db *sql.DB) *Handler {
-	return &Handler{DB: db}
+func Novi(baza *sql.DB) *Handler {
+	return &Handler{
+		DB:             baza,
+		Artikli:        sqlite.NoviArtikalRepo(baza),
+		KategorijeRepo: sqlite.NovaKategorijaRepo(baza),
+	}
 }

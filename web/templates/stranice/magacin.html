@@ -1,0 +1,111 @@
+{{template "base" .}}
+
+{{define "naslov"}}Magacin — NTech{{end}}
+
+{{define "sadrzaj"}}
+<div style="display:flex;flex-direction:column;gap:16px;">
+
+    {{if .Sacuvano}}
+    <div class="poruka-uspeh">Artikal je uspešno sačuvan.</div>
+    {{end}}
+    {{if .Obrisan}}
+    <div class="poruka-uspeh">Artikal je uspešno obrisan.</div>
+    {{end}}
+
+    <!-- dugmad -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="/magacin/novi"
+            style="padding:8px 16px;background:var(--sb-akcent);color:#fff;border-radius:8px;font-size:14px;font-weight:500;text-decoration:none;white-space:nowrap;">
+            + Novi artikal
+        </a>
+        <a href="/magacin/kategorije"
+            style="padding:8px 16px;background:var(--sb-aktivan);color:#fff;border-radius:8px;font-size:14px;font-weight:500;text-decoration:none;white-space:nowrap;">
+            Kategorije
+        </a>
+    </div>
+
+    <!-- pretraga i filteri -->
+    <form method="GET" action="/magacin" style="display:flex;flex-direction:column;gap:10px;">
+        <input type="text" name="pretraga" value="{{.Filter.Pretraga}}"
+            placeholder="Pretraži artikle..."
+            style="width:100%;">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <select name="kategorija" style="flex:1;min-width:140px;">
+                <option value="">Sve kategorije</option>
+                {{range .Kategorije}}
+                <option value="{{.ID}}" {{if eq (printf "%d" .ID) $.KategorijaIDStr}}selected{{end}}>{{.Naziv}}</option>
+                {{end}}
+            </select>
+            <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--tekst-sporedni);cursor:pointer;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;background:var(--kartica);white-space:nowrap;">
+                <input type="checkbox" name="kriticni" value="1" {{if .Filter.SamoKriticni}}checked{{end}}>
+                Samo kritični
+            </label>
+            <button type="submit"
+                style="padding:8px 16px;background:var(--sb-aktivan);color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;white-space:nowrap;">
+                Traži
+            </button>
+        </div>
+    </form>
+
+    <!-- tabela artikala -->
+    <div class="kartica" style="padding:0;overflow:hidden;">
+        <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;">
+                <thead>
+                    <tr style="border-bottom:0.5px solid var(--ivica);">
+                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Naziv</th>
+                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Kategorija</th>
+                        <th style="padding:12px 16px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Količina</th>
+                        <th style="padding:12px 16px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Nabavna</th>
+                        <th style="padding:12px 16px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Prodajna</th>
+                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Lokacija</th>
+                        <th style="padding:12px 16px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Akcije</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Artikli}}
+                    <tr style="border-bottom:0.5px solid var(--ivica);transition:background 0.15s;"
+                        onmouseover="this.style.background='var(--pozadina)'"
+                        onmouseout="this.style.background=''">
+                        <td style="padding:12px 16px;font-size:14px;color:var(--tekst-glavni);">{{.Naziv}}</td>
+                        <td style="padding:12px 16px;font-size:13px;color:var(--tekst-sporedni);">
+                            {{if .KategorijaNaziv}}{{.KategorijaNaziv}}{{else}}—{{end}}
+                        </td>
+                        <td style="padding:12px 16px;text-align:center;">
+                            <span style="font-size:14px;font-weight:500;color:{{if .KriticnaZaliha}}#dc2626{{else}}#16a34a{{end}};">
+                                {{.Kolicina}}
+                            </span>
+                        </td>
+                        <td style="padding:12px 16px;text-align:right;font-size:13px;color:var(--tekst-sporedni);">{{printf "%.0f" .NabavnaCena}} din</td>
+                        <td style="padding:12px 16px;text-align:right;font-size:14px;color:var(--tekst-glavni);">{{printf "%.0f" .ProdajnaCena}} din</td>
+                        <td style="padding:12px 16px;font-size:13px;color:var(--tekst-sporedni);">
+                            {{if .Lokacija}}{{.Lokacija}}{{else}}—{{end}}
+                        </td>
+                        <td style="padding:12px 16px;text-align:center;">
+                            <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+                                <a href="/magacin/izmeni/{{.ID}}"
+                                    style="padding:4px 10px;background:var(--sb-aktivan);color:#fff;border-radius:6px;font-size:12px;text-decoration:none;">
+                                    Izmeni
+                                </a>
+                                <a href="/magacin/obrisi/{{.ID}}"
+                                    onclick="return confirm('Da li ste sigurni da želite da obrišete ovaj artikal?')"
+                                    style="padding:4px 10px;background:#dc2626;color:#fff;border-radius:6px;font-size:12px;text-decoration:none;">
+                                    Obriši
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {{else}}
+                    <tr>
+                        <td colspan="7" style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
+                            Nema artikala. <a href="/magacin/novi" style="color:var(--sb-akcent);">Dodaj prvi artikal.</a>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{{end}}

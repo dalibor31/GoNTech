@@ -1,0 +1,115 @@
+{{template "base" .}}
+
+{{define "naslov"}}{{if .Izmena}}Izmeni artikal{{else}}Novi artikal{{end}} — NTech{{end}}
+
+{{define "sadrzaj"}}
+<div style="width:100%;">
+
+    <!-- nazad dugme -->
+    <a href="/magacin" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--tekst-sporedni);text-decoration:none;margin-bottom:20px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Nazad na magacin
+    </a>
+
+    <div class="kartica">
+        <div style="margin-bottom:20px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);">
+            <span style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">
+                {{if .Izmena}}Izmeni artikal{{else}}Novi artikal{{end}}
+            </span>
+        </div>
+
+        {{if .Greska}}
+        <div style="background:var(--kartica);border:0.5px solid #dc2626;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:#dc2626;">
+            {{.Greska}}
+        </div>
+        {{end}}
+
+        <form method="POST" action="{{if .Izmena}}/magacin/izmeni/{{.Artikal.ID}}{{else}}/magacin/novi{{end}}">
+            <div style="display:flex;flex-direction:column;gap:14px;">
+
+                <!-- naziv -->
+                <div>
+                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">
+                        Naziv <span style="color:#dc2626;">*</span>
+                    </label>
+                    <input type="text" name="naziv" value="{{.Artikal.Naziv}}"
+                        placeholder="npr. RAM DDR4 8GB Kingston"
+                        style="width:100%;">
+                </div>
+
+                <!-- kategorija -->
+                <div>
+                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Kategorija</label>
+                    <select name="kategorija_id" style="width:100%;">
+                        <option value="">— bez kategorije —</option>
+                        {{range .Kategorije}}
+                        <option value="{{.ID}}" {{if eq (printf "%d" .ID) $.KategorijaIDStr}}selected{{end}}>{{.Naziv}}</option>
+                        {{end}}
+                    </select>
+                </div>
+
+                <!-- opis -->
+                <div>
+                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Opis</label>
+                    <textarea name="opis" rows="2"
+                        placeholder="Kratak opis artikla..."
+                        style="width:100%;resize:vertical;">{{.Artikal.Opis}}</textarea>
+                </div>
+
+                <!-- količina i minimum -->
+                <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div>
+                        <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Količina na stanju</label>
+                        <input type="number" name="kolicina" value="{{.Artikal.Kolicina}}" min="0" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Minimalna količina</label>
+                        <input type="number" name="kolicina_min" value="{{.Artikal.KolicinMin}}" min="0" style="width:100%;">
+                    </div>
+                </div>
+
+                <!-- cene -->
+                <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div>
+                        <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Nabavna cena (din)</label>
+                        <input type="number" name="nabavna_cena" value="{{.Artikal.NabavnaCena}}" min="0" step="0.01" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Prodajna cena (din)</label>
+                        <input type="number" name="prodajna_cena" value="{{.Artikal.ProdajnaCena}}" min="0" step="0.01" style="width:100%;">
+                    </div>
+                </div>
+
+                <!-- lokacija -->
+                <div>
+                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Lokacija u magacinu</label>
+                    <input type="text" name="lokacija" value="{{.Artikal.Lokacija}}"
+                        placeholder="npr. Polica A3, Kutija 2..."
+                        style="width:100%;">
+                </div>
+
+                <!-- napomena -->
+                <div>
+                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Napomena</label>
+                    <textarea name="napomena" rows="2"
+                        placeholder="Interna napomena..."
+                        style="width:100%;resize:vertical;">{{.Artikal.Napomena}}</textarea>
+                </div>
+
+                <!-- dugmad -->
+                <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:6px;">
+                    <a href="/magacin"
+                        style="padding:9px 20px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;color:var(--tekst-sporedni);text-decoration:none;">
+                        Odustani
+                    </a>
+                    <button type="submit"
+                        style="padding:9px 20px;background:var(--sb-akcent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;">
+                        {{if .Izmena}}Sačuvaj izmene{{else}}Dodaj artikal{{end}}
+                    </button>
+                </div>
+
+            </div>
+        </form>
+    </div>
+</div>
+{{end}}
