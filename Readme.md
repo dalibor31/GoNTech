@@ -1,5 +1,10 @@
 # NTech
 
+![Build Status](https://git.vm-net.in.rs/badges/Dasko/GoNtech/build.svg)
+![Coverage](https://git.vm-net.in.rs/badges/Dasko/GoNtech/coverage.svg)
+![Go Version](https://img.shields.io/badge/go-1.26-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+
 Poslovna aplikacija za upravljanje servisom računara, magacinom delova i prodajom. Napravljena u Go-u, radi u brauzeru, ne zahteva internet vezu ni eksterne servise.
 
 > ⚠️ Projekat je u aktivnom razvoju. Nije spreman za produkcijsku upotrebu.
@@ -131,12 +136,3 @@ ntech/
 ├── go.mod
 └── go.sum
 ```
-
-# GoNtech
-
-![Build Status](https://git.vm-net.in.rs/badges/Dasko/GoNtech/build.svg)
-![Coverage](https://git.vm-net.in.rs/badges/Dasko/GoNtech/coverage.svg)
-![Go Version](https://img.shields.io/badge/go-1.26-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-
-## Installation...
