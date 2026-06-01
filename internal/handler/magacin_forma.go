@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -89,8 +90,16 @@ func (h *Handler) SacuvajArtikal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := h.Artikli.Kreiraj(r.Context(), &artikal); err != nil {
+	id, err := h.Artikli.Kreiraj(r.Context(), &artikal)
+	if err != nil {
 		http.Error(w, "Greška pri čuvanju artikla", http.StatusInternalServerError)
+		return
+	}
+
+	// fetch zahtev (iz modala) dobija JSON sa ID-em i nazivom novog artikla
+	if r.Header.Get("X-Requested-With") == "fetch" {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `{"id":%d,"naziv":%q}`, id, artikal.Naziv)
 		return
 	}
 

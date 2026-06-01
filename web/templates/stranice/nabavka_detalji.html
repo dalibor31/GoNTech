@@ -1,0 +1,181 @@
+{{template "base" .}}
+
+{{define "naslov"}}Detalji nabavke — NTech{{end}}
+
+{{define "dodatni-css"}}
+<style>
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .detalji-kartica {
+        animation: fadeInUp 0.3s ease forwards;
+        opacity: 0;
+    }
+
+    .detalji-kartica:nth-child(1) { animation-delay: 0.04s; }
+    .detalji-kartica:nth-child(2) { animation-delay: 0.12s; }
+    .detalji-kartica:nth-child(3) { animation-delay: 0.20s; }
+
+    .stavke-tabela tbody tr {
+        animation: fadeInUp 0.2s ease forwards;
+        opacity: 0;
+    }
+
+    .stavke-tabela tbody tr:nth-child(1) { animation-delay: 0.16s; }
+    .stavke-tabela tbody tr:nth-child(2) { animation-delay: 0.20s; }
+    .stavke-tabela tbody tr:nth-child(3) { animation-delay: 0.24s; }
+    .stavke-tabela tbody tr:nth-child(4) { animation-delay: 0.28s; }
+    .stavke-tabela tbody tr:nth-child(5) { animation-delay: 0.32s; }
+
+    .stavke-kartice {
+        display: none;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    @media (max-width: 768px) {
+        .stavke-tabela-wrapper { display: none; }
+        .stavke-kartice        { display: flex; }
+    }
+</style>
+{{end}}
+
+{{define "sadrzaj"}}
+<div style="display:flex;flex-direction:column;gap:16px;">
+
+    <!-- nazad dugme -->
+    <a href="/nabavke"
+        style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--tekst-sporedni);text-decoration:none;transition:color 0.2s;"
+        onmouseover="this.style.color='var(--tekst-glavni)'" onmouseout="this.style.color='var(--tekst-sporedni)'">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Nazad na nabavke
+    </a>
+
+    <!-- zaglavlje nabavke -->
+    <div class="kartica detalji-kartica">
+        <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <span style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">Detalji nabavke</span>
+            <span style="font-size:13px;color:var(--tekst-sporedni);">{{.Nabavka.Datum.Format "02.01.2006. u 15:04"}}</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:16px;">
+            <div>
+                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Dobavljač</div>
+                <div style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">
+                    {{if .DobavljacNaziv}}{{.DobavljacNaziv}}{{else}}—{{end}}
+                </div>
+            </div>
+            <div>
+                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Napomena</div>
+                <div style="font-size:14px;color:var(--tekst-glavni);">
+                    {{if .Nabavka.Napomena}}{{.Nabavka.Napomena}}{{else}}—{{end}}
+                </div>
+            </div>
+            <div>
+                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Ukupan iznos</div>
+                <div style="font-size:20px;font-weight:600;color:var(--sb-akcent);">
+                    {{printf "%.2f" .Nabavka.Ukupno}} din
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- stavke -->
+    <div class="kartica detalji-kartica" style="padding:0;overflow:hidden;">
+        <div style="padding:14px 16px;border-bottom:0.5px solid var(--ivica);">
+            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Stavke nabavke</span>
+        </div>
+
+        <!-- desktop tabela -->
+        <div class="stavke-tabela-wrapper" style="overflow-x:auto;">
+            <table class="stavke-tabela" style="width:100%;border-collapse:collapse;">
+                <thead>
+                    <tr style="border-bottom:0.5px solid var(--ivica);">
+                        <th style="padding:10px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Artikal</th>
+                        <th style="padding:10px 16px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Količina</th>
+                        <th style="padding:10px 16px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Cena/kom</th>
+                        <th style="padding:10px 16px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Ukupno</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Stavke}}
+                    <tr style="border-bottom:0.5px solid var(--ivica);transition:background 0.15s;"
+                        onmouseover="this.style.background='var(--pozadina)'"
+                        onmouseout="this.style.background=''">
+                        <td style="padding:10px 16px;font-size:14px;color:var(--tekst-glavni);">{{.ArtikalNaziv}}</td>
+                        <td style="padding:10px 16px;text-align:center;font-size:14px;color:var(--tekst-glavni);">{{.Kolicina}}</td>
+                        <td style="padding:10px 16px;text-align:right;font-size:14px;color:var(--tekst-sporedni);">{{printf "%.2f" .CenaPoKomadu}} din</td>
+                        <td style="padding:10px 16px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{printf "%.2f" .Ukupno}} din</td>
+                    </tr>
+                    {{else}}
+                    <tr>
+                        <td colspan="4" style="padding:24px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
+                            Ova nabavka nema stavki.
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+                {{if .Stavke}}
+                <tfoot>
+                    <tr style="border-top:0.5px solid var(--ivica);">
+                        <td colspan="3" style="padding:10px 16px;text-align:right;font-size:13px;font-weight:500;color:var(--tekst-sporedni);">Ukupno:</td>
+                        <td style="padding:10px 16px;text-align:right;font-size:15px;font-weight:600;color:var(--tekst-glavni);">{{printf "%.2f" .Nabavka.Ukupno}} din</td>
+                    </tr>
+                </tfoot>
+                {{end}}
+            </table>
+        </div>
+
+        <!-- mobilne kartice stavki -->
+        <div class="stavke-kartice" style="padding:12px;">
+            {{range .Stavke}}
+            <div style="border:0.5px solid var(--ivica);border-radius:8px;padding:12px;">
+                <div style="font-size:14px;font-weight:500;color:var(--tekst-glavni);margin-bottom:8px;">{{.ArtikalNaziv}}</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+                    <div>
+                        <div style="font-size:11px;color:var(--tekst-sporedni);">Količina</div>
+                        <div style="font-size:14px;color:var(--tekst-glavni);">{{.Kolicina}}</div>
+                    </div>
+                    <div>
+                        <div style="font-size:11px;color:var(--tekst-sporedni);">Cena/kom</div>
+                        <div style="font-size:14px;color:var(--tekst-sporedni);">{{printf "%.2f" .CenaPoKomadu}} din</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:11px;color:var(--tekst-sporedni);">Ukupno</div>
+                        <div style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{printf "%.2f" .Ukupno}} din</div>
+                    </div>
+                </div>
+            </div>
+            {{end}}
+            {{if .Stavke}}
+            <div style="text-align:right;font-size:15px;font-weight:600;color:var(--tekst-glavni);padding:8px 4px;">
+                Ukupno: {{printf "%.2f" .Nabavka.Ukupno}} din
+            </div>
+            {{end}}
+        </div>
+    </div>
+
+    <!-- zona za brisanje -->
+    <div class="kartica detalji-kartica" style="border-color:#dc262633;">
+        <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:200px;">
+                <div style="font-size:14px;font-weight:500;color:#dc2626;margin-bottom:4px;">Brisanje nabavke</div>
+                <div style="font-size:13px;color:var(--tekst-sporedni);">
+                    Brisanje je trajno i ne vraća količine artikala u magacin.
+                </div>
+            </div>
+            <form method="POST" action="/nabavke/obrisi/{{.Nabavka.ID}}">
+                <button type="submit"
+                    onclick="return confirm('Da li ste sigurni da želite da obrišete ovu nabavku?\n\nBrisanje ne vraća količine artikala u magacin.')"
+                    style="padding:9px 20px;background:#dc2626;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap;transition:opacity 0.2s;"
+                    onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                    Obriši nabavku
+                </button>
+            </form>
+        </div>
+    </div>
+
+</div>
+{{end}}
