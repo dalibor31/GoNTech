@@ -25,7 +25,7 @@ func (r *ArtikalRepo) Lista(ctx context.Context, filter db.ArtikalFilter) ([]mod
 		SELECT
 			a.id, a.kategorija_id, a.naziv, a.opis,
 			a.kolicina, a.kolicina_min, a.lokacija,
-			a.nabavna_cena, a.prodajna_cena, a.napomena, a.datum_unosa,
+			a.prodajna_cena, a.napomena, a.datum_unosa,
 			COALESCE(k.naziv, '') as kategorija_naziv
 		FROM artikli a
 		LEFT JOIN kategorije k ON a.kategorija_id = k.id
@@ -63,7 +63,7 @@ func (r *ArtikalRepo) Lista(ctx context.Context, filter db.ArtikalFilter) ([]mod
 		err := redovi.Scan(
 			&a.ID, &kategorijaID, &a.Naziv, &a.Opis,
 			&a.Kolicina, &a.KolicinMin, &a.Lokacija,
-			&a.NabavnaCena, &a.ProdajnaCena, &a.Napomena, &a.DatumUnosa,
+			&a.ProdajnaCena, &a.Napomena, &a.DatumUnosa,
 			&a.KategorijaNaziv,
 		)
 		if err != nil {
@@ -89,11 +89,11 @@ func (r *ArtikalRepo) DohvatiID(ctx context.Context, id int64) (*model.Artikal, 
 
 	err := r.db.QueryRowContext(ctx, `
 		SELECT id, kategorija_id, naziv, opis, kolicina, kolicina_min,
-		       lokacija, nabavna_cena, prodajna_cena, napomena, datum_unosa
+		       lokacija, prodajna_cena, napomena, datum_unosa
 		FROM artikli WHERE id = ?`, id).Scan(
 		&a.ID, &kategorijaID, &a.Naziv, &a.Opis,
 		&a.Kolicina, &a.KolicinMin, &a.Lokacija,
-		&a.NabavnaCena, &a.ProdajnaCena, &a.Napomena, &a.DatumUnosa,
+		&a.ProdajnaCena, &a.Napomena, &a.DatumUnosa,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: ArtikalRepo.DohvatiID: %w", err)
@@ -111,10 +111,10 @@ func (r *ArtikalRepo) Kreiraj(ctx context.Context, a *model.Artikal) (int64, err
 	rezultat, err := r.db.ExecContext(ctx, `
 		INSERT INTO artikli
 			(kategorija_id, naziv, opis, kolicina, kolicina_min, lokacija,
-			 nabavna_cena, prodajna_cena, napomena)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			 prodajna_cena, napomena)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		a.KategorijaID, a.Naziv, a.Opis, a.Kolicina, a.KolicinMin,
-		a.Lokacija, a.NabavnaCena, a.ProdajnaCena, a.Napomena,
+		a.Lokacija, a.ProdajnaCena, a.Napomena,
 	)
 	if err != nil {
 		return 0, fmt.Errorf("ntech: ArtikalRepo.Kreiraj: %w", err)
@@ -133,11 +133,11 @@ func (r *ArtikalRepo) Izmeni(ctx context.Context, a *model.Artikal) error {
 	_, err := r.db.ExecContext(ctx, `
 		UPDATE artikli SET
 			kategorija_id = ?, naziv = ?, opis = ?, kolicina = ?,
-			kolicina_min = ?, lokacija = ?, nabavna_cena = ?,
+			kolicina_min = ?, lokacija = ?,
 			prodajna_cena = ?, napomena = ?
 		WHERE id = ?`,
 		a.KategorijaID, a.Naziv, a.Opis, a.Kolicina,
-		a.KolicinMin, a.Lokacija, a.NabavnaCena,
+		a.KolicinMin, a.Lokacija,
 		a.ProdajnaCena, a.Napomena, a.ID,
 	)
 	if err != nil {

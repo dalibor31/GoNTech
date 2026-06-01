@@ -68,16 +68,9 @@
                     </div>
                 </div>
 
-                <!-- cene -->
-                <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                    <div>
-                        <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Nabavna cena (din)</label>
-                        <input type="number" name="nabavna_cena" value="{{.Artikal.NabavnaCena}}" min="0" step="0.01" style="width:100%;">
-                    </div>
-                    <div>
-                        <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Prodajna cena (din)</label>
-                        <input type="number" name="prodajna_cena" value="{{.Artikal.ProdajnaCena}}" min="0" step="0.01" style="width:100%;">
-                    </div>
+                <div>
+                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Prodajna cena (din)</label>
+                    <input type="number" name="prodajna_cena" value="{{.Artikal.ProdajnaCena}}" min="0" step="0.01" style="width:100%;">
                 </div>
 
                 <!-- lokacija -->
