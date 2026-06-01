@@ -131,3 +131,12 @@ ntech/
 ├── go.mod
 └── go.sum
 ```
+
+# GoNtech
+
+![Build Status](https://git.vm-net.in.rs/badges/Dasko/GoNtech/build.svg)
+![Coverage](https://git.vm-net.in.rs/badges/Dasko/GoNtech/coverage.svg)
+![Go Version](https://img.shields.io/badge/go-1.21-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+## Installation...
