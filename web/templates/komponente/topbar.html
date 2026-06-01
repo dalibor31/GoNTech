@@ -1,16 +1,24 @@
 {{define "topbar"}}
 <header class="topbar">
+    <button class="hamburger" id="hamburger-topbar" aria-label="Otvori meni"
+        style="display:none;margin-right:8px;"
+        onclick="document.getElementById('hamburger').click()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+    </button>
+
     <span class="topbar-naslov">{{.NaslovStranice}}</span>
 
-    <!-- dugme za promenu teme -->
-    <div style="display:flex;align-items:center;gap:8px;">
-        <a href="/tema/tamna"     style="width:20px;height:20px;border-radius:50%;background:#1a1d2e;border:2px solid {{if eq .Tema "tamna"}}#fff{{else}}transparent{{end}};display:inline-block;" title="Tamna"></a>
-        <a href="/tema/svetla"    style="width:20px;height:20px;border-radius:50%;background:#f8fafc;border:2px solid {{if eq .Tema "svetla"}}#1a1d2e{{else}}#cbd5e1{{end}};display:inline-block;" title="Svetla"></a>
-        <a href="/tema/zelena"    style="width:20px;height:20px;border-radius:50%;background:#338150;border:2px solid {{if eq .Tema "zelena"}}#fff{{else}}transparent{{end}};display:inline-block;" title="Zelena"></a>
-        <a href="/tema/ljubicasta" style="width:20px;height:20px;border-radius:50%;background:#543b94;border:2px solid {{if eq .Tema "ljubicasta"}}#fff{{else}}transparent{{end}};display:inline-block;" title="Ljubičasta"></a>
+    <div class="topbar-teme" style="display:flex;align-items:center;gap:8px;">
+        <a href="/tema/tamna" class="tema-krug {{if eq .Tema "tamna"}}tema-krug-aktivan{{end}}" style="background:#4f7ef8;" title="Tamna"></a>
+        <a href="/tema/svetla" class="tema-krug {{if eq .Tema "svetla"}}tema-krug-aktivan{{end}}" style="background:#e2e8f0;" title="Svetla"></a>
+        <a href="/tema/zelena" class="tema-krug {{if eq .Tema "zelena"}}tema-krug-aktivan{{end}}" style="background:#22c55e;" title="Zelena"></a>
+        <a href="/tema/ljubicasta" class="tema-krug {{if eq .Tema "ljubicasta"}}tema-krug-aktivan{{end}}" style="background:#a855f7;" title="Ljubičasta"></a>
     </div>
 
-    <!-- korisnik -->
     <div style="width:32px;height:32px;border-radius:50%;background:var(--sb-aktivan);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:#fff;flex-shrink:0;">
         {{if .Korisnik}}{{slice .Korisnik 0 2}}{{else}}NT{{end}}
     </div>
