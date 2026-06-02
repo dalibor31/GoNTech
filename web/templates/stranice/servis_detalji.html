@@ -146,25 +146,25 @@
             <div>
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Procena od</div>
                 <div style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">
-                    {{with .Nalog.CenaOd}}{{printf "%.2f" .}} din{{else}}—{{end}}
+                    {{if .Nalog.CenaOd}}{{.Nalog.CenaOdStr}} din{{else}}—{{end}}
                 </div>
             </div>
             <div>
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Procena do</div>
                 <div style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">
-                    {{with .Nalog.CenaDo}}{{printf "%.2f" .}} din{{else}}—{{end}}
+                    {{if .Nalog.CenaDo}}{{.Nalog.CenaDoStr}} din{{else}}—{{end}}
                 </div>
             </div>
             <div>
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Konačna cena</div>
                 <div style="font-size:20px;font-weight:600;color:var(--sb-akcent);">
-                    {{with .Nalog.CenaKonacna}}{{printf "%.2f" .}} din{{else}}—{{end}}
+                    {{if .Nalog.CenaKonacna}}{{.Nalog.CenaKonacnaStr}} din{{else}}—{{end}}
                 </div>
             </div>
             <div>
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Avans</div>
                 <div style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">
-                    {{with .Nalog.Avans}}{{printf "%.2f" .}} din{{else}}—{{end}}
+                    {{if .Nalog.Avans}}{{.Nalog.AvansStr}} din{{else}}—{{end}}
                 </div>
             </div>
         </div>
