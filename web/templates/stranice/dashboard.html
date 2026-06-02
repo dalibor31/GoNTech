@@ -25,8 +25,8 @@
         <div style="width:36px;height:36px;border-radius:8px;background:#fff7ed;display:flex;align-items:center;justify-content:center;margin-bottom:10px;">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
         </div>
-        <div style="font-size:22px;font-weight:500;color:var(--tekst-glavni);">{{.ProdajaOvogMeseca}}</div>
-        <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:4px;">Prodaja ovog meseca</div>
+        <div style="font-size:22px;font-weight:500;color:var(--tekst-glavni);">{{printf "%.0f" .PrihodOvogMeseca}} din</div>
+        <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:4px;">Prihod ovog meseca</div>
     </div>
 
     <div class="kartica">
@@ -38,18 +38,17 @@
     </div>
 </div>
 
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
     <!-- poslednji servisi -->
     <div class="kartica">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
             <span style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">Poslednji servisi</span>
-            <span style="font-size:11px;padding:2px 8px;border-radius:20px;background:#eff2ff;color:#4f7ef8;font-weight:500;">Danas</span>
         </div>
         {{range .PoslednjiServisi}}
         <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--ivica);">
             <div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:{{.BojaTacke}};"></div>
-            <span style="font-size:13px;color:var(--tekst-glavni);flex:1;">{{.Uredjaj}}</span>
-            <span style="font-size:12px;color:var(--tekst-sporedni);">{{.Status}}</span>
+            <span style="font-size:13px;color:var(--tekst-glavni);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{.Uredjaj}}</span>
+            <span style="font-size:11px;color:var(--tekst-sporedni);white-space:nowrap;">{{.DatumPrijema}}</span>
         </div>
         {{else}}
         <div style="font-size:13px;color:var(--tekst-sporedni);padding:8px 0;">Nema servisnih naloga.</div>
@@ -70,6 +69,29 @@
         </div>
         {{else}}
         <div style="font-size:13px;color:var(--tekst-sporedni);padding:8px 0;">Sve zalihe su uredne.</div>
+        {{end}}
+    </div>
+
+    <!-- poslednje prodaje -->
+    <div class="kartica">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <span style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">Poslednje prodaje</span>
+        </div>
+        {{range .PoslednjeProdaje}}
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--ivica);">
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:13px;color:var(--tekst-glavni);font-family:monospace;">{{.BrojNaloga}}</div>
+                {{if .KlijentNaziv}}
+                <div style="font-size:11px;color:var(--tekst-sporedni);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{.KlijentNaziv}}</div>
+                {{end}}
+            </div>
+            <div style="text-align:right;flex-shrink:0;">
+                <div style="font-size:13px;font-weight:500;color:var(--tekst-glavni);">{{printf "%.0f" .Ukupno}} din</div>
+                <div style="font-size:11px;color:var(--tekst-sporedni);margin-top:1px;">{{.Datum}}</div>
+            </div>
+        </div>
+        {{else}}
+        <div style="font-size:13px;color:var(--tekst-sporedni);padding:8px 0;">Nema prodajnih naloga.</div>
         {{end}}
     </div>
 </div>
