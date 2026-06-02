@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // Statusi servisnog naloga
 const (
@@ -44,4 +47,36 @@ type ServisniNalog struct {
 type ServisniNalogSaKlijentom struct {
 	ServisniNalog
 	KlijentNaziv string
+}
+
+// CenaOdStr vraća formatiranu procenu od, ili prazan string ako nije uneta
+func (n ServisniNalog) CenaOdStr() string {
+	if n.CenaOd == nil {
+		return ""
+	}
+	return fmt.Sprintf("%.2f", *n.CenaOd)
+}
+
+// CenaDoStr vraća formatiranu procenu do, ili prazan string ako nije uneta
+func (n ServisniNalog) CenaDoStr() string {
+	if n.CenaDo == nil {
+		return ""
+	}
+	return fmt.Sprintf("%.2f", *n.CenaDo)
+}
+
+// CenaKonacnaStr vraća formatiranu konačnu cenu, ili prazan string ako nije uneta
+func (n ServisniNalog) CenaKonacnaStr() string {
+	if n.CenaKonacna == nil {
+		return ""
+	}
+	return fmt.Sprintf("%.2f", *n.CenaKonacna)
+}
+
+// AvansStr vraća formatirani avans, ili prazan string ako nije unet
+func (n ServisniNalog) AvansStr() string {
+	if n.Avans == nil {
+		return ""
+	}
+	return fmt.Sprintf("%.2f", *n.Avans)
 }
