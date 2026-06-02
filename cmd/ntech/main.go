@@ -94,6 +94,7 @@ func main() {
 	r.Get("/prodaja/nova", h.NovaProdaja)
 	r.Post("/prodaja/nova", h.SacuvajProdaju)
 	r.Post("/prodaja/obrisi/{id}", h.ObrisiProdaju)
+	r.Get("/prodaja/{id}/stampa", h.StampaProdaje)
 	r.Get("/prodaja/{id}", h.DetaljiProdaje)
 
 	log.Printf("NTech pokrenut na portu %s", port)

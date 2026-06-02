@@ -36,6 +36,28 @@
                 </div>
 
                 <div>
+                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Adresa</label>
+                    <input type="text" name="adresa" value="{{.Adresa}}"
+                        style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;"
+                        placeholder="npr. Ulica i broj, Grad">
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                    <div>
+                        <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Telefon</label>
+                        <input type="text" name="telefon" value="{{.Telefon}}"
+                            style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;"
+                            placeholder="npr. +381 11 123 4567">
+                    </div>
+                    <div>
+                        <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">PIB</label>
+                        <input type="text" name="pib" value="{{.PIB}}"
+                            style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;"
+                            placeholder="npr. 123456789">
+                    </div>
+                </div>
+
+                <div>
                     <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:8px;">Logo zona</label>
                     <div style="display:flex;gap:10px;">
                         <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;cursor:pointer;flex:1;{{if eq .LogoTip "ikonica"}}border-color:var(--sb-akcent);background:var(--pozadina);{{end}}">
