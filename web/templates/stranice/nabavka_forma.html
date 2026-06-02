@@ -49,9 +49,14 @@
 <div style="width:100%;"
     x-data="{
         stavke: [{artikal_id: '', kolicina: 1, cena: 0}],
-
         artikliOpcije: _ntechArtikli,
+        isMobile: window.matchMedia('(max-width: 768px)').matches,
 
+        init() {
+            window.matchMedia('(max-width: 768px)').addEventListener('change', e => {
+                this.isMobile = e.matches;
+            });
+        },
         dodajStavku() {
             this.stavke.push({artikal_id: '', kolicina: 1, cena: 0});
         },
@@ -199,7 +204,8 @@
                         <template x-for="(stavka, i) in stavke" :key="i">
                             <tr style="border-bottom:0.5px solid var(--ivica);">
                                 <td style="padding:8px 10px;">
-                                    <select :name="'artikal_id[]'" x-model="stavka.artikal_id" style="width:100%;">
+                                    <select :name="'artikal_id[]'" x-model="stavka.artikal_id"
+                                        :disabled="isMobile" style="width:100%;">
                                         <option value="">— odaberi artikal —</option>
                                         <template x-for="a in artikliOpcije" :key="a.id">
                                             <option :value="a.id" x-text="a.naziv"></option>
@@ -208,11 +214,11 @@
                                 </td>
                                 <td style="padding:8px 10px;">
                                     <input type="number" :name="'kolicina[]'" x-model="stavka.kolicina"
-                                        min="1" style="width:100%;text-align:center;">
+                                        min="1" :disabled="isMobile" style="width:100%;text-align:center;">
                                 </td>
                                 <td style="padding:8px 10px;">
                                     <input type="number" :name="'cena_po_komadu[]'" x-model="stavka.cena"
-                                        min="0" step="0.01" style="width:100%;text-align:right;">
+                                        min="0" step="0.01" :disabled="isMobile" style="width:100%;text-align:right;">
                                 </td>
                                 <td style="padding:8px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">
                                     <span x-text="ukupnoStavke(stavka) + ' din'"></span>
@@ -256,7 +262,8 @@
                         <div style="display:flex;flex-direction:column;gap:10px;">
                             <div>
                                 <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Artikal</label>
-                                <select :name="'artikal_id[]'" x-model="stavka.artikal_id" style="width:100%;">
+                                <select :name="'artikal_id[]'" x-model="stavka.artikal_id"
+                                    :disabled="!isMobile" style="width:100%;">
                                     <option value="">— odaberi artikal —</option>
                                     <template x-for="a in artikliOpcije" :key="a.id">
                                         <option :value="a.id" x-text="a.naziv"></option>
@@ -266,11 +273,11 @@
                             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                                 <div>
                                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Količina</label>
-                                    <input type="number" :name="'kolicina[]'" x-model="stavka.kolicina" min="1" style="width:100%;">
+                                    <input type="number" :name="'kolicina[]'" x-model="stavka.kolicina" min="1" :disabled="!isMobile" style="width:100%;">
                                 </div>
                                 <div>
                                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Cena/kom (din)</label>
-                                    <input type="number" :name="'cena_po_komadu[]'" x-model="stavka.cena" min="0" step="0.01" style="width:100%;">
+                                    <input type="number" :name="'cena_po_komadu[]'" x-model="stavka.cena" min="0" step="0.01" :disabled="!isMobile" style="width:100%;">
                                 </div>
                             </div>
                             <div style="text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">
