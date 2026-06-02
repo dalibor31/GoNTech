@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"time"
 
 	"ntech/internal/model"
 )
@@ -73,4 +74,26 @@ type ProdajaRepository interface {
 	Kreiraj(ctx context.Context, n *model.ProdajniNalog, stavke []model.StavkaProdaje) (int64, error)
 	Obrisi(ctx context.Context, id int64) error
 	SledeciBroj(ctx context.Context) (string, error)
+}
+
+// KorisniciRepository definiše operacije nad korisnicima
+type KorisniciRepository interface {
+	Kreiraj(ctx context.Context, korisnickoIme, lozinkaHash, uloga string) (*model.Korisnik, error)
+	DohvatiPoImenu(ctx context.Context, korisnickoIme string) (*model.Korisnik, error)
+	DohvatiPoID(ctx context.Context, id int64) (*model.Korisnik, error)
+	Lista(ctx context.Context) ([]model.Korisnik, error)
+	AzurirajUlogu(ctx context.Context, id int64, uloga string) error
+	AzurirajAktivan(ctx context.Context, id int64, aktivan bool) error
+	PromeniLozinku(ctx context.Context, id int64, hash string) error
+	SacuvajTotpTajnu(ctx context.Context, id int64, tajna string) error
+	PostojiIjedan(ctx context.Context) (bool, error)
+}
+
+// SesijeRepository definiše operacije nad sesijama
+type SesijeRepository interface {
+	Kreiraj(ctx context.Context, korisnikID int64, token string, istice time.Time, totpPotvrdjeno bool) error
+	DohvatiPoTokenu(ctx context.Context, token string) (*model.Sesija, error)
+	PotvrdiTotp(ctx context.Context, token string, novoIstice time.Time) error
+	Obrisi(ctx context.Context, token string) error
+	ObrisiIstekle(ctx context.Context) error
 }
