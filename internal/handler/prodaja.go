@@ -44,6 +44,18 @@ type PodaciDetaljiProdaje struct {
 	Sacuvano     bool
 }
 
+// PodaciStampeProdaje su podaci za stranicu za štampanje priznanice
+type PodaciStampeProdaje struct {
+	Nalog        model.ProdajniNalog
+	Stavke       []model.StavkaProdajeSaArtiklom
+	KlijentNaziv string
+	NazivFirme   string
+	Podnazlov    string
+	Adresa       string
+	Telefon      string
+	PIB          string
+}
+
 // artikalUJSONSaCenom pretvara listu artikala u template.JS vrednost sa prodajnom cenom i stanjem
 func artikalUJSONSaCenom(artikli []model.ArtikalSaKategorijom) template.JS {
 	type stavka struct {
@@ -284,6 +296,68 @@ func (h *Handler) DetaljiProdaje(w http.ResponseWriter, r *http.Request) {
 
 	if err := tmpl.ExecuteTemplate(w, "base", podaci); err != nil {
 		log.Printf("greška pri renderovanju: %v", err)
+		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
+	}
+}
+
+// StampaProdaje renderuje print-friendly stranicu za dati prodajni nalog
+func (h *Handler) StampaProdaje(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+
+	nalog, err := h.ProdajaRepo.DohvatiID(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Nalog nije pronađen", http.StatusNotFound)
+		return
+	}
+
+	stavke, err := h.ProdajaRepo.DohvatiStavke(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju stavki", http.StatusInternalServerError)
+		return
+	}
+
+	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
+		return
+	}
+
+	klijentNaziv := ""
+	if nalog.KlijentID != nil {
+		klijent, err := h.KlijentiRepo.DohvatiID(r.Context(), *nalog.KlijentID)
+		if err == nil {
+			if klijent.NazivFirme != "" {
+				klijentNaziv = klijent.NazivFirme
+			} else {
+				klijentNaziv = strings.TrimSpace(klijent.Ime + " " + klijent.Prezime)
+			}
+		}
+	}
+
+	podaci := PodaciStampeProdaje{
+		Nalog:        *nalog,
+		Stavke:       stavke,
+		KlijentNaziv: klijentNaziv,
+		NazivFirme:   podesavanja["naziv_firme"],
+		Podnazlov:    podesavanja["podnazlov"],
+		Adresa:       podesavanja["adresa"],
+		Telefon:      podesavanja["telefon"],
+		PIB:          podesavanja["pib"],
+	}
+
+	tmpl, err := template.ParseFiles("web/templates/stranice/prodaja_stampa.html")
+	if err != nil {
+		log.Printf("greška pri učitavanju šablona za štampu: %v", err)
+		http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
+		return
+	}
+
+	if err := tmpl.ExecuteTemplate(w, "prodaja_stampa.html", podaci); err != nil {
+		log.Printf("greška pri renderovanju štampe: %v", err)
 		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
 	}
 }

@@ -15,6 +15,9 @@ type PodaciPodesavanja struct {
 	model.PodaciStranice
 	NazivFirme  string
 	Podnazlov   string
+	Adresa      string
+	Telefon     string
+	PIB         string
 	LogoTip     string
 	LogoPutanja string
 	Tema        string
@@ -42,6 +45,9 @@ func (h *Handler) Podesavanja(w http.ResponseWriter, r *http.Request) {
 		},
 		NazivFirme:  podesavanja["naziv_firme"],
 		Podnazlov:   podesavanja["podnazlov"],
+		Adresa:      podesavanja["adresa"],
+		Telefon:     podesavanja["telefon"],
+		PIB:         podesavanja["pib"],
 		LogoTip:     podesavanja["logo_tip"],
 		LogoPutanja: podesavanja["logo_putanja"],
 		Tema:        podesavanja["tema"],
@@ -75,6 +81,9 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 	polja := map[string]string{
 		"naziv_firme": r.FormValue("naziv_firme"),
 		"podnazlov":   r.FormValue("podnazlov"),
+		"adresa":      r.FormValue("adresa"),
+		"telefon":     r.FormValue("telefon"),
+		"pib":         r.FormValue("pib"),
 		"logo_tip":    r.FormValue("logo_tip"),
 		"tema":        r.FormValue("tema"),
 	}
