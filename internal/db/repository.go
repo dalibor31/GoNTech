@@ -64,3 +64,13 @@ type ServisRepository interface {
 	Obrisi(ctx context.Context, id int64) error
 	SledeciBroj(ctx context.Context) (string, error)
 }
+
+// ProdajaRepository definiše operacije nad prodajnim nalozima
+type ProdajaRepository interface {
+	Lista(ctx context.Context, pretraga string) ([]model.ProdajniNalogSaDetaljem, error)
+	DohvatiID(ctx context.Context, id int64) (*model.ProdajniNalog, error)
+	DohvatiStavke(ctx context.Context, nalogID int64) ([]model.StavkaProdajeSaArtiklom, error)
+	Kreiraj(ctx context.Context, n *model.ProdajniNalog, stavke []model.StavkaProdaje) (int64, error)
+	Obrisi(ctx context.Context, id int64) error
+	SledeciBroj(ctx context.Context) (string, error)
+}
