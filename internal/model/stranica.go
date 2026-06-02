@@ -2,9 +2,10 @@ package model
 
 // StavkaServisa prikazuje jedan servisni nalog na dashboardu
 type StavkaServisa struct {
-	Uredjaj   string
-	Status    string
-	BojaTacke string
+	Uredjaj      string
+	Status       string
+	BojaTacke    string
+	DatumPrijema string // kratki format, npr. "01.06."
 }
 
 // StavkaZalihe prikazuje jedan artikal sa kritičnom zalihom
@@ -12,6 +13,14 @@ type StavkaZalihe struct {
 	Naziv     string
 	Kolicina  int
 	BojaTacke string
+}
+
+// StavkaProdajePregled prikazuje jedan prodajni nalog na dashboardu
+type StavkaProdajePregled struct {
+	BrojNaloga   string
+	KlijentNaziv string
+	Ukupno       float64
+	Datum        string // kratki format, npr. "01.06."
 }
 
 // PodaciStranice su zajednički podaci koje svaka stranica prima
@@ -29,10 +38,11 @@ type PodaciStranice struct {
 // PodaciDashboarda su podaci specifični za dashboard stranicu
 type PodaciDashboarda struct {
 	PodaciStranice
-	BrojArtikala      int
-	AktivniServisi    int
-	ProdajaOvogMeseca int
-	KriticnaZaliha    int
-	PoslednjiServisi  []StavkaServisa
-	KriticneZalihe    []StavkaZalihe
+	BrojArtikala     int
+	AktivniServisi   int
+	PrihodOvogMeseca float64
+	KriticnaZaliha   int
+	PoslednjiServisi []StavkaServisa
+	KriticneZalihe   []StavkaZalihe
+	PoslednjeProdaje []StavkaProdajePregled
 }
