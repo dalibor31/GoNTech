@@ -1,13 +1,19 @@
 package main
 
 import (
+	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
+	"sort"
+	"time"
 
 	"ntech/internal/config"
 	"ntech/internal/db/sqlite"
 	"ntech/internal/handler"
+	ntechmw "ntech/internal/middleware"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
@@ -42,6 +48,18 @@ func main() {
 	}
 	log.Println("Migracije uspešno izvršene")
 
+	napraviStartupBackup(putanjaBaze)
+
+	// periodično brisanje isteklih sesija
+	go func() {
+		ticker := time.NewTicker(time.Hour)
+		defer ticker.Stop()
+		sesijeRepo := sqlite.NoviSesijeRepo(db)
+		for range ticker.C {
+			_ = sesijeRepo.ObrisiIstekle(nil)
+		}
+	}()
+
 	h := handler.Novi(db)
 
 	r := chi.NewRouter()
@@ -49,57 +67,133 @@ func main() {
 	// statični fajlovi
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
 
-	// rute
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/dashboard", http.StatusFound)
+	// javne rute (bez autentifikacije)
+	r.Get("/prijava", h.PrikazPrijave)
+	r.Post("/prijava", h.Prijava)
+	r.Get("/prijava/totp", h.PrikazTotp)
+	r.Post("/prijava/totp", h.VerifikujTotp)
+	r.Get("/setup", h.PrikazSetupa)
+	r.Post("/setup", h.SacuvajSetup)
+	r.Get("/odjava", h.Odjava)
+
+	// zaštićene rute — zahtevaju prijavljenog korisnika
+	r.Group(func(r chi.Router) {
+		r.Use(ntechmw.RequireAuth(db))
+
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/dashboard", http.StatusFound)
+		})
+		r.Get("/dashboard", h.Dashboard)
+		r.Get("/podesavanja", h.Podesavanja)
+		r.Post("/podesavanja/sacuvaj", h.SacuvajPodesavanja)
+		r.Get("/podesavanja/backup", h.BackupBaze)
+		r.Get("/tema/{tema}", h.PromeniTemu)
+		r.Get("/magacin", h.Magacin)
+		r.Get("/magacin/novi", h.NoviArtikal)
+		r.Post("/magacin/novi", h.SacuvajArtikal)
+		r.Get("/magacin/izmeni/{id}", h.IzmeniArtikal)
+		r.Post("/magacin/izmeni/{id}", h.SacuvajIzmenuArtikla)
+		r.Get("/magacin/obrisi/{id}", h.ObrisiArtikal)
+		r.Get("/magacin/kategorije", h.Kategorije)
+		r.Post("/magacin/kategorije/dodaj", h.DodajKategoriju)
+		r.Get("/magacin/kategorije/obrisi/{id}", h.ObrisiKategoriju)
+		r.Get("/nabavke", h.Nabavke)
+		r.Get("/nabavke/nova", h.NovaNabavka)
+		r.Post("/nabavke/nova", h.SacuvajNabavku)
+		r.Get("/nabavke/{id}", h.DetaljiNabavke)
+		r.Post("/nabavke/obrisi/{id}", h.ObrisiNabavku)
+		r.Get("/dobavljaci", h.Dobavljaci)
+		r.Get("/dobavljaci/novi", h.NoviDobavljac)
+		r.Post("/dobavljaci/novi", h.SacuvajDobavljaca)
+		r.Get("/dobavljaci/izmeni/{id}", h.IzmeniDobavljaca)
+		r.Post("/dobavljaci/izmeni/{id}", h.SacuvajIzmeneDobavljaca)
+		r.Post("/dobavljaci/obrisi/{id}", h.ObrisiDobavljaca)
+		r.Get("/klijenti", h.Klijenti)
+		r.Get("/klijenti/novi", h.NoviKlijent)
+		r.Post("/klijenti/novi", h.SacuvajKlijenta)
+		r.Get("/klijenti/izmeni/{id}", h.IzmeniKlijenta)
+		r.Post("/klijenti/izmeni/{id}", h.SacuvajIzmenuKlijenta)
+		r.Post("/klijenti/obrisi/{id}", h.ObrisiKlijenta)
+		r.Get("/servis", h.Servis)
+		r.Get("/servis/novi", h.NoviNalog)
+		r.Post("/servis/novi", h.SacuvajNalog)
+		r.Get("/servis/izmeni/{id}", h.IzmeniNalog)
+		r.Post("/servis/izmeni/{id}", h.SacuvajIzmenaNaloga)
+		r.Post("/servis/obrisi/{id}", h.ObrisiNalog)
+		r.Get("/servis/{id}", h.DetaljiNaloga)
+		r.Get("/izvestaji", h.Izvestaji)
+		r.Get("/prodaja", h.Prodaja)
+		r.Get("/prodaja/nova", h.NovaProdaja)
+		r.Post("/prodaja/nova", h.SacuvajProdaju)
+		r.Post("/prodaja/obrisi/{id}", h.ObrisiProdaju)
+		r.Get("/prodaja/{id}/stampa", h.StampaProdaje)
+		r.Get("/prodaja/{id}", h.DetaljiProdaje)
+
+		// admin rute
+		r.Get("/admin/korisnici", h.AdminKorisnici)
+		r.Post("/admin/korisnici/novi", h.AdminSacuvajKorisnika)
+		r.Post("/admin/korisnici/{id}/aktivan", h.AdminToggleAktivan)
+		r.Post("/admin/korisnici/{id}/uloga", h.AdminPromeniUlogu)
+		r.Get("/admin/profil", h.AdminProfil)
+		r.Post("/admin/profil/lozinka", h.AdminPromeniLozinku)
+		r.Get("/admin/profil/totp/pokreni", h.AdminTotpPokreni)
+		r.Post("/admin/profil/totp/aktiviraj", h.AdminTotpAktivacija)
+		r.Post("/admin/profil/totp/deaktiviraj", h.AdminTotpDeaktivacija)
 	})
-	r.Get("/dashboard", h.Dashboard)
-	r.Get("/podesavanja", h.Podesavanja)
-	r.Post("/podesavanja/sacuvaj", h.SacuvajPodesavanja)
-	r.Get("/tema/{tema}", h.PromeniTemu)
-	r.Get("/magacin", h.Magacin)
-	r.Get("/magacin/novi", h.NoviArtikal)
-	r.Post("/magacin/novi", h.SacuvajArtikal)
-	r.Get("/magacin/izmeni/{id}", h.IzmeniArtikal)
-	r.Post("/magacin/izmeni/{id}", h.SacuvajIzmenuArtikla)
-	r.Get("/magacin/obrisi/{id}", h.ObrisiArtikal)
-	r.Get("/magacin/kategorije", h.Kategorije)
-	r.Post("/magacin/kategorije/dodaj", h.DodajKategoriju)
-	r.Get("/magacin/kategorije/obrisi/{id}", h.ObrisiKategoriju)
-	r.Get("/nabavke", h.Nabavke)
-	r.Get("/nabavke/nova", h.NovaNabavka)
-	r.Post("/nabavke/nova", h.SacuvajNabavku)
-	r.Get("/nabavke/{id}", h.DetaljiNabavke)
-	r.Post("/nabavke/obrisi/{id}", h.ObrisiNabavku)
-	r.Get("/dobavljaci", h.Dobavljaci)
-	r.Get("/dobavljaci/novi", h.NoviDobavljac)
-	r.Post("/dobavljaci/novi", h.SacuvajDobavljaca)
-	r.Get("/dobavljaci/izmeni/{id}", h.IzmeniDobavljaca)
-	r.Post("/dobavljaci/izmeni/{id}", h.SacuvajIzmeneDobavljaca)
-	r.Post("/dobavljaci/obrisi/{id}", h.ObrisiDobavljaca)
-	r.Get("/klijenti", h.Klijenti)
-	r.Get("/klijenti/novi", h.NoviKlijent)
-	r.Post("/klijenti/novi", h.SacuvajKlijenta)
-	r.Get("/klijenti/izmeni/{id}", h.IzmeniKlijenta)
-	r.Post("/klijenti/izmeni/{id}", h.SacuvajIzmenuKlijenta)
-	r.Post("/klijenti/obrisi/{id}", h.ObrisiKlijenta)
-	r.Get("/servis", h.Servis)
-	r.Get("/servis/novi", h.NoviNalog)
-	r.Post("/servis/novi", h.SacuvajNalog)
-	r.Get("/servis/izmeni/{id}", h.IzmeniNalog)
-	r.Post("/servis/izmeni/{id}", h.SacuvajIzmenaNaloga)
-	r.Post("/servis/obrisi/{id}", h.ObrisiNalog)
-	r.Get("/servis/{id}", h.DetaljiNaloga)
-	r.Get("/prodaja", h.Prodaja)
-	r.Get("/prodaja/nova", h.NovaProdaja)
-	r.Post("/prodaja/nova", h.SacuvajProdaju)
-	r.Post("/prodaja/obrisi/{id}", h.ObrisiProdaju)
-	r.Get("/prodaja/{id}/stampa", h.StampaProdaje)
-	r.Get("/prodaja/{id}", h.DetaljiProdaje)
 
 	log.Printf("NTech pokrenut na portu %s", port)
 	err = http.ListenAndServe(":"+port, r)
 	if err != nil {
 		log.Fatalf("Greška: port %s je zauzet ili nije dostupan", port)
+	}
+}
+
+// napraviStartupBackup kreira kopiju baze pri pokretanju i čuva poslednjih 7
+func napraviStartupBackup(putanjaBaze string) {
+	if _, err := os.Stat(putanjaBaze); os.IsNotExist(err) {
+		return
+	}
+
+	folder := "backups"
+	if err := os.MkdirAll(folder, 0755); err != nil {
+		log.Printf("backup: ne mogu kreirati folder: %v", err)
+		return
+	}
+
+	ime := fmt.Sprintf("ntech_%s.db", time.Now().Format("20060102_150405"))
+	odrediste := filepath.Join(folder, ime)
+
+	src, err := os.Open(putanjaBaze)
+	if err != nil {
+		log.Printf("backup: ne mogu otvoriti bazu: %v", err)
+		return
+	}
+	defer src.Close()
+
+	dst, err := os.Create(odrediste)
+	if err != nil {
+		log.Printf("backup: ne mogu kreirati backup fajl: %v", err)
+		return
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, src); err != nil {
+		log.Printf("backup: greška pri kopiranju: %v", err)
+		return
+	}
+
+	log.Printf("Backup kreiran: %s", odrediste)
+	ocistiStareBackupe(folder, 7)
+}
+
+// ocistiStareBackupe briše najstarije backup fajlove ako ih ima više od max
+func ocistiStareBackupe(folder string, max int) {
+	fajlovi, err := filepath.Glob(filepath.Join(folder, "ntech_*.db"))
+	if err != nil || len(fajlovi) <= max {
+		return
+	}
+	sort.Strings(fajlovi)
+	for _, f := range fajlovi[:len(fajlovi)-max] {
+		_ = os.Remove(f)
 	}
 }

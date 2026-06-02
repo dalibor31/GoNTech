@@ -1,8 +1,11 @@
 package handler
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
+	"os"
+	"time"
 
 	"ntech/internal/db/sqlite"
 	"ntech/internal/model"
@@ -99,6 +102,22 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/podesavanja?sacuvano=1", http.StatusSeeOther)
+}
+
+// BackupBaze kreira konzistentnu kopiju baze i šalje je kao attachment
+func (h *Handler) BackupBaze(w http.ResponseWriter, r *http.Request) {
+	privremeni := fmt.Sprintf("%s/ntech_backup_%s.db", os.TempDir(), time.Now().Format("20060102_150405"))
+
+	if _, err := h.DB.ExecContext(r.Context(), "VACUUM INTO ?", privremeni); err != nil {
+		http.Error(w, "Greška pri kreiranju rezervne kopije", http.StatusInternalServerError)
+		return
+	}
+	defer os.Remove(privremeni)
+
+	ime := fmt.Sprintf("ntech_backup_%s.db", time.Now().Format("20060102"))
+	w.Header().Set("Content-Disposition", "attachment; filename=\""+ime+"\"")
+	w.Header().Set("Content-Type", "application/octet-stream")
+	http.ServeFile(w, r, privremeni)
 }
 
 // PromeniTemu menja aktivnu temu i vraća na prethodnu stranicu

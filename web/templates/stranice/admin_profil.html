@@ -1,0 +1,129 @@
+{{template "base" .}}
+
+{{define "naslov"}}Moj profil — NTech{{end}}
+
+{{define "dodatni-css"}}{{end}}
+
+{{define "sadrzaj"}}
+<div style="display:flex;flex-direction:column;gap:16px;max-width:560px;">
+
+    {{if eq .Sacuvano "lozinka"}}
+    <div class="poruka-uspeh">Lozinka je uspešno promenjena.</div>
+    {{else if eq .Sacuvano "totp"}}
+    <div class="poruka-uspeh">Dvostepena verifikacija je uspešno uključena.</div>
+    {{else if eq .Sacuvano "totp_off"}}
+    <div class="poruka-uspeh">Dvostepena verifikacija je isključena.</div>
+    {{end}}
+
+    <!-- promena lozinke -->
+    <div class="kartica">
+        <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
+            Promena lozinke
+        </div>
+
+        {{if eq .Greska "lozinka"}}
+        <div class="poruka-greska" style="margin-bottom:14px;">Stara lozinka nije ispravna.</div>
+        {{else if eq .Greska "lozinka2"}}
+        <div class="poruka-greska" style="margin-bottom:14px;">Nova lozinka mora imati najmanje 8 karaktera i lozinke moraju biti iste.</div>
+        {{end}}
+
+        <form method="POST" action="/admin/profil/lozinka">
+            <div style="display:flex;flex-direction:column;gap:12px;">
+                <div>
+                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Trenutna lozinka</label>
+                    <input type="password" name="stara_lozinka" required
+                        style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div>
+                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Nova lozinka</label>
+                    <input type="password" name="nova_lozinka" required minlength="8"
+                        style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div>
+                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Potvrda nove lozinke</label>
+                    <input type="password" name="nova_lozinka_potvrda" required
+                        style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div>
+                    <button type="submit"
+                        style="padding:9px 20px;background:var(--sb-akcent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;">
+                        Sačuvaj novu lozinku
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- TOTP / 2FA -->
+    <div class="kartica">
+        <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
+            Dvostepena verifikacija (2FA)
+        </div>
+
+        {{if .TotpURI}}
+        <!-- postavljanje TOTP -->
+        {{if eq .Greska "totp"}}
+        <div class="poruka-greska" style="margin-bottom:14px;">Neispravan kod. Pokušajte ponovo.</div>
+        {{end}}
+
+        <p style="font-size:13px;color:var(--tekst-sporedni);margin-bottom:16px;line-height:1.5;">
+            Skenirajte QR kod u aplikaciji (Google Authenticator, Authy...), pa unesite generisani kod da potvrdite podešavanje.
+        </p>
+
+        <div style="text-align:center;margin-bottom:16px;">
+            <img src="{{.TotpQR}}" alt="QR kod" style="width:200px;height:200px;border-radius:8px;display:block;margin:0 auto;">
+        </div>
+
+        <details style="margin-bottom:16px;">
+            <summary style="font-size:12px;color:var(--tekst-sporedni);cursor:pointer;">Prikaži tajnu ručno</summary>
+            <code style="font-size:12px;background:var(--pozadina);padding:6px 10px;border-radius:6px;display:block;margin-top:8px;word-break:break-all;color:var(--tekst-glavni);">{{.TotpTajna}}</code>
+        </details>
+
+        <form method="POST" action="/admin/profil/totp/aktiviraj">
+            <input type="hidden" name="totp_tajna" value="{{.TotpTajna}}">
+            <div style="margin-bottom:12px;">
+                <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Verifikacioni kod</label>
+                <input type="text" name="kod" inputmode="numeric" pattern="[0-9]{6}"
+                    maxlength="6" required autofocus
+                    style="width:160px;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:18px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;text-align:center;letter-spacing:4px;">
+            </div>
+            <button type="submit"
+                style="padding:9px 20px;background:var(--sb-akcent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;">
+                Potvrdi i uključi 2FA
+            </button>
+        </form>
+
+        {{else if .TotpAktivan}}
+        <!-- 2FA je uključena -->
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+            <div>
+                <div style="font-size:14px;color:#16a34a;margin-bottom:4px;font-weight:500;">✓ Dvostepena verifikacija je uključena</div>
+                <div style="font-size:13px;color:var(--tekst-sporedni);">Prijava zahteva TOTP kod pored lozinke.</div>
+            </div>
+            <form method="POST" action="/admin/profil/totp/deaktiviraj"
+                onsubmit="return confirm('Da li ste sigurni? Ovo će isključiti dvostepenu verifikaciju.')">
+                <button type="submit"
+                    style="padding:9px 18px;background:#dc2626;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;">
+                    Deaktiviraj 2FA
+                </button>
+            </form>
+        </div>
+
+        {{else}}
+        <!-- 2FA nije uključena -->
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+            <div>
+                <div style="font-size:14px;color:var(--tekst-glavni);margin-bottom:4px;">Status: <strong>Isključena</strong></div>
+                <div style="font-size:13px;color:var(--tekst-sporedni);">Preporučujemo uključivanje dvostepene verifikacije.</div>
+            </div>
+            <a href="/admin/profil/totp/pokreni"
+                style="padding:9px 18px;background:var(--sb-akcent);color:#fff;border-radius:8px;font-size:14px;font-weight:500;text-decoration:none;">
+                Podesi 2FA
+            </a>
+        </div>
+        {{end}}
+
+    </div>
+
+</div>
+{{end}}
