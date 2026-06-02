@@ -177,24 +177,30 @@ func scanNalog(scan func(...any) error, n *model.ServisniNalog, klijentNaziv *st
 	}
 
 	if klijentID.Valid {
-		n.KlijentID = &klijentID.Int64
+		v := klijentID.Int64
+		n.KlijentID = &v
 	}
 	n.SerijskiBroj = serijskiBroj.String
 	n.Napomena = napomena.String
 	if cenaOd.Valid {
-		n.CenaOd = &cenaOd.Float64
+		v := cenaOd.Float64
+		n.CenaOd = &v
 	}
 	if cenaDo.Valid {
-		n.CenaDo = &cenaDo.Float64
+		v := cenaDo.Float64
+		n.CenaDo = &v
 	}
 	if cenaKonacna.Valid {
-		n.CenaKonacna = &cenaKonacna.Float64
+		v := cenaKonacna.Float64
+		n.CenaKonacna = &v
 	}
 	if avans.Valid {
-		n.Avans = &avans.Float64
+		v := avans.Float64
+		n.Avans = &v
 	}
 	if datumZavrsetka.Valid {
-		n.DatumZavrsetka = &datumZavrsetka.Time
+		v := datumZavrsetka.Time
+		n.DatumZavrsetka = &v
 	}
 
 	return nil
