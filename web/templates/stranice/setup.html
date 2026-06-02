@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Podešavanje — NTech</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f1117;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .kartica {
+            background: #1a1d2e;
+            border: 0.5px solid #2a2d3e;
+            border-radius: 16px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+        }
+        .logo { text-align: center; margin-bottom: 32px; }
+        .logo-naziv { font-size: 22px; font-weight: 600; color: #fff; }
+        .logo-podnazlov { font-size: 13px; color: #6b7280; margin-top: 4px; }
+        h1 { font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 6px; }
+        .opis { font-size: 13px; color: #9ca3af; margin-bottom: 24px; line-height: 1.5; }
+        .polje { margin-bottom: 16px; }
+        label { display: block; font-size: 13px; color: #9ca3af; margin-bottom: 6px; }
+        input {
+            width: 100%;
+            padding: 10px 14px;
+            background: #0f1117;
+            border: 0.5px solid #2a2d3e;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #fff;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus { border-color: #4f7ef8; }
+        .dugme {
+            width: 100%;
+            padding: 11px;
+            background: #4f7ef8;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: opacity 0.2s;
+        }
+        .dugme:hover { opacity: 0.88; }
+        .greska {
+            background: #fef2f2;
+            border: 0.5px solid #fca5a5;
+            color: #dc2626;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+        .napomena {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="kartica">
+        <div class="logo">
+            <div class="logo-naziv">NTech</div>
+            <div class="logo-podnazlov">Prvo pokretanje</div>
+        </div>
+
+        <h1>Kreiranje admin naloga</h1>
+        <p class="opis">Dobrodošli. Kreirajte nalog superadmin korisnika koji će upravljati sistemom.</p>
+
+        {{if eq .Greska "1"}}
+        <div class="greska">Proverite unete podatke. Korisničko ime mora imati najmanje 3 karaktera, lozinka najmanje 8, a lozinke moraju biti iste.</div>
+        {{else if eq .Greska "2"}}
+        <div class="greska">Greška pri kreiranju naloga. Pokušajte ponovo.</div>
+        {{end}}
+
+        <form method="POST" action="/setup">
+            <div class="polje">
+                <label for="korisnicko_ime">Korisničko ime</label>
+                <input type="text" id="korisnicko_ime" name="korisnicko_ime"
+                    autocomplete="username" autofocus required minlength="3">
+            </div>
+            <div class="polje">
+                <label for="lozinka">Lozinka</label>
+                <input type="password" id="lozinka" name="lozinka"
+                    autocomplete="new-password" required minlength="8">
+                <div class="napomena">Najmanje 8 karaktera</div>
+            </div>
+            <div class="polje">
+                <label for="lozinka_potvrda">Potvrda lozinke</label>
+                <input type="password" id="lozinka_potvrda" name="lozinka_potvrda"
+                    autocomplete="new-password" required>
+            </div>
+            <button type="submit" class="dugme">Kreiraj nalog i nastavi</button>
+        </form>
+    </div>
+</body>
+</html>

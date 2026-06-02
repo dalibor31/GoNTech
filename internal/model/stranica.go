@@ -33,6 +33,8 @@ type PodaciStranice struct {
 	LogoTip        string // "ikonica", "tekst", "slika"
 	LogoPutanja    string // putanja do slike, koristi se samo kada je LogoTip "slika"
 	Korisnik       string
+	KorisnikIme    string // korisničko ime prijavljenog korisnika
+	KorisnikUloga  string // uloga: "superadmin", "admin", "radnik"
 }
 
 // PodaciDashboarda su podaci specifični za dashboard stranicu

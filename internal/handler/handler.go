@@ -5,6 +5,9 @@ import (
 
 	"ntech/internal/db"
 	"ntech/internal/db/sqlite"
+	"ntech/internal/middleware"
+	"ntech/internal/model"
+	"net/http"
 )
 
 // Handler drži zavisnosti koje su potrebne svim handlerima
@@ -17,6 +20,8 @@ type Handler struct {
 	KlijentiRepo   db.KlijentRepository
 	ServisRepo     db.ServisRepository
 	ProdajaRepo    db.ProdajaRepository
+	KorisniciRepo  db.KorisniciRepository
+	SesijeRepo     db.SesijeRepository
 }
 
 // Novi kreira novi Handler sa datom bazom
@@ -30,5 +35,25 @@ func Novi(baza *sql.DB) *Handler {
 		KlijentiRepo:   sqlite.NoviKlijentRepo(baza),
 		ServisRepo:     sqlite.NoviServisRepo(baza),
 		ProdajaRepo:    sqlite.NoviProdajaRepo(baza),
+		KorisniciRepo:  sqlite.NoviKorisniciRepo(baza),
+		SesijeRepo:     sqlite.NoviSesijeRepo(baza),
 	}
+}
+
+// popuniPodaciStranice popunjava zajednička polja stranice uključujući prijavljenog korisnika
+func (h *Handler) popuniPodaciStranice(r *http.Request, podesavanja map[string]string) model.PodaciStranice {
+	ps := model.PodaciStranice{
+		Tema:        podesavanja["tema"],
+		NazivFirme:  podesavanja["naziv_firme"],
+		Podnazlov:   podesavanja["podnazlov"],
+		LogoTip:     podesavanja["logo_tip"],
+		LogoPutanja: podesavanja["logo_putanja"],
+		Korisnik:    "Admin",
+	}
+	if k := middleware.KorisnikIzKonteksta(r.Context()); k != nil {
+		ps.Korisnik = k.KorisnickoIme
+		ps.KorisnikIme = k.KorisnickoIme
+		ps.KorisnikUloga = k.Uloga
+	}
+	return ps
 }
