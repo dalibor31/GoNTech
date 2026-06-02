@@ -90,6 +90,11 @@ func main() {
 	r.Post("/servis/izmeni/{id}", h.SacuvajIzmenaNaloga)
 	r.Post("/servis/obrisi/{id}", h.ObrisiNalog)
 	r.Get("/servis/{id}", h.DetaljiNaloga)
+	r.Get("/prodaja", h.Prodaja)
+	r.Get("/prodaja/nova", h.NovaProdaja)
+	r.Post("/prodaja/nova", h.SacuvajProdaju)
+	r.Post("/prodaja/obrisi/{id}", h.ObrisiProdaju)
+	r.Get("/prodaja/{id}", h.DetaljiProdaje)
 
 	log.Printf("NTech pokrenut na portu %s", port)
 	err = http.ListenAndServe(":"+port, r)

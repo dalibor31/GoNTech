@@ -1,0 +1,184 @@
+{{template "base" .}}
+
+{{define "naslov"}}Prodaja — NTech{{end}}
+
+{{define "dodatni-css"}}
+<style>
+    @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .poruka-animacija { animation: slideDown 0.3s ease forwards; }
+
+    .prodaja-tabela tbody tr {
+        animation: fadeInUp 0.25s ease forwards;
+        opacity: 0;
+    }
+
+    .prodaja-tabela tbody tr:nth-child(1)  { animation-delay: 0.04s; }
+    .prodaja-tabela tbody tr:nth-child(2)  { animation-delay: 0.08s; }
+    .prodaja-tabela tbody tr:nth-child(3)  { animation-delay: 0.12s; }
+    .prodaja-tabela tbody tr:nth-child(4)  { animation-delay: 0.16s; }
+    .prodaja-tabela tbody tr:nth-child(5)  { animation-delay: 0.20s; }
+    .prodaja-tabela tbody tr:nth-child(6)  { animation-delay: 0.24s; }
+    .prodaja-tabela tbody tr:nth-child(7)  { animation-delay: 0.28s; }
+    .prodaja-tabela tbody tr:nth-child(8)  { animation-delay: 0.32s; }
+    .prodaja-tabela tbody tr:nth-child(9)  { animation-delay: 0.36s; }
+    .prodaja-tabela tbody tr:nth-child(10) { animation-delay: 0.40s; }
+
+    .prodaja-kartice {
+        display: none;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .prodaja-kartica {
+        animation: fadeInUp 0.25s ease forwards;
+        opacity: 0;
+    }
+
+    .prodaja-kartica:nth-child(1) { animation-delay: 0.04s; }
+    .prodaja-kartica:nth-child(2) { animation-delay: 0.10s; }
+    .prodaja-kartica:nth-child(3) { animation-delay: 0.16s; }
+    .prodaja-kartica:nth-child(4) { animation-delay: 0.22s; }
+    .prodaja-kartica:nth-child(5) { animation-delay: 0.28s; }
+
+    @media (max-width: 768px) {
+        .prodaja-tabela  { display: none; }
+        .prodaja-kartice { display: flex; }
+    }
+</style>
+{{end}}
+
+{{define "sadrzaj"}}
+<div style="display:flex;flex-direction:column;gap:16px;">
+
+    {{if .Sacuvano}}
+    <div class="poruka-uspeh poruka-animacija">Prodaja je uspešno sačuvana.</div>
+    {{end}}
+    {{if .Obrisan}}
+    <div class="poruka-uspeh poruka-animacija">Prodajni nalog je uspešno obrisan.</div>
+    {{end}}
+
+    <!-- zaglavlje sa pretragom i dugmetom -->
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <form method="GET" action="/prodaja" style="display:flex;gap:8px;flex:1;min-width:200px;">
+            <input type="text" name="pretraga" value="{{.Pretraga}}"
+                placeholder="Pretraži po broju naloga..."
+                style="flex:1;">
+            <button type="submit"
+                style="padding:8px 14px;background:var(--kartica);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;color:var(--tekst-sporedni);cursor:pointer;white-space:nowrap;transition:background 0.2s;"
+                onmouseover="this.style.background='var(--pozadina)'" onmouseout="this.style.background='var(--kartica)'">
+                Pretraži
+            </button>
+            {{if .Pretraga}}
+            <a href="/prodaja"
+                style="padding:8px 14px;border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;color:var(--tekst-sporedni);text-decoration:none;white-space:nowrap;transition:background 0.2s;"
+                onmouseover="this.style.background='var(--pozadina)'" onmouseout="this.style.background=''">
+                ✕ Resetuj
+            </a>
+            {{end}}
+        </form>
+        <a href="/prodaja/nova"
+            style="padding:8px 16px;background:var(--sb-akcent);color:#fff;border-radius:8px;font-size:14px;font-weight:500;text-decoration:none;white-space:nowrap;transition:opacity 0.2s;"
+            onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+            + Nova prodaja
+        </a>
+    </div>
+
+    <!-- desktop tabela -->
+    <div class="kartica prodaja-tabela" style="padding:0;overflow:hidden;">
+        <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;">
+                <thead>
+                    <tr style="border-bottom:0.5px solid var(--ivica);">
+                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Broj naloga</th>
+                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Datum</th>
+                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Klijent</th>
+                        <th style="padding:12px 16px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Ukupno</th>
+                        <th style="padding:12px 16px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Akcije</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Nalozi}}
+                    <tr style="border-bottom:0.5px solid var(--ivica);transition:background 0.15s;"
+                        onmouseover="this.style.background='var(--pozadina)'"
+                        onmouseout="this.style.background=''">
+                        <td style="padding:12px 16px;font-size:13px;font-family:monospace;color:var(--tekst-glavni);">
+                            {{.BrojNaloga}}
+                        </td>
+                        <td style="padding:12px 16px;font-size:13px;color:var(--tekst-sporedni);white-space:nowrap;">
+                            {{.Datum.Format "02.01.2006."}}
+                        </td>
+                        <td style="padding:12px 16px;font-size:14px;font-weight:500;color:var(--tekst-glavni);">
+                            {{if .KlijentNaziv}}{{.KlijentNaziv}}{{else}}—{{end}}
+                        </td>
+                        <td style="padding:12px 16px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">
+                            {{printf "%.2f" .Ukupno}} din
+                        </td>
+                        <td style="padding:12px 16px;text-align:center;">
+                            <a href="/prodaja/{{.ID}}"
+                                style="padding:4px 10px;background:var(--sb-aktivan);color:#fff;border-radius:6px;font-size:12px;text-decoration:none;transition:opacity 0.2s;"
+                                onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                                Detalji
+                            </a>
+                        </td>
+                    </tr>
+                    {{else}}
+                    <tr>
+                        <td colspan="5" style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
+                            {{if $.Pretraga}}
+                            Nema naloga koji odgovaraju pretrazi.
+                            {{else}}
+                            Nema prodajnih naloga. <a href="/prodaja/nova" style="color:var(--sb-akcent);">Dodaj prvu prodaju.</a>
+                            {{end}}
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- mobilne kartice -->
+    <div class="prodaja-kartice">
+        {{range .Nalozi}}
+        <div class="kartica prodaja-kartica">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;">
+                <div>
+                    <div style="font-size:13px;font-family:monospace;color:var(--tekst-glavni);">{{.BrojNaloga}}</div>
+                    <div style="font-size:14px;font-weight:500;color:var(--tekst-glavni);margin-top:2px;">
+                        {{if .KlijentNaziv}}{{.KlijentNaziv}}{{else}}Bez klijenta{{end}}
+                    </div>
+                    <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:2px;">
+                        {{.Datum.Format "02.01.2006."}}
+                    </div>
+                </div>
+                <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);white-space:nowrap;">
+                    {{printf "%.2f" .Ukupno}} din
+                </div>
+            </div>
+            <a href="/prodaja/{{.ID}}"
+                style="display:block;padding:7px;background:var(--sb-aktivan);color:#fff;border-radius:6px;font-size:13px;text-decoration:none;text-align:center;">
+                Detalji
+            </a>
+        </div>
+        {{else}}
+        <div style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
+            {{if $.Pretraga}}
+            Nema naloga koji odgovaraju pretrazi.
+            {{else}}
+            Nema prodajnih naloga. <a href="/prodaja/nova" style="color:var(--sb-akcent);">Dodaj prvu prodaju.</a>
+            {{end}}
+        </div>
+        {{end}}
+    </div>
+
+</div>
+{{end}}
