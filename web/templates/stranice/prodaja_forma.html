@@ -39,7 +39,13 @@
     x-data="{
         stavke: [{artikal_id: '', kolicina: 1, cena: 0}],
         artikliOpcije: _ntechArtikli,
+        isMobile: window.matchMedia('(max-width: 768px)').matches,
 
+        init() {
+            window.matchMedia('(max-width: 768px)').addEventListener('change', e => {
+                this.isMobile = e.matches;
+            });
+        },
         dodajStavku() {
             this.stavke.push({artikal_id: '', kolicina: 1, cena: 0});
         },
@@ -49,6 +55,23 @@
         popuniCenu(stavka) {
             const a = this.artikliOpcije.find(x => x.id == stavka.artikal_id);
             if (a) stavka.cena = a.cena;
+        },
+        dostupnaKolicina(i) {
+            const stavka = this.stavke[i];
+            if (!stavka.artikal_id) return null;
+            const a = this.artikliOpcije.find(x => x.id == stavka.artikal_id);
+            if (!a) return null;
+            const ostale = this.stavke.reduce((sum, s, j) =>
+                sum + (j !== i && s.artikal_id == stavka.artikal_id ? (parseInt(s.kolicina) || 0) : 0), 0);
+            return a.kolicina - ostale;
+        },
+        prekoracenje(i) {
+            const d = this.dostupnaKolicina(i);
+            if (d === null) return false;
+            return (parseInt(this.stavke[i].kolicina) || 0) > d;
+        },
+        imaPrekoracenja() {
+            return this.stavke.some((_, i) => this.prekoracenje(i));
         },
         ukupnoStavke(s) {
             return (parseFloat(s.kolicina) * parseFloat(s.cena) || 0).toFixed(2);
@@ -130,6 +153,7 @@
                                 <td style="padding:8px 10px;">
                                     <select :name="'artikal_id[]'" x-model="stavka.artikal_id"
                                         @change="popuniCenu(stavka)"
+                                        :disabled="isMobile"
                                         style="width:100%;">
                                         <option value="">— odaberi artikal —</option>
                                         <template x-for="a in artikliOpcije" :key="a.id">
@@ -139,11 +163,21 @@
                                 </td>
                                 <td style="padding:8px 10px;">
                                     <input type="number" :name="'kolicina[]'" x-model="stavka.kolicina"
-                                        min="1" style="width:100%;text-align:center;">
+                                        min="1" :disabled="isMobile"
+                                        :style="prekoracenje(i) ? 'border-color:#dc2626;' : ''"
+                                        style="width:100%;text-align:center;">
+                                    <div x-show="stavka.artikal_id"
+                                        :style="prekoracenje(i) ? 'color:#dc2626' : 'color:var(--tekst-sporedni)'"
+                                        x-text="'Na stanju: ' + dostupnaKolicina(i)"
+                                        style="font-size:11px;margin-top:3px;text-align:center;white-space:nowrap;"></div>
+                                    <div x-show="prekoracenje(i)"
+                                        style="font-size:11px;color:#dc2626;margin-top:1px;text-align:center;white-space:nowrap;">
+                                        Prekoračena količina
+                                    </div>
                                 </td>
                                 <td style="padding:8px 10px;">
                                     <input type="number" :name="'cena_po_komadu[]'" x-model="stavka.cena"
-                                        min="0" step="0.01" style="width:100%;text-align:right;">
+                                        min="0" step="0.01" :disabled="isMobile" style="width:100%;text-align:right;">
                                 </td>
                                 <td style="padding:8px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">
                                     <span x-text="ukupnoStavke(stavka) + ' din'"></span>
@@ -189,6 +223,7 @@
                                 <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Artikal</label>
                                 <select :name="'artikal_id[]'" x-model="stavka.artikal_id"
                                     @change="popuniCenu(stavka)"
+                                    :disabled="!isMobile"
                                     style="width:100%;">
                                     <option value="">— odaberi artikal —</option>
                                     <template x-for="a in artikliOpcije" :key="a.id">
@@ -199,11 +234,18 @@
                             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                                 <div>
                                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Količina</label>
-                                    <input type="number" :name="'kolicina[]'" x-model="stavka.kolicina" min="1" style="width:100%;">
+                                    <input type="number" :name="'kolicina[]'" x-model="stavka.kolicina" min="1" :disabled="!isMobile"
+                                        :style="prekoracenje(i) ? 'border-color:#dc2626;' : ''"
+                                        style="width:100%;">
+                                    <div x-show="stavka.artikal_id"
+                                        :style="prekoracenje(i) ? 'color:#dc2626' : 'color:var(--tekst-sporedni)'"
+                                        x-text="'Na stanju: ' + dostupnaKolicina(i)"
+                                        style="font-size:11px;margin-top:3px;"></div>
+                                    <div x-show="prekoracenje(i)" style="font-size:11px;color:#dc2626;margin-top:1px;">Prekoračena količina</div>
                                 </div>
                                 <div>
                                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Cena/kom (din)</label>
-                                    <input type="number" :name="'cena_po_komadu[]'" x-model="stavka.cena" min="0" step="0.01" style="width:100%;">
+                                    <input type="number" :name="'cena_po_komadu[]'" x-model="stavka.cena" min="0" step="0.01" :disabled="!isMobile" style="width:100%;">
                                 </div>
                             </div>
                             <div style="text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">
@@ -226,8 +268,11 @@
                 Odustani
             </a>
             <button type="submit"
+                :disabled="imaPrekoracenja()"
+                :style="imaPrekoracenja() ? 'opacity:0.4;cursor:not-allowed;' : ''"
                 style="padding:9px 20px;background:var(--sb-akcent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:opacity 0.2s;"
-                onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                @mouseover="if(!imaPrekoracenja()) $el.style.opacity='0.85'"
+                @mouseout="$el.style.opacity=imaPrekoracenja()?'0.4':'1'">
                 Sačuvaj prodaju
             </button>
         </div>
