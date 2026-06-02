@@ -38,7 +38,7 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.DB.QueryRowContext(ctx, `
 		SELECT COALESCE(SUM(ukupno), 0) FROM prodajni_nalozi
-		WHERE strftime('%Y-%m', datum) = strftime('%Y-%m', 'now', 'localtime')`,
+		WHERE substr(datum, 1, 7) = strftime('%Y-%m', 'now', 'localtime')`,
 	).Scan(&prihodOvogMeseca); err != nil {
 		log.Printf("dashboard: prihod ovog meseca: %v", err)
 	}
