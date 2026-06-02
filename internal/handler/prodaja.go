@@ -44,16 +44,17 @@ type PodaciDetaljiProdaje struct {
 	Sacuvano     bool
 }
 
-// artikalUJSONSaCenom pretvara listu artikala u template.JS vrednost sa prodajnom cenom
+// artikalUJSONSaCenom pretvara listu artikala u template.JS vrednost sa prodajnom cenom i stanjem
 func artikalUJSONSaCenom(artikli []model.ArtikalSaKategorijom) template.JS {
 	type stavka struct {
-		ID    int64   `json:"id"`
-		Naziv string  `json:"naziv"`
-		Cena  float64 `json:"cena"`
+		ID       int64   `json:"id"`
+		Naziv    string  `json:"naziv"`
+		Cena     float64 `json:"cena"`
+		Kolicina int     `json:"kolicina"`
 	}
 	lista := make([]stavka, 0, len(artikli))
 	for _, a := range artikli {
-		lista = append(lista, stavka{ID: a.ID, Naziv: a.Naziv, Cena: a.ProdajnaCena})
+		lista = append(lista, stavka{ID: a.ID, Naziv: a.Naziv, Cena: a.ProdajnaCena, Kolicina: a.Kolicina})
 	}
 	b, _ := json.Marshal(lista)
 	return template.JS(b)
