@@ -111,6 +111,12 @@ type PokusajiPrijaveRepository interface {
 	ObrisiStare(ctx context.Context, pre time.Time) error
 }
 
+// LoginIstorijsaRepository definiše operacije nad evidencijom prijava
+type LoginIstorijsaRepository interface {
+	Zabeleži(ctx context.Context, korisnikID *int64, ip, userAgent, razlog string, uspeh bool) error
+	ListaZaKorisnika(ctx context.Context, korisnikID int64, limit int) ([]*model.LoginPokusaj, error)
+}
+
 // PodsetnikRepository definiše operacije nad podsetnicima
 type PodsetnikRepository interface {
 	Lista(ctx context.Context, filter PodsetnikFilter) ([]model.Podsetnik, error)

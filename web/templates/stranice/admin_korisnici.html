@@ -105,7 +105,11 @@
                         <td style="padding:10px 20px;font-size:13px;color:var(--tekst-sporedni);">
                             {{.DatumKreiranja.Format "02.01.2006."}}
                         </td>
-                        <td style="padding:10px 20px;text-align:right;">
+                        <td style="padding:10px 20px;text-align:right;white-space:nowrap;">
+                            <a href="/admin/korisnici/{{.ID}}/istorija"
+                                style="display:inline-block;padding:5px 12px;border:0.5px solid var(--ivica);border-radius:6px;color:var(--tekst-sporedni);font-size:12px;text-decoration:none;margin-right:6px;">
+                                Istorija prijava
+                            </a>
                             {{if ne .KorisnickoIme $.KorisnikIme}}
                             <form method="POST" action="/admin/korisnici/{{.ID}}/aktivan" style="display:inline;">
                                 <button type="submit"

@@ -51,6 +51,7 @@ func (h *Handler) Prijava(w http.ResponseWriter, r *http.Request) {
 	if n >= maxNeuspehaPrijave {
 		if preostalo, zaklj := h.preostaloBruteforce(r.Context(), ip, od); zaklj {
 			auth.LogZaklucano(ip, korisnickoIme)
+			_ = h.LoginIstorijsaRepo.Zabeleži(r.Context(), nil, ip, r.UserAgent(), "ip_zaklucano", false)
 			h.renderujStandalone(w, "prijava", map[string]any{
 				"Greska":    "zakljucano",
 				"Preostalo": preostalo,
@@ -62,21 +63,31 @@ func (h *Handler) Prijava(w http.ResponseWriter, r *http.Request) {
 	}
 
 	korisnik, err := h.KorisniciRepo.DohvatiPoImenu(r.Context(), korisnickoIme)
-	if err != nil || !korisnik.Aktivan {
+	if err != nil {
 		_ = h.PokusajiRepo.Zabeleži(r.Context(), ip, korisnickoIme, false)
+		_ = h.LoginIstorijsaRepo.Zabeleži(r.Context(), nil, ip, r.UserAgent(), "korisnik_ne_postoji", false)
 		auth.LogNeuspehPrijave(ip, korisnickoIme, "wrong_user")
+		http.Redirect(w, r, "/prijava?greska=1", http.StatusSeeOther)
+		return
+	}
+	if !korisnik.Aktivan {
+		_ = h.PokusajiRepo.Zabeleži(r.Context(), ip, korisnickoIme, false)
+		_ = h.LoginIstorijsaRepo.Zabeleži(r.Context(), &korisnik.ID, ip, r.UserAgent(), "nalog_neaktivan", false)
+		auth.LogNeuspehPrijave(ip, korisnickoIme, "nalog_neaktivan")
 		http.Redirect(w, r, "/prijava?greska=1", http.StatusSeeOther)
 		return
 	}
 
 	if !auth.ProveriLozinku(korisnik.LozinkaHash, lozinka) {
 		_ = h.PokusajiRepo.Zabeleži(r.Context(), ip, korisnickoIme, false)
+		_ = h.LoginIstorijsaRepo.Zabeleži(r.Context(), &korisnik.ID, ip, r.UserAgent(), "pogrešna_lozinka", false)
 		auth.LogNeuspehPrijave(ip, korisnickoIme, "wrong_password")
 		http.Redirect(w, r, "/prijava?greska=1", http.StatusSeeOther)
 		return
 	}
 
 	_ = h.PokusajiRepo.Zabeleži(r.Context(), ip, korisnickoIme, true)
+	_ = h.LoginIstorijsaRepo.Zabeleži(r.Context(), &korisnik.ID, ip, r.UserAgent(), "", true)
 	auth.LogUspehPrijave(ip, korisnickoIme)
 
 	token := auth.GenerisiToken()

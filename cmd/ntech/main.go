@@ -165,6 +165,7 @@ func main() {
 
 		// admin rute
 		r.Get("/admin/korisnici", h.AdminKorisnici)
+		r.Get("/admin/korisnici/{id}/istorija", h.AdminLoginIstorija)
 		r.Post("/admin/korisnici/novi", h.AdminSacuvajKorisnika)
 		r.Post("/admin/korisnici/{id}/aktivan", h.AdminToggleAktivan)
 		r.Post("/admin/korisnici/{id}/uloga", h.AdminPromeniUlogu)
