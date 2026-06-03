@@ -25,5 +25,15 @@ ntech.env
 .idea/
 *.swp
 
-CLAUDE.md
+# Backup fajlovi
+backups/
+
+# Logovi
+logs/
+
+# Upload fajlovi
+web/static/uploads/
+
+.aider*
+.env
 
