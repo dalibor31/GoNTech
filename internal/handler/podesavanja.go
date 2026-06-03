@@ -40,28 +40,22 @@ func (h *Handler) Podesavanja(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "podesavanja"
+	ps.NaslovStranice = "Podešavanja"
 	podaci := PodaciPodesavanja{
-		PodaciStranice: model.PodaciStranice{
-			Stranica:       "podesavanja",
-			NaslovStranice: "Podešavanja",
-			Tema:           podesavanja["tema"],
-			NazivFirme:     podesavanja["naziv_firme"],
-			Podnazlov:      podesavanja["podnazlov"],
-			LogoTip:        podesavanja["logo_tip"],
-			LogoPutanja:    podesavanja["logo_putanja"],
-			Korisnik:       "Admin",
-		},
-		NazivFirme:  podesavanja["naziv_firme"],
-		Podnazlov:   podesavanja["podnazlov"],
-		Adresa:      podesavanja["adresa"],
-		Telefon:     podesavanja["telefon"],
-		PIB:         podesavanja["pib"],
-		LogoTip:     podesavanja["logo_tip"],
-		LogoPutanja: podesavanja["logo_putanja"],
-		Tema:        podesavanja["tema"],
-		Sacuvano:    r.URL.Query().Get("sacuvano") == "1",
-		Verzija:     h.Verzija,
-		LogoGreska:  r.URL.Query().Get("logo_greska"),
+		PodaciStranice: ps,
+		NazivFirme:     podesavanja["naziv_firme"],
+		Podnazlov:      podesavanja["podnazlov"],
+		Adresa:         podesavanja["adresa"],
+		Telefon:        podesavanja["telefon"],
+		PIB:            podesavanja["pib"],
+		LogoTip:        podesavanja["logo_tip"],
+		LogoPutanja:    podesavanja["logo_putanja"],
+		Tema:           podesavanja["tema"],
+		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
+		Verzija:        h.Verzija,
+		LogoGreska:     r.URL.Query().Get("logo_greska"),
 	}
 
 	h.renderujTemplate(w, "podesavanja", podaci)

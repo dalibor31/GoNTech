@@ -44,21 +44,15 @@ func (h *Handler) Klijenti(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "klijenti"
+	ps.NaslovStranice = "Klijenti"
 	podaci := PodaciKlijenata{
-		PodaciStranice: model.PodaciStranice{
-			Stranica:       "klijenti",
-			NaslovStranice: "Klijenti",
-			Tema:           podesavanja["tema"],
-			NazivFirme:     podesavanja["naziv_firme"],
-			Podnazlov:      podesavanja["podnazlov"],
-			LogoTip:        podesavanja["logo_tip"],
-			LogoPutanja:    podesavanja["logo_putanja"],
-			Korisnik:       "Admin",
-		},
-		Klijenti: klijenti,
-		Pretraga: pretraga,
-		Sacuvano: r.URL.Query().Get("sacuvano") == "1",
-		Obrisan:  r.URL.Query().Get("obrisan") == "1",
+		PodaciStranice: ps,
+		Klijenti:       klijenti,
+		Pretraga:       pretraga,
+		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
+		Obrisan:        r.URL.Query().Get("obrisan") == "1",
 	}
 
 	h.renderujTemplate(w, "klijenti", podaci)
@@ -72,18 +66,12 @@ func (h *Handler) NoviKlijent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "klijenti"
+	ps.NaslovStranice = "Novi klijent"
 	h.renderujFormuKlijenta(w, PodaciFormeKlijenta{
-		PodaciStranice: model.PodaciStranice{
-			Stranica:       "klijenti",
-			NaslovStranice: "Novi klijent",
-			Tema:           podesavanja["tema"],
-			NazivFirme:     podesavanja["naziv_firme"],
-			Podnazlov:      podesavanja["podnazlov"],
-			LogoTip:        podesavanja["logo_tip"],
-			LogoPutanja:    podesavanja["logo_putanja"],
-			Korisnik:       "Admin",
-		},
-		Izmena: false,
+		PodaciStranice: ps,
+		Izmena:         false,
 	})
 }
 
@@ -97,20 +85,14 @@ func (h *Handler) SacuvajKlijenta(w http.ResponseWriter, r *http.Request) {
 	klijent, greska := parseFormuKlijenta(r)
 	if greska != "" {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+		ps := h.popuniPodaciStranice(r, podesavanja)
+		ps.Stranica = "klijenti"
+		ps.NaslovStranice = "Novi klijent"
 		h.renderujFormuKlijenta(w, PodaciFormeKlijenta{
-			PodaciStranice: model.PodaciStranice{
-				Stranica:       "klijenti",
-				NaslovStranice: "Novi klijent",
-				Tema:           podesavanja["tema"],
-				NazivFirme:     podesavanja["naziv_firme"],
-				Podnazlov:      podesavanja["podnazlov"],
-				LogoTip:        podesavanja["logo_tip"],
-				LogoPutanja:    podesavanja["logo_putanja"],
-				Korisnik:       "Admin",
-			},
-			Klijent: klijent,
-			Greska:  greska,
-			Izmena:  false,
+			PodaciStranice: ps,
+			Klijent:        klijent,
+			Greska:         greska,
+			Izmena:         false,
 		})
 		return
 	}
@@ -118,20 +100,14 @@ func (h *Handler) SacuvajKlijenta(w http.ResponseWriter, r *http.Request) {
 	if _, err := h.KlijentiRepo.Kreiraj(r.Context(), &klijent); err != nil {
 		log.Printf("greška pri čuvanju klijenta: %v", err)
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+		ps := h.popuniPodaciStranice(r, podesavanja)
+		ps.Stranica = "klijenti"
+		ps.NaslovStranice = "Novi klijent"
 		h.renderujFormuKlijenta(w, PodaciFormeKlijenta{
-			PodaciStranice: model.PodaciStranice{
-				Stranica:       "klijenti",
-				NaslovStranice: "Novi klijent",
-				Tema:           podesavanja["tema"],
-				NazivFirme:     podesavanja["naziv_firme"],
-				Podnazlov:      podesavanja["podnazlov"],
-				LogoTip:        podesavanja["logo_tip"],
-				LogoPutanja:    podesavanja["logo_putanja"],
-				Korisnik:       "Admin",
-			},
-			Klijent: klijent,
-			Greska:  "Došlo je do greške pri čuvanju. Pokušajte ponovo.",
-			Izmena:  false,
+			PodaciStranice: ps,
+			Klijent:        klijent,
+			Greska:         "Došlo je do greške pri čuvanju. Pokušajte ponovo.",
+			Izmena:         false,
 		})
 		return
 	}
@@ -159,19 +135,13 @@ func (h *Handler) IzmeniKlijenta(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "klijenti"
+	ps.NaslovStranice = "Izmeni klijenta"
 	h.renderujFormuKlijenta(w, PodaciFormeKlijenta{
-		PodaciStranice: model.PodaciStranice{
-			Stranica:       "klijenti",
-			NaslovStranice: "Izmeni klijenta",
-			Tema:           podesavanja["tema"],
-			NazivFirme:     podesavanja["naziv_firme"],
-			Podnazlov:      podesavanja["podnazlov"],
-			LogoTip:        podesavanja["logo_tip"],
-			LogoPutanja:    podesavanja["logo_putanja"],
-			Korisnik:       "Admin",
-		},
-		Klijent: *klijent,
-		Izmena:  true,
+		PodaciStranice: ps,
+		Klijent:        *klijent,
+		Izmena:         true,
 	})
 }
 
@@ -192,20 +162,14 @@ func (h *Handler) SacuvajIzmenuKlijenta(w http.ResponseWriter, r *http.Request) 
 	if greska != "" {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		klijent.ID = id
+		ps := h.popuniPodaciStranice(r, podesavanja)
+		ps.Stranica = "klijenti"
+		ps.NaslovStranice = "Izmeni klijenta"
 		h.renderujFormuKlijenta(w, PodaciFormeKlijenta{
-			PodaciStranice: model.PodaciStranice{
-				Stranica:       "klijenti",
-				NaslovStranice: "Izmeni klijenta",
-				Tema:           podesavanja["tema"],
-				NazivFirme:     podesavanja["naziv_firme"],
-				Podnazlov:      podesavanja["podnazlov"],
-				LogoTip:        podesavanja["logo_tip"],
-				LogoPutanja:    podesavanja["logo_putanja"],
-				Korisnik:       "Admin",
-			},
-			Klijent: klijent,
-			Greska:  greska,
-			Izmena:  true,
+			PodaciStranice: ps,
+			Klijent:        klijent,
+			Greska:         greska,
+			Izmena:         true,
 		})
 		return
 	}
@@ -214,20 +178,14 @@ func (h *Handler) SacuvajIzmenuKlijenta(w http.ResponseWriter, r *http.Request) 
 	if err := h.KlijentiRepo.Izmeni(r.Context(), &klijent); err != nil {
 		log.Printf("greška pri čuvanju izmene klijenta: %v", err)
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+		ps := h.popuniPodaciStranice(r, podesavanja)
+		ps.Stranica = "klijenti"
+		ps.NaslovStranice = "Izmeni klijenta"
 		h.renderujFormuKlijenta(w, PodaciFormeKlijenta{
-			PodaciStranice: model.PodaciStranice{
-				Stranica:       "klijenti",
-				NaslovStranice: "Izmeni klijenta",
-				Tema:           podesavanja["tema"],
-				NazivFirme:     podesavanja["naziv_firme"],
-				Podnazlov:      podesavanja["podnazlov"],
-				LogoTip:        podesavanja["logo_tip"],
-				LogoPutanja:    podesavanja["logo_putanja"],
-				Korisnik:       "Admin",
-			},
-			Klijent: klijent,
-			Greska:  "Došlo je do greške pri čuvanju. Pokušajte ponovo.",
-			Izmena:  true,
+			PodaciStranice: ps,
+			Klijent:        klijent,
+			Greska:         "Došlo je do greške pri čuvanju. Pokušajte ponovo.",
+			Izmena:         true,
 		})
 		return
 	}

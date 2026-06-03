@@ -35,22 +35,14 @@ func (h *Handler) NoviArtikal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	podaci := PodaciFormeArtikla{
-		PodaciStranice: model.PodaciStranice{
-			Stranica:       "magacin",
-			NaslovStranice: "Novi artikal",
-			Tema:           podesavanja["tema"],
-			NazivFirme:     podesavanja["naziv_firme"],
-			Podnazlov:      podesavanja["podnazlov"],
-			LogoTip:        podesavanja["logo_tip"],
-			LogoPutanja:    podesavanja["logo_putanja"],
-			Korisnik:       "Admin",
-		},
-		Kategorije: kategorije,
-		Izmena:     false,
-	}
-
-	h.renderujFormuArtikla(w, podaci)
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "magacin"
+	ps.NaslovStranice = "Novi artikal"
+	h.renderujFormuArtikla(w, PodaciFormeArtikla{
+		PodaciStranice: ps,
+		Kategorije:     kategorije,
+		Izmena:         false,
+	})
 }
 
 // SacuvajArtikal prima POST formu i čuva novi artikal
@@ -68,17 +60,11 @@ func (h *Handler) SacuvajArtikal(w http.ResponseWriter, r *http.Request) {
 		if artikal.KategorijaID != nil {
 			katIDStr = strconv.FormatInt(*artikal.KategorijaID, 10)
 		}
+		ps := h.popuniPodaciStranice(r, podesavanja)
+		ps.Stranica = "magacin"
+		ps.NaslovStranice = "Novi artikal"
 		h.renderujFormuArtikla(w, PodaciFormeArtikla{
-			PodaciStranice: model.PodaciStranice{
-				Stranica:       "magacin",
-				NaslovStranice: "Novi artikal",
-				Tema:           podesavanja["tema"],
-				NazivFirme:     podesavanja["naziv_firme"],
-				Podnazlov:      podesavanja["podnazlov"],
-				LogoTip:        podesavanja["logo_tip"],
-				LogoPutanja:    podesavanja["logo_putanja"],
-				Korisnik:       "Admin",
-			},
+			PodaciStranice:  ps,
 			Artikal:         artikal,
 			Kategorije:      kategorije,
 			KategorijaIDStr: katIDStr,
@@ -136,24 +122,16 @@ func (h *Handler) IzmeniArtikal(w http.ResponseWriter, r *http.Request) {
 		katIDStr = strconv.FormatInt(*artikal.KategorijaID, 10)
 	}
 
-	podaci := PodaciFormeArtikla{
-		PodaciStranice: model.PodaciStranice{
-			Stranica:       "magacin",
-			NaslovStranice: "Izmeni artikal",
-			Tema:           podesavanja["tema"],
-			NazivFirme:     podesavanja["naziv_firme"],
-			Podnazlov:      podesavanja["podnazlov"],
-			LogoTip:        podesavanja["logo_tip"],
-			LogoPutanja:    podesavanja["logo_putanja"],
-			Korisnik:       "Admin",
-		},
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "magacin"
+	ps.NaslovStranice = "Izmeni artikal"
+	h.renderujFormuArtikla(w, PodaciFormeArtikla{
+		PodaciStranice:  ps,
 		Artikal:         *artikal,
 		Kategorije:      kategorije,
 		KategorijaIDStr: katIDStr,
 		Izmena:          true,
-	}
-
-	h.renderujFormuArtikla(w, podaci)
+	})
 }
 
 // SacuvajIzmenuArtikla prima POST formu i čuva izmenu artikla
@@ -179,17 +157,11 @@ func (h *Handler) SacuvajIzmenuArtikla(w http.ResponseWriter, r *http.Request) {
 		if artikal.KategorijaID != nil {
 			katIDStr = strconv.FormatInt(*artikal.KategorijaID, 10)
 		}
+		ps := h.popuniPodaciStranice(r, podesavanja)
+		ps.Stranica = "magacin"
+		ps.NaslovStranice = "Izmeni artikal"
 		h.renderujFormuArtikla(w, PodaciFormeArtikla{
-			PodaciStranice: model.PodaciStranice{
-				Stranica:       "magacin",
-				NaslovStranice: "Izmeni artikal",
-				Tema:           podesavanja["tema"],
-				NazivFirme:     podesavanja["naziv_firme"],
-				Podnazlov:      podesavanja["podnazlov"],
-				LogoTip:        podesavanja["logo_tip"],
-				LogoPutanja:    podesavanja["logo_putanja"],
-				Korisnik:       "Admin",
-			},
+			PodaciStranice:  ps,
 			Artikal:         artikal,
 			Kategorije:      kategorije,
 			KategorijaIDStr: katIDStr,

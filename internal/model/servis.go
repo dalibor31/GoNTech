@@ -49,6 +49,14 @@ type ServisniNalogSaKlijentom struct {
 	KlijentNaziv string
 }
 
+// KlijentIDVrednost vraća vrednost KlijentID pointera, ili 0 ako je nil
+func (n ServisniNalog) KlijentIDVrednost() int64 {
+	if n.KlijentID == nil {
+		return 0
+	}
+	return *n.KlijentID
+}
+
 // CenaOdStr vraća formatiranu procenu od, ili prazan string ako nije uneta
 func (n ServisniNalog) CenaOdStr() string {
 	if n.CenaOd == nil {

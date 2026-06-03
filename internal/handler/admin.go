@@ -192,7 +192,7 @@ func (h *Handler) AdminProfil(w http.ResponseWriter, r *http.Request) {
 
 	podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	ps := h.popuniPodaciStranice(r, podesavanja)
-	ps.Stranica = "admin"
+	ps.Stranica = "profil"
 	ps.NaslovStranice = "Moj profil"
 
 	podaci := podaciAdminProfil{
@@ -261,7 +261,7 @@ func (h *Handler) AdminTotpPokreni(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ps := h.popuniPodaciStranice(r, podesavanja)
-	ps.Stranica = "admin"
+	ps.Stranica = "profil"
 	ps.NaslovStranice = "Podesi 2FA"
 
 	podaci := podaciAdminProfil{
@@ -294,7 +294,7 @@ func (h *Handler) AdminTotpAktivacija(w http.ResponseWriter, r *http.Request) {
 		// ponovni prikaz sa greškom — regenerišemo isti tajnu
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		ps := h.popuniPodaciStranice(r, podesavanja)
-		ps.Stranica = "admin"
+		ps.Stranica = "profil"
 		ps.NaslovStranice = "Podesi 2FA"
 
 		// regenerišemo QR za već generisanu tajnu (korisnik je video ovaj QR)

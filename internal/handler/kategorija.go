@@ -32,20 +32,14 @@ func (h *Handler) Kategorije(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "magacin"
+	ps.NaslovStranice = "Kategorije"
 	podaci := PodaciKategorija{
-		PodaciStranice: model.PodaciStranice{
-			Stranica:       "magacin",
-			NaslovStranice: "Kategorije",
-			Tema:           podesavanja["tema"],
-			NazivFirme:     podesavanja["naziv_firme"],
-			Podnazlov:      podesavanja["podnazlov"],
-			LogoTip:        podesavanja["logo_tip"],
-			LogoPutanja:    podesavanja["logo_putanja"],
-			Korisnik:       "Admin",
-		},
-		Kategorije: kategorije,
-		Sacuvano:   r.URL.Query().Get("sacuvano") == "1",
-		Obrisana:   r.URL.Query().Get("obrisana") == "1",
+		PodaciStranice: ps,
+		Kategorije:     kategorije,
+		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
+		Obrisana:       r.URL.Query().Get("obrisana") == "1",
 	}
 
 	h.renderujTemplate(w, "kategorije", podaci)

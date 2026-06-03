@@ -30,7 +30,7 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.DB.QueryRowContext(ctx, `
 		SELECT COUNT(*) FROM servisni_nalozi
-		WHERE status NOT IN ('Završeno', 'Preuzeto')`,
+		WHERE status != 'Završeno'`,
 	).Scan(&aktivniServisi); err != nil {
 		log.Printf("dashboard: aktivni servisi: %v", err)
 	}
