@@ -59,23 +59,17 @@ func (h *Handler) Servis(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "servis"
+	ps.NaslovStranice = "Servis"
 	podaci := PodaciServisa{
-		PodaciStranice: model.PodaciStranice{
-			Stranica:       "servis",
-			NaslovStranice: "Servis",
-			Tema:           podesavanja["tema"],
-			NazivFirme:     podesavanja["naziv_firme"],
-			Podnazlov:      podesavanja["podnazlov"],
-			LogoTip:        podesavanja["logo_tip"],
-			LogoPutanja:    podesavanja["logo_putanja"],
-			Korisnik:       "Admin",
-		},
-		Nalozi:       nalozi,
-		Pretraga:     pretraga,
-		FilterStatus: filterStatus,
-		SviStatusi:   model.SviStatusi,
-		Sacuvano:     r.URL.Query().Get("sacuvano") == "1",
-		Obrisan:      r.URL.Query().Get("obrisan") == "1",
+		PodaciStranice: ps,
+		Nalozi:         nalozi,
+		Pretraga:       pretraga,
+		FilterStatus:   filterStatus,
+		SviStatusi:     model.SviStatusi,
+		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
+		Obrisan:        r.URL.Query().Get("obrisan") == "1",
 	}
 
 	h.renderujTemplate(w, "servis", podaci)
@@ -101,21 +95,15 @@ func (h *Handler) NoviNalog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "servis"
+	ps.NaslovStranice = "Novi nalog"
 	h.renderujFormuNaloga(w, PodaciFormeNaloga{
-		PodaciStranice: model.PodaciStranice{
-			Stranica:       "servis",
-			NaslovStranice: "Novi nalog",
-			Tema:           podesavanja["tema"],
-			NazivFirme:     podesavanja["naziv_firme"],
-			Podnazlov:      podesavanja["podnazlov"],
-			LogoTip:        podesavanja["logo_tip"],
-			LogoPutanja:    podesavanja["logo_putanja"],
-			Korisnik:       "Admin",
-		},
-		Nalog:      model.ServisniNalog{BrojNaloga: brojNaloga, Status: model.StatusPrimljeno},
-		Klijenti:   klijenti,
-		SviStatusi: model.SviStatusi,
-		Izmena:     false,
+		PodaciStranice: ps,
+		Nalog:          model.ServisniNalog{BrojNaloga: brojNaloga, Status: model.StatusPrimljeno},
+		Klijenti:       klijenti,
+		SviStatusi:     model.SviStatusi,
+		Izmena:         false,
 	})
 }
 
@@ -130,22 +118,16 @@ func (h *Handler) SacuvajNalog(w http.ResponseWriter, r *http.Request) {
 	if greska != "" {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		klijenti, _ := h.KlijentiRepo.Lista(r.Context(), "")
+		ps := h.popuniPodaciStranice(r, podesavanja)
+		ps.Stranica = "servis"
+		ps.NaslovStranice = "Novi nalog"
 		h.renderujFormuNaloga(w, PodaciFormeNaloga{
-			PodaciStranice: model.PodaciStranice{
-				Stranica:       "servis",
-				NaslovStranice: "Novi nalog",
-				Tema:           podesavanja["tema"],
-				NazivFirme:     podesavanja["naziv_firme"],
-				Podnazlov:      podesavanja["podnazlov"],
-				LogoTip:        podesavanja["logo_tip"],
-				LogoPutanja:    podesavanja["logo_putanja"],
-				Korisnik:       "Admin",
-			},
-			Nalog:      nalog,
-			Klijenti:   klijenti,
-			SviStatusi: model.SviStatusi,
-			Greska:     greska,
-			Izmena:     false,
+			PodaciStranice: ps,
+			Nalog:          nalog,
+			Klijenti:       klijenti,
+			SviStatusi:     model.SviStatusi,
+			Greska:         greska,
+			Izmena:         false,
 		})
 		return
 	}
@@ -155,22 +137,16 @@ func (h *Handler) SacuvajNalog(w http.ResponseWriter, r *http.Request) {
 		log.Printf("greška pri čuvanju naloga: %v", err)
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		klijenti, _ := h.KlijentiRepo.Lista(r.Context(), "")
+		ps := h.popuniPodaciStranice(r, podesavanja)
+		ps.Stranica = "servis"
+		ps.NaslovStranice = "Novi nalog"
 		h.renderujFormuNaloga(w, PodaciFormeNaloga{
-			PodaciStranice: model.PodaciStranice{
-				Stranica:       "servis",
-				NaslovStranice: "Novi nalog",
-				Tema:           podesavanja["tema"],
-				NazivFirme:     podesavanja["naziv_firme"],
-				Podnazlov:      podesavanja["podnazlov"],
-				LogoTip:        podesavanja["logo_tip"],
-				LogoPutanja:    podesavanja["logo_putanja"],
-				Korisnik:       "Admin",
-			},
-			Nalog:      nalog,
-			Klijenti:   klijenti,
-			SviStatusi: model.SviStatusi,
-			Greska:     "Došlo je do greške pri čuvanju. Pokušajte ponovo.",
-			Izmena:     false,
+			PodaciStranice: ps,
+			Nalog:          nalog,
+			Klijenti:       klijenti,
+			SviStatusi:     model.SviStatusi,
+			Greska:         "Došlo je do greške pri čuvanju. Pokušajte ponovo.",
+			Izmena:         false,
 		})
 		return
 	}
@@ -204,21 +180,15 @@ func (h *Handler) IzmeniNalog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "servis"
+	ps.NaslovStranice = "Izmeni nalog"
 	h.renderujFormuNaloga(w, PodaciFormeNaloga{
-		PodaciStranice: model.PodaciStranice{
-			Stranica:       "servis",
-			NaslovStranice: "Izmeni nalog",
-			Tema:           podesavanja["tema"],
-			NazivFirme:     podesavanja["naziv_firme"],
-			Podnazlov:      podesavanja["podnazlov"],
-			LogoTip:        podesavanja["logo_tip"],
-			LogoPutanja:    podesavanja["logo_putanja"],
-			Korisnik:       "Admin",
-		},
-		Nalog:      *nalog,
-		Klijenti:   klijenti,
-		SviStatusi: model.SviStatusi,
-		Izmena:     true,
+		PodaciStranice: ps,
+		Nalog:          *nalog,
+		Klijenti:       klijenti,
+		SviStatusi:     model.SviStatusi,
+		Izmena:         true,
 	})
 }
 
@@ -240,22 +210,16 @@ func (h *Handler) SacuvajIzmenaNaloga(w http.ResponseWriter, r *http.Request) {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		klijenti, _ := h.KlijentiRepo.Lista(r.Context(), "")
 		nalog.ID = id
+		ps := h.popuniPodaciStranice(r, podesavanja)
+		ps.Stranica = "servis"
+		ps.NaslovStranice = "Izmeni nalog"
 		h.renderujFormuNaloga(w, PodaciFormeNaloga{
-			PodaciStranice: model.PodaciStranice{
-				Stranica:       "servis",
-				NaslovStranice: "Izmeni nalog",
-				Tema:           podesavanja["tema"],
-				NazivFirme:     podesavanja["naziv_firme"],
-				Podnazlov:      podesavanja["podnazlov"],
-				LogoTip:        podesavanja["logo_tip"],
-				LogoPutanja:    podesavanja["logo_putanja"],
-				Korisnik:       "Admin",
-			},
-			Nalog:      nalog,
-			Klijenti:   klijenti,
-			SviStatusi: model.SviStatusi,
-			Greska:     greska,
-			Izmena:     true,
+			PodaciStranice: ps,
+			Nalog:          nalog,
+			Klijenti:       klijenti,
+			SviStatusi:     model.SviStatusi,
+			Greska:         greska,
+			Izmena:         true,
 		})
 		return
 	}
@@ -265,22 +229,16 @@ func (h *Handler) SacuvajIzmenaNaloga(w http.ResponseWriter, r *http.Request) {
 		log.Printf("greška pri čuvanju izmene naloga: %v", err)
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		klijenti, _ := h.KlijentiRepo.Lista(r.Context(), "")
+		ps := h.popuniPodaciStranice(r, podesavanja)
+		ps.Stranica = "servis"
+		ps.NaslovStranice = "Izmeni nalog"
 		h.renderujFormuNaloga(w, PodaciFormeNaloga{
-			PodaciStranice: model.PodaciStranice{
-				Stranica:       "servis",
-				NaslovStranice: "Izmeni nalog",
-				Tema:           podesavanja["tema"],
-				NazivFirme:     podesavanja["naziv_firme"],
-				Podnazlov:      podesavanja["podnazlov"],
-				LogoTip:        podesavanja["logo_tip"],
-				LogoPutanja:    podesavanja["logo_putanja"],
-				Korisnik:       "Admin",
-			},
-			Nalog:      nalog,
-			Klijenti:   klijenti,
-			SviStatusi: model.SviStatusi,
-			Greska:     "Došlo je do greške pri čuvanju. Pokušajte ponovo.",
-			Izmena:     true,
+			PodaciStranice: ps,
+			Nalog:          nalog,
+			Klijenti:       klijenti,
+			SviStatusi:     model.SviStatusi,
+			Greska:         "Došlo je do greške pri čuvanju. Pokušajte ponovo.",
+			Izmena:         true,
 		})
 		return
 	}
@@ -336,20 +294,14 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "servis"
+	ps.NaslovStranice = "Detalji naloga"
 	podaci := PodaciDetaljiNaloga{
-		PodaciStranice: model.PodaciStranice{
-			Stranica:       "servis",
-			NaslovStranice: "Detalji naloga",
-			Tema:           podesavanja["tema"],
-			NazivFirme:     podesavanja["naziv_firme"],
-			Podnazlov:      podesavanja["podnazlov"],
-			LogoTip:        podesavanja["logo_tip"],
-			LogoPutanja:    podesavanja["logo_putanja"],
-			Korisnik:       "Admin",
-		},
-		Nalog:        *nalog,
-		KlijentNaziv: klijentNaziv,
-		Sacuvano:     r.URL.Query().Get("sacuvano") == "1",
+		PodaciStranice: ps,
+		Nalog:          *nalog,
+		KlijentNaziv:   klijentNaziv,
+		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
 	}
 
 	h.renderujTemplate(w, "servis_detalji", podaci)
