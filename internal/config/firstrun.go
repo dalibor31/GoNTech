@@ -33,7 +33,7 @@ func NadjiSlobodanPort() int {
 
 // proverava da li je ovo prvo pokretanje programa
 func JelPrvoPokretanje() bool {
-	_, err := os.Stat(".env")
+	_, err := os.Stat("ntech.env")
 	return os.IsNotExist(err)
 }
 
@@ -55,8 +55,8 @@ func StatusPortova() []PortStatus {
 	return rezultat
 }
 
-// SacuvajEnv upisuje izabrani port u .env fajl
+// SacuvajEnv upisuje izabrani port u ntech.env fajl
 func SacuvajEnv(port int) error {
 	sadrzaj := fmt.Sprintf("NTECH_PORT=%d\n", port)
-	return os.WriteFile(".env", []byte(sadrzaj), 0600)
+	return os.WriteFile("ntech.env", []byte(sadrzaj), 0600)
 }

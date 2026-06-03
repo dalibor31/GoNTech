@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"html/template"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -50,22 +48,7 @@ func (h *Handler) Kategorije(w http.ResponseWriter, r *http.Request) {
 		Obrisana:   r.URL.Query().Get("obrisana") == "1",
 	}
 
-	tmpl, err := template.ParseFiles(
-		"web/templates/teme/podrazumevana/base.html",
-		"web/templates/komponente/sidebar.html",
-		"web/templates/komponente/topbar.html",
-		"web/templates/stranice/kategorije.html",
-	)
-	if err != nil {
-		log.Printf("greška pri učitavanju šablona: %v", err)
-		http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "base", podaci); err != nil {
-		log.Printf("greška pri renderovanju: %v", err)
-		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
-	}
+	h.renderujTemplate(w, "kategorije", podaci)
 }
 
 // DodajKategoriju prima POST i čuva novu kategoriju

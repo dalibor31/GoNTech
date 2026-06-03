@@ -105,22 +105,7 @@ func (h *Handler) Prodaja(w http.ResponseWriter, r *http.Request) {
 		Pretraga: pretraga,
 	}
 
-	tmpl, err := template.ParseFiles(
-		"web/templates/teme/podrazumevana/base.html",
-		"web/templates/komponente/sidebar.html",
-		"web/templates/komponente/topbar.html",
-		"web/templates/stranice/prodaja.html",
-	)
-	if err != nil {
-		log.Printf("greška pri učitavanju šablona: %v", err)
-		http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "base", podaci); err != nil {
-		log.Printf("greška pri renderovanju: %v", err)
-		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
-	}
+	h.renderujTemplate(w, "prodaja", podaci)
 }
 
 // NovaProdaja prikazuje formu za unos novog prodajnog naloga
@@ -143,7 +128,7 @@ func (h *Handler) NovaProdaja(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	renderujFormuProdaje(w, PodaciFormeProdaje{
+	h.renderujFormuProdaje(w, PodaciFormeProdaje{
 		PodaciStranice: model.PodaciStranice{
 			Stranica:       "prodaja",
 			NaslovStranice: "Nova prodaja",
@@ -173,7 +158,7 @@ func (h *Handler) SacuvajProdaju(w http.ResponseWriter, r *http.Request) {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		artikli, _ := h.Artikli.Lista(r.Context(), appdb.ArtikalFilter{})
 		klijenti, _ := h.KlijentiRepo.Lista(r.Context(), "")
-		renderujFormuProdaje(w, PodaciFormeProdaje{
+		h.renderujFormuProdaje(w, PodaciFormeProdaje{
 			PodaciStranice: model.PodaciStranice{
 				Stranica:       "prodaja",
 				NaslovStranice: "Nova prodaja",
@@ -282,22 +267,7 @@ func (h *Handler) DetaljiProdaje(w http.ResponseWriter, r *http.Request) {
 		Sacuvano:     r.URL.Query().Get("sacuvano") == "1",
 	}
 
-	tmpl, err := template.ParseFiles(
-		"web/templates/teme/podrazumevana/base.html",
-		"web/templates/komponente/sidebar.html",
-		"web/templates/komponente/topbar.html",
-		"web/templates/stranice/prodaja_detalji.html",
-	)
-	if err != nil {
-		log.Printf("greška pri učitavanju šablona: %v", err)
-		http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "base", podaci); err != nil {
-		log.Printf("greška pri renderovanju: %v", err)
-		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
-	}
+	h.renderujTemplate(w, "prodaja_detalji", podaci)
 }
 
 // StampaProdaje renderuje print-friendly stranicu za dati prodajni nalog
@@ -349,17 +319,7 @@ func (h *Handler) StampaProdaje(w http.ResponseWriter, r *http.Request) {
 		PIB:          podesavanja["pib"],
 	}
 
-	tmpl, err := template.ParseFiles("web/templates/stranice/prodaja_stampa.html")
-	if err != nil {
-		log.Printf("greška pri učitavanju šablona za štampu: %v", err)
-		http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "prodaja_stampa.html", podaci); err != nil {
-		log.Printf("greška pri renderovanju štampe: %v", err)
-		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
-	}
+	h.renderujStandalone(w, "prodaja_stampa", podaci)
 }
 
 // ObrisiProdaju prima POST zahtev, vraća stanje na magacin i briše nalog
@@ -430,21 +390,6 @@ func parseFormuProdaje(r *http.Request) (model.ProdajniNalog, []model.StavkaProd
 }
 
 // renderujFormuProdaje renderuje HTML šablon forme za unos nove prodaje
-func renderujFormuProdaje(w http.ResponseWriter, podaci PodaciFormeProdaje) {
-	tmpl, err := template.ParseFiles(
-		"web/templates/teme/podrazumevana/base.html",
-		"web/templates/komponente/sidebar.html",
-		"web/templates/komponente/topbar.html",
-		"web/templates/stranice/prodaja_forma.html",
-	)
-	if err != nil {
-		log.Printf("greška pri učitavanju šablona: %v", err)
-		http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "base", podaci); err != nil {
-		log.Printf("greška pri renderovanju: %v", err)
-		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
-	}
+func (h *Handler) renderujFormuProdaje(w http.ResponseWriter, podaci PodaciFormeProdaje) {
+	h.renderujTemplate(w, "prodaja_forma", podaci)
 }

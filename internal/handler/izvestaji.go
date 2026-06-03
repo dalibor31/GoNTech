@@ -257,19 +257,5 @@ func (h *Handler) Izvestaji(w http.ResponseWriter, r *http.Request) {
 		TopKlijenti:    topKlijenti,
 	}
 
-	tmpl, err := template.ParseFiles(
-		"web/templates/teme/podrazumevana/base.html",
-		"web/templates/komponente/sidebar.html",
-		"web/templates/komponente/topbar.html",
-		"web/templates/stranice/izvestaji.html",
-	)
-	if err != nil {
-		http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "base", podaci); err != nil {
-		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
-		return
-	}
+	h.renderujTemplate(w, "izvestaji", podaci)
 }

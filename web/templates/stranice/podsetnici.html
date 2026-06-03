@@ -1,0 +1,217 @@
+{{template "base" .}}
+
+{{define "naslov"}}Podsetnici — NTech{{end}}
+
+{{define "dodatni-css"}}
+<style>
+    @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .poruka-animacija {
+        animation: slideDown 0.3s ease forwards;
+    }
+
+    .pod-tabela tbody tr {
+        animation: fadeInUp 0.25s ease forwards;
+        opacity: 0;
+    }
+
+    .pod-tabela tbody tr:nth-child(1)  { animation-delay: 0.04s; }
+    .pod-tabela tbody tr:nth-child(2)  { animation-delay: 0.08s; }
+    .pod-tabela tbody tr:nth-child(3)  { animation-delay: 0.12s; }
+    .pod-tabela tbody tr:nth-child(4)  { animation-delay: 0.16s; }
+    .pod-tabela tbody tr:nth-child(5)  { animation-delay: 0.20s; }
+    .pod-tabela tbody tr:nth-child(6)  { animation-delay: 0.24s; }
+    .pod-tabela tbody tr:nth-child(7)  { animation-delay: 0.28s; }
+    .pod-tabela tbody tr:nth-child(8)  { animation-delay: 0.32s; }
+    .pod-tabela tbody tr:nth-child(9)  { animation-delay: 0.36s; }
+    .pod-tabela tbody tr:nth-child(10) { animation-delay: 0.40s; }
+
+    .pod-kartice {
+        display: none;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .pod-kartica {
+        animation: fadeInUp 0.25s ease forwards;
+        opacity: 0;
+    }
+
+    .pod-kartica:nth-child(1) { animation-delay: 0.04s; }
+    .pod-kartica:nth-child(2) { animation-delay: 0.10s; }
+    .pod-kartica:nth-child(3) { animation-delay: 0.16s; }
+    .pod-kartica:nth-child(4) { animation-delay: 0.22s; }
+    .pod-kartica:nth-child(5) { animation-delay: 0.28s; }
+
+    .red-prekoracen td {
+        background: rgba(207, 87, 87, 0.06);
+    }
+
+    @media (max-width: 768px) {
+        .pod-tabela  { display: none; }
+        .pod-kartice { display: flex; }
+    }
+</style>
+{{end}}
+
+{{define "sadrzaj"}}
+<div style="display:flex;flex-direction:column;gap:16px;">
+
+    {{if .Sacuvano}}
+    <div class="poruka-uspeh poruka-animacija">Podsetnik je uspešno sačuvan.</div>
+    {{end}}
+    {{if .Obrisan}}
+    <div class="poruka-uspeh poruka-animacija">Podsetnik je uspešno obrisan.</div>
+    {{end}}
+
+    <!-- gornja traka -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <a href="/podsetnici/novi"
+            style="padding:8px 16px;background:var(--sb-akcent);color:#fff;border-radius:8px;font-size:14px;font-weight:500;text-decoration:none;white-space:nowrap;transition:opacity 0.2s;"
+            onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+            + Novi podsetnik
+        </a>
+        <form method="GET" action="/podsetnici" style="display:flex;gap:8px;align-items:center;flex:1;min-width:200px;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:14px;color:var(--tekst-sporedni);cursor:pointer;white-space:nowrap;">
+                <input type="checkbox" name="samo_aktivni" value="1" {{if .SamoAktivni}}checked{{end}}
+                    onchange="this.form.submit()"
+                    style="width:auto;padding:0;border:none !important;background:none !important;">
+                Samo aktivni
+            </label>
+        </form>
+    </div>
+
+    <!-- desktop tabela -->
+    <div class="kartica pod-tabela" style="padding:0;overflow:hidden;">
+        <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;">
+                <thead>
+                    <tr style="border-bottom:0.5px solid var(--ivica);">
+                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Naslov</th>
+                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Datum podsećanja</th>
+                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Status</th>
+                        <th style="padding:12px 16px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Akcije</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Podsetnici}}
+                    <tr class="{{if .JePrekoracen}}red-prekoracen{{end}}"
+                        style="border-bottom:0.5px solid var(--ivica);transition:background 0.15s;"
+                        onmouseover="this.style.background='var(--pozadina)'"
+                        onmouseout="this.style.background=''">
+                        <td style="padding:12px 16px;">
+                            <div style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{.Naslov}}</div>
+                            {{if .Napomena}}
+                            <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:2px;">{{.Napomena}}</div>
+                            {{end}}
+                        </td>
+                        <td style="padding:12px 16px;font-size:13px;color:{{if .JePrekoracen}}var(--greska){{else}}var(--tekst-sporedni){{end}};">
+                            {{.DatumPodsecanja.Format "02.01.2006."}}
+                        </td>
+                        <td style="padding:12px 16px;">
+                            {{if .Zavrseno}}
+                            <span style="display:inline-block;padding:3px 10px;background:var(--pozadina-hover);color:var(--tekst-sporedni);border-radius:20px;font-size:12px;">Završeno</span>
+                            {{else if .JePrekoracen}}
+                            <span style="display:inline-block;padding:3px 10px;background:rgba(207,87,87,0.12);color:var(--greska);border-radius:20px;font-size:12px;">Prekoračeno</span>
+                            {{else}}
+                            <span style="display:inline-block;padding:3px 10px;background:rgba(93,184,118,0.12);color:var(--uspeh);border-radius:20px;font-size:12px;">Aktivno</span>
+                            {{end}}
+                        </td>
+                        <td style="padding:12px 16px;text-align:center;">
+                            <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+                                <a href="/podsetnici/izmeni/{{.ID}}"
+                                    style="padding:4px 10px;background:var(--sb-aktivan);color:var(--tekst-jak);border-radius:6px;font-size:12px;text-decoration:none;transition:opacity 0.2s;"
+                                    onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                                    Izmeni
+                                </a>
+                                <form method="POST" action="/podsetnici/zavrseno/{{.ID}}" style="display:inline;">
+                                    <button type="submit"
+                                        style="padding:4px 10px;background:var(--sb-aktivan);color:var(--tekst-jak);border:none;border-radius:6px;font-size:12px;cursor:pointer;transition:opacity 0.2s;"
+                                        onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                                        {{if .Zavrseno}}Aktiviraj{{else}}Završi{{end}}
+                                    </button>
+                                </form>
+                                <form method="POST" action="/podsetnici/obrisi/{{.ID}}" style="display:inline;">
+                                    <button type="submit"
+                                        onclick="return confirm('Da li ste sigurni da želite da obrišete podsetnik?')"
+                                        style="padding:4px 10px;background:#dc2626;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;transition:opacity 0.2s;"
+                                        onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                                        Obriši
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {{else}}
+                    <tr>
+                        <td colspan="4" style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
+                            Nema podsetnika. <a href="/podsetnici/novi" style="color:var(--sb-akcent);">Dodaj prvi podsetnik.</a>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- mobilne kartice -->
+    <div class="pod-kartice">
+        {{range .Podsetnici}}
+        <div class="kartica pod-kartica">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;">
+                <div>
+                    <div style="font-size:15px;font-weight:500;color:{{if .JePrekoracen}}var(--greska){{else}}var(--tekst-glavni){{end}};">{{.Naslov}}</div>
+                    {{if .Napomena}}
+                    <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:2px;">{{.Napomena}}</div>
+                    {{end}}
+                </div>
+                <div>
+                    {{if .Zavrseno}}
+                    <span style="display:inline-block;padding:3px 10px;background:var(--pozadina-hover);color:var(--tekst-sporedni);border-radius:20px;font-size:12px;">Završeno</span>
+                    {{else if .JePrekoracen}}
+                    <span style="display:inline-block;padding:3px 10px;background:rgba(207,87,87,0.12);color:var(--greska);border-radius:20px;font-size:12px;">Prekoračeno</span>
+                    {{else}}
+                    <span style="display:inline-block;padding:3px 10px;background:rgba(93,184,118,0.12);color:var(--uspeh);border-radius:20px;font-size:12px;">Aktivno</span>
+                    {{end}}
+                </div>
+            </div>
+            <div style="font-size:13px;color:var(--tekst-sporedni);margin-bottom:12px;">
+                {{.DatumPodsecanja.Format "02.01.2006."}}
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <a href="/podsetnici/izmeni/{{.ID}}"
+                    style="padding:6px 14px;background:var(--sb-aktivan);color:var(--tekst-jak);border-radius:6px;font-size:13px;text-decoration:none;">
+                    Izmeni
+                </a>
+                <form method="POST" action="/podsetnici/zavrseno/{{.ID}}" style="display:inline;">
+                    <button type="submit"
+                        style="padding:6px 14px;background:var(--sb-aktivan);color:var(--tekst-jak);border:none;border-radius:6px;font-size:13px;cursor:pointer;">
+                        {{if .Zavrseno}}Aktiviraj{{else}}Završi{{end}}
+                    </button>
+                </form>
+                <form method="POST" action="/podsetnici/obrisi/{{.ID}}" style="display:inline;">
+                    <button type="submit"
+                        onclick="return confirm('Da li ste sigurni da želite da obrišete podsetnik?')"
+                        style="padding:6px 14px;background:#dc2626;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;">
+                        Obriši
+                    </button>
+                </form>
+            </div>
+        </div>
+        {{else}}
+        <div style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
+            Nema podsetnika. <a href="/podsetnici/novi" style="color:var(--sb-akcent);">Dodaj prvi podsetnik.</a>
+        </div>
+        {{end}}
+    </div>
+
+</div>
+{{end}}

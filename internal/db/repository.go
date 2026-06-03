@@ -97,3 +97,19 @@ type SesijeRepository interface {
 	Obrisi(ctx context.Context, token string) error
 	ObrisiIstekle(ctx context.Context) error
 }
+
+// PodsetnikFilter definiše parametre za filtriranje liste podsetnika
+type PodsetnikFilter struct {
+	SamoAktivni bool // true = samo nezavršeni; false = svi
+}
+
+// PodsetnikRepository definiše operacije nad podsetnicima
+type PodsetnikRepository interface {
+	Lista(ctx context.Context, filter PodsetnikFilter) ([]model.Podsetnik, error)
+	DohvatiID(ctx context.Context, id int64) (*model.Podsetnik, error)
+	Kreiraj(ctx context.Context, p *model.Podsetnik) (int64, error)
+	Izmeni(ctx context.Context, p *model.Podsetnik) error
+	OznaciZavrsenim(ctx context.Context, id int64, zavrseno bool) error
+	Obrisi(ctx context.Context, id int64) error
+	BrojAktivnih(ctx context.Context) (int, error)
+}

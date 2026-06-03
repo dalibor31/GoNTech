@@ -1,0 +1,29 @@
+<svg width="300" height="300" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradijent pozadine -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f2027"></stop>
+      <stop offset="50%" stop-color="#203a43"></stop>
+      <stop offset="100%" stop-color="#2c5364"></stop>
+    </linearGradient>
+
+    <!-- Senka -->
+    <filter id="textShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#000" flood-opacity="0.5"></feDropShadow>
+    </filter>
+  </defs>
+
+  <!-- Pozadina -->
+  <rect width="300" height="300" rx="30" ry="30" fill="url(#bgGrad)"></rect>
+
+  <!-- Prsten -->
+  <ellipse cx="150" cy="160" rx="130" ry="36" fill="none" stroke="white" stroke-width="3" opacity="0.15" transform="rotate(-15 150 160)"></ellipse>
+
+  <!-- Unutrašnji prsten -->
+  <ellipse cx="150" cy="160" rx="110" ry="30" fill="none" stroke="white" stroke-width="1.5" opacity="0.1" transform="rotate(-15 150 160)"></ellipse>
+
+  <!-- VM tekst -->
+  <text x="50%" y="162" text-anchor="middle" dominant-baseline="middle" font-family="'Orbitron', sans-serif" font-size="100" fill="#ffffff" filter="url(#textShadow)">
+    VM
+  </text>
+</svg>

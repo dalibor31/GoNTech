@@ -40,11 +40,12 @@ type PodaciStranice struct {
 // PodaciDashboarda su podaci specifični za dashboard stranicu
 type PodaciDashboarda struct {
 	PodaciStranice
-	BrojArtikala     int
-	AktivniServisi   int
-	PrihodOvogMeseca float64
-	KriticnaZaliha   int
-	PoslednjiServisi []StavkaServisa
-	KriticneZalihe   []StavkaZalihe
-	PoslednjeProdaje []StavkaProdajePregled
+	BrojArtikala      int
+	AktivniServisi    int
+	PrihodOvogMeseca  float64
+	KriticnaZaliha    int
+	AktivniPodsetnici int
+	PoslednjiServisi  []StavkaServisa
+	KriticneZalihe    []StavkaZalihe
+	PoslednjeProdaje  []StavkaProdajePregled
 }

@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"html/template"
 	"log"
 	"net/http"
 	"time"
@@ -20,7 +19,7 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var brojArtikala, aktivniServisi, kriticnaZaliha int
+	var brojArtikala, aktivniServisi, kriticnaZaliha, aktivniPodsetnici int
 	var prihodOvogMeseca float64
 
 	if err := h.DB.QueryRowContext(ctx,
@@ -47,6 +46,12 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		"SELECT COUNT(*) FROM artikli WHERE kolicina <= kolicina_min",
 	).Scan(&kriticnaZaliha); err != nil {
 		log.Printf("dashboard: kriticna zaliha: %v", err)
+	}
+
+	if n, err := h.PodsetniciFRepo.BrojAktivnih(ctx); err != nil {
+		log.Printf("dashboard: aktivni podsetnici: %v", err)
+	} else {
+		aktivniPodsetnici = n
 	}
 
 	// poslednjih 5 servisnih naloga sa datumom prijema
@@ -132,31 +137,17 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 			LogoPutanja:    podesavanja["logo_putanja"],
 			Korisnik:       "Admin",
 		},
-		BrojArtikala:     brojArtikala,
-		AktivniServisi:   aktivniServisi,
-		PrihodOvogMeseca: prihodOvogMeseca,
-		KriticnaZaliha:   kriticnaZaliha,
-		PoslednjiServisi: poslednjiServisi,
-		KriticneZalihe:   kriticneZalihe,
-		PoslednjeProdaje: poslednjeProdaje,
+		BrojArtikala:      brojArtikala,
+		AktivniServisi:    aktivniServisi,
+		PrihodOvogMeseca:  prihodOvogMeseca,
+		KriticnaZaliha:    kriticnaZaliha,
+		AktivniPodsetnici: aktivniPodsetnici,
+		PoslednjiServisi:  poslednjiServisi,
+		KriticneZalihe:    kriticneZalihe,
+		PoslednjeProdaje:  poslednjeProdaje,
 	}
 
-	tmpl, err := template.ParseFiles(
-		"web/templates/teme/podrazumevana/base.html",
-		"web/templates/komponente/sidebar.html",
-		"web/templates/komponente/topbar.html",
-		"web/templates/stranice/dashboard.html",
-	)
-	if err != nil {
-		log.Printf("greška pri učitavanju šablona: %v", err)
-		http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "base", podaci); err != nil {
-		log.Printf("greška pri renderovanju: %v", err)
-		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
-	}
+	h.renderujTemplate(w, "dashboard", podaci)
 }
 
 // bojaTackeServisa vraća hex boju tačke prema statusu naloga

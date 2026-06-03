@@ -2,8 +2,6 @@ package handler
 
 import (
 	"fmt"
-	"html/template"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -52,7 +50,7 @@ func (h *Handler) NoviArtikal(w http.ResponseWriter, r *http.Request) {
 		Izmena:     false,
 	}
 
-	renderujFormuArtikla(w, podaci)
+	h.renderujFormuArtikla(w, podaci)
 }
 
 // SacuvajArtikal prima POST formu i čuva novi artikal
@@ -70,7 +68,7 @@ func (h *Handler) SacuvajArtikal(w http.ResponseWriter, r *http.Request) {
 		if artikal.KategorijaID != nil {
 			katIDStr = strconv.FormatInt(*artikal.KategorijaID, 10)
 		}
-		renderujFormuArtikla(w, PodaciFormeArtikla{
+		h.renderujFormuArtikla(w, PodaciFormeArtikla{
 			PodaciStranice: model.PodaciStranice{
 				Stranica:       "magacin",
 				NaslovStranice: "Novi artikal",
@@ -155,7 +153,7 @@ func (h *Handler) IzmeniArtikal(w http.ResponseWriter, r *http.Request) {
 		Izmena:          true,
 	}
 
-	renderujFormuArtikla(w, podaci)
+	h.renderujFormuArtikla(w, podaci)
 }
 
 // SacuvajIzmenuArtikla prima POST formu i čuva izmenu artikla
@@ -181,7 +179,7 @@ func (h *Handler) SacuvajIzmenuArtikla(w http.ResponseWriter, r *http.Request) {
 		if artikal.KategorijaID != nil {
 			katIDStr = strconv.FormatInt(*artikal.KategorijaID, 10)
 		}
-		renderujFormuArtikla(w, PodaciFormeArtikla{
+		h.renderujFormuArtikla(w, PodaciFormeArtikla{
 			PodaciStranice: model.PodaciStranice{
 				Stranica:       "magacin",
 				NaslovStranice: "Izmeni artikal",
@@ -258,21 +256,6 @@ func parseFormuArtikla(r *http.Request) (model.Artikal, string) {
 }
 
 // renderujFormuArtikla renderuje HTML formu za artikal
-func renderujFormuArtikla(w http.ResponseWriter, podaci PodaciFormeArtikla) {
-	tmpl, err := template.ParseFiles(
-		"web/templates/teme/podrazumevana/base.html",
-		"web/templates/komponente/sidebar.html",
-		"web/templates/komponente/topbar.html",
-		"web/templates/stranice/magacin_forma.html",
-	)
-	if err != nil {
-		log.Printf("greška pri učitavanju šablona: %v", err)
-		http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "base", podaci); err != nil {
-		log.Printf("greška pri renderovanju: %v", err)
-		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
-	}
+func (h *Handler) renderujFormuArtikla(w http.ResponseWriter, podaci PodaciFormeArtikla) {
+	h.renderujTemplate(w, "magacin_forma", podaci)
 }

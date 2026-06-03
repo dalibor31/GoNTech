@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"html/template"
 	"log"
 	"net/http"
 	"strings"
@@ -62,22 +61,7 @@ func (h *Handler) Klijenti(w http.ResponseWriter, r *http.Request) {
 		Obrisan:  r.URL.Query().Get("obrisan") == "1",
 	}
 
-	tmpl, err := template.ParseFiles(
-		"web/templates/teme/podrazumevana/base.html",
-		"web/templates/komponente/sidebar.html",
-		"web/templates/komponente/topbar.html",
-		"web/templates/stranice/klijenti.html",
-	)
-	if err != nil {
-		log.Printf("greška pri učitavanju šablona: %v", err)
-		http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "base", podaci); err != nil {
-		log.Printf("greška pri renderovanju: %v", err)
-		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
-	}
+	h.renderujTemplate(w, "klijenti", podaci)
 }
 
 // NoviKlijent prikazuje praznu formu za unos novog klijenta
@@ -88,7 +72,7 @@ func (h *Handler) NoviKlijent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	renderujFormuKlijenta(w, PodaciFormeKlijenta{
+	h.renderujFormuKlijenta(w, PodaciFormeKlijenta{
 		PodaciStranice: model.PodaciStranice{
 			Stranica:       "klijenti",
 			NaslovStranice: "Novi klijent",
@@ -113,7 +97,7 @@ func (h *Handler) SacuvajKlijenta(w http.ResponseWriter, r *http.Request) {
 	klijent, greska := parseFormuKlijenta(r)
 	if greska != "" {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
-		renderujFormuKlijenta(w, PodaciFormeKlijenta{
+		h.renderujFormuKlijenta(w, PodaciFormeKlijenta{
 			PodaciStranice: model.PodaciStranice{
 				Stranica:       "klijenti",
 				NaslovStranice: "Novi klijent",
@@ -134,7 +118,7 @@ func (h *Handler) SacuvajKlijenta(w http.ResponseWriter, r *http.Request) {
 	if _, err := h.KlijentiRepo.Kreiraj(r.Context(), &klijent); err != nil {
 		log.Printf("greška pri čuvanju klijenta: %v", err)
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
-		renderujFormuKlijenta(w, PodaciFormeKlijenta{
+		h.renderujFormuKlijenta(w, PodaciFormeKlijenta{
 			PodaciStranice: model.PodaciStranice{
 				Stranica:       "klijenti",
 				NaslovStranice: "Novi klijent",
@@ -175,7 +159,7 @@ func (h *Handler) IzmeniKlijenta(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	renderujFormuKlijenta(w, PodaciFormeKlijenta{
+	h.renderujFormuKlijenta(w, PodaciFormeKlijenta{
 		PodaciStranice: model.PodaciStranice{
 			Stranica:       "klijenti",
 			NaslovStranice: "Izmeni klijenta",
@@ -208,7 +192,7 @@ func (h *Handler) SacuvajIzmenuKlijenta(w http.ResponseWriter, r *http.Request) 
 	if greska != "" {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		klijent.ID = id
-		renderujFormuKlijenta(w, PodaciFormeKlijenta{
+		h.renderujFormuKlijenta(w, PodaciFormeKlijenta{
 			PodaciStranice: model.PodaciStranice{
 				Stranica:       "klijenti",
 				NaslovStranice: "Izmeni klijenta",
@@ -230,7 +214,7 @@ func (h *Handler) SacuvajIzmenuKlijenta(w http.ResponseWriter, r *http.Request) 
 	if err := h.KlijentiRepo.Izmeni(r.Context(), &klijent); err != nil {
 		log.Printf("greška pri čuvanju izmene klijenta: %v", err)
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
-		renderujFormuKlijenta(w, PodaciFormeKlijenta{
+		h.renderujFormuKlijenta(w, PodaciFormeKlijenta{
 			PodaciStranice: model.PodaciStranice{
 				Stranica:       "klijenti",
 				NaslovStranice: "Izmeni klijenta",
@@ -293,21 +277,6 @@ func parseFormuKlijenta(r *http.Request) (model.Klijent, string) {
 }
 
 // renderujFormuKlijenta renderuje HTML šablon forme za unos ili izmenu klijenta
-func renderujFormuKlijenta(w http.ResponseWriter, podaci PodaciFormeKlijenta) {
-	tmpl, err := template.ParseFiles(
-		"web/templates/teme/podrazumevana/base.html",
-		"web/templates/komponente/sidebar.html",
-		"web/templates/komponente/topbar.html",
-		"web/templates/stranice/klijent_forma.html",
-	)
-	if err != nil {
-		log.Printf("greška pri učitavanju šablona: %v", err)
-		http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "base", podaci); err != nil {
-		log.Printf("greška pri renderovanju: %v", err)
-		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
-	}
+func (h *Handler) renderujFormuKlijenta(w http.ResponseWriter, podaci PodaciFormeKlijenta) {
+	h.renderujTemplate(w, "klijent_forma", podaci)
 }

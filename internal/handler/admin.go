@@ -56,7 +56,7 @@ func (h *Handler) AdminKorisnici(w http.ResponseWriter, r *http.Request) {
 		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
 	}
 
-	renderujAdminTemplate(w, "web/templates/stranice/admin_korisnici.html", podaci)
+	h.renderujTemplate(w, "admin_korisnici", podaci)
 }
 
 // AdminSacuvajKorisnika kreira novog korisnika
@@ -196,7 +196,7 @@ func (h *Handler) AdminProfil(w http.ResponseWriter, r *http.Request) {
 		TotpAktivan:    svezi.TotpTajna != "",
 	}
 
-	renderujAdminTemplate(w, "web/templates/stranice/admin_profil.html", podaci)
+	h.renderujTemplate(w, "admin_profil", podaci)
 }
 
 // AdminPromeniLozinku menja lozinku prijavljenog korisnika
@@ -265,7 +265,7 @@ func (h *Handler) AdminTotpPokreni(w http.ResponseWriter, r *http.Request) {
 		TotpQR:         template.URL("data:image/png;base64," + totp.QRBase64),
 	}
 
-	renderujAdminTemplate(w, "web/templates/stranice/admin_profil.html", podaci)
+	h.renderujTemplate(w, "admin_profil", podaci)
 }
 
 // AdminTotpAktivacija verifikuje TOTP kod i čuva tajnu
@@ -305,7 +305,7 @@ func (h *Handler) AdminTotpAktivacija(w http.ResponseWriter, r *http.Request) {
 			TotpQR:         template.URL("data:image/png;base64," + qr),
 			Greska:         "totp",
 		}
-		renderujAdminTemplate(w, "web/templates/stranice/admin_profil.html", podaci)
+		h.renderujTemplate(w, "admin_profil", podaci)
 		return
 	}
 
@@ -331,22 +331,6 @@ func (h *Handler) AdminTotpDeaktivacija(w http.ResponseWriter, r *http.Request) 
 	}
 
 	http.Redirect(w, r, "/admin/profil?sacuvano=totp_off", http.StatusSeeOther)
-}
-
-func renderujAdminTemplate(w http.ResponseWriter, stranica string, podaci any) {
-	tmpl, err := template.ParseFiles(
-		"web/templates/teme/podrazumevana/base.html",
-		"web/templates/komponente/sidebar.html",
-		"web/templates/komponente/topbar.html",
-		stranica,
-	)
-	if err != nil {
-		http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
-		return
-	}
-	if err := tmpl.ExecuteTemplate(w, "base", podaci); err != nil {
-		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
-	}
 }
 
 // parseBoolForm čita boolean vrednost iz forme

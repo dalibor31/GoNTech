@@ -1,15 +1,21 @@
 :root {
-    --sb-pozadina:        #1a1d2e;
-    --sb-hover:           #2a2d40;
-    --sb-aktivan:         #3d4f7c;
-    --sb-tekst:           #a0a8c0;
-    --sb-tekst-aktivan:   #ffffff;
-    --sb-akcent:          #4f7ef8;
-
-    --pozadina:           #0f1117;
-    --kartica:            #1a1d2e;
-    --tekst-glavni:       #e2e8f0;
-    --tekst-sporedni:     #8892a4;
-    --ivica:              #2a2d40;
-    --topbar:             #13151f;
+  --pozadina: #1f2228;
+  --kartica: #22262d;
+  --kartica-2: #2c313a;
+  --pozadina-hover: #2a2f37;
+  --tekst-glavni: #dbdee4;
+  --tekst-sporedni: #a0a8b5;
+  --tekst-jak: #f0f3f6;
+  --ivica: #353a44;
+  --sb-akcent: #4684d6;
+  --sb-akcent-hover: #5a96e6;
+  --sb-aktivan: #2a2f37;
+  --uspeh: #5db876;
+  --upozorenje: #e1b04a;
+  --greska: #cf5757;
+  --info: #5cb1d6;
+  --senka: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --sidebar-pozadina: #1a1c20;
+  --poruka-uspeh-bg: rgba(93, 184, 118, 0.15);
+  --poruka-uspeh-boja: #5db876;
 }
