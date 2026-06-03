@@ -5,6 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{block "naslov" .}}NTech{{end}}</title>
+    <meta name="csrf-token" content="{{.CsrfToken}}">
 
     <!-- tema — učitava se prva -->
     <link rel="stylesheet" href="/static/css/teme/{{.Tema}}.css" />
@@ -82,6 +83,20 @@
     </script>
 
     {{block "dodatni-js" .}}{{end}}
+
+    <!-- CSRF: automatski dodaje skriveno polje u sve POST forme -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var m = document.querySelector('meta[name="csrf-token"]');
+        if (!m || !m.content) return;
+        document.querySelectorAll('form[method="POST"],form[method="post"]').forEach(function(f) {
+            if (f.querySelector('input[name="_csrf"]')) return;
+            var i = document.createElement('input');
+            i.type = 'hidden'; i.name = '_csrf'; i.value = m.content;
+            f.appendChild(i);
+        });
+    });
+    </script>
   </body>
 </html>
 {{end}}

@@ -1,19 +1,26 @@
 package handler
 
 import (
+	"context"
+	"fmt"
+	"net"
 	"net/http"
 	"time"
 
 	"ntech/internal/auth"
+	"ntech/internal/middleware"
 )
 
 const imeKolacica = "ntech_sesija"
 const trajanjeSeije = 7 * 24 * time.Hour
 const trajanjePredSeije = 5 * time.Minute
 
+const maxNeuspehaPrijave = 5
+const prozorPrijave = 15 * time.Minute
+const trajanjeZakljucavanja = 30 * time.Minute
+
 // PrikazPrijave renderuje formu za prijavu
 func (h *Handler) PrikazPrijave(w http.ResponseWriter, r *http.Request) {
-	// ako nema korisnika, preusmeri na setup wizard
 	postoji, err := h.KorisniciRepo.PostojiIjedan(r.Context())
 	if err == nil && !postoji {
 		http.Redirect(w, r, "/setup", http.StatusSeeOther)
@@ -22,7 +29,8 @@ func (h *Handler) PrikazPrijave(w http.ResponseWriter, r *http.Request) {
 
 	greska := r.URL.Query().Get("greska")
 	h.renderujStandalone(w, "prijava", map[string]any{
-		"Greska": greska,
+		"Greska":    greska,
+		"CsrfToken": middleware.CsrfToken(r.Context()),
 	})
 }
 
@@ -33,24 +41,47 @@ func (h *Handler) Prijava(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ip := izvuciIP(r.RemoteAddr)
 	korisnickoIme := r.FormValue("korisnicko_ime")
 	lozinka := r.FormValue("lozinka")
 
+	// bruteforce provera — blokira IP posle maxNeuspehaPrijave neuspelih pokušaja
+	od := time.Now().Add(-prozorPrijave)
+	n, _ := h.PokusajiRepo.BrojNeuspeha(r.Context(), ip, od)
+	if n >= maxNeuspehaPrijave {
+		if preostalo, zaklj := h.preostaloBruteforce(r.Context(), ip, od); zaklj {
+			auth.LogZaklucano(ip, korisnickoIme)
+			h.renderujStandalone(w, "prijava", map[string]any{
+				"Greska":    "zakljucano",
+				"Preostalo": preostalo,
+				"CsrfToken": middleware.CsrfToken(r.Context()),
+			})
+			return
+		}
+		// zaključavanje je isteklo, nastavljamo normalnu obradu
+	}
+
 	korisnik, err := h.KorisniciRepo.DohvatiPoImenu(r.Context(), korisnickoIme)
 	if err != nil || !korisnik.Aktivan {
+		_ = h.PokusajiRepo.Zabeleži(r.Context(), ip, korisnickoIme, false)
+		auth.LogNeuspehPrijave(ip, korisnickoIme, "wrong_user")
 		http.Redirect(w, r, "/prijava?greska=1", http.StatusSeeOther)
 		return
 	}
 
 	if !auth.ProveriLozinku(korisnik.LozinkaHash, lozinka) {
+		_ = h.PokusajiRepo.Zabeleži(r.Context(), ip, korisnickoIme, false)
+		auth.LogNeuspehPrijave(ip, korisnickoIme, "wrong_password")
 		http.Redirect(w, r, "/prijava?greska=1", http.StatusSeeOther)
 		return
 	}
 
+	_ = h.PokusajiRepo.Zabeleži(r.Context(), ip, korisnickoIme, true)
+	auth.LogUspehPrijave(ip, korisnickoIme)
+
 	token := auth.GenerisiToken()
 
 	if korisnik.TotpTajna != "" {
-		// kreira privremenu sesiju koja čeka TOTP verifikaciju
 		if err := h.SesijeRepo.Kreiraj(r.Context(), korisnik.ID, token, time.Now().Add(trajanjePredSeije), false); err != nil {
 			http.Redirect(w, r, "/prijava?greska=2", http.StatusSeeOther)
 			return
@@ -60,7 +91,6 @@ func (h *Handler) Prijava(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// direktna sesija bez TOTP
 	if err := h.SesijeRepo.Kreiraj(r.Context(), korisnik.ID, token, time.Now().Add(trajanjeSeije), true); err != nil {
 		http.Redirect(w, r, "/prijava?greska=2", http.StatusSeeOther)
 		return
@@ -84,7 +114,8 @@ func (h *Handler) PrikazTotp(w http.ResponseWriter, r *http.Request) {
 
 	greska := r.URL.Query().Get("greska")
 	h.renderujStandalone(w, "totp_provera", map[string]any{
-		"Greska": greska,
+		"Greska":    greska,
+		"CsrfToken": middleware.CsrfToken(r.Context()),
 	})
 }
 
@@ -133,7 +164,8 @@ func (h *Handler) PrikazSetupa(w http.ResponseWriter, r *http.Request) {
 	}
 	greska := r.URL.Query().Get("greska")
 	h.renderujStandalone(w, "setup", map[string]any{
-		"Greska": greska,
+		"Greska":    greska,
+		"CsrfToken": middleware.CsrfToken(r.Context()),
 	})
 }
 
@@ -188,6 +220,33 @@ func (h *Handler) Odjava(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/prijava", http.StatusSeeOther)
 }
 
+// preostaloBruteforce vraća formatiranu poruku o preostatom vremenu zaključavanja i bool da li je IP još zaključan
+func (h *Handler) preostaloBruteforce(ctx context.Context, ip string, od time.Time) (string, bool) {
+	vreme, ok, _ := h.PokusajiRepo.VremePoslednjeg(ctx, ip, od)
+	if !ok {
+		return "", false
+	}
+	d := time.Until(vreme.Add(trajanjeZakljucavanja)).Round(time.Second)
+	if d <= 0 {
+		return "", false
+	}
+	min := int(d.Minutes())
+	sek := int(d.Seconds()) % 60
+	if min > 0 {
+		return fmt.Sprintf("%d min %d sek", min, sek), true
+	}
+	return fmt.Sprintf("%d sek", sek), true
+}
+
+// izvuciIP izdvaja IP adresu iz RemoteAddr formata "ip:port"
+func izvuciIP(addr string) string {
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return addr
+	}
+	return host
+}
+
 func napraviKolacic(token string, istice time.Time) *http.Cookie {
 	return &http.Cookie{
 		Name:     imeKolacica,
@@ -198,4 +257,3 @@ func napraviKolacic(token string, istice time.Time) *http.Cookie {
 		SameSite: http.SameSiteStrictMode,
 	}
 }
-

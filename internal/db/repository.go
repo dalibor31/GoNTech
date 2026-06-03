@@ -103,6 +103,14 @@ type PodsetnikFilter struct {
 	SamoAktivni bool // true = samo nezavršeni; false = svi
 }
 
+// PokusajiPrijaveRepository definiše operacije nad evidencijom pokušaja prijave
+type PokusajiPrijaveRepository interface {
+	Zabeleži(ctx context.Context, ip, korisnickoIme string, uspeh bool) error
+	BrojNeuspeha(ctx context.Context, ip string, od time.Time) (int, error)
+	VremePoslednjeg(ctx context.Context, ip string, od time.Time) (time.Time, bool, error)
+	ObrisiStare(ctx context.Context, pre time.Time) error
+}
+
 // PodsetnikRepository definiše operacije nad podsetnicima
 type PodsetnikRepository interface {
 	Lista(ctx context.Context, filter PodsetnikFilter) ([]model.Podsetnik, error)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -10,6 +11,7 @@ import (
 	"sort"
 	"time"
 
+	"ntech/internal/auth"
 	"ntech/internal/config"
 	"ntech/internal/db/sqlite"
 	"ntech/internal/handler"
@@ -25,6 +27,7 @@ var Verzija = "dev"
 
 func main() {
 	godotenv.Load("ntech.env")
+	auth.InitAuthLog()
 
 	if config.JelPrvoPokretanje() {
 		config.PokreniSetup()
@@ -54,13 +57,15 @@ func main() {
 
 	napraviStartupBackup(putanjaBaze)
 
-	// periodično brisanje isteklih sesija
+	// periodično brisanje isteklih sesija i starih pokušaja prijave
 	go func() {
 		ticker := time.NewTicker(time.Hour)
 		defer ticker.Stop()
 		sesijeRepo := sqlite.NoviSesijeRepo(db)
+		pokusajiRepo := sqlite.NoviPokusajiPrijaveRepo(db)
 		for range ticker.C {
-			_ = sesijeRepo.ObrisiIstekle(nil)
+			_ = sesijeRepo.ObrisiIstekle(context.Background())
+			_ = pokusajiRepo.ObrisiStare(context.Background(), time.Now().Add(-24*time.Hour))
 		}
 	}()
 
@@ -79,6 +84,8 @@ func main() {
 	}
 
 	r := chi.NewRouter()
+	r.Use(ntechmw.BezbednostHeaders())
+	r.Use(ntechmw.CsrfMiddleware)
 	r.Use(middleware.Compress(5))
 
 	// statični fajlovi

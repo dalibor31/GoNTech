@@ -91,6 +91,7 @@
         {{end}}
 
         <form method="POST" action="/prijava/totp">
+            <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
             <div class="polje">
                 <label for="kod">Kod za verifikaciju</label>
                 <input type="text" id="kod" name="kod"

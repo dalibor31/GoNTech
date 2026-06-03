@@ -89,6 +89,7 @@
         {{end}}
 
         <form method="POST" action="/setup">
+            <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
             <div class="polje">
                 <label for="korisnicko_ime">Korisničko ime</label>
                 <input type="text" id="korisnicko_ime" name="korisnicko_ime"

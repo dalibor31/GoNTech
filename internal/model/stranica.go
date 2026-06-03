@@ -30,11 +30,12 @@ type PodaciStranice struct {
 	Tema           string
 	NazivFirme     string
 	Podnazlov      string
-	LogoTip        string // "ikonica", "tekst", "slika"
+	LogoTip        string // "sa_nazivom", "bez_naziva", "slika"
 	LogoPutanja    string // putanja do slike, koristi se samo kada je LogoTip "slika"
 	Korisnik       string
 	KorisnikIme    string // korisničko ime prijavljenog korisnika
 	KorisnikUloga  string // uloga: "superadmin", "admin", "radnik"
+	CsrfToken      string // CSRF zaštitni token za forme
 }
 
 // PodaciDashboarda su podaci specifični za dashboard stranicu

@@ -110,6 +110,11 @@
         <div class="greska">Pogrešno korisničko ime ili lozinka.</div>
         {{else if eq .Greska "2"}}
         <div class="greska">Greška na serveru. Pokušajte ponovo.</div>
+        {{else if eq .Greska "zakljucano"}}
+        <div class="greska">
+            Previše neuspelih pokušaja prijave. IP adresa je privremeno blokirana.
+            {{if .Preostalo}}<br>Pokušajte ponovo za: <strong>{{.Preostalo}}</strong>{{end}}
+        </div>
         {{end}}
 
         {{if .Sacuvano}}
@@ -117,6 +122,7 @@
         {{end}}
 
         <form method="POST" action="/prijava">
+            <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
             <div class="polje">
                 <label for="korisnicko_ime">Korisničko ime</label>
                 <input type="text" id="korisnicko_ime" name="korisnicko_ime"
