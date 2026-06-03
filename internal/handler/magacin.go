@@ -56,17 +56,11 @@ func (h *Handler) Magacin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "magacin"
+	ps.NaslovStranice = "Magacin"
 	podaci := PodaciMagacina{
-		PodaciStranice: model.PodaciStranice{
-			Stranica:       "magacin",
-			NaslovStranice: "Magacin",
-			Tema:           podesavanja["tema"],
-			NazivFirme:     podesavanja["naziv_firme"],
-			Podnazlov:      podesavanja["podnazlov"],
-			LogoTip:        podesavanja["logo_tip"],
-			LogoPutanja:    podesavanja["logo_putanja"],
-			Korisnik:       "Admin",
-		},
+		PodaciStranice:  ps,
 		Artikli:         artikli,
 		Kategorije:      kategorije,
 		Filter:          filter,

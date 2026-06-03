@@ -109,7 +109,7 @@
                         <option value="">— bez klijenta —</option>
                         {{range .Klijenti}}
                         <option value="{{.ID}}"
-                            {{if $.Nalog.KlijentID}}{{if eq .ID $.Nalog.KlijentID}}selected{{end}}{{end}}>
+                            {{if eq .ID $.Nalog.KlijentIDVrednost}}selected{{end}}>
                             {{if .NazivFirme}}{{.NazivFirme}}{{else}}{{.Ime}} {{.Prezime}}{{end}}
                         </option>
                         {{end}}

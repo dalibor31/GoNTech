@@ -43,21 +43,15 @@ func (h *Handler) Dobavljaci(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "dobavljaci"
+	ps.NaslovStranice = "Dobavljači"
 	podaci := PodaciDobavljaca{
-		PodaciStranice: model.PodaciStranice{
-			Stranica:       "dobavljaci",
-			NaslovStranice: "Dobavljači",
-			Tema:           podesavanja["tema"],
-			NazivFirme:     podesavanja["naziv_firme"],
-			Podnazlov:      podesavanja["podnazlov"],
-			LogoTip:        podesavanja["logo_tip"],
-			LogoPutanja:    podesavanja["logo_putanja"],
-			Korisnik:       "Admin",
-		},
-		Dobavljaci: dobavljaci,
-		Pretraga:   pretraga,
-		Sacuvano:   r.URL.Query().Get("sacuvano") == "1",
-		Obrisan:    r.URL.Query().Get("obrisan") == "1",
+		PodaciStranice: ps,
+		Dobavljaci:     dobavljaci,
+		Pretraga:       pretraga,
+		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
+		Obrisan:        r.URL.Query().Get("obrisan") == "1",
 	}
 
 	h.renderujTemplate(w, "dobavljaci", podaci)
@@ -71,18 +65,12 @@ func (h *Handler) NoviDobavljac(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "dobavljaci"
+	ps.NaslovStranice = "Novi dobavljač"
 	h.renderujFormuDobavljaca(w, PodaciFormeDobavljaca{
-		PodaciStranice: model.PodaciStranice{
-			Stranica:       "dobavljaci",
-			NaslovStranice: "Novi dobavljač",
-			Tema:           podesavanja["tema"],
-			NazivFirme:     podesavanja["naziv_firme"],
-			Podnazlov:      podesavanja["podnazlov"],
-			LogoTip:        podesavanja["logo_tip"],
-			LogoPutanja:    podesavanja["logo_putanja"],
-			Korisnik:       "Admin",
-		},
-		Izmena: false,
+		PodaciStranice: ps,
+		Izmena:         false,
 	})
 }
 
@@ -96,20 +84,14 @@ func (h *Handler) SacuvajDobavljaca(w http.ResponseWriter, r *http.Request) {
 	dobavljac, greska := parseFormuDobavljaca(r)
 	if greska != "" {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+		ps := h.popuniPodaciStranice(r, podesavanja)
+		ps.Stranica = "dobavljaci"
+		ps.NaslovStranice = "Novi dobavljač"
 		h.renderujFormuDobavljaca(w, PodaciFormeDobavljaca{
-			PodaciStranice: model.PodaciStranice{
-				Stranica:       "dobavljaci",
-				NaslovStranice: "Novi dobavljač",
-				Tema:           podesavanja["tema"],
-				NazivFirme:     podesavanja["naziv_firme"],
-				Podnazlov:      podesavanja["podnazlov"],
-				LogoTip:        podesavanja["logo_tip"],
-				LogoPutanja:    podesavanja["logo_putanja"],
-				Korisnik:       "Admin",
-			},
-			Dobavljac: dobavljac,
-			Greska:    greska,
-			Izmena:    false,
+			PodaciStranice: ps,
+			Dobavljac:      dobavljac,
+			Greska:         greska,
+			Izmena:         false,
 		})
 		return
 	}
@@ -142,19 +124,13 @@ func (h *Handler) IzmeniDobavljaca(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "dobavljaci"
+	ps.NaslovStranice = "Izmeni dobavljača"
 	h.renderujFormuDobavljaca(w, PodaciFormeDobavljaca{
-		PodaciStranice: model.PodaciStranice{
-			Stranica:       "dobavljaci",
-			NaslovStranice: "Izmeni dobavljača",
-			Tema:           podesavanja["tema"],
-			NazivFirme:     podesavanja["naziv_firme"],
-			Podnazlov:      podesavanja["podnazlov"],
-			LogoTip:        podesavanja["logo_tip"],
-			LogoPutanja:    podesavanja["logo_putanja"],
-			Korisnik:       "Admin",
-		},
-		Dobavljac: *dobavljac,
-		Izmena:    true,
+		PodaciStranice: ps,
+		Dobavljac:      *dobavljac,
+		Izmena:         true,
 	})
 }
 
@@ -175,20 +151,14 @@ func (h *Handler) SacuvajIzmeneDobavljaca(w http.ResponseWriter, r *http.Request
 	if greska != "" {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		dobavljac.ID = id
+		ps := h.popuniPodaciStranice(r, podesavanja)
+		ps.Stranica = "dobavljaci"
+		ps.NaslovStranice = "Izmeni dobavljača"
 		h.renderujFormuDobavljaca(w, PodaciFormeDobavljaca{
-			PodaciStranice: model.PodaciStranice{
-				Stranica:       "dobavljaci",
-				NaslovStranice: "Izmeni dobavljača",
-				Tema:           podesavanja["tema"],
-				NazivFirme:     podesavanja["naziv_firme"],
-				Podnazlov:      podesavanja["podnazlov"],
-				LogoTip:        podesavanja["logo_tip"],
-				LogoPutanja:    podesavanja["logo_putanja"],
-				Korisnik:       "Admin",
-			},
-			Dobavljac: dobavljac,
-			Greska:    greska,
-			Izmena:    true,
+			PodaciStranice: ps,
+			Dobavljac:      dobavljac,
+			Greska:         greska,
+			Izmena:         true,
 		})
 		return
 	}

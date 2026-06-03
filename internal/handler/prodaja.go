@@ -88,21 +88,15 @@ func (h *Handler) Prodaja(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "prodaja"
+	ps.NaslovStranice = "Prodaja"
 	podaci := PodaciProdaje{
-		PodaciStranice: model.PodaciStranice{
-			Stranica:       "prodaja",
-			NaslovStranice: "Prodaja",
-			Tema:           podesavanja["tema"],
-			NazivFirme:     podesavanja["naziv_firme"],
-			Podnazlov:      podesavanja["podnazlov"],
-			LogoTip:        podesavanja["logo_tip"],
-			LogoPutanja:    podesavanja["logo_putanja"],
-			Korisnik:       "Admin",
-		},
-		Nalozi:   nalozi,
-		Sacuvano: r.URL.Query().Get("sacuvano") == "1",
-		Obrisan:  r.URL.Query().Get("obrisan") == "1",
-		Pretraga: pretraga,
+		PodaciStranice: ps,
+		Nalozi:         nalozi,
+		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
+		Obrisan:        r.URL.Query().Get("obrisan") == "1",
+		Pretraga:       pretraga,
 	}
 
 	h.renderujTemplate(w, "prodaja", podaci)
@@ -128,20 +122,14 @@ func (h *Handler) NovaProdaja(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "prodaja"
+	ps.NaslovStranice = "Nova prodaja"
 	h.renderujFormuProdaje(w, PodaciFormeProdaje{
-		PodaciStranice: model.PodaciStranice{
-			Stranica:       "prodaja",
-			NaslovStranice: "Nova prodaja",
-			Tema:           podesavanja["tema"],
-			NazivFirme:     podesavanja["naziv_firme"],
-			Podnazlov:      podesavanja["podnazlov"],
-			LogoTip:        podesavanja["logo_tip"],
-			LogoPutanja:    podesavanja["logo_putanja"],
-			Korisnik:       "Admin",
-		},
-		Artikli:     artikli,
-		ArtikliJSON: artikalUJSONSaCenom(artikli),
-		Klijenti:    klijenti,
+		PodaciStranice: ps,
+		Artikli:        artikli,
+		ArtikliJSON:    artikalUJSONSaCenom(artikli),
+		Klijenti:       klijenti,
 	})
 }
 
@@ -158,21 +146,15 @@ func (h *Handler) SacuvajProdaju(w http.ResponseWriter, r *http.Request) {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		artikli, _ := h.Artikli.Lista(r.Context(), appdb.ArtikalFilter{})
 		klijenti, _ := h.KlijentiRepo.Lista(r.Context(), "")
+		ps := h.popuniPodaciStranice(r, podesavanja)
+		ps.Stranica = "prodaja"
+		ps.NaslovStranice = "Nova prodaja"
 		h.renderujFormuProdaje(w, PodaciFormeProdaje{
-			PodaciStranice: model.PodaciStranice{
-				Stranica:       "prodaja",
-				NaslovStranice: "Nova prodaja",
-				Tema:           podesavanja["tema"],
-				NazivFirme:     podesavanja["naziv_firme"],
-				Podnazlov:      podesavanja["podnazlov"],
-				LogoTip:        podesavanja["logo_tip"],
-				LogoPutanja:    podesavanja["logo_putanja"],
-				Korisnik:       "Admin",
-			},
-			Artikli:     artikli,
-			ArtikliJSON: artikalUJSONSaCenom(artikli),
-			Klijenti:    klijenti,
-			Greska:      poruka,
+			PodaciStranice: ps,
+			Artikli:        artikli,
+			ArtikliJSON:    artikalUJSONSaCenom(artikli),
+			Klijenti:       klijenti,
+			Greska:         poruka,
 		})
 	}
 
@@ -250,21 +232,15 @@ func (h *Handler) DetaljiProdaje(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "prodaja"
+	ps.NaslovStranice = "Detalji prodaje"
 	podaci := PodaciDetaljiProdaje{
-		PodaciStranice: model.PodaciStranice{
-			Stranica:       "prodaja",
-			NaslovStranice: "Detalji prodaje",
-			Tema:           podesavanja["tema"],
-			NazivFirme:     podesavanja["naziv_firme"],
-			Podnazlov:      podesavanja["podnazlov"],
-			LogoTip:        podesavanja["logo_tip"],
-			LogoPutanja:    podesavanja["logo_putanja"],
-			Korisnik:       "Admin",
-		},
-		Nalog:        *nalog,
-		Stavke:       stavke,
-		KlijentNaziv: klijentNaziv,
-		Sacuvano:     r.URL.Query().Get("sacuvano") == "1",
+		PodaciStranice: ps,
+		Nalog:          *nalog,
+		Stavke:         stavke,
+		KlijentNaziv:   klijentNaziv,
+		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
 	}
 
 	h.renderujTemplate(w, "prodaja_detalji", podaci)

@@ -25,11 +25,11 @@ type PodaciNabavki struct {
 // PodaciFormeNabavke su podaci za formu unosa nove nabavke
 type PodaciFormeNabavke struct {
 	model.PodaciStranice
-	Artikli    []model.ArtikalSaKategorijom
-	ArtikliJSON template.JS           // JSON niz artikala za Alpine.js — bezbedan za umetanje u <script>
-	Dobavljaci []model.Dobavljac
-	Kategorije []model.Kategorija     // za dropdown u modalu novog artikla
-	Greska     string
+	Artikli     []model.ArtikalSaKategorijom
+	ArtikliJSON template.JS        // JSON niz artikala za Alpine.js — bezbedan za umetanje u <script>
+	Dobavljaci  []model.Dobavljac
+	Kategorije  []model.Kategorija // za dropdown u modalu novog artikla
+	Greska      string
 }
 
 // PodaciDetaljiNabavke su podaci za pregled jedne nabavke sa stavkama
@@ -68,20 +68,14 @@ func (h *Handler) Nabavke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "nabavke"
+	ps.NaslovStranice = "Nabavke"
 	podaci := PodaciNabavki{
-		PodaciStranice: model.PodaciStranice{
-			Stranica:       "nabavke",
-			NaslovStranice: "Nabavke",
-			Tema:           podesavanja["tema"],
-			NazivFirme:     podesavanja["naziv_firme"],
-			Podnazlov:      podesavanja["podnazlov"],
-			LogoTip:        podesavanja["logo_tip"],
-			LogoPutanja:    podesavanja["logo_putanja"],
-			Korisnik:       "Admin",
-		},
-		Nabavke:  nabavke,
-		Sacuvano: r.URL.Query().Get("sacuvano") == "1",
-		Obrisan:  r.URL.Query().Get("obrisan") == "1",
+		PodaciStranice: ps,
+		Nabavke:        nabavke,
+		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
+		Obrisan:        r.URL.Query().Get("obrisan") == "1",
 	}
 
 	h.renderujTemplate(w, "nabavke", podaci)
@@ -113,21 +107,15 @@ func (h *Handler) NovaNabavka(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "nabavke"
+	ps.NaslovStranice = "Nova nabavka"
 	h.renderujFormuNabavke(w, PodaciFormeNabavke{
-		PodaciStranice: model.PodaciStranice{
-			Stranica:       "nabavke",
-			NaslovStranice: "Nova nabavka",
-			Tema:           podesavanja["tema"],
-			NazivFirme:     podesavanja["naziv_firme"],
-			Podnazlov:      podesavanja["podnazlov"],
-			LogoTip:        podesavanja["logo_tip"],
-			LogoPutanja:    podesavanja["logo_putanja"],
-			Korisnik:       "Admin",
-		},
-		Artikli:     artikli,
-		ArtikliJSON: artikalUJSON(artikli),
-		Dobavljaci:  dobavljaci,
-		Kategorije:  kategorije,
+		PodaciStranice: ps,
+		Artikli:        artikli,
+		ArtikliJSON:    artikalUJSON(artikli),
+		Dobavljaci:     dobavljaci,
+		Kategorije:     kategorije,
 	})
 }
 
@@ -144,22 +132,16 @@ func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
 		artikli, _ := h.Artikli.Lista(r.Context(), db.ArtikalFilter{})
 		dobavljaci, _ := h.DobavljaciRepo.Lista(r.Context(), "")
 		kategorije, _ := h.KategorijeRepo.Lista(r.Context())
+		ps := h.popuniPodaciStranice(r, podesavanja)
+		ps.Stranica = "nabavke"
+		ps.NaslovStranice = "Nova nabavka"
 		h.renderujFormuNabavke(w, PodaciFormeNabavke{
-			PodaciStranice: model.PodaciStranice{
-				Stranica:       "nabavke",
-				NaslovStranice: "Nova nabavka",
-				Tema:           podesavanja["tema"],
-				NazivFirme:     podesavanja["naziv_firme"],
-				Podnazlov:      podesavanja["podnazlov"],
-				LogoTip:        podesavanja["logo_tip"],
-				LogoPutanja:    podesavanja["logo_putanja"],
-				Korisnik:       "Admin",
-			},
-			Artikli:     artikli,
-			ArtikliJSON: artikalUJSON(artikli),
-			Dobavljaci:  dobavljaci,
-			Kategorije:  kategorije,
-			Greska:      greska,
+			PodaciStranice: ps,
+			Artikli:        artikli,
+			ArtikliJSON:    artikalUJSON(artikli),
+			Dobavljaci:     dobavljaci,
+			Kategorije:     kategorije,
+			Greska:         greska,
 		})
 		return
 	}
@@ -208,17 +190,11 @@ func (h *Handler) DetaljiNabavke(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "nabavke"
+	ps.NaslovStranice = "Detalji nabavke"
 	podaci := PodaciDetaljiNabavke{
-		PodaciStranice: model.PodaciStranice{
-			Stranica:       "nabavke",
-			NaslovStranice: "Detalji nabavke",
-			Tema:           podesavanja["tema"],
-			NazivFirme:     podesavanja["naziv_firme"],
-			Podnazlov:      podesavanja["podnazlov"],
-			LogoTip:        podesavanja["logo_tip"],
-			LogoPutanja:    podesavanja["logo_putanja"],
-			Korisnik:       "Admin",
-		},
+		PodaciStranice: ps,
 		Nabavka:        *nabavka,
 		Stavke:         stavke,
 		DobavljacNaziv: dobavljacNaziv,
