@@ -24,8 +24,9 @@ type Handler struct {
 	KorisniciRepo   db.KorisniciRepository
 	SesijeRepo      db.SesijeRepository
 	PodsetniciFRepo db.PodsetnikRepository
-	PokusajiRepo    db.PokusajiPrijaveRepository
-	Verzija         string
+	PokusajiRepo       db.PokusajiPrijaveRepository
+	LoginIstorijsaRepo db.LoginIstorijsaRepository
+	Verzija            string
 	Templates       map[string]*template.Template
 }
 
@@ -43,7 +44,8 @@ func Novi(baza *sql.DB) *Handler {
 		KorisniciRepo:   sqlite.NoviKorisniciRepo(baza),
 		SesijeRepo:      sqlite.NoviSesijeRepo(baza),
 		PodsetniciFRepo: sqlite.NoviPodsetnikRepo(baza),
-		PokusajiRepo:    sqlite.NoviPokusajiPrijaveRepo(baza),
+		PokusajiRepo:       sqlite.NoviPokusajiPrijaveRepo(baza),
+		LoginIstorijsaRepo: sqlite.NoviLoginIstorijsaRepo(baza),
 	}
 }
 
