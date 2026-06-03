@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"html/template"
-	"log"
 	"net/http"
 	"strings"
 
@@ -62,22 +60,7 @@ func (h *Handler) Dobavljaci(w http.ResponseWriter, r *http.Request) {
 		Obrisan:    r.URL.Query().Get("obrisan") == "1",
 	}
 
-	tmpl, err := template.ParseFiles(
-		"web/templates/teme/podrazumevana/base.html",
-		"web/templates/komponente/sidebar.html",
-		"web/templates/komponente/topbar.html",
-		"web/templates/stranice/dobavljaci.html",
-	)
-	if err != nil {
-		log.Printf("greška pri učitavanju šablona: %v", err)
-		http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "base", podaci); err != nil {
-		log.Printf("greška pri renderovanju: %v", err)
-		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
-	}
+	h.renderujTemplate(w, "dobavljaci", podaci)
 }
 
 // NoviDobavljac prikazuje praznu formu za unos novog dobavljača
@@ -88,7 +71,7 @@ func (h *Handler) NoviDobavljac(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	renderujFormuDobavljaca(w, PodaciFormeDobavljaca{
+	h.renderujFormuDobavljaca(w, PodaciFormeDobavljaca{
 		PodaciStranice: model.PodaciStranice{
 			Stranica:       "dobavljaci",
 			NaslovStranice: "Novi dobavljač",
@@ -113,7 +96,7 @@ func (h *Handler) SacuvajDobavljaca(w http.ResponseWriter, r *http.Request) {
 	dobavljac, greska := parseFormuDobavljaca(r)
 	if greska != "" {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
-		renderujFormuDobavljaca(w, PodaciFormeDobavljaca{
+		h.renderujFormuDobavljaca(w, PodaciFormeDobavljaca{
 			PodaciStranice: model.PodaciStranice{
 				Stranica:       "dobavljaci",
 				NaslovStranice: "Novi dobavljač",
@@ -159,7 +142,7 @@ func (h *Handler) IzmeniDobavljaca(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	renderujFormuDobavljaca(w, PodaciFormeDobavljaca{
+	h.renderujFormuDobavljaca(w, PodaciFormeDobavljaca{
 		PodaciStranice: model.PodaciStranice{
 			Stranica:       "dobavljaci",
 			NaslovStranice: "Izmeni dobavljača",
@@ -192,7 +175,7 @@ func (h *Handler) SacuvajIzmeneDobavljaca(w http.ResponseWriter, r *http.Request
 	if greska != "" {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		dobavljac.ID = id
-		renderujFormuDobavljaca(w, PodaciFormeDobavljaca{
+		h.renderujFormuDobavljaca(w, PodaciFormeDobavljaca{
 			PodaciStranice: model.PodaciStranice{
 				Stranica:       "dobavljaci",
 				NaslovStranice: "Izmeni dobavljača",
@@ -257,21 +240,6 @@ func parseFormuDobavljaca(r *http.Request) (model.Dobavljac, string) {
 }
 
 // renderujFormuDobavljaca renderuje HTML šablon forme za unos ili izmenu dobavljača
-func renderujFormuDobavljaca(w http.ResponseWriter, podaci PodaciFormeDobavljaca) {
-	tmpl, err := template.ParseFiles(
-		"web/templates/teme/podrazumevana/base.html",
-		"web/templates/komponente/sidebar.html",
-		"web/templates/komponente/topbar.html",
-		"web/templates/stranice/dobavljac_forma.html",
-	)
-	if err != nil {
-		log.Printf("greška pri učitavanju šablona: %v", err)
-		http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "base", podaci); err != nil {
-		log.Printf("greška pri renderovanju: %v", err)
-		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
-	}
+func (h *Handler) renderujFormuDobavljaca(w http.ResponseWriter, podaci PodaciFormeDobavljaca) {
+	h.renderujTemplate(w, "dobavljac_forma", podaci)
 }

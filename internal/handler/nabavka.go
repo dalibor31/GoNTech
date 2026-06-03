@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"html/template"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -85,22 +84,7 @@ func (h *Handler) Nabavke(w http.ResponseWriter, r *http.Request) {
 		Obrisan:  r.URL.Query().Get("obrisan") == "1",
 	}
 
-	tmpl, err := template.ParseFiles(
-		"web/templates/teme/podrazumevana/base.html",
-		"web/templates/komponente/sidebar.html",
-		"web/templates/komponente/topbar.html",
-		"web/templates/stranice/nabavke.html",
-	)
-	if err != nil {
-		log.Printf("greška pri učitavanju šablona: %v", err)
-		http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "base", podaci); err != nil {
-		log.Printf("greška pri renderovanju: %v", err)
-		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
-	}
+	h.renderujTemplate(w, "nabavke", podaci)
 }
 
 // NovaNabavka prikazuje formu za unos nove nabavke
@@ -129,7 +113,7 @@ func (h *Handler) NovaNabavka(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	renderujFormuNabavke(w, PodaciFormeNabavke{
+	h.renderujFormuNabavke(w, PodaciFormeNabavke{
 		PodaciStranice: model.PodaciStranice{
 			Stranica:       "nabavke",
 			NaslovStranice: "Nova nabavka",
@@ -160,7 +144,7 @@ func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
 		artikli, _ := h.Artikli.Lista(r.Context(), db.ArtikalFilter{})
 		dobavljaci, _ := h.DobavljaciRepo.Lista(r.Context(), "")
 		kategorije, _ := h.KategorijeRepo.Lista(r.Context())
-		renderujFormuNabavke(w, PodaciFormeNabavke{
+		h.renderujFormuNabavke(w, PodaciFormeNabavke{
 			PodaciStranice: model.PodaciStranice{
 				Stranica:       "nabavke",
 				NaslovStranice: "Nova nabavka",
@@ -240,22 +224,7 @@ func (h *Handler) DetaljiNabavke(w http.ResponseWriter, r *http.Request) {
 		DobavljacNaziv: dobavljacNaziv,
 	}
 
-	tmpl, err := template.ParseFiles(
-		"web/templates/teme/podrazumevana/base.html",
-		"web/templates/komponente/sidebar.html",
-		"web/templates/komponente/topbar.html",
-		"web/templates/stranice/nabavka_detalji.html",
-	)
-	if err != nil {
-		log.Printf("greška pri učitavanju šablona: %v", err)
-		http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "base", podaci); err != nil {
-		log.Printf("greška pri renderovanju: %v", err)
-		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
-	}
+	h.renderujTemplate(w, "nabavka_detalji", podaci)
 }
 
 // ObrisiNabavku prima POST zahtev i briše nabavku po ID-u
@@ -328,21 +297,6 @@ func parseFormuNabavke(r *http.Request) (model.Nabavka, []model.StavkaNabavke, s
 }
 
 // renderujFormuNabavke renderuje HTML šablon forme za unos nove nabavke
-func renderujFormuNabavke(w http.ResponseWriter, podaci PodaciFormeNabavke) {
-	tmpl, err := template.ParseFiles(
-		"web/templates/teme/podrazumevana/base.html",
-		"web/templates/komponente/sidebar.html",
-		"web/templates/komponente/topbar.html",
-		"web/templates/stranice/nabavka_forma.html",
-	)
-	if err != nil {
-		log.Printf("greška pri učitavanju šablona: %v", err)
-		http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "base", podaci); err != nil {
-		log.Printf("greška pri renderovanju: %v", err)
-		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
-	}
+func (h *Handler) renderujFormuNabavke(w http.ResponseWriter, podaci PodaciFormeNabavke) {
+	h.renderujTemplate(w, "nabavka_forma", podaci)
 }

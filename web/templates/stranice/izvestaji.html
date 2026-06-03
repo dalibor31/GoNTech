@@ -82,6 +82,26 @@
 
     .badge-dana.upozorenje { background: #fffbeb; color: #b45309; }
     .badge-dana.kritican   { background: #fef2f2; color: #dc2626; }
+
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .izv-sekcija {
+        animation: fadeInUp 0.25s ease forwards;
+        opacity: 0;
+    }
+    .izv-sekcija:nth-child(1) { animation-delay: 0.04s; }
+    .izv-sekcija:nth-child(2) { animation-delay: 0.12s; }
+    .izv-sekcija:nth-child(3) { animation-delay: 0.20s; }
+
+    .izv-grid-kartica {
+        animation: fadeInUp 0.25s ease forwards;
+        opacity: 0;
+    }
+    .izv-grid-kartica:nth-child(1) { animation-delay: 0.24s; }
+    .izv-grid-kartica:nth-child(2) { animation-delay: 0.32s; }
 </style>
 {{end}}
 
@@ -89,7 +109,7 @@
 <div style="display:flex;flex-direction:column;gap:20px;">
 
     <!-- 1. mesečni prihod -->
-    <div class="kartica">
+    <div class="kartica izv-sekcija">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:4px;">
             <div class="izv-naslov" style="margin-bottom:0;">Mesečni prihod — poslednjih 12 meseci</div>
             <div class="toggle-red" style="margin-bottom:0;">
@@ -136,7 +156,7 @@
     </div>
 
     <!-- 2. stari otvoreni nalozi -->
-    <div class="kartica">
+    <div class="kartica izv-sekcija">
         <div class="izv-naslov">Stari otvoreni nalozi — bez završetka duže od 14 dana</div>
         {{if .StariNalozi}}
         <div style="overflow-x:auto;">
@@ -178,10 +198,10 @@
         {{end}}
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 izv-sekcija">
 
         <!-- 3. top 10 artikala -->
-        <div class="kartica">
+        <div class="kartica izv-grid-kartica">
             <div class="izv-naslov">Najprodavaniji artikli — top 10</div>
             {{if .TopArtikli}}
             <table style="width:100%;border-collapse:collapse;">
@@ -215,7 +235,7 @@
         </div>
 
         <!-- 4. top 10 klijenata -->
-        <div class="kartica">
+        <div class="kartica izv-grid-kartica">
             <div class="izv-naslov">Najvažniji klijenti — top 10</div>
             {{if .TopKlijenti}}
             <table style="width:100%;border-collapse:collapse;">

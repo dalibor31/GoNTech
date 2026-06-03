@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"html/template"
 	"log"
 	"net/http"
 	"strconv"
@@ -79,22 +78,7 @@ func (h *Handler) Servis(w http.ResponseWriter, r *http.Request) {
 		Obrisan:      r.URL.Query().Get("obrisan") == "1",
 	}
 
-	tmpl, err := template.ParseFiles(
-		"web/templates/teme/podrazumevana/base.html",
-		"web/templates/komponente/sidebar.html",
-		"web/templates/komponente/topbar.html",
-		"web/templates/stranice/servis.html",
-	)
-	if err != nil {
-		log.Printf("greška pri učitavanju šablona: %v", err)
-		http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "base", podaci); err != nil {
-		log.Printf("greška pri renderovanju: %v", err)
-		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
-	}
+	h.renderujTemplate(w, "servis", podaci)
 }
 
 // NoviNalog generiše broj naloga i prikazuje praznu formu za unos
@@ -117,7 +101,7 @@ func (h *Handler) NoviNalog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	renderujFormuNaloga(w, PodaciFormeNaloga{
+	h.renderujFormuNaloga(w, PodaciFormeNaloga{
 		PodaciStranice: model.PodaciStranice{
 			Stranica:       "servis",
 			NaslovStranice: "Novi nalog",
@@ -146,7 +130,7 @@ func (h *Handler) SacuvajNalog(w http.ResponseWriter, r *http.Request) {
 	if greska != "" {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		klijenti, _ := h.KlijentiRepo.Lista(r.Context(), "")
-		renderujFormuNaloga(w, PodaciFormeNaloga{
+		h.renderujFormuNaloga(w, PodaciFormeNaloga{
 			PodaciStranice: model.PodaciStranice{
 				Stranica:       "servis",
 				NaslovStranice: "Novi nalog",
@@ -171,7 +155,7 @@ func (h *Handler) SacuvajNalog(w http.ResponseWriter, r *http.Request) {
 		log.Printf("greška pri čuvanju naloga: %v", err)
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		klijenti, _ := h.KlijentiRepo.Lista(r.Context(), "")
-		renderujFormuNaloga(w, PodaciFormeNaloga{
+		h.renderujFormuNaloga(w, PodaciFormeNaloga{
 			PodaciStranice: model.PodaciStranice{
 				Stranica:       "servis",
 				NaslovStranice: "Novi nalog",
@@ -220,7 +204,7 @@ func (h *Handler) IzmeniNalog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	renderujFormuNaloga(w, PodaciFormeNaloga{
+	h.renderujFormuNaloga(w, PodaciFormeNaloga{
 		PodaciStranice: model.PodaciStranice{
 			Stranica:       "servis",
 			NaslovStranice: "Izmeni nalog",
@@ -256,7 +240,7 @@ func (h *Handler) SacuvajIzmenaNaloga(w http.ResponseWriter, r *http.Request) {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		klijenti, _ := h.KlijentiRepo.Lista(r.Context(), "")
 		nalog.ID = id
-		renderujFormuNaloga(w, PodaciFormeNaloga{
+		h.renderujFormuNaloga(w, PodaciFormeNaloga{
 			PodaciStranice: model.PodaciStranice{
 				Stranica:       "servis",
 				NaslovStranice: "Izmeni nalog",
@@ -281,7 +265,7 @@ func (h *Handler) SacuvajIzmenaNaloga(w http.ResponseWriter, r *http.Request) {
 		log.Printf("greška pri čuvanju izmene naloga: %v", err)
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		klijenti, _ := h.KlijentiRepo.Lista(r.Context(), "")
-		renderujFormuNaloga(w, PodaciFormeNaloga{
+		h.renderujFormuNaloga(w, PodaciFormeNaloga{
 			PodaciStranice: model.PodaciStranice{
 				Stranica:       "servis",
 				NaslovStranice: "Izmeni nalog",
@@ -368,22 +352,7 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 		Sacuvano:     r.URL.Query().Get("sacuvano") == "1",
 	}
 
-	tmpl, err := template.ParseFiles(
-		"web/templates/teme/podrazumevana/base.html",
-		"web/templates/komponente/sidebar.html",
-		"web/templates/komponente/topbar.html",
-		"web/templates/stranice/servis_detalji.html",
-	)
-	if err != nil {
-		log.Printf("greška pri učitavanju šablona: %v", err)
-		http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "base", podaci); err != nil {
-		log.Printf("greška pri renderovanju: %v", err)
-		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
-	}
+	h.renderujTemplate(w, "servis_detalji", podaci)
 }
 
 // parseFormuNaloga čita i validira polja iz HTTP forme
@@ -448,21 +417,6 @@ func parseOpcionuCenu(s string) *float64 {
 }
 
 // renderujFormuNaloga renderuje HTML šablon forme za unos ili izmenu servisnog naloga
-func renderujFormuNaloga(w http.ResponseWriter, podaci PodaciFormeNaloga) {
-	tmpl, err := template.ParseFiles(
-		"web/templates/teme/podrazumevana/base.html",
-		"web/templates/komponente/sidebar.html",
-		"web/templates/komponente/topbar.html",
-		"web/templates/stranice/servis_forma.html",
-	)
-	if err != nil {
-		log.Printf("greška pri učitavanju šablona: %v", err)
-		http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "base", podaci); err != nil {
-		log.Printf("greška pri renderovanju: %v", err)
-		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
-	}
+func (h *Handler) renderujFormuNaloga(w http.ResponseWriter, podaci PodaciFormeNaloga) {
+	h.renderujTemplate(w, "servis_forma", podaci)
 }
