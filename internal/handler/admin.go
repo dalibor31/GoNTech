@@ -20,6 +20,12 @@ type podaciAdminKorisnici struct {
 	Sacuvano  bool
 }
 
+type podaciLoginIstorija struct {
+	model.PodaciStranice
+	PrikazKorisnik model.Korisnik
+	Istorija       []*model.LoginPokusaj
+}
+
 type podaciAdminProfil struct {
 	model.PodaciStranice
 	Greska      string
@@ -331,6 +337,44 @@ func (h *Handler) AdminTotpDeaktivacija(w http.ResponseWriter, r *http.Request) 
 	}
 
 	http.Redirect(w, r, "/admin/profil?sacuvano=totp_off", http.StatusSeeOther)
+}
+
+// AdminLoginIstorija prikazuje evidenciju prijava za datog korisnika
+func (h *Handler) AdminLoginIstorija(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !middleware.JeAdmin(k) {
+		http.Error(w, "Pristup odbijen", http.StatusForbidden)
+		return
+	}
+
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Redirect(w, r, "/admin/korisnici", http.StatusSeeOther)
+		return
+	}
+
+	korisnik, err := h.KorisniciRepo.DohvatiPoID(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Korisnik nije pronađen", http.StatusNotFound)
+		return
+	}
+
+	istorija, err := h.LoginIstorijsaRepo.ListaZaKorisnika(r.Context(), id, 50)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju istorije", http.StatusInternalServerError)
+		return
+	}
+
+	podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "admin"
+	ps.NaslovStranice = "Istorija prijava — " + korisnik.KorisnickoIme
+
+	h.renderujTemplate(w, "admin_login_istorija", podaciLoginIstorija{
+		PodaciStranice: ps,
+		PrikazKorisnik: *korisnik,
+		Istorija:       istorija,
+	})
 }
 
 // parseBoolForm čita boolean vrednost iz forme
