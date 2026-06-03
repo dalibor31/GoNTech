@@ -25,4 +25,14 @@ ntech.env
 .idea/
 *.swp
 
+# Backup fajlovi
+backups/
+
+# Logovi
+logs/
+
+# Upload fajlovi
+web/static/uploads/
+
+.env
 
