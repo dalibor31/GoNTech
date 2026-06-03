@@ -1,0 +1,99 @@
+{{template "base" .}}
+
+{{define "naslov"}}{{if .Izmena}}Izmeni podsetnik{{else}}Novi podsetnik{{end}} — NTech{{end}}
+
+{{define "dodatni-css"}}
+<style>
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        20%       { transform: translateX(-6px); }
+        40%       { transform: translateX(6px); }
+        60%       { transform: translateX(-4px); }
+        80%       { transform: translateX(4px); }
+    }
+
+    .forma-kartica {
+        animation: fadeInUp 0.3s ease forwards;
+    }
+
+    .greska-animacija {
+        animation: shake 0.4s ease;
+    }
+</style>
+{{end}}
+
+{{define "sadrzaj"}}
+<div style="width:100%;">
+
+    <a href="/podsetnici"
+        style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--tekst-sporedni);text-decoration:none;margin-bottom:20px;transition:color 0.2s;"
+        onmouseover="this.style.color='var(--tekst-glavni)'" onmouseout="this.style.color='var(--tekst-sporedni)'">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Nazad na podsetnik
+    </a>
+
+    <div class="kartica forma-kartica" style="max-width:600px;">
+        <div style="margin-bottom:20px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);">
+            <span style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">
+                {{if .Izmena}}Izmeni podsetnik{{else}}Novi podsetnik{{end}}
+            </span>
+        </div>
+
+        {{if .Greska}}
+        <div class="greska-animacija"
+            style="background:var(--kartica);border:0.5px solid var(--greska);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--greska);">
+            {{.Greska}}
+        </div>
+        {{end}}
+
+        <form method="POST" action="{{if .Izmena}}/podsetnici/izmeni/{{.Podsetnik.ID}}{{else}}/podsetnici/novi{{end}}">
+            <div style="display:flex;flex-direction:column;gap:16px;">
+
+                <div>
+                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">
+                        Naslov <span style="color:var(--greska);">*</span>
+                    </label>
+                    <input type="text" name="naslov" value="{{.Podsetnik.Naslov}}"
+                        placeholder="npr. Obnoviti ugovor sa dobavljačem"
+                        style="width:100%;" autofocus>
+                </div>
+
+                <div>
+                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">
+                        Datum podsećanja <span style="color:var(--greska);">*</span>
+                    </label>
+                    <input type="date" name="datum_podsecanja"
+                        value="{{if not .Podsetnik.DatumPodsecanja.IsZero}}{{.Podsetnik.DatumPodsecanja.Format "2006-01-02"}}{{end}}"
+                        style="width:100%;">
+                </div>
+
+                <div>
+                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Napomena</label>
+                    <textarea name="napomena" rows="4"
+                        placeholder="Detalji ili beleška vezana za ovaj podsetnik..."
+                        style="width:100%;resize:vertical;">{{.Podsetnik.Napomena}}</textarea>
+                </div>
+
+                <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:4px;">
+                    <a href="/podsetnici"
+                        style="padding:9px 20px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;color:var(--tekst-sporedni);text-decoration:none;transition:background 0.2s;"
+                        onmouseover="this.style.background='var(--pozadina)'" onmouseout="this.style.background=''">
+                        Odustani
+                    </a>
+                    <button type="submit"
+                        style="padding:9px 20px;background:var(--sb-akcent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:opacity 0.2s;"
+                        onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                        {{if .Izmena}}Sačuvaj izmene{{else}}Dodaj podsetnik{{end}}
+                    </button>
+                </div>
+
+            </div>
+        </form>
+    </div>
+</div>
+{{end}}

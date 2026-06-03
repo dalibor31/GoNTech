@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"html/template"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -77,23 +75,7 @@ func (h *Handler) Magacin(w http.ResponseWriter, r *http.Request) {
 		Obrisan:         r.URL.Query().Get("obrisan") == "1",
 	}
 
-	tmpl, err := template.ParseFiles(
-		"web/templates/teme/podrazumevana/base.html",
-		"web/templates/komponente/sidebar.html",
-		"web/templates/komponente/topbar.html",
-		"web/templates/stranice/magacin.html",
-	)
-	if err != nil {
-		log.Printf("greška pri učitavanju šablona: %v", err)
-		http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "base", podaci); err != nil {
-		log.Printf("greška pri renderovanju: %v", err)
-		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
-		return
-	}
+	h.renderujTemplate(w, "magacin", podaci)
 }
 
 // ObrisiArtikal briše artikal po ID-u

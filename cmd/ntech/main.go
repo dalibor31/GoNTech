@@ -16,11 +16,15 @@ import (
 	ntechmw "ntech/internal/middleware"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/joho/godotenv"
 )
 
+// Verzija se postavlja pri produkcijskom buildu: go build -ldflags "-X main.Verzija=1.2.0"
+var Verzija = "dev"
+
 func main() {
-	godotenv.Load()
+	godotenv.Load("ntech.env")
 
 	if config.JelPrvoPokretanje() {
 		config.PokreniSetup()
@@ -60,9 +64,22 @@ func main() {
 		}
 	}()
 
+	os.MkdirAll("web/static/uploads", 0755)
+
 	h := handler.Novi(db)
+	h.Verzija = Verzija
+
+	if os.Getenv("NTECH_ENV") == "production" {
+		kes, err := handler.KreirajKes()
+		if err != nil {
+			log.Fatalf("Greška pri kreiranju keša šablona: %v", err)
+		}
+		h.Templates = kes
+		log.Printf("Keš šablona kreiran: %d šablona", len(kes))
+	}
 
 	r := chi.NewRouter()
+	r.Use(middleware.Compress(5))
 
 	// statični fajlovi
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
@@ -86,6 +103,7 @@ func main() {
 		r.Get("/dashboard", h.Dashboard)
 		r.Get("/podesavanja", h.Podesavanja)
 		r.Post("/podesavanja/sacuvaj", h.SacuvajPodesavanja)
+		r.Post("/podesavanja/logo", h.OtpremiLogo)
 		r.Get("/podesavanja/backup", h.BackupBaze)
 		r.Get("/tema/{tema}", h.PromeniTemu)
 		r.Get("/magacin", h.Magacin)
@@ -128,6 +146,15 @@ func main() {
 		r.Post("/prodaja/obrisi/{id}", h.ObrisiProdaju)
 		r.Get("/prodaja/{id}/stampa", h.StampaProdaje)
 		r.Get("/prodaja/{id}", h.DetaljiProdaje)
+
+		// podsetnici
+		r.Get("/podsetnici", h.Podsetnici)
+		r.Get("/podsetnici/novi", h.NoviPodsetnik)
+		r.Post("/podsetnici/novi", h.SacuvajPodsetnik)
+		r.Get("/podsetnici/izmeni/{id}", h.IzmeniPodsetnik)
+		r.Post("/podsetnici/izmeni/{id}", h.SacuvajIzmenePodsetnika)
+		r.Post("/podsetnici/zavrseno/{id}", h.OznaciPodsetnik)
+		r.Post("/podsetnici/obrisi/{id}", h.ObrisiPodsetnik)
 
 		// admin rute
 		r.Get("/admin/korisnici", h.AdminKorisnici)

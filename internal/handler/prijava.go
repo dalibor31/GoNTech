@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"html/template"
 	"net/http"
 	"time"
 
@@ -22,7 +21,7 @@ func (h *Handler) PrikazPrijave(w http.ResponseWriter, r *http.Request) {
 	}
 
 	greska := r.URL.Query().Get("greska")
-	renderujStandaloneTemplate(w, "web/templates/stranice/prijava.html", map[string]any{
+	h.renderujStandalone(w, "prijava", map[string]any{
 		"Greska": greska,
 	})
 }
@@ -84,7 +83,7 @@ func (h *Handler) PrikazTotp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	greska := r.URL.Query().Get("greska")
-	renderujStandaloneTemplate(w, "web/templates/stranice/totp_provera.html", map[string]any{
+	h.renderujStandalone(w, "totp_provera", map[string]any{
 		"Greska": greska,
 	})
 }
@@ -133,7 +132,7 @@ func (h *Handler) PrikazSetupa(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	greska := r.URL.Query().Get("greska")
-	renderujStandaloneTemplate(w, "web/templates/stranice/setup.html", map[string]any{
+	h.renderujStandalone(w, "setup", map[string]any{
 		"Greska": greska,
 	})
 }
@@ -200,13 +199,3 @@ func napraviKolacic(token string, istice time.Time) *http.Cookie {
 	}
 }
 
-func renderujStandaloneTemplate(w http.ResponseWriter, putanja string, podaci any) {
-	tmpl, err := template.ParseFiles(putanja)
-	if err != nil {
-		http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
-		return
-	}
-	if err := tmpl.Execute(w, podaci); err != nil {
-		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
-	}
-}

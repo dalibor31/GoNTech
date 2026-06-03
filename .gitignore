@@ -8,8 +8,7 @@
 *.db-wal
 
 # Promenljive okruženja
-.env
-.env.*
+ntech.env
 
 # Privremeni fajlovi
 *.tmp

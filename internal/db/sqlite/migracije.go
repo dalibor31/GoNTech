@@ -10,16 +10,23 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-// OtvoriDB otvara konekciju ka SQLite bazi i uključuje strane ključeve
+// OtvoriDB otvara konekciju ka SQLite bazi i primenjuje performance PRAGMA podešavanja
 func OtvoriDB(putanja string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite", putanja)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: OtvoriDB: %w", err)
 	}
 
-	// uključujemo podršku za strane ključeve — SQLite je ne uključuje automatski
-	if _, err := db.Exec("PRAGMA foreign_keys = ON"); err != nil {
-		return nil, fmt.Errorf("ntech: OtvoriDB: foreign_keys: %w", err)
+	pragme := []string{
+		"PRAGMA journal_mode=WAL",
+		"PRAGMA synchronous=NORMAL",
+		"PRAGMA cache_size=10000",
+		"PRAGMA foreign_keys=ON",
+	}
+	for _, p := range pragme {
+		if _, err := db.Exec(p); err != nil {
+			return nil, fmt.Errorf("ntech: OtvoriDB: %s: %w", p, err)
+		}
 	}
 
 	return db, nil

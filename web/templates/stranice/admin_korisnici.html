@@ -2,11 +2,47 @@
 
 {{define "naslov"}}Korisnici — NTech{{end}}
 
+{{define "dodatni-css"}}
+<style>
+    @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .poruka-animacija { animation: slideDown 0.3s ease forwards; }
+
+    .korisnici-tabela tbody tr {
+        animation: fadeInUp 0.25s ease forwards;
+        opacity: 0;
+    }
+    .korisnici-tabela tbody tr:nth-child(1)  { animation-delay: 0.04s; }
+    .korisnici-tabela tbody tr:nth-child(2)  { animation-delay: 0.08s; }
+    .korisnici-tabela tbody tr:nth-child(3)  { animation-delay: 0.12s; }
+    .korisnici-tabela tbody tr:nth-child(4)  { animation-delay: 0.16s; }
+    .korisnici-tabela tbody tr:nth-child(5)  { animation-delay: 0.20s; }
+    .korisnici-tabela tbody tr:nth-child(6)  { animation-delay: 0.24s; }
+    .korisnici-tabela tbody tr:nth-child(7)  { animation-delay: 0.28s; }
+    .korisnici-tabela tbody tr:nth-child(8)  { animation-delay: 0.32s; }
+    .korisnici-tabela tbody tr:nth-child(9)  { animation-delay: 0.36s; }
+    .korisnici-tabela tbody tr:nth-child(10) { animation-delay: 0.40s; }
+
+    .nova-forma-kartica {
+        animation: fadeInUp 0.25s ease forwards;
+        opacity: 0;
+        animation-delay: 0.30s;
+    }
+</style>
+{{end}}
+
 {{define "sadrzaj"}}
 <div style="display:flex;flex-direction:column;gap:16px;">
 
     {{if .Sacuvano}}
-    <div class="poruka-uspeh">Promene su uspešno sačuvane.</div>
+    <div class="poruka-uspeh poruka-animacija">Promene su uspešno sačuvane.</div>
     {{end}}
 
     {{if eq .Greska "1"}}
@@ -21,7 +57,7 @@
             <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Korisnici sistema</span>
         </div>
         <div style="overflow-x:auto;">
-            <table style="width:100%;border-collapse:collapse;">
+            <table class="korisnici-tabela" style="width:100%;border-collapse:collapse;">
                 <thead>
                     <tr style="border-bottom:0.5px solid var(--ivica);">
                         <th style="padding:10px 20px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Korisničko ime</th>
@@ -87,7 +123,7 @@
     </div>
 
     <!-- forma za novog korisnika -->
-    <div class="kartica">
+    <div class="kartica nova-forma-kartica">
         <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
             Novi korisnik
         </div>
