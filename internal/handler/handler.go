@@ -13,17 +13,18 @@ import (
 
 // Handler drži zavisnosti koje su potrebne svim handlerima
 type Handler struct {
-	DB             *sql.DB
-	Artikli        db.ArtikalRepository
-	KategorijeRepo db.KategorijaRepository
-	DobavljaciRepo db.DobavljacRepository
-	NabavkeRepo    db.NabavkaRepository
-	KlijentiRepo   db.KlijentRepository
-	ServisRepo     db.ServisRepository
-	ProdajaRepo    db.ProdajaRepository
+	DB              *sql.DB
+	Artikli         db.ArtikalRepository
+	KategorijeRepo  db.KategorijaRepository
+	DobavljaciRepo  db.DobavljacRepository
+	NabavkeRepo     db.NabavkaRepository
+	KlijentiRepo    db.KlijentRepository
+	ServisRepo      db.ServisRepository
+	ProdajaRepo     db.ProdajaRepository
 	KorisniciRepo   db.KorisniciRepository
 	SesijeRepo      db.SesijeRepository
 	PodsetniciFRepo db.PodsetnikRepository
+	PokusajiRepo    db.PokusajiPrijaveRepository
 	Verzija         string
 	Templates       map[string]*template.Template
 }
@@ -42,6 +43,7 @@ func Novi(baza *sql.DB) *Handler {
 		KorisniciRepo:   sqlite.NoviKorisniciRepo(baza),
 		SesijeRepo:      sqlite.NoviSesijeRepo(baza),
 		PodsetniciFRepo: sqlite.NoviPodsetnikRepo(baza),
+		PokusajiRepo:    sqlite.NoviPokusajiPrijaveRepo(baza),
 	}
 }
 
@@ -60,5 +62,6 @@ func (h *Handler) popuniPodaciStranice(r *http.Request, podesavanja map[string]s
 		ps.KorisnikIme = k.KorisnickoIme
 		ps.KorisnikUloga = k.Uloga
 	}
+	ps.CsrfToken = middleware.CsrfToken(r.Context())
 	return ps
 }

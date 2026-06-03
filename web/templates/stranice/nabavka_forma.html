@@ -102,6 +102,7 @@
             params.append('naziv', this.modalNaziv.trim());
             if (this.modalKategorijaID) params.append('kategorija_id', this.modalKategorijaID);
             if (this.modalCena) params.append('prodajna_cena', this.modalCena);
+            params.append('_csrf', document.querySelector('meta[name="csrf-token"]')?.content || '');
 
             try {
                 const odgovor = await fetch('/magacin/novi', {
