@@ -9,18 +9,8 @@
         to   { opacity: 1; transform: translateY(0); }
     }
 
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(8px); }
-        to   { opacity: 1; transform: translateY(0); }
-    }
-
     .poruka-animacija {
         animation: slideDown 0.3s ease forwards;
-    }
-
-    .pod-tabela tbody tr {
-        animation: fadeInUp 0.25s ease forwards;
-        opacity: 0;
     }
 
     .pod-tabela tbody tr:nth-child(1)  { animation-delay: 0.04s; }
@@ -38,11 +28,6 @@
         display: none;
         flex-direction: column;
         gap: 12px;
-    }
-
-    .pod-kartica {
-        animation: fadeInUp 0.25s ease forwards;
-        opacity: 0;
     }
 
     .pod-kartica:nth-child(1) { animation-delay: 0.04s; }
@@ -90,7 +75,7 @@
     </div>
 
     <!-- desktop tabela -->
-    <div class="kartica pod-tabela" style="padding:0;overflow:hidden;">
+    <div class="kartica pod-tabela animiraj" style="padding:0;overflow:hidden;">
         <div style="overflow-x:auto;">
             <table style="width:100%;border-collapse:collapse;">
                 <thead>
@@ -103,7 +88,7 @@
                 </thead>
                 <tbody>
                     {{range .Podsetnici}}
-                    <tr class="{{if .JePrekoracen}}red-prekoracen{{end}}"
+                    <tr class="animiraj {{if .JePrekoracen}}red-prekoracen{{end}}"
                         style="border-bottom:0.5px solid var(--ivica);transition:background 0.15s;"
                         onmouseover="this.style.background='var(--pozadina)'"
                         onmouseout="this.style.background=''">
@@ -165,7 +150,7 @@
     <!-- mobilne kartice -->
     <div class="pod-kartice">
         {{range .Podsetnici}}
-        <div class="kartica pod-kartica">
+        <div class="kartica pod-kartica animiraj">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;">
                 <div>
                     <div style="font-size:15px;font-weight:500;color:{{if .JePrekoracen}}var(--greska){{else}}var(--tekst-glavni){{end}};">{{.Naslov}}</div>

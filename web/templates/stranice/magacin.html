@@ -4,15 +4,6 @@
 
 {{define "dodatni-css"}}
 <style>
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(8px); }
-        to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .magacin-tabela tbody tr {
-        animation: fadeInUp 0.25s ease forwards;
-        opacity: 0;
-    }
     .magacin-tabela tbody tr:nth-child(1)  { animation-delay: 0.04s; }
     .magacin-tabela tbody tr:nth-child(2)  { animation-delay: 0.08s; }
     .magacin-tabela tbody tr:nth-child(3)  { animation-delay: 0.12s; }
@@ -72,7 +63,7 @@
     </form>
 
     <!-- tabela artikala -->
-    <div class="kartica" style="padding:0;overflow:hidden;">
+    <div class="kartica animiraj" style="padding:0;overflow:hidden;">
         <div style="overflow-x:auto;">
             <table class="magacin-tabela" style="width:100%;border-collapse:collapse;">
                 <thead>
@@ -87,7 +78,7 @@
                 </thead>
                 <tbody>
                     {{range .Artikli}}
-                    <tr style="border-bottom:0.5px solid var(--ivica);transition:background 0.15s;"
+                    <tr class="animiraj" style="border-bottom:0.5px solid var(--ivica);transition:background 0.15s;"
                         onmouseover="this.style.background='var(--pozadina)'"
                         onmouseout="this.style.background=''">
                         <td style="padding:12px 16px;font-size:14px;color:var(--tekst-glavni);">{{.Naziv}}</td>

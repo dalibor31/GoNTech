@@ -3,12 +3,13 @@ package handler
 import (
 	"database/sql"
 	"html/template"
+	"io/fs"
+	"net/http"
 
 	"ntech/internal/db"
 	"ntech/internal/db/sqlite"
 	"ntech/internal/middleware"
 	"ntech/internal/model"
-	"net/http"
 )
 
 // Handler drži zavisnosti koje su potrebne svim handlerima
@@ -26,8 +27,9 @@ type Handler struct {
 	PodsetniciFRepo db.PodsetnikRepository
 	PokusajiRepo       db.PokusajiPrijaveRepository
 	LoginIstorijsaRepo db.LoginIstorijsaRepository
-	Verzija            string
-	Templates       map[string]*template.Template
+	Verzija     string
+	Templates   map[string]*template.Template
+	TemplatesFS fs.FS
 }
 
 // Novi kreira novi Handler sa datom bazom

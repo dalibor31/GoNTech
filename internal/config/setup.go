@@ -3,9 +3,9 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -13,7 +13,7 @@ import (
 )
 
 // PokreniSetup pokreće WebView prozor za prvo podešavanje
-func PokreniSetup() {
+func PokreniSetup(fsys fs.FS) {
 	port := NadjiSlobodanPort()
 	if port == 0 {
 		log.Fatal("Greška: nije pronađen nijedan slobodan port")
@@ -30,7 +30,7 @@ func PokreniSetup() {
 			http.Error(w, "Greška", http.StatusInternalServerError)
 			return
 		}
-		sadrzaj, err := os.ReadFile("web/templates/setup/index.html")
+		sadrzaj, err := fs.ReadFile(fsys, "web/templates/setup/index.html")
 		if err != nil {
 			http.Error(w, "Greška", http.StatusInternalServerError)
 			return

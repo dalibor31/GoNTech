@@ -9,18 +9,8 @@
         to   { opacity: 1; transform: translateY(0); }
     }
 
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(8px); }
-        to   { opacity: 1; transform: translateY(0); }
-    }
-
     .poruka-animacija {
         animation: slideDown 0.3s ease forwards;
-    }
-
-    .dobavljaci-tabela tbody tr {
-        animation: fadeInUp 0.25s ease forwards;
-        opacity: 0;
     }
 
     /* stagger — svaki red se pojavljuje malo kasnije */
@@ -39,11 +29,6 @@
         display: none;
         flex-direction: column;
         gap: 12px;
-    }
-
-    .dobavljac-kartica {
-        animation: fadeInUp 0.25s ease forwards;
-        opacity: 0;
     }
 
     .dobavljac-kartica:nth-child(1)  { animation-delay: 0.04s; }
@@ -89,7 +74,7 @@
     </div>
 
     <!-- desktop tabela -->
-    <div class="kartica dobavljaci-tabela" style="padding:0;overflow:hidden;">
+    <div class="kartica dobavljaci-tabela animiraj" style="padding:0;overflow:hidden;">
         <div style="overflow-x:auto;">
             <table style="width:100%;border-collapse:collapse;">
                 <thead>
@@ -103,7 +88,7 @@
                 </thead>
                 <tbody>
                     {{range .Dobavljaci}}
-                    <tr style="border-bottom:0.5px solid var(--ivica);transition:background 0.15s;"
+                    <tr class="animiraj" style="border-bottom:0.5px solid var(--ivica);transition:background 0.15s;"
                         onmouseover="this.style.background='var(--pozadina)'"
                         onmouseout="this.style.background=''">
                         <td style="padding:12px 16px;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{.Naziv}}</td>
@@ -149,7 +134,7 @@
     <!-- mobilne kartice -->
     <div class="dobavljaci-kartice">
         {{range .Dobavljaci}}
-        <div class="kartica dobavljac-kartica">
+        <div class="kartica dobavljac-kartica animiraj">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;">
                 <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">{{.Naziv}}</span>
                 <div style="display:flex;gap:8px;flex-shrink:0;">
