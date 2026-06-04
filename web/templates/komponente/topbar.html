@@ -17,8 +17,47 @@
         <a href="/tema/svetla" class="tema-krug {{if eq .Tema "svetla"}}tema-krug-aktivan{{end}}" style="background:#f0f2f5;border:1px solid #e2e6ed;" title="Svetla"></a>
     </div>
 
-    <div style="width:32px;height:32px;border-radius:50%;background:var(--sb-aktivan);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:#fff;flex-shrink:0;">
-        {{if .Korisnik}}{{slice .Korisnik 0 2}}{{else}}NT{{end}}
+    <div style="position:relative;" id="avatar-wrapper">
+        <div class="avatar-korisnik" id="avatar-dugme" style="cursor:pointer;" title="{{.Korisnik}}">
+            {{if .Korisnik}}{{slice .Korisnik 0 2}}{{else}}NT{{end}}
+        </div>
+        <div id="avatar-meni" style="display:none;position:absolute;right:0;top:calc(100% + 8px);background:var(--kartica);border:0.5px solid var(--ivica);border-radius:10px;box-shadow:var(--senka);min-width:160px;z-index:200;overflow:hidden;transform-origin:top right;">
+            <a href="/admin/profil" style="display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:14px;color:var(--tekst-glavni);text-decoration:none;transition:background 0.15s;"
+                onmouseover="this.style.background='var(--pozadina)'" onmouseout="this.style.background=''">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Moj profil
+            </a>
+            <div style="height:0.5px;background:var(--ivica);margin:0 10px;"></div>
+            <a href="/odjava" style="display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:14px;color:#dc2626;text-decoration:none;transition:background 0.15s;"
+                onmouseover="this.style.background='var(--pozadina)'" onmouseout="this.style.background=''">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Odjava
+            </a>
+        </div>
     </div>
 </header>
+<style>
+@keyframes avatarMeniOtvori {
+    from { opacity: 0; transform: scale(0.92) translateY(-6px); }
+    to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+</style>
+<script>
+(function() {
+    var dugme = document.getElementById('avatar-dugme');
+    var meni  = document.getElementById('avatar-meni');
+    dugme.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (meni.style.display === 'none' || meni.style.display === '') {
+            meni.style.display = 'block';
+            meni.style.animation = 'avatarMeniOtvori 0.15s ease both';
+        } else {
+            meni.style.display = 'none';
+        }
+    });
+    document.addEventListener('click', function() {
+        meni.style.display = 'none';
+    });
+})();
+</script>
 {{end}}

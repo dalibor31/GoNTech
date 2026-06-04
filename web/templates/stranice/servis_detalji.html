@@ -65,9 +65,7 @@
                 </span>
                 {{template "status-badge-detalji" .Nalog.Status}}
             </div>
-            <a href="/servis/izmeni/{{.Nalog.ID}}"
-                style="padding:8px 18px;background:var(--sb-aktivan);color:#fff;border-radius:8px;font-size:14px;font-weight:500;text-decoration:none;transition:opacity 0.2s;white-space:nowrap;"
-                onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+            <a href="/servis/izmeni/{{.Nalog.ID}}" class="btn-primarno">
                 Izmeni nalog
             </a>
         </div>

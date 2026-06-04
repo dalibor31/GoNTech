@@ -20,11 +20,11 @@ OKR_IZBOR=${OKR_IZBOR:-1}
 if [ "$OKR_IZBOR" = "2" ]; then
     OKRUZENJE="development"
     LDFLAGS="-X main.Verzija=dev-${VERZIJA}"
-    NAZIV="ntech-dev-${VERZIJA}"
+    NAZIV="ntech-dev"
 else
     OKRUZENJE="production"
     LDFLAGS="-X main.Verzija=${VERZIJA} -s -w"
-    NAZIV="ntech-${VERZIJA}"
+    NAZIV="ntech"
 fi
 
 # ──────────────────────────────────────────────
