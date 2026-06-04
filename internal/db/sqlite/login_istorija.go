@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"time"
 
 	"ntech/internal/model"
 )
@@ -59,15 +58,13 @@ func (r *LoginIstorijsaRepo) ListaZaKorisnika(ctx context.Context, korisnikID in
 		p := &model.LoginPokusaj{}
 		var kid sql.NullInt64
 		var u int
-		var s string
-		if err := rows.Scan(&p.ID, &kid, &p.IP, &p.UserAgent, &u, &p.Razlog, &s); err != nil {
+		if err := rows.Scan(&p.ID, &kid, &p.IP, &p.UserAgent, &u, &p.Razlog, &p.Vreme); err != nil {
 			return nil, fmt.Errorf("ntech: LoginIstorijsaRepo.ListaZaKorisnika: scan: %w", err)
 		}
 		if kid.Valid {
 			p.KorisnikID = &kid.Int64
 		}
 		p.Uspeh = u == 1
-		p.Vreme, _ = time.ParseInLocation("2006-01-02 15:04:05", s, time.UTC)
 		lista = append(lista, p)
 	}
 	return lista, rows.Err()

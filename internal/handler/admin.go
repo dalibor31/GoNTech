@@ -82,15 +82,10 @@ func (h *Handler) AdminSacuvajKorisnika(w http.ResponseWriter, r *http.Request) 
 	lozinka := r.FormValue("lozinka")
 	uloga := r.FormValue("uloga")
 
-	validneUloge := map[string]bool{"superadmin": true, "admin": true, "radnik": true}
+	// superadmin uloga se ne može kreirati kroz interfejs — jedini superadmin postoji od setup-a
+	validneUloge := map[string]bool{"admin": true, "radnik": true}
 	if len(ime) < 3 || len(lozinka) < 8 || !validneUloge[uloga] {
 		http.Redirect(w, r, "/admin/korisnici?greska=1", http.StatusSeeOther)
-		return
-	}
-
-	// superadmin može kreirati samo admin i radnik (ne drugog superadmina) osim ako je jedini superadmin
-	if uloga == "superadmin" && k.Uloga != "superadmin" {
-		http.Error(w, "Pristup odbijen", http.StatusForbidden)
 		return
 	}
 
@@ -161,14 +156,73 @@ func (h *Handler) AdminPromeniUlogu(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// superadmin ne može menjati svoju vlastitu ulogu
+	if id == k.ID {
+		http.Redirect(w, r, "/admin/korisnici?greska=3", http.StatusSeeOther)
+		return
+	}
+
 	uloga := r.FormValue("uloga")
-	validneUloge := map[string]bool{"superadmin": true, "admin": true, "radnik": true}
+	// dozvoljena je samo promena između admin i radnik; superadmin uloga se ne može dodeliti ni ukloniti
+	validneUloge := map[string]bool{"admin": true, "radnik": true}
 	if !validneUloge[uloga] {
 		http.Redirect(w, r, "/admin/korisnici?greska=1", http.StatusSeeOther)
 		return
 	}
 
+	// dohvati korisnika da proverimo njegovu trenutnu ulogu
+	ciljniKorisnik, err := h.KorisniciRepo.DohvatiPoID(r.Context(), id)
+	if err != nil {
+		http.Redirect(w, r, "/admin/korisnici?greska=2", http.StatusSeeOther)
+		return
+	}
+
+	// superadmin uloga se ne može menjati
+	if ciljniKorisnik.Uloga == "superadmin" {
+		http.Redirect(w, r, "/admin/korisnici?greska=3", http.StatusSeeOther)
+		return
+	}
+
 	if err := h.KorisniciRepo.AzurirajUlogu(r.Context(), id, uloga); err != nil {
+		http.Redirect(w, r, "/admin/korisnici?greska=2", http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "/admin/korisnici?sacuvano=1", http.StatusSeeOther)
+}
+
+// AdminObrisiKorisnika briše korisnika sa ulogom radnik
+func (h *Handler) AdminObrisiKorisnika(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil || k.Uloga != "superadmin" {
+		http.Error(w, "Pristup odbijen", http.StatusForbidden)
+		return
+	}
+
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Redirect(w, r, "/admin/korisnici?greska=1", http.StatusSeeOther)
+		return
+	}
+
+	if id == k.ID {
+		http.Redirect(w, r, "/admin/korisnici?greska=3", http.StatusSeeOther)
+		return
+	}
+
+	ciljni, err := h.KorisniciRepo.DohvatiPoID(r.Context(), id)
+	if err != nil {
+		http.Redirect(w, r, "/admin/korisnici?greska=2", http.StatusSeeOther)
+		return
+	}
+
+	// dozvoljeno je brisanje samo radnika
+	if ciljni.Uloga != "radnik" {
+		http.Redirect(w, r, "/admin/korisnici?greska=3", http.StatusSeeOther)
+		return
+	}
+
+	if err := h.KorisniciRepo.Obrisi(r.Context(), id); err != nil {
 		http.Redirect(w, r, "/admin/korisnici?greska=2", http.StatusSeeOther)
 		return
 	}

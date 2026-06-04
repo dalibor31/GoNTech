@@ -14,7 +14,8 @@ import (
 
 // Handler drži zavisnosti koje su potrebne svim handlerima
 type Handler struct {
-	DB              *sql.DB
+	DB          *sql.DB
+	PutanjaBaze string
 	Artikli         db.ArtikalRepository
 	KategorijeRepo  db.KategorijaRepository
 	DobavljaciRepo  db.DobavljacRepository
@@ -49,6 +50,23 @@ func Novi(baza *sql.DB) *Handler {
 		PokusajiRepo:       sqlite.NoviPokusajiPrijaveRepo(baza),
 		LoginIstorijsaRepo: sqlite.NoviLoginIstorijsaRepo(baza),
 	}
+}
+
+// reinicijalzijRepozitorijume zamenjuje sve repozitorijume posle obnove baze
+func (h *Handler) reinicijalzijRepozitorijume(novaDB *sql.DB) {
+	h.DB = novaDB
+	h.Artikli = sqlite.NoviArtikalRepo(novaDB)
+	h.KategorijeRepo = sqlite.NovaKategorijaRepo(novaDB)
+	h.DobavljaciRepo = sqlite.NoviDobavljacRepo(novaDB)
+	h.NabavkeRepo = sqlite.NoviNabavkaRepo(novaDB)
+	h.KlijentiRepo = sqlite.NoviKlijentRepo(novaDB)
+	h.ServisRepo = sqlite.NoviServisRepo(novaDB)
+	h.ProdajaRepo = sqlite.NoviProdajaRepo(novaDB)
+	h.KorisniciRepo = sqlite.NoviKorisniciRepo(novaDB)
+	h.SesijeRepo = sqlite.NoviSesijeRepo(novaDB)
+	h.PodsetniciFRepo = sqlite.NoviPodsetnikRepo(novaDB)
+	h.PokusajiRepo = sqlite.NoviPokusajiPrijaveRepo(novaDB)
+	h.LoginIstorijsaRepo = sqlite.NoviLoginIstorijsaRepo(novaDB)
 }
 
 // popuniPodaciStranice popunjava zajednička polja stranice uključujući prijavljenog korisnika
