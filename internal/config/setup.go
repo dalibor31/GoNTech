@@ -1,24 +1,57 @@
 package config
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/fs"
 	"log"
+	"net"
 	"net/http"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/webview/webview_go"
 )
 
-// PokreniSetup pokreće WebView prozor za prvo podešavanje
+// nadjiLokalneAdrese vraća sve ne-loopback IPv4 adrese mrežnih kartica
+func nadjiLokalneAdrese() []string {
+	var adrese []string
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return adrese
+	}
+	for _, iface := range ifaces {
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if ip == nil || ip.IsLoopback() {
+				continue
+			}
+			if ip4 := ip.To4(); ip4 != nil {
+				adrese = append(adrese, ip4.String())
+			}
+		}
+	}
+	return adrese
+}
+
+// PokreniSetup pokreće HTTP server za prvo podešavanje i čeka da korisnik završi
 func PokreniSetup(fsys fs.FS) {
 	port := NadjiSlobodanPort()
 	if port == 0 {
-		log.Fatal("Greška: nije pronađen nijedan slobodan port")
+		log.Fatal("ntech: setup: nije pronađen nijedan slobodan port")
 	}
 
+	gotov := make(chan struct{})
 	adresa := fmt.Sprintf(":%d", port)
 	r := chi.NewRouter()
 
@@ -43,39 +76,47 @@ func PokreniSetup(fsys fs.FS) {
 	// proverava da li je određeni port slobodan
 	r.Get("/setup/proveriPort", func(w http.ResponseWriter, req *http.Request) {
 		portStr := req.URL.Query().Get("port")
-		var port int
-		fmt.Sscanf(portStr, "%d", &port)
-		slobodan := JelPortSlobodan(port)
+		var p int
+		fmt.Sscanf(portStr, "%d", &p)
+		slobodan := JelPortSlobodan(p)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]bool{"slobodan": slobodan})
 	})
 
-	// prima izabrani port i upisuje .env
+	// prima izabrani port, upisuje ntech.env i signalizira završetak
 	r.Post("/setup/potvrdi", func(w http.ResponseWriter, req *http.Request) {
 		var telo struct {
 			Port int `json:"port"`
 		}
 		json.NewDecoder(req.Body).Decode(&telo)
-		err := SacuvajEnv(telo.Port)
-		if err != nil {
+		if err := SacuvajEnv(telo.Port); err != nil {
 			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]bool{"ok": true})
+		close(gotov)
 	})
 
-	// pokreni server u pozadini
+	srv := &http.Server{Addr: adresa, Handler: r}
+
 	go func() {
-		log.Printf("Setup server pokrenut na portu %d", port)
-		http.ListenAndServe(adresa, r)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("ntech: setup server: %v", err)
+		}
 	}()
 
-	// otvori WebView prozor
-	w := webview.New(false)
-	defer w.Destroy()
-	w.SetTitle("NTech — Konfiguracija")
-	w.SetSize(520, 580, 0)
-	w.Navigate(fmt.Sprintf("http://localhost:%d/setup", port))
-	w.Run()
+	fmt.Printf("\n╔══════════════════════════════════════════════╗\n")
+	fmt.Printf("║  NTech — prvo pokretanje                     ║\n")
+	fmt.Printf("║                                              ║\n")
+	fmt.Printf("║  Otvorite u browseru:                        ║\n")
+	fmt.Printf("║  http://localhost:%d/setup                ║\n", port)
+	for _, ip := range nadjiLokalneAdrese() {
+		fmt.Printf("║  http://%s:%d/setup                  ║\n", ip, port)
+	}
+	fmt.Printf("║                                              ║\n")
+	fmt.Printf("╚══════════════════════════════════════════════╝\n\n")
+
+	<-gotov
+	srv.Shutdown(context.Background())
 }
