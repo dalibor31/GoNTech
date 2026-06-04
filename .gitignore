@@ -37,3 +37,8 @@ web/static/uploads/
 .aider*
 .env
 
+# Buildovani binarni fajlovi
+ntech
+ntech-*
+
+CLAUDE.md
