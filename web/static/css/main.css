@@ -288,6 +288,54 @@ body {
     box-shadow: var(--senka);
 }
 
+/* primarna dugmad — rade na svim temama */
+.btn-primarno {
+    display: inline-flex;
+    align-items: center;
+    background: var(--sb-akcent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+}
+.btn-primarno:hover { opacity: 0.85; }
+
+/* mala primarna dugmad u tabelama */
+.btn-primarno-malo {
+    display: inline-flex;
+    align-items: center;
+    background: var(--sb-akcent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    text-decoration: none;
+    transition: opacity 0.2s;
+}
+.btn-primarno-malo:hover { opacity: 0.85; }
+
+/* avatar krug korisnika u topbaru */
+.avatar-korisnik {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--sb-akcent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 500;
+    color: #fff;
+    flex-shrink: 0;
+}
+
 /* input polja — konzistentna za sve teme */
 input[type="text"],
 input[type="email"],
