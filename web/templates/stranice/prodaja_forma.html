@@ -4,20 +4,6 @@
 
 {{define "dodatni-css"}}
 <style>
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(10px); }
-        to   { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        20%       { transform: translateX(-6px); }
-        40%       { transform: translateX(6px); }
-        60%       { transform: translateX(-4px); }
-        80%       { transform: translateX(4px); }
-    }
-
-    .forma-kartica { animation: fadeInUp 0.3s ease forwards; opacity: 0; }
     .forma-kartica:nth-child(1) { animation-delay: 0.04s; }
     .forma-kartica:nth-child(2) { animation-delay: 0.12s; }
 
@@ -99,7 +85,7 @@
         {{end}}
 
         <!-- zaglavlje prodaje -->
-        <div class="kartica forma-kartica" style="margin-bottom:16px;">
+        <div class="kartica forma-kartica animiraj" style="margin-bottom:16px;">
             <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);">
                 <span style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">Nova prodaja</span>
             </div>
@@ -125,7 +111,7 @@
         </div>
 
         <!-- stavke -->
-        <div class="kartica forma-kartica" style="margin-bottom:16px;">
+        <div class="kartica forma-kartica animiraj" style="margin-bottom:16px;">
             <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
                 <span style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">Stavke</span>
                 <button type="button" @click="dodajStavku()"

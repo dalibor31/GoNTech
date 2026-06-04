@@ -2,6 +2,15 @@
 
 {{define "naslov"}}Istorija prijava — NTech{{end}}
 
+{{define "dodatni-css"}}
+<style>
+    .animiraj:nth-child(1) { animation-delay: 0.10s; }
+    .animiraj:nth-child(2) { animation-delay: 0.16s; }
+    .animiraj:nth-child(3) { animation-delay: 0.22s; }
+    .animiraj:nth-child(4) { animation-delay: 0.28s; }
+</style>
+{{end}}
+
 {{define "sadrzaj"}}
 <div style="display:flex;flex-direction:column;gap:16px;">
 
@@ -15,7 +24,7 @@
         </span>
     </div>
 
-    <div class="kartica" style="padding:0;overflow:hidden;">
+    <div class="kartica animiraj" style="padding:0;overflow:hidden;">
         <div style="padding:16px 20px;border-bottom:0.5px solid var(--ivica);display:flex;align-items:center;justify-content:space-between;">
             <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Poslednjih 50 pokušaja</span>
             <span style="font-size:12px;color:var(--tekst-sporedni);">Vreme prikazano u UTC</span>
@@ -35,7 +44,7 @@
                 </thead>
                 <tbody>
                     {{range .Istorija}}
-                    <tr style="border-bottom:0.5px solid var(--ivica);">
+                    <tr class="animiraj" style="border-bottom:0.5px solid var(--ivica);">
                         <td style="padding:10px 20px;font-size:13px;color:var(--tekst-sporedni);white-space:nowrap;">
                             {{.Vreme.Format "02.01.2006. 15:04:05"}}
                         </td>

@@ -4,24 +4,9 @@
 
 {{define "dodatni-css"}}
 <style>
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(10px); }
-        to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .detalji-kartica {
-        animation: fadeInUp 0.3s ease forwards;
-        opacity: 0;
-    }
-
     .detalji-kartica:nth-child(1) { animation-delay: 0.04s; }
     .detalji-kartica:nth-child(2) { animation-delay: 0.12s; }
     .detalji-kartica:nth-child(3) { animation-delay: 0.20s; }
-
-    .stavke-tabela tbody tr {
-        animation: fadeInUp 0.2s ease forwards;
-        opacity: 0;
-    }
 
     .stavke-tabela tbody tr:nth-child(1) { animation-delay: 0.16s; }
     .stavke-tabela tbody tr:nth-child(2) { animation-delay: 0.20s; }
@@ -54,7 +39,7 @@
     </a>
 
     <!-- zaglavlje nabavke -->
-    <div class="kartica detalji-kartica">
+    <div class="kartica detalji-kartica animiraj">
         <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
             <span style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">Detalji nabavke</span>
             <span style="font-size:13px;color:var(--tekst-sporedni);">{{.Nabavka.Datum.Format "02.01.2006. u 15:04"}}</span>
@@ -101,7 +86,7 @@
                 </thead>
                 <tbody>
                     {{range .Stavke}}
-                    <tr style="border-bottom:0.5px solid var(--ivica);transition:background 0.15s;"
+                    <tr class="animiraj" style="border-bottom:0.5px solid var(--ivica);transition:background 0.15s;"
                         onmouseover="this.style.background='var(--pozadina)'"
                         onmouseout="this.style.background=''">
                         <td style="padding:10px 16px;font-size:14px;color:var(--tekst-glavni);">{{.ArtikalNaziv}}</td>

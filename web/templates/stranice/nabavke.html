@@ -9,18 +9,8 @@
         to   { opacity: 1; transform: translateY(0); }
     }
 
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(8px); }
-        to   { opacity: 1; transform: translateY(0); }
-    }
-
     .poruka-animacija {
         animation: slideDown 0.3s ease forwards;
-    }
-
-    .nabavke-tabela tbody tr {
-        animation: fadeInUp 0.25s ease forwards;
-        opacity: 0;
     }
 
     .nabavke-tabela tbody tr:nth-child(1)  { animation-delay: 0.04s; }
@@ -38,11 +28,6 @@
         display: none;
         flex-direction: column;
         gap: 12px;
-    }
-
-    .nabavka-kartica {
-        animation: fadeInUp 0.25s ease forwards;
-        opacity: 0;
     }
 
     .nabavka-kartica:nth-child(1) { animation-delay: 0.04s; }
@@ -78,7 +63,7 @@
     </div>
 
     <!-- desktop tabela -->
-    <div class="kartica nabavke-tabela" style="padding:0;overflow:hidden;">
+    <div class="kartica nabavke-tabela animiraj" style="padding:0;overflow:hidden;">
         <div style="overflow-x:auto;">
             <table style="width:100%;border-collapse:collapse;">
                 <thead>
@@ -92,7 +77,7 @@
                 </thead>
                 <tbody>
                     {{range .Nabavke}}
-                    <tr style="border-bottom:0.5px solid var(--ivica);transition:background 0.15s;"
+                    <tr class="animiraj" style="border-bottom:0.5px solid var(--ivica);transition:background 0.15s;"
                         onmouseover="this.style.background='var(--pozadina)'"
                         onmouseout="this.style.background=''">
                         <td style="padding:12px 16px;font-size:13px;color:var(--tekst-sporedni);white-space:nowrap;">
@@ -140,7 +125,7 @@
     <!-- mobilne kartice -->
     <div class="nabavke-kartice">
         {{range .Nabavke}}
-        <div class="kartica nabavka-kartica">
+        <div class="kartica nabavka-kartica animiraj">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;">
                 <div>
                     <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">

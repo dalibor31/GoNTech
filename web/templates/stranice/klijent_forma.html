@@ -4,23 +4,6 @@
 
 {{define "dodatni-css"}}
 <style>
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(10px); }
-        to   { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        20%       { transform: translateX(-6px); }
-        40%       { transform: translateX(6px); }
-        60%       { transform: translateX(-4px); }
-        80%       { transform: translateX(4px); }
-    }
-
-    .forma-kartica {
-        animation: fadeInUp 0.3s ease forwards;
-    }
-
     .greska-animacija {
         animation: shake 0.4s ease;
     }
@@ -42,7 +25,7 @@
         Nazad na klijente
     </a>
 
-    <div class="kartica forma-kartica">
+    <div class="kartica forma-kartica animiraj">
         <div style="margin-bottom:20px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);">
             <span style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">
                 {{if .Izmena}}Izmeni klijenta{{else}}Novi klijent{{end}}

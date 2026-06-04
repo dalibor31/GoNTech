@@ -3,8 +3,8 @@ package sqlite
 import (
 	"database/sql"
 	"fmt"
-	"os"
-	"path/filepath"
+	"io/fs"
+	"path"
 	"sort"
 
 	_ "modernc.org/sqlite"
@@ -32,8 +32,8 @@ func OtvoriDB(putanja string) (*sql.DB, error) {
 	return db, nil
 }
 
-// PokreniMigracije izvršava sve SQL fajlove iz foldera koji još nisu izvršeni
-func PokreniMigracije(db *sql.DB, folder string) error {
+// PokreniMigracije izvršava sve SQL fajlove iz fs.FS koji još nisu izvršeni
+func PokreniMigracije(db *sql.DB, fsys fs.FS) error {
 	// kreiramo tabelu za praćenje migracija ako ne postoji
 	_, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS migracije (
@@ -46,7 +46,7 @@ func PokreniMigracije(db *sql.DB, folder string) error {
 	}
 
 	// čitamo sve .sql fajlove iz foldera
-	unosi, err := os.ReadDir(folder)
+	unosi, err := fs.ReadDir(fsys, "migrations")
 	if err != nil {
 		return fmt.Errorf("ntech: PokreniMigracije: čitanje foldera: %w", err)
 	}
@@ -57,7 +57,7 @@ func PokreniMigracije(db *sql.DB, folder string) error {
 	})
 
 	for _, unos := range unosi {
-		if filepath.Ext(unos.Name()) != ".sql" {
+		if path.Ext(unos.Name()) != ".sql" {
 			continue
 		}
 
@@ -74,8 +74,8 @@ func PokreniMigracije(db *sql.DB, folder string) error {
 		}
 
 		// čitamo sadržaj SQL fajla
-		putanja := filepath.Join(folder, naziv)
-		sadrzaj, err := os.ReadFile(putanja)
+		putanja := "migrations/" + naziv
+		sadrzaj, err := fs.ReadFile(fsys, putanja)
 		if err != nil {
 			return fmt.Errorf("ntech: PokreniMigracije: čitanje %s: %w", naziv, err)
 		}

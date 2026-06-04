@@ -31,6 +31,7 @@ body {
 
 .sidebar.skupljen {
     width: 60px;
+    overflow: hidden;
 }
 
 /* vrh sidebara — logo zona */
@@ -131,12 +132,20 @@ body {
     white-space: nowrap;
     position: relative;
     text-decoration: none;
-    transition: background 0.2s, color 0.2s;
+    transition: background 0.2s, color 0.2s, transform 0.15s ease;
 }
 
 .nav-stavka:hover {
     background: var(--pozadina-hover);
     color: var(--tekst-jak);
+}
+
+.sidebar:not(.skupljen) .nav-stavka:hover {
+    transform: scale(1.03);
+}
+
+.sidebar.skupljen .nav-stavka:hover svg {
+    transform: scale(1.15);
 }
 
 .nav-stavka.aktivan {
@@ -159,6 +168,7 @@ body {
     flex-shrink: 0;
     width: 20px;
     height: 20px;
+    transition: transform 0.15s ease;
 }
 
 .nav-stavka span {
@@ -435,6 +445,29 @@ select {
     .forma-grid-2 {
         grid-template-columns: 1fr !important;
     }
+}
+
+/* animacije */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%       { transform: translateX(-6px); }
+    40%       { transform: translateX(6px); }
+    60%       { transform: translateX(-4px); }
+    80%       { transform: translateX(4px); }
+}
+
+.animiraj {
+    animation: fadeInUp 0.4s ease both;
 }
 
 /* gornja traka magacina — responsive */

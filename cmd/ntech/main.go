@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"sort"
 	"time"
 
+	"ntech"
 	"ntech/internal/auth"
 	"ntech/internal/config"
 	"ntech/internal/db/sqlite"
@@ -30,7 +32,7 @@ func main() {
 	auth.InitAuthLog()
 
 	if config.JelPrvoPokretanje() {
-		config.PokreniSetup()
+		config.PokreniSetup(assets.TemplatesFS)
 		return
 	}
 
@@ -50,7 +52,7 @@ func main() {
 	}
 	defer db.Close()
 
-	if err := sqlite.PokreniMigracije(db, "migrations"); err != nil {
+	if err := sqlite.PokreniMigracije(db, assets.MigracijeFS); err != nil {
 		log.Fatalf("Greška pri migracijama: %v", err)
 	}
 	log.Println("Migracije uspešno izvršene")
@@ -75,7 +77,7 @@ func main() {
 	h.Verzija = Verzija
 
 	if os.Getenv("NTECH_ENV") == "production" {
-		kes, err := handler.KreirajKes()
+		kes, err := handler.KreirajKes(assets.TemplatesFS)
 		if err != nil {
 			log.Fatalf("Greška pri kreiranju keša šablona: %v", err)
 		}
@@ -88,8 +90,11 @@ func main() {
 	r.Use(ntechmw.CsrfMiddleware)
 	r.Use(middleware.Compress(5))
 
-	// statični fajlovi
-	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
+	// uploads se servira sa diska (runtime fajlovi)
+	r.Handle("/static/uploads/*", http.StripPrefix("/static/uploads/", http.FileServer(http.Dir("web/static/uploads"))))
+	// ostali statični fajlovi (CSS) iz embed FS-a
+	staticSub, _ := fs.Sub(assets.StaticFS, "web/static")
+	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(staticSub))))
 
 	// javne rute (bez autentifikacije)
 	r.Get("/prijava", h.PrikazPrijave)
