@@ -7,10 +7,12 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
+	"sort"
 	"strings"
 	"time"
 
-	"ntech/internal/db/sqlite"
+	ntechsqlite "ntech/internal/db/sqlite"
 	"ntech/internal/model"
 
 	"github.com/go-chi/chi/v5"
@@ -29,12 +31,24 @@ type PodaciPodesavanja struct {
 	Tema        string
 	Sacuvano    bool
 	Verzija     string
-	LogoGreska  string
+	LogoGreska   string
+	BackupVracen bool
+	Backupi      []BackupInfo
 }
+
+// BackupInfo opisuje jedan backup fajl
+type BackupInfo struct {
+	Ime      string
+	Datum    string
+	Velicina string
+}
+
+// validnoImeBackupa proverava da li je ime backup fajla bezbedno (bez path traversala)
+var validnoImeBackupa = regexp.MustCompile(`^ntech_\d{8}_\d{6}\.db$`)
 
 // Podesavanja renderuje stranicu podešavanja
 func (h *Handler) Podesavanja(w http.ResponseWriter, r *http.Request) {
-	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	podesavanja, err := ntechsqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
 		return
@@ -54,11 +68,121 @@ func (h *Handler) Podesavanja(w http.ResponseWriter, r *http.Request) {
 		LogoPutanja:    podesavanja["logo_putanja"],
 		Tema:           podesavanja["tema"],
 		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
+		BackupVracen:   r.URL.Query().Get("sacuvano") == "vraceno",
 		Verzija:        h.Verzija,
 		LogoGreska:     r.URL.Query().Get("logo_greska"),
+		Backupi:        ucitajListuBackupa(),
 	}
 
 	h.renderujTemplate(w, "podesavanja", podaci)
+}
+
+// ucitajListuBackupa vraća sortiranu listu fajlova iz backups/ foldera
+func ucitajListuBackupa() []BackupInfo {
+	fajlovi, _ := filepath.Glob(filepath.Join("backups", "ntech_*.db"))
+	sort.Sort(sort.Reverse(sort.StringSlice(fajlovi)))
+	var lista []BackupInfo
+	for _, f := range fajlovi {
+		info, err := os.Stat(f)
+		if err != nil {
+			continue
+		}
+		vel := info.Size()
+		var velStr string
+		switch {
+		case vel >= 1024*1024:
+			velStr = fmt.Sprintf("%.1f MB", float64(vel)/(1024*1024))
+		default:
+			velStr = fmt.Sprintf("%d KB", vel/1024)
+		}
+		datum := info.ModTime().Format("02.01.2006. 15:04:05")
+		lista = append(lista, BackupInfo{
+			Ime:      filepath.Base(f),
+			Datum:    datum,
+			Velicina: velStr,
+		})
+	}
+	return lista
+}
+
+// VratiBackup zamenjuje trenutnu bazu sa izabranim backup fajlom
+func (h *Handler) VratiBackup(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Redirect(w, r, "/podesavanja?backup_greska=Greška+pri+čitanju+zahteva", http.StatusSeeOther)
+		return
+	}
+
+	ime := r.FormValue("ime")
+	if !validnoImeBackupa.MatchString(ime) {
+		http.Redirect(w, r, "/podesavanja?backup_greska=Neispravan+naziv+fajla", http.StatusSeeOther)
+		return
+	}
+
+	putanjaBackupa := filepath.Join("backups", ime)
+	if _, err := os.Stat(putanjaBackupa); err != nil {
+		http.Redirect(w, r, "/podesavanja?backup_greska=Backup+fajl+nije+pronađen", http.StatusSeeOther)
+		return
+	}
+
+	// pre obnove, sačuvaj trenutno stanje baze
+	sigurnosni := filepath.Join("backups", fmt.Sprintf("ntech_%s_pred_vracanjem.db", time.Now().Format("20060102_150405")))
+	if _, err := h.DB.ExecContext(r.Context(), "VACUUM INTO ?", sigurnosni); err != nil {
+		log.Printf("vrati backup: greška pri kreiranju sigurnosne kopije: %v", err)
+		http.Redirect(w, r, "/podesavanja?backup_greska=Greška+pri+kreiranju+sigurnosne+kopije", http.StatusSeeOther)
+		return
+	}
+
+	// isprazni WAL u glavni fajl
+	if _, err := h.DB.ExecContext(r.Context(), "PRAGMA wal_checkpoint(TRUNCATE)"); err != nil {
+		log.Printf("vrati backup: wal_checkpoint greška: %v", err)
+	}
+
+	// zatvori sve konekcije
+	if err := h.DB.Close(); err != nil {
+		log.Printf("vrati backup: greška pri zatvaranju baze: %v", err)
+	}
+
+	// kopiraj backup fajl na mesto trenutne baze
+	if err := kopiraFajl(putanjaBackupa, h.PutanjaBaze); err != nil {
+		log.Printf("vrati backup: greška pri kopiranju: %v", err)
+		http.Redirect(w, r, "/podesavanja?backup_greska=Greška+pri+obnovi+baze", http.StatusSeeOther)
+		return
+	}
+
+	// ukloni WAL i SHM fajlove stare baze
+	os.Remove(h.PutanjaBaze + "-wal")
+	os.Remove(h.PutanjaBaze + "-shm")
+
+	// otvori novu konekciju
+	novaDB, err := ntechsqlite.OtvoriDB(h.PutanjaBaze)
+	if err != nil {
+		log.Printf("vrati backup: greška pri otvaranju nove baze: %v", err)
+		http.Redirect(w, r, "/podesavanja?backup_greska=Baza+obnovljena+ali+je+potreban+restart", http.StatusSeeOther)
+		return
+	}
+
+	h.reinicijalzijRepozitorijume(novaDB)
+	log.Printf("Baza uspešno obnovljena iz: %s", ime)
+
+	http.Redirect(w, r, "/podesavanja?sacuvano=vraceno", http.StatusSeeOther)
+}
+
+// kopiraFajl kopira fajl sa izvora na odredište
+func kopiraFajl(izvor, odrediste string) error {
+	src, err := os.Open(izvor)
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+
+	dst, err := os.Create(odrediste)
+	if err != nil {
+		return err
+	}
+	defer dst.Close()
+
+	_, err = io.Copy(dst, src)
+	return err
 }
 
 // SacuvajPodesavanja prima POST i čuva podešavanja u bazu
@@ -82,7 +206,7 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 		if vrednost == "" {
 			continue
 		}
-		if err := sqlite.SacuvajPodesavanje(r.Context(), h.DB, kljuc, vrednost); err != nil {
+		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, kljuc, vrednost); err != nil {
 			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
 			return
 		}
@@ -109,6 +233,8 @@ func (h *Handler) BackupBaze(w http.ResponseWriter, r *http.Request) {
 
 // OtpremiLogo prima multipart upload slike loga i čuva je u web/static/uploads/
 func (h *Handler) OtpremiLogo(w http.ResponseWriter, r *http.Request) {
+	// ograničavamo telo zahteva na 2MB + malo za zaglavlja forme
+	r.Body = http.MaxBytesReader(w, r.Body, 2<<20+4096)
 	if err := r.ParseMultipartForm(2 << 20); err != nil {
 		http.Redirect(w, r, "/podesavanja?logo_greska=Fajl+je+prevelik+%28maksimum+2+MB%29", http.StatusSeeOther)
 		return
@@ -120,6 +246,12 @@ func (h *Handler) OtpremiLogo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer fajl.Close()
+
+	// eksplicitna provera veličine (zaglavlje.Size je postavljeno od strane browsera)
+	if zaglavlje.Size > 2<<20 {
+		http.Redirect(w, r, "/podesavanja?logo_greska=Fajl+je+prevelik+%28maksimum+2+MB%29", http.StatusSeeOther)
+		return
+	}
 
 	// proveravamo ekstenziju
 	ext := strings.ToLower(filepath.Ext(zaglavlje.Filename))
@@ -172,8 +304,9 @@ func (h *Handler) OtpremiLogo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	putanja := "/static/uploads/logo" + ext
-	if err := sqlite.SacuvajPodesavanje(r.Context(), h.DB, "logo_putanja", putanja); err != nil {
+	// timestamp u URL-u sprečava browser da koristi staru keširanu sliku
+	putanja := fmt.Sprintf("/static/uploads/logo%s?v=%d", ext, time.Now().Unix())
+	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "logo_putanja", putanja); err != nil {
 		log.Printf("upload loga: greška pri čuvanju putanje: %v", err)
 		http.Redirect(w, r, "/podesavanja?logo_greska=Greška+pri+čuvanju+podešavanja", http.StatusSeeOther)
 		return
@@ -195,7 +328,7 @@ func (h *Handler) PromeniTemu(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := sqlite.SacuvajPodesavanje(r.Context(), h.DB, "tema", tema); err != nil {
+	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "tema", tema); err != nil {
 		http.Error(w, "Greška pri promeni teme", http.StatusInternalServerError)
 		return
 	}

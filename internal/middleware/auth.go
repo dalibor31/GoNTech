@@ -83,5 +83,17 @@ func JeAdmin(k *model.Korisnik) bool {
 	return k.Uloga == "admin" || k.Uloga == "superadmin"
 }
 
+// RequireSuperAdmin je middleware koji propušta samo superadmin korisnike
+func RequireSuperAdmin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		k := KorisnikIzKonteksta(r.Context())
+		if k == nil || k.Uloga != "superadmin" {
+			http.Error(w, "Pristup odbijen", http.StatusForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // ErrNijePrijavljen se vraća kada korisnik nije u contextu
 var ErrNijePrijavljen = errors.New("korisnik nije prijavljen")

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"ntech/internal/auth"
@@ -41,7 +42,7 @@ func (h *Handler) Prijava(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ip := izvuciIP(r.RemoteAddr)
+	ip := izvuciIP(r)
 	korisnickoIme := r.FormValue("korisnicko_ime")
 	lozinka := r.FormValue("lozinka")
 
@@ -249,11 +250,20 @@ func (h *Handler) preostaloBruteforce(ctx context.Context, ip string, od time.Ti
 	return fmt.Sprintf("%d sek", sek), true
 }
 
-// izvuciIP izdvaja IP adresu iz RemoteAddr formata "ip:port"
-func izvuciIP(addr string) string {
-	host, _, err := net.SplitHostPort(addr)
+// izvuciIP čita pravi IP klijenta — najpre X-Real-IP (koji nginx postavlja),
+// zatim poslednji X-Forwarded-For (dodat od strane proxy-a), pa RemoteAddr
+func izvuciIP(r *http.Request) string {
+	if ip := r.Header.Get("X-Real-IP"); ip != "" {
+		return ip
+	}
+	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
+		// uzimamo poslednju vrednost — nju dodaje naš proxy, ne klijent
+		parts := strings.Split(fwd, ",")
+		return strings.TrimSpace(parts[len(parts)-1])
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
-		return addr
+		return r.RemoteAddr
 	}
 	return host
 }
