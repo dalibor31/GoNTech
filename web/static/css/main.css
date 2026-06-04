@@ -18,6 +18,25 @@ body {
     overflow: hidden;
 }
 
+/* bez tranzicije pri inicijalnom učitavanju skupljenog sidebara */
+.sidebar-init-skupljen .sidebar {
+    width: 60px;
+    overflow: hidden;
+    transition: none;
+}
+.sidebar-init-skupljen .sidebar .logo-zona {
+    opacity: 0;
+    width: 0;
+    pointer-events: none;
+    transition: none;
+}
+.sidebar-init-skupljen .sidebar .nav-oznaka,
+.sidebar-init-skupljen .sidebar .nav-stavka span {
+    opacity: 0;
+    pointer-events: none;
+    transition: none;
+}
+
 /* sidebar */
 .sidebar {
     width: 220px;

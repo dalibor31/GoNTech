@@ -7,6 +7,12 @@
     <title>{{block "naslov" .}}NTech{{end}}</title>
     <meta name="csrf-token" content="{{.CsrfToken}}">
 
+    <script>
+    if (window.innerWidth > 768 && localStorage.getItem('sidebar-skupljen') === 'true') {
+        document.documentElement.classList.add('sidebar-init-skupljen');
+    }
+    </script>
+
     <!-- tema — učitava se prva -->
     <link rel="stylesheet" href="/static/css/teme/{{.Tema}}.css" />
 
@@ -51,6 +57,7 @@
       if (!mobilni() && localStorage.getItem("sidebar-skupljen") === "true") {
         sidebar.classList.add("skupljen");
       }
+      document.documentElement.classList.remove('sidebar-init-skupljen');
 
       hamburger.addEventListener("click", () => {
         if (mobilni()) {
