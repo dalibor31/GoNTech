@@ -36,3 +36,7 @@ web/static/uploads/
 
 .env
 
+# Buildovani binarni fajlovi
+ntech
+ntech-*
+
