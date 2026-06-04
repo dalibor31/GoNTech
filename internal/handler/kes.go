@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"html/template"
+	"io/fs"
 	"log"
 	"net/http"
 )
@@ -34,15 +35,15 @@ var standaloneIme = []string{
 	"prijava", "setup", "totp_provera", "prodaja_stampa",
 }
 
-// KreirajKes parsuje sve šablone i vraća ih keširane u mapi
-func KreirajKes() (map[string]*template.Template, error) {
+// KreirajKes parsuje sve šablone iz fsys i vraća ih keširane u mapi
+func KreirajKes(fsys fs.FS) (map[string]*template.Template, error) {
 	kes := make(map[string]*template.Template)
 
 	for _, ime := range saSidebar {
 		fajlovi := make([]string, len(bazniSabloni), len(bazniSabloni)+1)
 		copy(fajlovi, bazniSabloni)
 		fajlovi = append(fajlovi, "web/templates/stranice/"+ime+".html")
-		t, err := template.ParseFiles(fajlovi...)
+		t, err := template.ParseFS(fsys, fajlovi...)
 		if err != nil {
 			return nil, fmt.Errorf("kes: %s: %w", ime, err)
 		}
@@ -50,7 +51,7 @@ func KreirajKes() (map[string]*template.Template, error) {
 	}
 
 	for _, ime := range standaloneIme {
-		t, err := template.ParseFiles("web/templates/stranice/" + ime + ".html")
+		t, err := template.ParseFS(fsys, "web/templates/stranice/"+ime+".html")
 		if err != nil {
 			return nil, fmt.Errorf("kes: %s: %w", ime, err)
 		}

@@ -8,17 +8,8 @@
         from { opacity: 0; transform: translateY(-10px); }
         to   { opacity: 1; transform: translateY(0); }
     }
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(8px); }
-        to   { opacity: 1; transform: translateY(0); }
-    }
-
     .poruka-animacija { animation: slideDown 0.3s ease forwards; }
 
-    .korisnici-tabela tbody tr {
-        animation: fadeInUp 0.25s ease forwards;
-        opacity: 0;
-    }
     .korisnici-tabela tbody tr:nth-child(1)  { animation-delay: 0.04s; }
     .korisnici-tabela tbody tr:nth-child(2)  { animation-delay: 0.08s; }
     .korisnici-tabela tbody tr:nth-child(3)  { animation-delay: 0.12s; }
@@ -31,8 +22,6 @@
     .korisnici-tabela tbody tr:nth-child(10) { animation-delay: 0.40s; }
 
     .nova-forma-kartica {
-        animation: fadeInUp 0.25s ease forwards;
-        opacity: 0;
         animation-delay: 0.30s;
     }
 </style>
@@ -52,7 +41,7 @@
     {{end}}
 
     <!-- lista korisnika -->
-    <div class="kartica" style="padding:0;overflow:hidden;">
+    <div class="kartica animiraj" style="padding:0;overflow:hidden;">
         <div style="padding:16px 20px;border-bottom:0.5px solid var(--ivica);">
             <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Korisnici sistema</span>
         </div>
@@ -70,7 +59,7 @@
                 </thead>
                 <tbody>
                     {{range .Korisnici}}
-                    <tr style="border-bottom:0.5px solid var(--ivica);">
+                    <tr class="animiraj" style="border-bottom:0.5px solid var(--ivica);">
                         <td style="padding:10px 20px;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{.KorisnickoIme}}</td>
                         <td style="padding:10px 20px;">
                             {{if eq $.KorisnikUloga "superadmin"}}
@@ -127,7 +116,7 @@
     </div>
 
     <!-- forma za novog korisnika -->
-    <div class="kartica nova-forma-kartica">
+    <div class="kartica nova-forma-kartica animiraj">
         <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
             Novi korisnik
         </div>

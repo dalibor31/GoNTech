@@ -2,7 +2,14 @@
 
 {{define "naslov"}}Moj profil — NTech{{end}}
 
-{{define "dodatni-css"}}{{end}}
+{{define "dodatni-css"}}
+<style>
+    .animiraj:nth-child(1) { animation-delay: 0.10s; }
+    .animiraj:nth-child(2) { animation-delay: 0.16s; }
+    .animiraj:nth-child(3) { animation-delay: 0.22s; }
+    .animiraj:nth-child(4) { animation-delay: 0.28s; }
+</style>
+{{end}}
 
 {{define "sadrzaj"}}
 <div style="display:flex;flex-direction:column;gap:16px;max-width:560px;">
@@ -16,7 +23,7 @@
     {{end}}
 
     <!-- promena lozinke -->
-    <div class="kartica">
+    <div class="kartica animiraj">
         <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
             Promena lozinke
         </div>
@@ -52,7 +59,7 @@
     </div>
 
     <!-- TOTP / 2FA -->
-    <div class="kartica">
+    <div class="kartica animiraj">
         <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
             Dvostepena verifikacija (2FA)
         </div>
