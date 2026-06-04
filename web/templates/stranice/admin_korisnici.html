@@ -38,6 +38,8 @@
     <div class="poruka-greska">Proverite unete podatke.</div>
     {{else if eq .Greska "2"}}
     <div class="poruka-greska">Greška pri čuvanju. Pokušajte ponovo.</div>
+    {{else if eq .Greska "3"}}
+    <div class="poruka-greska">Ova radnja nije dozvoljena.</div>
     {{end}}
 
     <!-- lista korisnika -->
@@ -62,18 +64,19 @@
                     <tr class="animiraj" style="border-bottom:0.5px solid var(--ivica);">
                         <td style="padding:10px 20px;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{.KorisnickoIme}}</td>
                         <td style="padding:10px 20px;">
-                            {{if eq $.KorisnikUloga "superadmin"}}
+                            {{if eq .Uloga "superadmin"}}
+                            <span style="font-size:13px;color:var(--tekst-sporedni);">Superadmin</span>
+                            {{else if eq $.KorisnikUloga "superadmin"}}
                             <form method="POST" action="/admin/korisnici/{{.ID}}/uloga" style="display:inline;">
                                 <select name="uloga" onchange="this.form.submit()"
                                     style="padding:4px 8px;border:0.5px solid var(--ivica);border-radius:6px;background:var(--pozadina);color:var(--tekst-glavni);font-size:12px;">
-                                    <option value="superadmin" {{if eq .Uloga "superadmin"}}selected{{end}}>Superadmin</option>
                                     <option value="admin" {{if eq .Uloga "admin"}}selected{{end}}>Admin</option>
                                     <option value="radnik" {{if eq .Uloga "radnik"}}selected{{end}}>Radnik</option>
                                 </select>
                             </form>
                             {{else}}
                             <span style="font-size:13px;color:var(--tekst-sporedni);">
-                                {{if eq .Uloga "superadmin"}}Superadmin{{else if eq .Uloga "admin"}}Admin{{else}}Radnik{{end}}
+                                {{if eq .Uloga "admin"}}Admin{{else}}Radnik{{end}}
                             </span>
                             {{end}}
                         </td>
@@ -106,6 +109,15 @@
                                     {{if .Aktivan}}Deaktiviraj{{else}}Aktiviraj{{end}}
                                 </button>
                             </form>
+                            {{if eq .Uloga "radnik"}}
+                            <form method="POST" action="/admin/korisnici/{{.ID}}/obrisi" style="display:inline;"
+                                  onsubmit="return confirm('Obrisati korisnika {{.KorisnickoIme}}? Ova radnja je trajna.')">
+                                <button type="submit"
+                                    style="padding:5px 12px;border:0.5px solid #fca5a5;border-radius:6px;background:transparent;color:#dc2626;font-size:12px;cursor:pointer;">
+                                    Obriši
+                                </button>
+                            </form>
+                            {{end}}
                             {{end}}
                         </td>
                     </tr>
@@ -124,12 +136,12 @@
             <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:14px;margin-bottom:16px;">
                 <div>
                     <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Korisničko ime</label>
-                    <input type="text" name="korisnicko_ime" required minlength="3"
+                    <input type="text" name="korisnicko_ime" required minlength="3" autocomplete="off"
                         style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
                 </div>
                 <div>
                     <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Lozinka</label>
-                    <input type="password" name="lozinka" required minlength="8"
+                    <input type="password" name="lozinka" required minlength="8" autocomplete="new-password"
                         style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
                 </div>
                 <div>
@@ -138,7 +150,6 @@
                         style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
                         <option value="radnik">Radnik</option>
                         <option value="admin">Admin</option>
-                        {{if eq .KorisnikUloga "superadmin"}}<option value="superadmin">Superadmin</option>{{end}}
                     </select>
                 </div>
             </div>

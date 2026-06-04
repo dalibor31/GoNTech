@@ -125,6 +125,14 @@ func (r *sqliteKorisniciRepo) SacuvajTotpTajnu(ctx context.Context, id int64, ta
 	return nil
 }
 
+func (r *sqliteKorisniciRepo) Obrisi(ctx context.Context, id int64) error {
+	_, err := r.db.ExecContext(ctx, `DELETE FROM korisnici WHERE id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("ntech: korisnici.Obrisi: %w", err)
+	}
+	return nil
+}
+
 func (r *sqliteKorisniciRepo) PostojiIjedan(ctx context.Context) (bool, error) {
 	var broj int
 	err := r.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM korisnici`).Scan(&broj)

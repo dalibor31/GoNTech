@@ -31,8 +31,27 @@ func main() {
 	godotenv.Load("ntech.env")
 	auth.InitAuthLog()
 
+	// disk-first logika: ako folder postoji pored binarnog fajla — koristi disk, inače embed.
+	// Napomena: templFS i migrFS su rootovani na "." tako da putanje ostaju iste kao u embed-u
+	// (npr. "web/templates/stranice/dashboard.html", "migrations/001_kategorije.sql").
+	var templFS fs.FS = assets.TemplatesFS
+	if _, err := os.Stat("web/templates"); err == nil {
+		templFS = os.DirFS(".")
+	}
+	var migrFS fs.FS = assets.MigracijeFS
+	if _, err := os.Stat("migrations"); err == nil {
+		migrFS = os.DirFS(".")
+	}
+	// staticFS je rootovan na "web/static" (isti kao fs.Sub embed-a) — uploads ostaju van embed-a
+	var staticFS fs.FS
+	if _, err := os.Stat("web/static"); err == nil {
+		staticFS = os.DirFS("web/static")
+	} else {
+		staticFS, _ = fs.Sub(assets.StaticFS, "web/static")
+	}
+
 	if config.JelPrvoPokretanje() {
-		config.PokreniSetup(assets.TemplatesFS)
+		config.PokreniSetup(templFS)
 		return
 	}
 
@@ -52,7 +71,7 @@ func main() {
 	}
 	defer db.Close()
 
-	if err := sqlite.PokreniMigracije(db, assets.MigracijeFS); err != nil {
+	if err := sqlite.PokreniMigracije(db, migrFS); err != nil {
 		log.Fatalf("Greška pri migracijama: %v", err)
 	}
 	log.Println("Migracije uspešno izvršene")
@@ -75,9 +94,12 @@ func main() {
 
 	h := handler.Novi(db)
 	h.Verzija = Verzija
+	h.PutanjaBaze = putanjaBaze
+	// čuva odabrani FS (disk ili embed) za hot-reload u razvoju i za keš u produkciji
+	h.TemplatesFS = templFS
 
 	if os.Getenv("NTECH_ENV") == "production" {
-		kes, err := handler.KreirajKes(assets.TemplatesFS)
+		kes, err := handler.KreirajKes(templFS)
 		if err != nil {
 			log.Fatalf("Greška pri kreiranju keša šablona: %v", err)
 		}
@@ -90,11 +112,10 @@ func main() {
 	r.Use(ntechmw.CsrfMiddleware)
 	r.Use(middleware.Compress(5))
 
-	// uploads se servira sa diska (runtime fajlovi)
+	// uploads su uvek na disku — korisnički fajlovi, ne ugrađuju se
 	r.Handle("/static/uploads/*", http.StripPrefix("/static/uploads/", http.FileServer(http.Dir("web/static/uploads"))))
-	// ostali statični fajlovi (CSS) iz embed FS-a
-	staticSub, _ := fs.Sub(assets.StaticFS, "web/static")
-	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(staticSub))))
+	// ostali statični fajlovi: disk ako postoji web/static, inače embed
+	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
 
 	// javne rute (bez autentifikacije)
 	r.Get("/prijava", h.PrikazPrijave)
@@ -117,6 +138,7 @@ func main() {
 		r.Post("/podesavanja/sacuvaj", h.SacuvajPodesavanja)
 		r.Post("/podesavanja/logo", h.OtpremiLogo)
 		r.Get("/podesavanja/backup", h.BackupBaze)
+		r.Post("/podesavanja/backup/vrati", h.VratiBackup)
 		r.Get("/tema/{tema}", h.PromeniTemu)
 		r.Get("/magacin", h.Magacin)
 		r.Get("/magacin/novi", h.NoviArtikal)
@@ -168,12 +190,16 @@ func main() {
 		r.Post("/podsetnici/zavrseno/{id}", h.OznaciPodsetnik)
 		r.Post("/podsetnici/obrisi/{id}", h.ObrisiPodsetnik)
 
-		// admin rute
-		r.Get("/admin/korisnici", h.AdminKorisnici)
-		r.Get("/admin/korisnici/{id}/istorija", h.AdminLoginIstorija)
-		r.Post("/admin/korisnici/novi", h.AdminSacuvajKorisnika)
-		r.Post("/admin/korisnici/{id}/aktivan", h.AdminToggleAktivan)
-		r.Post("/admin/korisnici/{id}/uloga", h.AdminPromeniUlogu)
+		// rute dostupne samo superadminu
+		r.Group(func(r chi.Router) {
+			r.Use(ntechmw.RequireSuperAdmin)
+			r.Get("/admin/korisnici", h.AdminKorisnici)
+			r.Get("/admin/korisnici/{id}/istorija", h.AdminLoginIstorija)
+			r.Post("/admin/korisnici/novi", h.AdminSacuvajKorisnika)
+			r.Post("/admin/korisnici/{id}/aktivan", h.AdminToggleAktivan)
+			r.Post("/admin/korisnici/{id}/uloga", h.AdminPromeniUlogu)
+			r.Post("/admin/korisnici/{id}/obrisi", h.AdminObrisiKorisnika)
+		})
 		r.Get("/admin/profil", h.AdminProfil)
 		r.Post("/admin/profil/lozinka", h.AdminPromeniLozinku)
 		r.Get("/admin/profil/totp/pokreni", h.AdminTotpPokreni)
@@ -237,3 +263,4 @@ func ocistiStareBackupe(folder string, max int) {
 		_ = os.Remove(f)
 	}
 }
+

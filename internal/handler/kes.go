@@ -16,7 +16,7 @@ var bazniSabloni = []string{
 
 // saSidebar su šabloni koji koriste base layout (sidebar + topbar)
 var saSidebar = []string{
-	"admin_korisnici", "admin_profil",
+	"admin_korisnici", "admin_profil", "admin_login_istorija",
 	"dashboard",
 	"dobavljaci", "dobavljac_forma",
 	"izvestaji",
@@ -79,7 +79,7 @@ func (h *Handler) renderujTemplate(w http.ResponseWriter, ime string, podaci any
 		copy(fajlovi, bazniSabloni)
 		fajlovi = append(fajlovi, "web/templates/stranice/"+ime+".html")
 		var err error
-		if tmpl, err = template.ParseFiles(fajlovi...); err != nil {
+		if tmpl, err = template.ParseFS(h.TemplatesFS, fajlovi...); err != nil {
 			log.Printf("greška pri parsiranju šablona %s: %v", ime, err)
 			http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
 			return
@@ -106,7 +106,7 @@ func (h *Handler) renderujStandalone(w http.ResponseWriter, ime string, podaci a
 		tmpl = t
 	} else {
 		var err error
-		if tmpl, err = template.ParseFiles("web/templates/stranice/" + ime + ".html"); err != nil {
+		if tmpl, err = template.ParseFS(h.TemplatesFS, "web/templates/stranice/"+ime+".html"); err != nil {
 			log.Printf("greška pri parsiranju šablona %s: %v", ime, err)
 			http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
 			return

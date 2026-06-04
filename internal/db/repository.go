@@ -87,6 +87,7 @@ type KorisniciRepository interface {
 	PromeniLozinku(ctx context.Context, id int64, hash string) error
 	SacuvajTotpTajnu(ctx context.Context, id int64, tajna string) error
 	PostojiIjedan(ctx context.Context) (bool, error)
+	Obrisi(ctx context.Context, id int64) error
 }
 
 // SesijeRepository definiše operacije nad sesijama
