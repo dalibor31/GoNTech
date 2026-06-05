@@ -89,5 +89,6 @@ func (h *Handler) popuniPodaciStranice(r *http.Request, podesavanja map[string]s
 		ps.Dozvole = h.DozvoleRepo.SveDozvole(r.Context(), k.Uloga)
 	}
 	ps.CsrfToken = middleware.CsrfToken(r.Context())
+	ps.Flash = middleware.GetFlash(r, h.DB)
 	return ps
 }

@@ -36,6 +36,25 @@
       </div>
     </div>
 
+    <!-- flash poruka — prikazuje se kao toast u gornjem desnom uglu -->
+    {{if .Flash}}
+    <div id="flash-toast" class="flash-toast flash-{{.Flash.Tip}}" role="alert">
+      <span class="flash-ikona">{{if eq .Flash.Tip "uspeh"}}✓{{else}}!{{end}}</span>
+      <span class="flash-tekst">{{.Flash.Poruka}}</span>
+      <button class="flash-zatvori" onclick="this.parentElement.remove()" aria-label="Zatvori">×</button>
+    </div>
+    <script>
+    (function() {
+      var t = document.getElementById('flash-toast');
+      if (!t) return;
+      setTimeout(function() {
+        t.classList.add('flash-izlaz');
+        setTimeout(function() { if (t.parentElement) t.remove(); }, 350);
+      }, 4000);
+    })();
+    </script>
+    {{end}}
+
     <!-- alpine.js za interaktivnost -->
     <script
       src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"

@@ -583,3 +583,80 @@ select {
     min-width: 200px;
     flex-wrap: wrap;
 }
+
+/* flash toast — jednokratna poruka u gornjem desnom uglu */
+@keyframes flashUlaz {
+    from { opacity: 0; transform: translateX(20px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes flashIzlaz {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(20px); }
+}
+
+.flash-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    max-width: 380px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    animation: flashUlaz 0.3s ease forwards;
+}
+
+.flash-toast.flash-izlaz {
+    animation: flashIzlaz 0.35s ease forwards;
+}
+
+.flash-toast.flash-uspeh {
+    background: #f0fdf4;
+    color: #15803d;
+    border: 0.5px solid #bbf7d0;
+}
+
+.flash-toast.flash-greska {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 0.5px solid #fecaca;
+}
+
+.flash-ikona {
+    font-weight: 700;
+    font-size: 15px;
+    flex-shrink: 0;
+}
+
+.flash-tekst {
+    flex: 1;
+    line-height: 1.4;
+}
+
+.flash-zatvori {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    color: inherit;
+    opacity: 0.6;
+    padding: 0 0 0 4px;
+    flex-shrink: 0;
+}
+
+.flash-zatvori:hover { opacity: 1; }
+
+@media (max-width: 480px) {
+    .flash-toast {
+        top: auto;
+        bottom: 20px;
+        right: 12px;
+        left: 12px;
+        max-width: none;
+    }
+}
