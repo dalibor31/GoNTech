@@ -1,0 +1,358 @@
+{{template "base" .}}
+
+{{define "naslov"}}Dozvole — NTech{{end}}
+
+{{define "dodatni-css"}}
+<style>
+    .dozvole-tabela tbody tr:nth-child(1)  { animation-delay: 0.04s; }
+    .dozvole-tabela tbody tr:nth-child(2)  { animation-delay: 0.08s; }
+    .dozvole-tabela tbody tr:nth-child(3)  { animation-delay: 0.12s; }
+    .dozvole-tabela tbody tr:nth-child(4)  { animation-delay: 0.16s; }
+    .dozvole-tabela tbody tr:nth-child(5)  { animation-delay: 0.20s; }
+
+    .matrica-modul td {
+        padding: 8px 16px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--tekst-sporedni);
+        background: var(--pozadina);
+        border-top: 0.5px solid var(--ivica);
+    }
+
+    .matrica-checkbox { text-align: center; padding: 8px 16px; }
+    .matrica-checkbox input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--sb-akcent); }
+    .matrica-checkbox input[type=checkbox]:disabled { cursor: default; opacity: 0.5; }
+</style>
+{{end}}
+
+{{define "sadrzaj"}}
+<div style="display:flex;flex-direction:column;gap:20px;">
+
+    {{if .Sacuvano}}
+    <div class="poruka-uspeh">Promene su uspešno sačuvane.</div>
+    {{end}}
+    {{if .Greska}}
+    <div class="poruka-greska">Greška pri čuvanju promena.</div>
+    {{end}}
+
+    <!-- matrica dozvola — editabilna forma -->
+    <div class="kartica animiraj" style="padding:0;overflow:hidden;">
+        <div style="padding:14px 16px;border-bottom:0.5px solid var(--ivica);">
+            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Dozvole po ulogama</span>
+        </div>
+        <form method="POST" action="/admin/dozvole/sacuvaj">
+            <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;">
+                    <thead>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <th style="padding:10px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);min-width:200px;">Akcija</th>
+                            <th style="padding:10px 16px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:110px;">Radnik</th>
+                            <th style="padding:10px 16px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:110px;">Admin</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        <!-- Magacin -->
+                        <tr class="matrica-modul"><td colspan="3">Magacin</td></tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Pregled artikala</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__artikal.pregled" {{if index .DozvoleRadnik "artikal.pregled"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__artikal.pregled" {{if index .DozvoleAdmin "artikal.pregled"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Dodavanje artikala</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__artikal.dodaj" {{if index .DozvoleRadnik "artikal.dodaj"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__artikal.dodaj" {{if index .DozvoleAdmin "artikal.dodaj"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Izmena artikala</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__artikal.izmeni" {{if index .DozvoleRadnik "artikal.izmeni"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__artikal.izmeni" {{if index .DozvoleAdmin "artikal.izmeni"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Brisanje artikala</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__artikal.obrisi" {{if index .DozvoleRadnik "artikal.obrisi"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__artikal.obrisi" {{if index .DozvoleAdmin "artikal.obrisi"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Premeštanje artikala</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__artikal.premesti" {{if index .DozvoleRadnik "artikal.premesti"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__artikal.premesti" {{if index .DozvoleAdmin "artikal.premesti"}}checked{{end}}></td>
+
+                        </tr>
+
+                        <!-- Kategorije -->
+                        <tr class="matrica-modul"><td colspan="3">Kategorije</td></tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Pregled kategorija</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__kategorija.pregled" {{if index .DozvoleRadnik "kategorija.pregled"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__kategorija.pregled" {{if index .DozvoleAdmin "kategorija.pregled"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Dodavanje kategorija</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__kategorija.dodaj" {{if index .DozvoleRadnik "kategorija.dodaj"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__kategorija.dodaj" {{if index .DozvoleAdmin "kategorija.dodaj"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Izmena kategorija</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__kategorija.izmeni" {{if index .DozvoleRadnik "kategorija.izmeni"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__kategorija.izmeni" {{if index .DozvoleAdmin "kategorija.izmeni"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Brisanje kategorija</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__kategorija.obrisi" {{if index .DozvoleRadnik "kategorija.obrisi"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__kategorija.obrisi" {{if index .DozvoleAdmin "kategorija.obrisi"}}checked{{end}}></td>
+
+                        </tr>
+
+                        <!-- Nabavke -->
+                        <tr class="matrica-modul"><td colspan="3">Nabavke</td></tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Pregled nabavki</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__nabavka.pregled" {{if index .DozvoleRadnik "nabavka.pregled"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__nabavka.pregled" {{if index .DozvoleAdmin "nabavka.pregled"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Dodavanje nabavki</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__nabavka.dodaj" {{if index .DozvoleRadnik "nabavka.dodaj"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__nabavka.dodaj" {{if index .DozvoleAdmin "nabavka.dodaj"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Brisanje nabavki</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__nabavka.obrisi" {{if index .DozvoleRadnik "nabavka.obrisi"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__nabavka.obrisi" {{if index .DozvoleAdmin "nabavka.obrisi"}}checked{{end}}></td>
+
+                        </tr>
+
+                        <!-- Dobavljači -->
+                        <tr class="matrica-modul"><td colspan="3">Dobavljači</td></tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Pregled dobavljača</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__dobavljac.pregled" {{if index .DozvoleRadnik "dobavljac.pregled"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__dobavljac.pregled" {{if index .DozvoleAdmin "dobavljac.pregled"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Dodavanje dobavljača</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__dobavljac.dodaj" {{if index .DozvoleRadnik "dobavljac.dodaj"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__dobavljac.dodaj" {{if index .DozvoleAdmin "dobavljac.dodaj"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Izmena dobavljača</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__dobavljac.izmeni" {{if index .DozvoleRadnik "dobavljac.izmeni"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__dobavljac.izmeni" {{if index .DozvoleAdmin "dobavljac.izmeni"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Brisanje dobavljača</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__dobavljac.obrisi" {{if index .DozvoleRadnik "dobavljac.obrisi"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__dobavljac.obrisi" {{if index .DozvoleAdmin "dobavljac.obrisi"}}checked{{end}}></td>
+
+                        </tr>
+
+                        <!-- Servis -->
+                        <tr class="matrica-modul"><td colspan="3">Servis</td></tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Pregled servisnih naloga</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__servis.pregled" {{if index .DozvoleRadnik "servis.pregled"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__servis.pregled" {{if index .DozvoleAdmin "servis.pregled"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Dodavanje servisnih naloga</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__servis.dodaj" {{if index .DozvoleRadnik "servis.dodaj"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__servis.dodaj" {{if index .DozvoleAdmin "servis.dodaj"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Izmena servisnih naloga</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__servis.izmeni" {{if index .DozvoleRadnik "servis.izmeni"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__servis.izmeni" {{if index .DozvoleAdmin "servis.izmeni"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Brisanje servisnih naloga</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__servis.obrisi" {{if index .DozvoleRadnik "servis.obrisi"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__servis.obrisi" {{if index .DozvoleAdmin "servis.obrisi"}}checked{{end}}></td>
+
+                        </tr>
+
+                        <!-- Prodaja -->
+                        <tr class="matrica-modul"><td colspan="3">Prodaja</td></tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Pregled prodaje</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__prodaja.pregled" {{if index .DozvoleRadnik "prodaja.pregled"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__prodaja.pregled" {{if index .DozvoleAdmin "prodaja.pregled"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Dodavanje prodaje</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__prodaja.dodaj" {{if index .DozvoleRadnik "prodaja.dodaj"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__prodaja.dodaj" {{if index .DozvoleAdmin "prodaja.dodaj"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Brisanje prodaje</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__prodaja.obrisi" {{if index .DozvoleRadnik "prodaja.obrisi"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__prodaja.obrisi" {{if index .DozvoleAdmin "prodaja.obrisi"}}checked{{end}}></td>
+
+                        </tr>
+
+                        <!-- Klijenti -->
+                        <tr class="matrica-modul"><td colspan="3">Klijenti</td></tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Pregled klijenata</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__klijent.pregled" {{if index .DozvoleRadnik "klijent.pregled"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__klijent.pregled" {{if index .DozvoleAdmin "klijent.pregled"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Dodavanje klijenata</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__klijent.dodaj" {{if index .DozvoleRadnik "klijent.dodaj"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__klijent.dodaj" {{if index .DozvoleAdmin "klijent.dodaj"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Izmena klijenata</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__klijent.izmeni" {{if index .DozvoleRadnik "klijent.izmeni"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__klijent.izmeni" {{if index .DozvoleAdmin "klijent.izmeni"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Brisanje klijenata</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__klijent.obrisi" {{if index .DozvoleRadnik "klijent.obrisi"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__klijent.obrisi" {{if index .DozvoleAdmin "klijent.obrisi"}}checked{{end}}></td>
+
+                        </tr>
+
+                        <!-- Podsetnici -->
+                        <tr class="matrica-modul"><td colspan="3">Podsetnici</td></tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Pregled podsetnika</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__podsetnik.pregled" {{if index .DozvoleRadnik "podsetnik.pregled"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__podsetnik.pregled" {{if index .DozvoleAdmin "podsetnik.pregled"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Dodavanje podsetnika</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__podsetnik.dodaj" {{if index .DozvoleRadnik "podsetnik.dodaj"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__podsetnik.dodaj" {{if index .DozvoleAdmin "podsetnik.dodaj"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Izmena podsetnika</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__podsetnik.izmeni" {{if index .DozvoleRadnik "podsetnik.izmeni"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__podsetnik.izmeni" {{if index .DozvoleAdmin "podsetnik.izmeni"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Brisanje podsetnika</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__podsetnik.obrisi" {{if index .DozvoleRadnik "podsetnik.obrisi"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__podsetnik.obrisi" {{if index .DozvoleAdmin "podsetnik.obrisi"}}checked{{end}}></td>
+
+                        </tr>
+
+                        <!-- Izveštaji -->
+                        <tr class="matrica-modul"><td colspan="3">Izveštaji</td></tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Pregled izveštaja</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__izvestaj.pregled" {{if index .DozvoleRadnik "izvestaj.pregled"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__izvestaj.pregled" {{if index .DozvoleAdmin "izvestaj.pregled"}}checked{{end}}></td>
+
+                        </tr>
+
+                        <!-- Podešavanja -->
+                        <tr class="matrica-modul"><td colspan="3">Podešavanja</td></tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Pregled podešavanja</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__podesavanja.pregled" {{if index .DozvoleRadnik "podesavanja.pregled"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__podesavanja.pregled" {{if index .DozvoleAdmin "podesavanja.pregled"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Izmena podešavanja</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__podesavanja.izmeni" {{if index .DozvoleRadnik "podesavanja.izmeni"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__podesavanja.izmeni" {{if index .DozvoleAdmin "podesavanja.izmeni"}}checked{{end}}></td>
+
+                        </tr>
+
+                        <!-- Korisnici -->
+                        <tr class="matrica-modul"><td colspan="3">Korisnici</td></tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Pregled korisnika</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__korisnik.pregled" {{if index .DozvoleRadnik "korisnik.pregled"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__korisnik.pregled" {{if index .DozvoleAdmin "korisnik.pregled"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Dodavanje korisnika</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__korisnik.dodaj" {{if index .DozvoleRadnik "korisnik.dodaj"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__korisnik.dodaj" {{if index .DozvoleAdmin "korisnik.dodaj"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Izmena korisnika</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__korisnik.izmeni" {{if index .DozvoleRadnik "korisnik.izmeni"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__korisnik.izmeni" {{if index .DozvoleAdmin "korisnik.izmeni"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Brisanje korisnika</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__korisnik.obrisi" {{if index .DozvoleRadnik "korisnik.obrisi"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__korisnik.obrisi" {{if index .DozvoleAdmin "korisnik.obrisi"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Promena uloge korisnika</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__korisnik.uloga" {{if index .DozvoleRadnik "korisnik.uloga"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__korisnik.uloga" {{if index .DozvoleAdmin "korisnik.uloga"}}checked{{end}}></td>
+
+                        </tr>
+
+                        <!-- Backup -->
+                        <tr class="matrica-modul"><td colspan="3">Backup</td></tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Pregled rezervnih kopija</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__backup.pregled" {{if index .DozvoleRadnik "backup.pregled"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__backup.pregled" {{if index .DozvoleAdmin "backup.pregled"}}checked{{end}}></td>
+
+                        </tr>
+                        <tr>
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Pokretanje bekapa</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__backup.pokreni" {{if index .DozvoleRadnik "backup.pokreni"}}checked{{end}}></td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="admin__backup.pokreni" {{if index .DozvoleAdmin "backup.pokreni"}}checked{{end}}></td>
+
+                        </tr>
+
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- dugmad za čuvanje i reset -->
+            <div style="display:flex;justify-content:flex-end;gap:10px;padding:16px;border-top:0.5px solid var(--ivica);">
+                <button type="submit" form="forma-reset" class="btn-sekundarno"
+                    data-potvrda="Resetovati sve dozvole na podrazumevane vrednosti? Ovo će poništiti sve prilagođene promene.">
+                    Reset na podrazumevano
+                </button>
+                <button type="submit" class="btn-primarno">Sačuvaj promene</button>
+            </div>
+        </form>
+
+        <!-- zasebna forma za reset, bez vidljivih elemenata -->
+        <form id="forma-reset" method="POST" action="/admin/dozvole/reset"></form>
+    </div>
+
+</div>
+{{end}}

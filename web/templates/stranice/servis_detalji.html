@@ -49,10 +49,8 @@
     {{end}}
 
     <!-- nazad dugme -->
-    <a href="/servis"
-        style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--tekst-sporedni);text-decoration:none;transition:color 0.2s;"
-        onmouseover="this.style.color='var(--tekst-glavni)'" onmouseout="this.style.color='var(--tekst-sporedni)'">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    <a href="/servis" class="nazad-link">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
         Nazad na servis
     </a>
 
@@ -171,10 +169,8 @@
                 </div>
             </div>
             <form method="POST" action="/servis/obrisi/{{.Nalog.ID}}">
-                <button type="submit"
-                    onclick="return confirm('Da li ste sigurni da želite da obrišete nalog {{.Nalog.BrojNaloga}}?')"
-                    style="padding:9px 20px;background:#dc2626;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap;transition:opacity 0.2s;"
-                    onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                <button type="submit" class="btn-primarno" style="background:#dc2626;"
+                    data-potvrda="Da li ste sigurni da želite da obrišete nalog {{.Nalog.BrojNaloga}}?">
                     Obriši nalog
                 </button>
             </form>

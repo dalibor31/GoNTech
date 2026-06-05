@@ -13,6 +13,18 @@ import (
 func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	// pročitaj i odmah obrišt flash poruku ako postoji
+	var flashGreska string
+	if kol, err := r.Cookie("ntech_flash_greska"); err == nil {
+		flashGreska = kol.Value
+		http.SetCookie(w, &http.Cookie{
+			Name:   "ntech_flash_greska",
+			Value:  "",
+			Path:   "/",
+			MaxAge: -1,
+		})
+	}
+
 	podesavanja, err := sqlite.DohvatiSvaPodesavanja(ctx, h.DB)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
@@ -126,17 +138,12 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "dashboard"
+	ps.NaslovStranice = "Dashboard"
+
 	podaci := model.PodaciDashboarda{
-		PodaciStranice: model.PodaciStranice{
-			Stranica:       "dashboard",
-			NaslovStranice: "Dashboard",
-			Tema:           podesavanja["tema"],
-			NazivFirme:     podesavanja["naziv_firme"],
-			Podnazlov:      podesavanja["podnazlov"],
-			LogoTip:        podesavanja["logo_tip"],
-			LogoPutanja:    podesavanja["logo_putanja"],
-			Korisnik:       "Admin",
-		},
+		PodaciStranice: ps,
 		BrojArtikala:      brojArtikala,
 		AktivniServisi:    aktivniServisi,
 		PrihodOvogMeseca:  prihodOvogMeseca,
@@ -145,6 +152,7 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		PoslednjiServisi:  poslednjiServisi,
 		KriticneZalihe:    kriticneZalihe,
 		PoslednjeProdaje:  poslednjeProdaje,
+		FlashGreska:       flashGreska,
 	}
 
 	h.renderujTemplate(w, "dashboard", podaci)

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	ntechsqlite "ntech/internal/db/sqlite"
+	"ntech/internal/middleware"
 	"ntech/internal/model"
 
 	"github.com/go-chi/chi/v5"
@@ -48,6 +49,11 @@ var validnoImeBackupa = regexp.MustCompile(`^ntech_\d{8}_\d{6}\.db$`)
 
 // Podesavanja renderuje stranicu podešavanja
 func (h *Handler) Podesavanja(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "podesavanja.pregled") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
 	podesavanja, err := ntechsqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
@@ -107,6 +113,11 @@ func ucitajListuBackupa() []BackupInfo {
 
 // VratiBackup zamenjuje trenutnu bazu sa izabranim backup fajlom
 func (h *Handler) VratiBackup(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "backup.pokreni") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		http.Redirect(w, r, "/podesavanja?backup_greska=Greška+pri+čitanju+zahteva", http.StatusSeeOther)
 		return
@@ -187,6 +198,11 @@ func kopiraFajl(izvor, odrediste string) error {
 
 // SacuvajPodesavanja prima POST i čuva podešavanja u bazu
 func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "podesavanja.izmeni") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
 		return
@@ -217,6 +233,11 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 
 // BackupBaze kreira konzistentnu kopiju baze i šalje je kao attachment
 func (h *Handler) BackupBaze(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "backup.pregled") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
 	privremeni := fmt.Sprintf("%s/ntech_backup_%s.db", os.TempDir(), time.Now().Format("20060102_150405"))
 
 	if _, err := h.DB.ExecContext(r.Context(), "VACUUM INTO ?", privremeni); err != nil {
@@ -233,6 +254,11 @@ func (h *Handler) BackupBaze(w http.ResponseWriter, r *http.Request) {
 
 // OtpremiLogo prima multipart upload slike loga i čuva je u web/static/uploads/
 func (h *Handler) OtpremiLogo(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "podesavanja.izmeni") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
 	// ograničavamo telo zahteva na 2MB + malo za zaglavlja forme
 	r.Body = http.MaxBytesReader(w, r.Body, 2<<20+4096)
 	if err := r.ParseMultipartForm(2 << 20); err != nil {
