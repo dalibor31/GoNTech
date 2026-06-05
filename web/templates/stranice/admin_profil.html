@@ -14,25 +14,11 @@
 {{define "sadrzaj"}}
 <div style="display:flex;flex-direction:column;gap:16px;max-width:560px;">
 
-    {{if eq .Sacuvano "lozinka"}}
-    <div class="poruka-uspeh">Lozinka je uspešno promenjena.</div>
-    {{else if eq .Sacuvano "totp"}}
-    <div class="poruka-uspeh">Dvostepena verifikacija je uspešno uključena.</div>
-    {{else if eq .Sacuvano "totp_off"}}
-    <div class="poruka-uspeh">Dvostepena verifikacija je isključena.</div>
-    {{end}}
-
     <!-- promena lozinke -->
     <div class="kartica animiraj">
         <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
             Promena lozinke
         </div>
-
-        {{if eq .Greska "lozinka"}}
-        <div class="poruka-greska" style="margin-bottom:14px;">Stara lozinka nije ispravna.</div>
-        {{else if eq .Greska "lozinka2"}}
-        <div class="poruka-greska" style="margin-bottom:14px;">Nova lozinka mora imati najmanje 8 karaktera i lozinke moraju biti iste.</div>
-        {{end}}
 
         <form method="POST" action="/admin/profil/lozinka">
             <div style="display:flex;flex-direction:column;gap:12px;">

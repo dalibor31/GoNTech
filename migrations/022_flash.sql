@@ -1,0 +1,1 @@
+ALTER TABLE sesije ADD COLUMN flash TEXT;
