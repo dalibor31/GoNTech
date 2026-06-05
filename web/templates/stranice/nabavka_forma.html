@@ -18,7 +18,7 @@
 
     @media (max-width: 768px) {
         .stavke-tabela-wrapper { display: none; }
-        .stavke-kartice        { display: flex !important; }
+        .stavke-kartice { display: flex !important; }
     }
 </style>
 {{end}}
@@ -84,7 +84,7 @@
             params.append('naziv', this.modalNaziv.trim());
             if (this.modalKategorijaID) params.append('kategorija_id', this.modalKategorijaID);
             if (this.modalCena) params.append('prodajna_cena', this.modalCena);
-            params.append('_csrf', document.querySelector('meta[name="csrf-token"]')?.content || '');
+            params.append('_csrf', document.querySelector('meta[name=csrf-token]')?.content || '');
 
             try {
                 const odgovor = await fetch('/magacin/novi', {
@@ -113,20 +113,15 @@
     }">
 
     <!-- nazad dugme -->
-    <a href="/nabavke"
-        style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--tekst-sporedni);text-decoration:none;margin-bottom:20px;transition:color 0.2s;"
-        onmouseover="this.style.color='var(--tekst-glavni)'" onmouseout="this.style.color='var(--tekst-sporedni)'">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    <a href="/nabavke" class="nazad-link">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
         Nazad na nabavke
     </a>
 
     <form method="POST" action="/nabavke/nova">
 
         {{if .Greska}}
-        <div class="greska-animacija"
-            style="background:var(--kartica);border:0.5px solid #dc2626;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:#dc2626;">
-            {{.Greska}}
-        </div>
+        <div class="poruka-greska greska-animacija">{{.Greska}}</div>
         {{end}}
 
         <!-- zaglavlje nabavke -->
@@ -275,16 +270,8 @@
 
         <!-- dugmad forme -->
         <div style="display:flex;justify-content:flex-end;gap:10px;">
-            <a href="/nabavke"
-                style="padding:9px 20px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;color:var(--tekst-sporedni);text-decoration:none;transition:background 0.2s;"
-                onmouseover="this.style.background='var(--pozadina)'" onmouseout="this.style.background=''">
-                Odustani
-            </a>
-            <button type="submit"
-                style="padding:9px 20px;background:var(--sb-akcent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:opacity 0.2s;"
-                onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
-                Sačuvaj nabavku
-            </button>
+            <a href="/nabavke" class="btn-sekundarno">Odustani</a>
+            <button type="submit" class="btn-primarno">Sačuvaj nabavku</button>
         </div>
 
     </form>
@@ -301,14 +288,11 @@
 
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);">
                 <span style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">Novi artikal</span>
-                <button type="button" @click="zatvoriModal()"
-                    style="background:none;border:none;cursor:pointer;color:var(--tekst-sporedni);font-size:20px;line-height:1;padding:2px 6px;border-radius:4px;transition:background 0.15s;"
-                    onmouseover="this.style.background='var(--pozadina)'" onmouseout="this.style.background='none'">×</button>
+                <button type="button" @click="zatvoriModal()" aria-label="Zatvori"
+                    style="background:none;border:none;cursor:pointer;color:var(--tekst-sporedni);font-size:20px;line-height:1;padding:2px 6px;border-radius:4px;transition:background 0.15s;">×</button>
             </div>
 
-            <div x-show="modalGreska" class="greska-animacija"
-                style="background:var(--kartica);border:0.5px solid #dc2626;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#dc2626;"
-                x-text="modalGreska"></div>
+            <div x-show="modalGreska" class="poruka-greska greska-animacija" x-text="modalGreska"></div>
 
             <div style="display:flex;flex-direction:column;gap:14px;">
                 <div>
@@ -340,15 +324,9 @@
             </div>
 
             <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:14px;border-top:0.5px solid var(--ivica);">
-                <button type="button" @click="zatvoriModal()"
-                    style="padding:9px 20px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;color:var(--tekst-sporedni);background:none;cursor:pointer;transition:background 0.2s;"
-                    onmouseover="this.style.background='var(--pozadina)'" onmouseout="this.style.background='none'">
-                    Odustani
-                </button>
-                <button type="button" @click="sacuvajArtikal()" :disabled="modalUcitavanje"
-                    style="padding:9px 20px;background:var(--sb-akcent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:opacity 0.2s;"
-                    :style="modalUcitavanje ? 'opacity:0.6;cursor:not-allowed' : ''"
-                    @mouseover="if(!modalUcitavanje) $el.style.opacity='0.85'" @mouseout="$el.style.opacity='1'">
+                <button type="button" @click="zatvoriModal()" class="btn-sekundarno">Odustani</button>
+                <button type="button" @click="sacuvajArtikal()" :disabled="modalUcitavanje" class="btn-primarno"
+                    :style="modalUcitavanje ? 'opacity:0.6;cursor:not-allowed' : ''">
                     <span x-text="modalUcitavanje ? 'Čuvanje...' : 'Dodaj artikal'"></span>
                 </button>
             </div>

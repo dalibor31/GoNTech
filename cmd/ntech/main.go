@@ -76,6 +76,11 @@ func main() {
 	}
 	log.Println("Migracije uspešno izvršene")
 
+	// popuni tabelu dozvola podrazumevanim vrednostima ako je prazna
+	if err := sqlite.InicijalizujDozvole(context.Background(), db, ntechmw.ImaDozvolu, ntechmw.SveAkcije()); err != nil {
+		log.Printf("Upozorenje: greška pri inicijalizaciji dozvola: %v", err)
+	}
+
 	napraviStartupBackup(putanjaBaze)
 
 	// periodično brisanje isteklih sesija i starih pokušaja prijave
@@ -190,15 +195,25 @@ func main() {
 		r.Post("/podsetnici/zavrseno/{id}", h.OznaciPodsetnik)
 		r.Post("/podsetnici/obrisi/{id}", h.ObrisiPodsetnik)
 
-		// rute dostupne samo superadminu
+		// rute dostupne adminu i superadminu (superadmin vidi sve, admin ne vidi superadmin naloge)
 		r.Group(func(r chi.Router) {
-			r.Use(ntechmw.RequireSuperAdmin)
+			r.Use(ntechmw.RequireAdmin)
 			r.Get("/admin/korisnici", h.AdminKorisnici)
 			r.Get("/admin/korisnici/{id}/istorija", h.AdminLoginIstorija)
 			r.Post("/admin/korisnici/novi", h.AdminSacuvajKorisnika)
 			r.Post("/admin/korisnici/{id}/aktivan", h.AdminToggleAktivan)
 			r.Post("/admin/korisnici/{id}/uloga", h.AdminPromeniUlogu)
 			r.Post("/admin/korisnici/{id}/obrisi", h.AdminObrisiKorisnika)
+			// dozvole — pregled i izmena matrice dostupni adminu, promena uloge samo superadminu
+			r.Get("/admin/dozvole", h.AdminDozvole)
+			r.Post("/admin/dozvole/sacuvaj", h.AdminDozvoleSacuvaj)
+			r.Post("/admin/dozvole/reset", h.AdminDozvoleReset)
+		})
+
+		// rute dostupne samo superadminu
+		r.Group(func(r chi.Router) {
+			r.Use(ntechmw.RequireSuperAdmin)
+			r.Post("/admin/dozvole/uloga/{id}", h.AdminDozvolePromeniUlogu)
 		})
 		r.Get("/admin/profil", h.AdminProfil)
 		r.Post("/admin/profil/lozinka", h.AdminPromeniLozinku)

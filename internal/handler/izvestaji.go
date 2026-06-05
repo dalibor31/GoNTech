@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"ntech/internal/db/sqlite"
+	"ntech/internal/middleware"
 	"ntech/internal/model"
 )
 
@@ -73,6 +74,11 @@ type TopKlijent struct {
 
 // Izvestaji renderuje stranicu sa izveštajima
 func (h *Handler) Izvestaji(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "izvestaj.pregled") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
 	ctx := r.Context()
 
 	podesavanja, err := sqlite.DohvatiSvaPodesavanja(ctx, h.DB)
@@ -239,17 +245,12 @@ func (h *Handler) Izvestaji(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "izvestaji"
+	ps.NaslovStranice = "Izveštaji"
+
 	podaci := PodaciIzvestaja{
-		PodaciStranice: model.PodaciStranice{
-			Stranica:       "izvestaji",
-			NaslovStranice: "Izveštaji",
-			Tema:           podesavanja["tema"],
-			NazivFirme:     podesavanja["naziv_firme"],
-			Podnazlov:      podesavanja["podnazlov"],
-			LogoTip:        podesavanja["logo_tip"],
-			LogoPutanja:    podesavanja["logo_putanja"],
-			Korisnik:       "Admin",
-		},
+		PodaciStranice: ps,
 		MesecniPrihodi: mesecniPrihodi,
 		GrafikonJSON:   template.JS(jsonBytes),
 		StariNalozi:    stariNalozi,

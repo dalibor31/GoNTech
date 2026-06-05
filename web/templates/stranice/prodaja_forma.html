@@ -11,7 +11,7 @@
 
     @media (max-width: 768px) {
         .stavke-tabela-wrapper { display: none; }
-        .stavke-kartice        { display: flex !important; }
+        .stavke-kartice { display: flex !important; }
     }
 </style>
 {{end}}
@@ -68,20 +68,15 @@
     }">
 
     <!-- nazad dugme -->
-    <a href="/prodaja"
-        style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--tekst-sporedni);text-decoration:none;margin-bottom:20px;transition:color 0.2s;"
-        onmouseover="this.style.color='var(--tekst-glavni)'" onmouseout="this.style.color='var(--tekst-sporedni)'">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    <a href="/prodaja" class="nazad-link">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
         Nazad na prodaju
     </a>
 
     <form method="POST" action="/prodaja/nova">
 
         {{if .Greska}}
-        <div class="greska-animacija"
-            style="background:var(--kartica);border:0.5px solid #dc2626;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:#dc2626;">
-            {{.Greska}}
-        </div>
+        <div class="poruka-greska greska-animacija">{{.Greska}}</div>
         {{end}}
 
         <!-- zaglavlje prodaje -->
@@ -246,17 +241,10 @@
 
         <!-- dugmad forme -->
         <div style="display:flex;justify-content:flex-end;gap:10px;">
-            <a href="/prodaja"
-                style="padding:9px 20px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;color:var(--tekst-sporedni);text-decoration:none;transition:background 0.2s;"
-                onmouseover="this.style.background='var(--pozadina)'" onmouseout="this.style.background=''">
-                Odustani
-            </a>
-            <button type="submit"
+            <a href="/prodaja" class="btn-sekundarno">Odustani</a>
+            <button type="submit" class="btn-primarno"
                 :disabled="imaPrekoracenja()"
-                :style="imaPrekoracenja() ? 'opacity:0.4;cursor:not-allowed;' : ''"
-                style="padding:9px 20px;background:var(--sb-akcent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:opacity 0.2s;"
-                @mouseover="if(!imaPrekoracenja()) $el.style.opacity='0.85'"
-                @mouseout="$el.style.opacity=imaPrekoracenja()?'0.4':'1'">
+                :style="imaPrekoracenja() ? 'opacity:0.4;cursor:not-allowed;' : ''">
                 Sačuvaj prodaju
             </button>
         </div>

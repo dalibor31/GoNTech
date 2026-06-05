@@ -6,6 +6,7 @@ import (
 
 	"ntech/internal/db"
 	"ntech/internal/db/sqlite"
+	"ntech/internal/middleware"
 	"ntech/internal/model"
 
 	"github.com/go-chi/chi/v5"
@@ -74,6 +75,11 @@ func (h *Handler) Magacin(w http.ResponseWriter, r *http.Request) {
 
 // ObrisiArtikal briše artikal po ID-u
 func (h *Handler) ObrisiArtikal(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "artikal.obrisi") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {

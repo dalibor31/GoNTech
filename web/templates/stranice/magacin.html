@@ -14,6 +14,23 @@
     .magacin-tabela tbody tr:nth-child(8)  { animation-delay: 0.32s; }
     .magacin-tabela tbody tr:nth-child(9)  { animation-delay: 0.36s; }
     .magacin-tabela tbody tr:nth-child(10) { animation-delay: 0.40s; }
+
+    .magacin-kartice {
+        display: none;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .magacin-kartica:nth-child(1) { animation-delay: 0.04s; }
+    .magacin-kartica:nth-child(2) { animation-delay: 0.10s; }
+    .magacin-kartica:nth-child(3) { animation-delay: 0.16s; }
+    .magacin-kartica:nth-child(4) { animation-delay: 0.22s; }
+    .magacin-kartica:nth-child(5) { animation-delay: 0.28s; }
+
+    @media (max-width: 768px) {
+        .magacin-tabela  { display: none; }
+        .magacin-kartice { display: flex; }
+    }
 </style>
 {{end}}
 
@@ -29,13 +46,8 @@
 
     <!-- dugmad -->
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        <a href="/magacin/novi"
-            style="padding:8px 16px;background:var(--sb-akcent);color:#fff;border-radius:8px;font-size:14px;font-weight:500;text-decoration:none;white-space:nowrap;">
-            + Novi artikal
-        </a>
-        <a href="/magacin/kategorije" class="btn-primarno">
-            Kategorije
-        </a>
+        <a href="/magacin/novi" class="btn-primarno">+ Novi artikal</a>
+        <a href="/magacin/kategorije" class="btn-primarno">Kategorije</a>
     </div>
 
     <!-- pretraga i filteri -->
@@ -76,9 +88,7 @@
                 </thead>
                 <tbody>
                     {{range .Artikli}}
-                    <tr class="animiraj" style="border-bottom:0.5px solid var(--ivica);transition:background 0.15s;"
-                        onmouseover="this.style.background='var(--pozadina)'"
-                        onmouseout="this.style.background=''">
+                    <tr class="animiraj red-tabele">
                         <td style="padding:12px 16px;font-size:14px;color:var(--tekst-glavni);">{{.Naziv}}</td>
                         <td style="padding:12px 16px;font-size:13px;color:var(--tekst-sporedni);">
                             {{if .KategorijaNaziv}}{{.KategorijaNaziv}}{{else}}—{{end}}
@@ -97,11 +107,12 @@
                                 <a href="/magacin/izmeni/{{.ID}}" class="btn-primarno-malo">
                                     Izmeni
                                 </a>
-                                <a href="/magacin/obrisi/{{.ID}}"
-                                    onclick="return confirm('Da li ste sigurni da želite da obrišete ovaj artikal?')"
-                                    style="padding:4px 10px;background:#dc2626;color:#fff;border-radius:6px;font-size:12px;text-decoration:none;">
+                                {{if index $.Dozvole "artikal.obrisi"}}
+                                <a href="/magacin/obrisi/{{.ID}}" class="btn-obrisi-malo"
+                                    data-potvrda="Da li ste sigurni da želite da obrišete ovaj artikal?">
                                     Obriši
                                 </a>
+                                {{end}}
                             </div>
                         </td>
                     </tr>
@@ -115,6 +126,49 @@
                 </tbody>
             </table>
         </div>
+    </div>
+
+    <!-- mobilne kartice -->
+    <div class="magacin-kartice">
+        {{range .Artikli}}
+        <div class="kartica magacin-kartica animiraj">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;">
+                <div>
+                    <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">{{.Naziv}}</div>
+                    {{if .KategorijaNaziv}}
+                    <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:2px;">{{.KategorijaNaziv}}</div>
+                    {{end}}
+                </div>
+                <div style="display:flex;gap:8px;flex-shrink:0;">
+                    <a href="/magacin/izmeni/{{.ID}}" class="btn-primarno-malo">Izmeni</a>
+                    {{if index $.Dozvole "artikal.obrisi"}}
+                    <a href="/magacin/obrisi/{{.ID}}" class="btn-obrisi-malo"
+                        data-potvrda="Da li ste sigurni da želite da obrišete ovaj artikal?">
+                        Obriši
+                    </a>
+                    {{end}}
+                </div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;">
+                <div style="font-size:13px;color:var(--tekst-sporedni);">
+                    <span style="color:var(--tekst-glavni);font-weight:500;">Količina:</span>
+                    <span style="font-weight:500;color:{{if .KriticnaZaliha}}#dc2626{{else}}#16a34a{{end}};">{{.Kolicina}}</span>
+                </div>
+                <div style="font-size:13px;color:var(--tekst-sporedni);">
+                    <span style="color:var(--tekst-glavni);font-weight:500;">Cena:</span> {{printf "%.0f" .ProdajnaCena}} din
+                </div>
+                {{if .Lokacija}}
+                <div style="font-size:13px;color:var(--tekst-sporedni);">
+                    <span style="color:var(--tekst-glavni);font-weight:500;">Lokacija:</span> {{.Lokacija}}
+                </div>
+                {{end}}
+            </div>
+        </div>
+        {{else}}
+        <div style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
+            Nema artikala. <a href="/magacin/novi" style="color:var(--sb-akcent);">Dodaj prvi artikal.</a>
+        </div>
+        {{end}}
     </div>
 
 </div>

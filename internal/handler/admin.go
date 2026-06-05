@@ -3,7 +3,6 @@ package handler
 import (
 	"html/template"
 	"net/http"
-	"strconv"
 
 	"ntech/internal/auth"
 	"ntech/internal/db/sqlite"
@@ -49,6 +48,17 @@ func (h *Handler) AdminKorisnici(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju korisnika", http.StatusInternalServerError)
 		return
+	}
+
+	// admin ne sme da vidi superadmin naloge — filtriramo ih iz liste
+	if k.Uloga != "superadmin" {
+		filtrirano := lista[:0]
+		for _, kor := range lista {
+			if kor.Uloga != "superadmin" {
+				filtrirano = append(filtrirano, kor)
+			}
+		}
+		lista = filtrirano
 	}
 
 	ps := h.popuniPodaciStranice(r, podesavanja)
@@ -126,6 +136,12 @@ func (h *Handler) AdminToggleAktivan(w http.ResponseWriter, r *http.Request) {
 	korisnik, err := h.KorisniciRepo.DohvatiPoID(r.Context(), id)
 	if err != nil {
 		http.Redirect(w, r, "/admin/korisnici?greska=1", http.StatusSeeOther)
+		return
+	}
+
+	// admin ne sme da menja status drugog admina ni superadmina
+	if korisnik.Uloga == "superadmin" || (korisnik.Uloga == "admin" && k.Uloga != "superadmin") {
+		http.Redirect(w, r, "/admin/korisnici?greska=3", http.StatusSeeOther)
 		return
 	}
 
@@ -413,6 +429,12 @@ func (h *Handler) AdminLoginIstorija(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// admin ne sme da vidi istoriju superadmin naloga
+	if korisnik.Uloga == "superadmin" && k.Uloga != "superadmin" {
+		http.Error(w, "Pristup odbijen", http.StatusForbidden)
+		return
+	}
+
 	istorija, err := h.LoginIstorijsaRepo.ListaZaKorisnika(r.Context(), id, 50)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju istorije", http.StatusInternalServerError)
@@ -431,8 +453,137 @@ func (h *Handler) AdminLoginIstorija(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// parseBoolForm čita boolean vrednost iz forme
-func parseBoolForm(s string) bool {
-	b, _ := strconv.ParseBool(s)
-	return b
+type podaciAdminDozvole struct {
+	model.PodaciStranice
+	Korisnici         []model.Korisnik
+	TrenutniID        int64
+	DozvoleRadnik     map[string]bool
+	DozvoleAdmin      map[string]bool
+	DozvoleSuperadmin map[string]bool
+	Greska            string
+	Sacuvano          bool
 }
+
+// AdminDozvole prikazuje stranicu za upravljanje ulogama i pregled dozvola
+func (h *Handler) AdminDozvole(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !middleware.JeAdmin(k) {
+		http.Error(w, "Pristup odbijen", http.StatusForbidden)
+		return
+	}
+
+	podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	lista, err := h.KorisniciRepo.Lista(r.Context())
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju korisnika", http.StatusInternalServerError)
+		return
+	}
+
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "dozvole"
+	ps.NaslovStranice = "Dozvole"
+
+	h.renderujTemplate(w, "admin_dozvole", podaciAdminDozvole{
+		PodaciStranice:    ps,
+		Korisnici:         lista,
+		TrenutniID:        k.ID,
+		DozvoleRadnik:     h.DozvoleRepo.SveDozvole(r.Context(), "radnik"),
+		DozvoleAdmin:      h.DozvoleRepo.SveDozvole(r.Context(), "admin"),
+		DozvoleSuperadmin: h.DozvoleRepo.SveDozvole(r.Context(), "superadmin"),
+		Greska:            r.URL.Query().Get("greska"),
+		Sacuvano:          r.URL.Query().Get("sacuvano") == "1",
+	})
+}
+
+// AdminDozvolePromeniUlogu menja ulogu korisnika sa stranice dozvola
+func (h *Handler) AdminDozvolePromeniUlogu(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil || k.Uloga != "superadmin" {
+		http.Error(w, "Pristup odbijen", http.StatusForbidden)
+		return
+	}
+
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Redirect(w, r, "/admin/dozvole?greska=1", http.StatusSeeOther)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Redirect(w, r, "/admin/dozvole?greska=1", http.StatusSeeOther)
+		return
+	}
+
+	// superadmin ne može menjati svoju vlastitu ulogu
+	if id == k.ID {
+		http.Redirect(w, r, "/admin/dozvole?greska=3", http.StatusSeeOther)
+		return
+	}
+
+	uloga := r.FormValue("uloga")
+	// superadmin uloga se ne može dodeliti kroz interfejs
+	validneUloge := map[string]bool{"admin": true, "radnik": true}
+	if !validneUloge[uloga] {
+		http.Redirect(w, r, "/admin/dozvole?greska=1", http.StatusSeeOther)
+		return
+	}
+
+	ciljni, err := h.KorisniciRepo.DohvatiPoID(r.Context(), id)
+	if err != nil {
+		http.Redirect(w, r, "/admin/dozvole?greska=2", http.StatusSeeOther)
+		return
+	}
+
+	// superadmin uloga se ne može menjati
+	if ciljni.Uloga == "superadmin" {
+		http.Redirect(w, r, "/admin/dozvole?greska=3", http.StatusSeeOther)
+		return
+	}
+
+	if err := h.KorisniciRepo.AzurirajUlogu(r.Context(), id, uloga); err != nil {
+		http.Redirect(w, r, "/admin/dozvole?greska=2", http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "/admin/dozvole?sacuvano=1", http.StatusSeeOther)
+}
+
+// AdminDozvoleSacuvaj prima POST i čuva promene dozvola za radnik i admin uloge
+func (h *Handler) AdminDozvoleSacuvaj(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !middleware.JeAdmin(k) {
+		http.Error(w, "Pristup odbijen", http.StatusForbidden)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Redirect(w, r, "/admin/dozvole?greska=1", http.StatusSeeOther)
+		return
+	}
+	// čuvamo dozvole samo za radnik i admin — superadmin uvek ima sve
+	for _, uloga := range []string{"radnik", "admin"} {
+		for _, akcija := range middleware.SveAkcije() {
+			kljuc := uloga + "__" + akcija
+			dozvoljeno := r.FormValue(kljuc) == "on"
+			if err := h.DozvoleRepo.Sacuvaj(r.Context(), uloga, akcija, dozvoljeno); err != nil {
+				http.Redirect(w, r, "/admin/dozvole?greska=2", http.StatusSeeOther)
+				return
+			}
+		}
+	}
+	http.Redirect(w, r, "/admin/dozvole?sacuvano=1", http.StatusSeeOther)
+}
+
+// AdminDozvoleReset vraća sve dozvole na podrazumevane vrednosti — samo superadmin
+func (h *Handler) AdminDozvoleReset(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil || k.Uloga != "superadmin" {
+		http.Error(w, "Pristup odbijen", http.StatusForbidden)
+		return
+	}
+	if err := h.DozvoleRepo.Reset(r.Context()); err != nil {
+		http.Redirect(w, r, "/admin/dozvole?greska=2", http.StatusSeeOther)
+		return
+	}
+	http.Redirect(w, r, "/admin/dozvole?sacuvano=1", http.StatusSeeOther)
+}
+

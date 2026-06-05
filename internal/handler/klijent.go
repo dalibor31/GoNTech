@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"ntech/internal/db/sqlite"
+	"ntech/internal/middleware"
 	"ntech/internal/model"
 
 	"github.com/go-chi/chi/v5"
@@ -77,6 +78,11 @@ func (h *Handler) NoviKlijent(w http.ResponseWriter, r *http.Request) {
 
 // SacuvajKlijenta prima POST formu i upisuje novog klijenta u bazu
 func (h *Handler) SacuvajKlijenta(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "klijent.dodaj") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
 		return
@@ -147,6 +153,11 @@ func (h *Handler) IzmeniKlijenta(w http.ResponseWriter, r *http.Request) {
 
 // SacuvajIzmenuKlijenta prima POST formu i ažurira postojećeg klijenta u bazi
 func (h *Handler) SacuvajIzmenuKlijenta(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "klijent.izmeni") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
 	id, err := parseID(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Neispravan ID klijenta", http.StatusBadRequest)
@@ -195,6 +206,11 @@ func (h *Handler) SacuvajIzmenuKlijenta(w http.ResponseWriter, r *http.Request) 
 
 // ObrisiKlijenta prima POST zahtev i briše klijenta po ID-u
 func (h *Handler) ObrisiKlijenta(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "klijent.obrisi") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
 	id, err := parseID(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Neispravan ID klijenta", http.StatusBadRequest)

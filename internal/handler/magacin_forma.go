@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"ntech/internal/db/sqlite"
+	"ntech/internal/middleware"
 	"ntech/internal/model"
 
 	"github.com/go-chi/chi/v5"
@@ -47,6 +48,11 @@ func (h *Handler) NoviArtikal(w http.ResponseWriter, r *http.Request) {
 
 // SacuvajArtikal prima POST formu i čuva novi artikal
 func (h *Handler) SacuvajArtikal(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "artikal.dodaj") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
 		return
@@ -136,6 +142,11 @@ func (h *Handler) IzmeniArtikal(w http.ResponseWriter, r *http.Request) {
 
 // SacuvajIzmenuArtikla prima POST formu i čuva izmenu artikla
 func (h *Handler) SacuvajIzmenuArtikla(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "artikal.izmeni") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {

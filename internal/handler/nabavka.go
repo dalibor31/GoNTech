@@ -9,6 +9,7 @@ import (
 
 	"ntech/internal/db"
 	"ntech/internal/db/sqlite"
+	"ntech/internal/middleware"
 	"ntech/internal/model"
 
 	"github.com/go-chi/chi/v5"
@@ -121,6 +122,11 @@ func (h *Handler) NovaNabavka(w http.ResponseWriter, r *http.Request) {
 
 // SacuvajNabavku prima POST formu, parsira stavke i upisuje nabavku u bazu
 func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "nabavka.dodaj") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
 		return
@@ -205,6 +211,11 @@ func (h *Handler) DetaljiNabavke(w http.ResponseWriter, r *http.Request) {
 
 // ObrisiNabavku prima POST zahtev i briše nabavku po ID-u
 func (h *Handler) ObrisiNabavku(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "nabavka.obrisi") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
 	id, err := parseID(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Neispravan ID nabavke", http.StatusBadRequest)

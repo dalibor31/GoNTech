@@ -102,6 +102,15 @@
             i.type = 'hidden'; i.name = '_csrf'; i.value = m.content;
             f.appendChild(i);
         });
+
+        // data-potvrda: sigurna alternativa za onclick=confirm() na dugmadima i linkovima
+        // Vrednost atributa je poruka koja se prikazuje korisniku. Go template je HTML-escape-uje,
+        // JS čita originalnu vrednost — nema problema sa specijalnim karakterima u imenima.
+        document.querySelectorAll('[data-potvrda]').forEach(function(el) {
+            el.addEventListener('click', function(e) {
+                if (!confirm(el.getAttribute('data-potvrda'))) e.preventDefault();
+            });
+        });
     });
     </script>
   </body>
