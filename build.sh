@@ -5,7 +5,7 @@ set -e
 #  Verzija
 # ──────────────────────────────────────────────
 read -p "Verzija (npr. 0.1.1): " VERZIJA
-VERZIJA=${VERZIJA:-"dev"}
+VERZIJA=${VERZIJA:-"0.0.1"}
 
 # ──────────────────────────────────────────────
 #  Okruženje

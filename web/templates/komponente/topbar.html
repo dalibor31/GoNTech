@@ -21,7 +21,7 @@
         <div class="avatar-korisnik" id="avatar-dugme" style="cursor:pointer;" title="{{.Korisnik}}">
             {{if .Korisnik}}{{slice .Korisnik 0 2}}{{else}}NT{{end}}
         </div>
-        <div id="avatar-meni" style="display:none;position:absolute;right:0;top:calc(100% + 8px);background:var(--kartica);border:0.5px solid var(--ivica);border-radius:10px;box-shadow:var(--senka);min-width:160px;z-index:200;overflow:hidden;transform-origin:top right;">
+        <div id="avatar-meni" style="display:none;position:fixed;background:var(--kartica);backdrop-filter:none;-webkit-backdrop-filter:none;border:0.5px solid var(--ivica);border-radius:10px;box-shadow:var(--senka);min-width:160px;z-index:9999;overflow:hidden;transform-origin:top right;">
             <a href="/admin/profil" style="display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:14px;color:var(--tekst-glavni);text-decoration:none;transition:background 0.15s;"
                 onmouseover="this.style.background='var(--pozadina)'" onmouseout="this.style.background=''">
                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -46,17 +46,34 @@
 (function() {
     var dugme = document.getElementById('avatar-dugme');
     var meni  = document.getElementById('avatar-meni');
+
+    // premesti meni na kraj body — izlazi iz stacking contexta topbara
+    document.body.appendChild(meni);
+
+    function pozicioniraj() {
+        var r = dugme.getBoundingClientRect();
+        meni.style.top   = (r.bottom + 8) + 'px';
+        meni.style.right = (window.innerWidth - r.right) + 'px';
+        meni.style.left  = 'auto';
+    }
+
     dugme.addEventListener('click', function(e) {
         e.stopPropagation();
         if (meni.style.display === 'none' || meni.style.display === '') {
+            pozicioniraj();
             meni.style.display = 'block';
             meni.style.animation = 'avatarMeniOtvori 0.15s ease both';
         } else {
             meni.style.display = 'none';
         }
     });
+
     document.addEventListener('click', function() {
         meni.style.display = 'none';
+    });
+
+    window.addEventListener('resize', function() {
+        if (meni.style.display !== 'none') pozicioniraj();
     });
 })();
 </script>
