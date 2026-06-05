@@ -118,6 +118,14 @@ type LoginIstorijsaRepository interface {
 	ListaZaKorisnika(ctx context.Context, korisnikID int64, limit int) ([]*model.LoginPokusaj, error)
 }
 
+// DozvoleRepository definiše operacije nad dozvolama po ulogama
+type DozvoleRepository interface {
+	ImaDozvolu(ctx context.Context, uloga, akcija string) bool
+	SveDozvole(ctx context.Context, uloga string) map[string]bool
+	Sacuvaj(ctx context.Context, uloga, akcija string, dozvoljeno bool) error
+	Reset(ctx context.Context) error
+}
+
 // PodsetnikRepository definiše operacije nad podsetnicima
 type PodsetnikRepository interface {
 	Lista(ctx context.Context, filter PodsetnikFilter) ([]model.Podsetnik, error)

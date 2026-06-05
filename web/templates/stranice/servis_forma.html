@@ -6,17 +6,7 @@
 <style>
     .greska-animacija { animation: shake 0.4s ease; }
 
-    .sekcija-naslov {
-        font-size: 12px;
-        font-weight: 500;
-        color: var(--tekst-sporedni);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 10px;
-    }
-
     @media (max-width: 768px) {
-        .forma-grid-2 { grid-template-columns: 1fr !important; }
         .forma-grid-4 { grid-template-columns: 1fr 1fr !important; }
     }
 </style>
@@ -26,10 +16,8 @@
 <div style="width:100%;">
 
     <!-- nazad dugme -->
-    <a href="/servis"
-        style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--tekst-sporedni);text-decoration:none;margin-bottom:20px;transition:color 0.2s;"
-        onmouseover="this.style.color='var(--tekst-glavni)'" onmouseout="this.style.color='var(--tekst-sporedni)'">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    <a href="/servis" class="nazad-link">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
         Nazad na servis
     </a>
 
@@ -44,10 +32,7 @@
         </div>
 
         {{if .Greska}}
-        <div class="greska-animacija"
-            style="background:var(--kartica);border:0.5px solid #dc2626;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:#dc2626;">
-            {{.Greska}}
-        </div>
+        <div class="poruka-greska greska-animacija">{{.Greska}}</div>
         {{end}}
 
         <form method="POST" action="{{if .Izmena}}/servis/izmeni/{{.Nalog.ID}}{{else}}/servis/novi{{end}}">
@@ -164,14 +149,8 @@
 
                 <!-- dugmad -->
                 <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:6px;">
-                    <a href="/servis"
-                        style="padding:9px 20px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;color:var(--tekst-sporedni);text-decoration:none;transition:background 0.2s;"
-                        onmouseover="this.style.background='var(--pozadina)'" onmouseout="this.style.background=''">
-                        Odustani
-                    </a>
-                    <button type="submit"
-                        style="padding:9px 20px;background:var(--sb-akcent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:opacity 0.2s;"
-                        onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                    <a href="/servis" class="btn-sekundarno">Odustani</a>
+                    <button type="submit" class="btn-primarno">
                         {{if .Izmena}}Sačuvaj izmene{{else}}Sačuvaj nalog{{end}}
                     </button>
                 </div>

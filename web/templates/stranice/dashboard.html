@@ -17,6 +17,9 @@
 {{end}}
 
 {{define "sadrzaj"}}
+{{if .FlashGreska}}
+<div class="poruka-greska animiraj" style="margin-bottom:16px;">{{.FlashGreska}}</div>
+{{end}}
 <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
     <!-- stat kartice -->
     <div class="kartica dash-stat animiraj">

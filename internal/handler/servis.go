@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"ntech/internal/db/sqlite"
+	"ntech/internal/middleware"
 	"ntech/internal/model"
 
 	"github.com/go-chi/chi/v5"
@@ -109,6 +110,11 @@ func (h *Handler) NoviNalog(w http.ResponseWriter, r *http.Request) {
 
 // SacuvajNalog prima POST formu i upisuje novi servisni nalog u bazu
 func (h *Handler) SacuvajNalog(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "servis.dodaj") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
 		return
@@ -194,6 +200,11 @@ func (h *Handler) IzmeniNalog(w http.ResponseWriter, r *http.Request) {
 
 // SacuvajIzmenaNaloga prima POST formu i ažurira postojeći servisni nalog
 func (h *Handler) SacuvajIzmenaNaloga(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "servis.izmeni") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
 	id, err := parseID(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
@@ -248,6 +259,11 @@ func (h *Handler) SacuvajIzmenaNaloga(w http.ResponseWriter, r *http.Request) {
 
 // ObrisiNalog prima POST zahtev i briše servisni nalog po ID-u
 func (h *Handler) ObrisiNalog(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "servis.obrisi") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
 	id, err := parseID(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)

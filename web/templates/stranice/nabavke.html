@@ -4,14 +4,7 @@
 
 {{define "dodatni-css"}}
 <style>
-    @keyframes slideDown {
-        from { opacity: 0; transform: translateY(-10px); }
-        to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .poruka-animacija {
-        animation: slideDown 0.3s ease forwards;
-    }
+    .poruka-animacija { animation: slideDown 0.3s ease forwards; }
 
     .nabavke-tabela tbody tr:nth-child(1)  { animation-delay: 0.04s; }
     .nabavke-tabela tbody tr:nth-child(2)  { animation-delay: 0.08s; }
@@ -55,11 +48,7 @@
 
     <!-- dugme nova nabavka -->
     <div>
-        <a href="/nabavke/nova"
-            style="display:inline-block;padding:8px 16px;background:var(--sb-akcent);color:#fff;border-radius:8px;font-size:14px;font-weight:500;text-decoration:none;transition:opacity 0.2s;"
-            onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
-            + Nova nabavka
-        </a>
+        <a href="/nabavke/nova" class="btn-primarno">+ Nova nabavka</a>
     </div>
 
     <!-- desktop tabela -->
@@ -77,9 +66,7 @@
                 </thead>
                 <tbody>
                     {{range .Nabavke}}
-                    <tr class="animiraj" style="border-bottom:0.5px solid var(--ivica);transition:background 0.15s;"
-                        onmouseover="this.style.background='var(--pozadina)'"
-                        onmouseout="this.style.background=''">
+                    <tr class="animiraj red-tabele">
                         <td style="padding:12px 16px;font-size:13px;color:var(--tekst-sporedni);white-space:nowrap;">
                             {{.Datum.Format "02.01.2006."}}
                         </td>
@@ -97,14 +84,14 @@
                                 <a href="/nabavke/{{.ID}}" class="btn-primarno-malo">
                                     Detalji
                                 </a>
+                                {{if index $.Dozvole "nabavka.obrisi"}}
                                 <form method="POST" action="/nabavke/obrisi/{{.ID}}" style="display:inline;">
-                                    <button type="submit"
-                                        onclick="return confirm('Da li ste sigurni?\n\nBrisanje nabavke ne vraća količine artikala u magacin.')"
-                                        style="padding:4px 10px;background:#dc2626;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;transition:opacity 0.2s;"
-                                        onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                                    <button type="submit" class="btn-obrisi-malo"
+                                        data-potvrda="Da li ste sigurni? Brisanje nabavke ne vraća količine artikala u magacin.">
                                         Obriši
                                     </button>
                                 </form>
+                                {{end}}
                             </div>
                         </td>
                     </tr>
@@ -144,13 +131,14 @@
                 <a href="/nabavke/{{.ID}}" class="btn-primarno-malo" style="flex:1;justify-content:center;">
                     Detalji
                 </a>
+                {{if index $.Dozvole "nabavka.obrisi"}}
                 <form method="POST" action="/nabavke/obrisi/{{.ID}}" style="flex:1;">
-                    <button type="submit"
-                        onclick="return confirm('Da li ste sigurni?\n\nBrisanje nabavke ne vraća količine artikala u magacin.')"
-                        style="width:100%;padding:7px;background:#dc2626;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;">
+                    <button type="submit" class="btn-obrisi-malo" style="width:100%;justify-content:center;"
+                        data-potvrda="Da li ste sigurni? Brisanje nabavke ne vraća količine artikala u magacin.">
                         Obriši
                     </button>
                 </form>
+                {{end}}
             </div>
         </div>
         {{else}}

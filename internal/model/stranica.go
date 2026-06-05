@@ -34,8 +34,9 @@ type PodaciStranice struct {
 	LogoPutanja    string // putanja do slike, koristi se samo kada je LogoTip "slika"
 	Korisnik       string
 	KorisnikIme    string // korisničko ime prijavljenog korisnika
-	KorisnikUloga  string // uloga: "superadmin", "admin", "radnik"
-	CsrfToken      string // CSRF zaštitni token za forme
+	KorisnikUloga  string          // uloga: "superadmin", "admin", "radnik"
+	CsrfToken      string          // CSRF zaštitni token za forme
+	Dozvole        map[string]bool // mapa akcija → dozvoljeno/nije
 }
 
 // PodaciDashboarda su podaci specifični za dashboard stranicu
@@ -49,4 +50,5 @@ type PodaciDashboarda struct {
 	PoslednjiServisi  []StavkaServisa
 	KriticneZalihe    []StavkaZalihe
 	PoslednjeProdaje  []StavkaProdajePregled
+	FlashGreska       string
 }

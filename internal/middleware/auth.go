@@ -88,10 +88,35 @@ func RequireSuperAdmin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		k := KorisnikIzKonteksta(r.Context())
 		if k == nil || k.Uloga != "superadmin" {
-			http.Error(w, "Pristup odbijen", http.StatusForbidden)
+			postaviFlashGresku(w, "Nemate dozvolu za ovu stranicu.")
+			http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 			return
 		}
 		next.ServeHTTP(w, r)
+	})
+}
+
+// RequireAdmin je middleware koji propušta admin i superadmin korisnike
+func RequireAdmin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		k := KorisnikIzKonteksta(r.Context())
+		if k == nil || (k.Uloga != "admin" && k.Uloga != "superadmin") {
+			postaviFlashGresku(w, "Nemate dozvolu za ovu stranicu.")
+			http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// postaviFlashGresku upisuje jednokratnu poruku o grešci u kolačić
+func postaviFlashGresku(w http.ResponseWriter, poruka string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "ntech_flash_greska",
+		Value:    poruka,
+		Path:     "/",
+		MaxAge:   60,
+		HttpOnly: true,
 	})
 }
 

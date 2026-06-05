@@ -20,10 +20,8 @@
     {{end}}
 
     <!-- nazad dugme -->
-    <a href="/prodaja"
-        style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--tekst-sporedni);text-decoration:none;transition:color 0.2s;"
-        onmouseover="this.style.color='var(--tekst-glavni)'" onmouseout="this.style.color='var(--tekst-sporedni)'">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    <a href="/prodaja" class="nazad-link">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
         Nazad na prodaju
     </a>
 
@@ -33,10 +31,8 @@
             <span style="font-size:20px;font-weight:600;color:var(--tekst-glavni);font-family:monospace;">
                 {{.Nalog.BrojNaloga}}
             </span>
-            <a href="/prodaja/{{.Nalog.ID}}/stampa" target="_blank"
-                style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--kartica);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;color:var(--tekst-sporedni);text-decoration:none;transition:background 0.2s;"
-                onmouseover="this.style.background='var(--pozadina)'" onmouseout="this.style.background='var(--kartica)'">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            <a href="/prodaja/{{.Nalog.ID}}/stampa" target="_blank" class="btn-sekundarno" style="gap:6px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                 Štampaj
             </a>
         </div>
@@ -99,6 +95,7 @@
         </div>
     </div>
 
+    {{if index $.Dozvole "prodaja.obrisi"}}
     <!-- zona za brisanje -->
     <div class="kartica detalji-kartica animiraj" style="border-color:#dc262633;">
         <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
@@ -109,15 +106,14 @@
                 </div>
             </div>
             <form method="POST" action="/prodaja/obrisi/{{.Nalog.ID}}">
-                <button type="submit"
-                    onclick="return confirm('Da li ste sigurni da želite da obrišete nalog {{.Nalog.BrojNaloga}}?\n\nKoličine artikala biće vraćene na stanje.')"
-                    style="padding:9px 20px;background:#dc2626;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap;transition:opacity 0.2s;"
-                    onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                <button type="submit" class="btn-primarno" style="background:#dc2626;"
+                    data-potvrda="Da li ste sigurni da želite da obrišete nalog {{.Nalog.BrojNaloga}}? Količine artikala biće vraćene na stanje.">
                     Obriši nalog
                 </button>
             </form>
         </div>
     </div>
+    {{end}}
 
 </div>
 {{end}}

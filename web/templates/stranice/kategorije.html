@@ -4,10 +4,6 @@
 
 {{define "dodatni-css"}}
 <style>
-    @keyframes slideDown {
-        from { opacity: 0; transform: translateY(-10px); }
-        to   { opacity: 1; transform: translateY(0); }
-    }
     .poruka-animacija { animation: slideDown 0.3s ease forwards; }
 
     .kat-forma-kartica {
@@ -41,6 +37,7 @@
         Nazad na magacin
     </a>
 
+    {{if index $.Dozvole "kategorija.dodaj"}}
     <!-- forma za novu kategoriju -->
     <div class="kartica kat-forma-kartica animiraj">
         <div style="margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
@@ -69,6 +66,7 @@
             </div>
         </form>
     </div>
+    {{end}}
 
     <!-- lista kategorija -->
     <div class="kartica" style="padding:0;overflow:hidden;">
@@ -83,11 +81,12 @@
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:2px;">{{.Opis}}</div>
                 {{end}}
             </div>
-            <a href="/magacin/kategorije/obrisi/{{.ID}}"
-                onclick="return confirm('Da li ste sigurni da želite da obrišete ovu kategoriju?')"
-                style="padding:4px 10px;background:#dc2626;color:#fff;border-radius:6px;font-size:12px;text-decoration:none;white-space:nowrap;">
+            {{if index $.Dozvole "kategorija.obrisi"}}
+            <a href="/magacin/kategorije/obrisi/{{.ID}}" class="btn-obrisi-malo"
+                data-potvrda="Da li ste sigurni da želite da obrišete ovu kategoriju?">
                 Obriši
             </a>
+            {{end}}
         </div>
         {{else}}
         <div style="padding:24px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">

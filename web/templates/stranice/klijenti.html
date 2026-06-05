@@ -4,14 +4,7 @@
 
 {{define "dodatni-css"}}
 <style>
-    @keyframes slideDown {
-        from { opacity: 0; transform: translateY(-10px); }
-        to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .poruka-animacija {
-        animation: slideDown 0.3s ease forwards;
-    }
+    .poruka-animacija { animation: slideDown 0.3s ease forwards; }
 
     .klijenti-tabela tbody tr:nth-child(1)  { animation-delay: 0.04s; }
     .klijenti-tabela tbody tr:nth-child(2)  { animation-delay: 0.08s; }
@@ -55,11 +48,7 @@
 
     <!-- gornja traka: dugme + pretraga -->
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-        <a href="/klijenti/novi"
-            style="padding:8px 16px;background:var(--sb-akcent);color:#fff;border-radius:8px;font-size:14px;font-weight:500;text-decoration:none;white-space:nowrap;transition:opacity 0.2s;"
-            onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
-            + Novi klijent
-        </a>
+        <a href="/klijenti/novi" class="btn-primarno">+ Novi klijent</a>
         <form method="GET" action="/klijenti" style="display:flex;gap:8px;flex:1;min-width:200px;">
             <input type="text" name="pretraga" value="{{.Pretraga}}"
                 placeholder="Pretraži po imenu ili nazivu firme..."
@@ -85,9 +74,7 @@
                 </thead>
                 <tbody>
                     {{range .Klijenti}}
-                    <tr class="animiraj" style="border-bottom:0.5px solid var(--ivica);transition:background 0.15s;"
-                        onmouseover="this.style.background='var(--pozadina)'"
-                        onmouseout="this.style.background=''">
+                    <tr class="animiraj red-tabele">
                         <td style="padding:12px 16px;">
                             {{if .NazivFirme}}
                             <div style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{.NazivFirme}}</div>
@@ -112,14 +99,14 @@
                                 <a href="/klijenti/izmeni/{{.ID}}" class="btn-primarno-malo">
                                     Izmeni
                                 </a>
+                                {{if index $.Dozvole "klijent.obrisi"}}
                                 <form method="POST" action="/klijenti/obrisi/{{.ID}}" style="display:inline;">
-                                    <button type="submit"
-                                        onclick="return confirm('Da li ste sigurni da želite da obrišete klijenta?')"
-                                        style="padding:4px 10px;background:#dc2626;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;transition:opacity 0.2s;"
-                                        onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                                    <button type="submit" class="btn-obrisi-malo"
+                                        data-potvrda="Da li ste sigurni da želite da obrišete klijenta?">
                                         Obriši
                                     </button>
                                 </form>
+                                {{end}}
                             </div>
                         </td>
                     </tr>
@@ -154,13 +141,14 @@
                     <a href="/klijenti/izmeni/{{.ID}}" class="btn-primarno-malo">
                         Izmeni
                     </a>
+                    {{if index $.Dozvole "klijent.obrisi"}}
                     <form method="POST" action="/klijenti/obrisi/{{.ID}}" style="display:inline;">
-                        <button type="submit"
-                            onclick="return confirm('Da li ste sigurni da želite da obrišete klijenta?')"
-                            style="padding:4px 10px;background:#dc2626;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;">
+                        <button type="submit" class="btn-obrisi-malo"
+                            data-potvrda="Da li ste sigurni da želite da obrišete klijenta?">
                             Obriši
                         </button>
                     </form>
+                    {{end}}
                 </div>
             </div>
             <div style="display:flex;flex-direction:column;gap:6px;">

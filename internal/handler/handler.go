@@ -28,6 +28,7 @@ type Handler struct {
 	PodsetniciFRepo db.PodsetnikRepository
 	PokusajiRepo       db.PokusajiPrijaveRepository
 	LoginIstorijsaRepo db.LoginIstorijsaRepository
+	DozvoleRepo     db.DozvoleRepository
 	Verzija     string
 	Templates   map[string]*template.Template
 	TemplatesFS fs.FS
@@ -49,6 +50,7 @@ func Novi(baza *sql.DB) *Handler {
 		PodsetniciFRepo: sqlite.NoviPodsetnikRepo(baza),
 		PokusajiRepo:       sqlite.NoviPokusajiPrijaveRepo(baza),
 		LoginIstorijsaRepo: sqlite.NoviLoginIstorijsaRepo(baza),
+		DozvoleRepo:     sqlite.NoviDozvoleRepo(baza, middleware.ImaDozvolu, middleware.SveAkcije()),
 	}
 }
 
@@ -67,6 +69,7 @@ func (h *Handler) reinicijalzijRepozitorijume(novaDB *sql.DB) {
 	h.PodsetniciFRepo = sqlite.NoviPodsetnikRepo(novaDB)
 	h.PokusajiRepo = sqlite.NoviPokusajiPrijaveRepo(novaDB)
 	h.LoginIstorijsaRepo = sqlite.NoviLoginIstorijsaRepo(novaDB)
+	h.DozvoleRepo = sqlite.NoviDozvoleRepo(novaDB, middleware.ImaDozvolu, middleware.SveAkcije())
 }
 
 // popuniPodaciStranice popunjava zajednička polja stranice uključujući prijavljenog korisnika
@@ -83,6 +86,7 @@ func (h *Handler) popuniPodaciStranice(r *http.Request, podesavanja map[string]s
 		ps.Korisnik = k.KorisnickoIme
 		ps.KorisnikIme = k.KorisnickoIme
 		ps.KorisnikUloga = k.Uloga
+		ps.Dozvole = h.DozvoleRepo.SveDozvole(r.Context(), k.Uloga)
 	}
 	ps.CsrfToken = middleware.CsrfToken(r.Context())
 	return ps
