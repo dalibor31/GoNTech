@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"ntech/internal/auth"
+	ntechsqlite "ntech/internal/db/sqlite"
 	"ntech/internal/middleware"
 )
 
@@ -29,9 +30,17 @@ func (h *Handler) PrikazPrijave(w http.ResponseWriter, r *http.Request) {
 	}
 
 	greska := r.URL.Query().Get("greska")
+
+	// login_pozadina se čita bez prijavljenog korisnika — koristimo background kontekst
+	loginPozadina := ""
+	if podesavanja, err := ntechsqlite.DohvatiSvaPodesavanja(context.Background(), h.DB); err == nil {
+		loginPozadina = podesavanja["login_pozadina"]
+	}
+
 	h.renderujStandalone(w, "prijava", map[string]any{
-		"Greska":    greska,
-		"CsrfToken": middleware.CsrfToken(r.Context()),
+		"Greska":        greska,
+		"CsrfToken":     middleware.CsrfToken(r.Context()),
+		"LoginPozadina": loginPozadina,
 	})
 }
 

@@ -88,3 +88,29 @@ func (n ServisniNalog) AvansStr() string {
 	}
 	return fmt.Sprintf("%.2f", *n.Avans)
 }
+
+// PreostaloZaNaplatu vraća razliku konacna_cena − avans, minimum 0.
+// Vraća nil ako konačna cena nije uneta.
+func (n ServisniNalog) PreostaloZaNaplatu() *float64 {
+	if n.CenaKonacna == nil {
+		return nil
+	}
+	avans := 0.0
+	if n.Avans != nil {
+		avans = *n.Avans
+	}
+	v := *n.CenaKonacna - avans
+	if v < 0 {
+		v = 0
+	}
+	return &v
+}
+
+// PreostaloZaNaplatuStr vraća formatirano preostalo za naplatu, ili prazan string
+func (n ServisniNalog) PreostaloZaNaplatuStr() string {
+	v := n.PreostaloZaNaplatu()
+	if v == nil {
+		return ""
+	}
+	return fmt.Sprintf("%.2f", *v)
+}
