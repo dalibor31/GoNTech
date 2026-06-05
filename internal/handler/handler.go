@@ -90,5 +90,16 @@ func (h *Handler) popuniPodaciStranice(r *http.Request, podesavanja map[string]s
 	}
 	ps.CsrfToken = middleware.CsrfToken(r.Context())
 	ps.Flash = middleware.GetFlash(r, h.DB)
+
+	ps.AppPozadina = podesavanja["app_pozadina"]
+	ps.AppPozadinaOpacity = podesavanja["app_pozadina_opacity"]
+	if ps.AppPozadinaOpacity == "" {
+		ps.AppPozadinaOpacity = "50"
+	}
+	ps.AppPozadinaBlur = podesavanja["app_pozadina_blur"]
+	if ps.AppPozadinaBlur == "" {
+		ps.AppPozadinaBlur = "12"
+	}
+
 	return ps
 }

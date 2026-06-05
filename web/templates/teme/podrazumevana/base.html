@@ -2,6 +2,7 @@
 <!doctype html>
 <html lang="sr">
   <head>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{block "naslov" .}}NTech{{end}}</title>
@@ -23,8 +24,49 @@
     <script src="https://cdn.tailwindcss.com"></script>
 
     {{block "dodatni-css" .}}{{end}}
+
+    {{if .AppPozadina}}
+    <style>
+      body {
+        background-image: url('{{.AppPozadina}}');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+      }
+      .app-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,{{.AppPozadinaOpacity}}%);
+        pointer-events: none;
+        z-index: 0;
+      }
+      .raspored {
+        position: relative;
+        z-index: 1;
+      }
+      .sidebar {
+        background: rgba(255,255,255,0.08) !important;
+        backdrop-filter: blur({{.AppPozadinaBlur}}px);
+        -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px);
+        border-right: 1px solid rgba(255,255,255,0.12) !important;
+      }
+      .topbar {
+        background: rgba(255,255,255,0.08) !important;
+        backdrop-filter: blur({{.AppPozadinaBlur}}px);
+        -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px);
+        border-bottom: 1px solid rgba(255,255,255,0.12) !important;
+      }
+      .kartica {
+        background: rgba(255,255,255,0.08) !important;
+        backdrop-filter: blur({{.AppPozadinaBlur}}px);
+        -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px);
+        border: 1px solid rgba(255,255,255,0.12) !important;
+      }
+    </style>
+    {{end}}
   </head>
   <body>
+    {{if .AppPozadina}}<div class="app-overlay"></div>{{end}}
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <div class="raspored">
       {{template "sidebar" .}}
