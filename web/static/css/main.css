@@ -660,3 +660,9 @@ select {
         max-width: none;
     }
 }
+
+/* dropdown meni mora biti iznad svih stacking context-a koje glass efekt kreira */
+#avatar-meni {
+    z-index: 9999 !important;
+    position: relative;
+}
