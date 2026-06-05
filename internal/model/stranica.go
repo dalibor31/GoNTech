@@ -44,6 +44,10 @@ type PodaciStranice struct {
 	CsrfToken      string          // CSRF zaštitni token za forme
 	Dozvole        map[string]bool // mapa akcija → dozvoljeno/nije
 	Flash          *FlashPoruka    // jednokratna poruka nakon redirecta
+	// app pozadina — popunjava se iz podešavanja za sve stranice
+	AppPozadina        string
+	AppPozadinaOpacity string // vrednost 0-80 (% overlay zatamnjivanja)
+	AppPozadinaBlur    string // vrednost 0-20 (px backdrop-filter blur)
 }
 
 // PodaciDashboarda su podaci specifični za dashboard stranicu

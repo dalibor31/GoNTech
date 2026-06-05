@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"log"
@@ -9,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,19 +25,23 @@ import (
 // PodaciPodesavanja su podaci za stranicu podešavanja
 type PodaciPodesavanja struct {
 	model.PodaciStranice
-	NazivFirme  string
-	Podnazlov   string
-	Adresa      string
-	Telefon     string
-	PIB         string
-	LogoTip     string
-	LogoPutanja string
-	Tema        string
-	Sacuvano    bool
-	Verzija     string
-	LogoGreska   string
-	BackupVracen bool
-	Backupi      []BackupInfo
+	NazivFirme      string
+	Podnazlov       string
+	Adresa          string
+	Telefon         string
+	PIB             string
+	LogoTip         string
+	LogoPutanja     string
+	Tema            string
+	Sacuvano        bool
+	Verzija         string
+	LogoGreska      string
+	BackupVracen    bool
+	Backupi         []BackupInfo
+	LoginPozadina      string
+	AppPozadina        string
+	AppPozadinaOpacity string
+	AppPozadinaBlur    string
 }
 
 // BackupInfo opisuje jedan backup fajl
@@ -78,6 +85,18 @@ func (h *Handler) Podesavanja(w http.ResponseWriter, r *http.Request) {
 		Verzija:        h.Verzija,
 		LogoGreska:     r.URL.Query().Get("logo_greska"),
 		Backupi:        ucitajListuBackupa(),
+		LoginPozadina:  podesavanja["login_pozadina"],
+		AppPozadina:    podesavanja["app_pozadina"],
+		AppPozadinaOpacity: func() string {
+			v := podesavanja["app_pozadina_opacity"]
+			if v == "" { return "50" }
+			return v
+		}(),
+		AppPozadinaBlur: func() string {
+			v := podesavanja["app_pozadina_blur"]
+			if v == "" { return "12" }
+			return v
+		}(),
 	}
 
 	h.renderujTemplate(w, "podesavanja", podaci)
@@ -339,6 +358,323 @@ func (h *Handler) OtpremiLogo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/podesavanja?sacuvano=1", http.StatusSeeOther)
+}
+
+// generisiImeUploada vraća slučajno hex ime (16 bajtova) sa datom ekstenzijom
+func generisiImeUploada(ext string) (string, error) {
+	buf := make([]byte, 16)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(buf) + ext, nil
+}
+
+// OtpremiLoginPozadinu prima multipart upload slike i čuva je kao pozadinsku sliku login stranice
+func (h *Handler) OtpremiLoginPozadinu(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "podesavanja.login_pozadina") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 5<<20+4096)
+	if err := r.ParseMultipartForm(5 << 20); err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Fajl je prevelik (maksimum 5 MB).")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+
+	fajl, zaglavlje, err := r.FormFile("login_pozadina")
+	if err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Nije odabran fajl.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+	defer fajl.Close()
+
+	if zaglavlje.Size > 5<<20 {
+		middleware.SetFlash(w, r, h.DB, "greska", "Fajl je prevelik (maksimum 5 MB).")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+
+	ext := strings.ToLower(filepath.Ext(zaglavlje.Filename))
+	dozvoljenoExt := map[string]string{
+		".jpg":  "image/jpeg",
+		".jpeg": "image/jpeg",
+		".png":  "image/png",
+		".webp": "image/webp",
+	}
+	ocekivaniMime, ok := dozvoljenoExt[ext]
+	if !ok {
+		middleware.SetFlash(w, r, h.DB, "greska", "Dozvoljeni formati su JPG, PNG i WebP.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+
+	// proveravamo stvarni tip sadržaja (magic bytes)
+	buf := make([]byte, 512)
+	n, _ := fajl.Read(buf)
+	stvarniMime := http.DetectContentType(buf[:n])
+	if !strings.HasPrefix(stvarniMime, ocekivaniMime) {
+		middleware.SetFlash(w, r, h.DB, "greska", "Sadržaj fajla ne odgovara odabranoj ekstenziji.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+	if _, err := fajl.Seek(0, io.SeekStart); err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri obradi fajla.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+
+	// briše staru pozadinu sa diska ako postoji
+	staraPodesavanja, _ := ntechsqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	if stara := staraPodesavanja["login_pozadina"]; stara != "" {
+		// putanja u bazi je oblika /static/uploads/ime.ext?v=..., izvlačimo samo ime fajla
+		deoBezverzije := strings.Split(stara, "?")[0]
+		staroIme := filepath.Base(deoBezverzije)
+		os.Remove(filepath.Join("web/static/uploads", staroIme))
+	}
+
+	novoIme, err := generisiImeUploada(ext)
+	if err != nil {
+		log.Printf("upload login pozadine: greška pri generisanju imena: %v", err)
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju fajla.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+
+	odrediste := filepath.Join("web/static/uploads", novoIme)
+	dst, err := os.Create(odrediste)
+	if err != nil {
+		log.Printf("upload login pozadine: ne mogu kreirati fajl: %v", err)
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju fajla.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, fajl); err != nil {
+		log.Printf("upload login pozadine: greška pri kopiranju: %v", err)
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju fajla.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+
+	putanja := fmt.Sprintf("/static/uploads/%s?v=%d", novoIme, time.Now().Unix())
+	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "login_pozadina", putanja); err != nil {
+		log.Printf("upload login pozadine: greška pri čuvanju putanje: %v", err)
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju podešavanja.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+
+	middleware.SetFlash(w, r, h.DB, "uspeh", "Pozadinska slika je uspešno otpremljena.")
+	http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+}
+
+// UkloniLoginPozadinu briše pozadinsku sliku login stranice sa diska i iz podešavanja
+func (h *Handler) UkloniLoginPozadinu(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "podesavanja.login_pozadina") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
+
+	podesavanja, err := ntechsqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	if err == nil {
+		if stara := podesavanja["login_pozadina"]; stara != "" {
+			deoBezverzije := strings.Split(stara, "?")[0]
+			staroIme := filepath.Base(deoBezverzije)
+			os.Remove(filepath.Join("web/static/uploads", staroIme))
+		}
+	}
+
+	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "login_pozadina", ""); err != nil {
+		log.Printf("ukloni login pozadinu: greška pri čuvanju: %v", err)
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri uklanjanju slike.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+
+	middleware.SetFlash(w, r, h.DB, "uspeh", "Pozadinska slika je uklonjena.")
+	http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+}
+
+// OtpremiAppPozadinu prima multipart upload slike i čuva je kao pozadinsku sliku aplikacije
+func (h *Handler) OtpremiAppPozadinu(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "podesavanja.app_pozadina") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 5<<20+4096)
+	if err := r.ParseMultipartForm(5 << 20); err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Fajl je prevelik (maksimum 5 MB).")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+
+	fajl, zaglavlje, err := r.FormFile("app_pozadina")
+	if err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Nije odabran fajl.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+	defer fajl.Close()
+
+	if zaglavlje.Size > 5<<20 {
+		middleware.SetFlash(w, r, h.DB, "greska", "Fajl je prevelik (maksimum 5 MB).")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+
+	ext := strings.ToLower(filepath.Ext(zaglavlje.Filename))
+	dozvoljenoExt := map[string]string{
+		".jpg":  "image/jpeg",
+		".jpeg": "image/jpeg",
+		".png":  "image/png",
+		".webp": "image/webp",
+	}
+	ocekivaniMime, ok := dozvoljenoExt[ext]
+	if !ok {
+		middleware.SetFlash(w, r, h.DB, "greska", "Dozvoljeni formati su JPG, PNG i WebP.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+
+	buf := make([]byte, 512)
+	n, _ := fajl.Read(buf)
+	stvarniMime := http.DetectContentType(buf[:n])
+	if !strings.HasPrefix(stvarniMime, ocekivaniMime) {
+		middleware.SetFlash(w, r, h.DB, "greska", "Sadržaj fajla ne odgovara odabranoj ekstenziji.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+	if _, err := fajl.Seek(0, io.SeekStart); err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri obradi fajla.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+
+	// briše staru app pozadinu sa diska ako postoji
+	staraPodesavanja, _ := ntechsqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	if stara := staraPodesavanja["app_pozadina"]; stara != "" {
+		deoBezverzije := strings.Split(stara, "?")[0]
+		staroIme := filepath.Base(deoBezverzije)
+		os.Remove(filepath.Join("web/static/uploads", staroIme))
+	}
+
+	novoIme, err := generisiImeUploada(ext)
+	if err != nil {
+		log.Printf("upload app pozadine: greška pri generisanju imena: %v", err)
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju fajla.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+
+	odrediste := filepath.Join("web/static/uploads", novoIme)
+	dst, err := os.Create(odrediste)
+	if err != nil {
+		log.Printf("upload app pozadine: ne mogu kreirati fajl: %v", err)
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju fajla.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, fajl); err != nil {
+		log.Printf("upload app pozadine: greška pri kopiranju: %v", err)
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju fajla.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+
+	putanja := fmt.Sprintf("/static/uploads/%s?v=%d", novoIme, time.Now().Unix())
+	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "app_pozadina", putanja); err != nil {
+		log.Printf("upload app pozadine: greška pri čuvanju putanje: %v", err)
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju podešavanja.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+
+	middleware.SetFlash(w, r, h.DB, "uspeh", "Pozadinska slika aplikacije je uspešno otpremljena.")
+	http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+}
+
+// UkloniAppPozadinu briše pozadinsku sliku aplikacije sa diska i iz podešavanja
+func (h *Handler) UkloniAppPozadinu(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "podesavanja.app_pozadina") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
+
+	podesavanja, err := ntechsqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	if err == nil {
+		if stara := podesavanja["app_pozadina"]; stara != "" {
+			deoBezverzije := strings.Split(stara, "?")[0]
+			staroIme := filepath.Base(deoBezverzije)
+			os.Remove(filepath.Join("web/static/uploads", staroIme))
+		}
+	}
+
+	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "app_pozadina", ""); err != nil {
+		log.Printf("ukloni app pozadinu: greška pri čuvanju: %v", err)
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri uklanjanju slike.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+
+	middleware.SetFlash(w, r, h.DB, "uspeh", "Pozadinska slika aplikacije je uklonjena.")
+	http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+}
+
+// SacuvajAppPozadinaStilove čuva vrednosti zamućenja i prozirnosti pozadine aplikacije
+func (h *Handler) SacuvajAppPozadinaStilove(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "podesavanja.app_pozadina") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čitanju forme.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+
+	blurStr := r.FormValue("blur")
+	opacityStr := r.FormValue("opacity")
+
+	blurVal, err := strconv.Atoi(blurStr)
+	if err != nil || blurVal < 0 || blurVal > 20 {
+		middleware.SetFlash(w, r, h.DB, "greska", "Neispravna vrednost zamućenja.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+	opacityVal, err := strconv.Atoi(opacityStr)
+	if err != nil || opacityVal < 0 || opacityVal > 80 {
+		middleware.SetFlash(w, r, h.DB, "greska", "Neispravna vrednost prozirnosti.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+
+	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "app_pozadina_blur", blurStr); err != nil {
+		log.Printf("stilovi app pozadine: greška pri čuvanju blur: %v", err)
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju podešavanja.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "app_pozadina_opacity", opacityStr); err != nil {
+		log.Printf("stilovi app pozadine: greška pri čuvanju opacity: %v", err)
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju podešavanja.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+
+	middleware.SetFlash(w, r, h.DB, "uspeh", "Izgled pozadine aplikacije je sačuvan.")
+	http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
 }
 
 // PromeniTemu menja aktivnu temu i vraća na prethodnu stranicu

@@ -148,6 +148,14 @@
                     {{if .Nalog.Avans}}{{.Nalog.AvansStr}} din{{else}}—{{end}}
                 </div>
             </div>
+            {{if .Nalog.PreostaloZaNaplatu}}
+            <div>
+                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Preostalo za naplatu</div>
+                <div style="font-size:20px;font-weight:600;color:#16a34a;">
+                    {{.Nalog.PreostaloZaNaplatuStr}} din
+                </div>
+            </div>
+            {{end}}
         </div>
     </div>
 

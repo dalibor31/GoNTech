@@ -43,6 +43,8 @@ var sveAkcije = []string{
 	"korisnik.uloga",
 	"backup.pregled",
 	"backup.pokreni",
+	"podesavanja.login_pozadina",
+	"podesavanja.app_pozadina",
 }
 
 // SveAkcije vraća listu svih poznatih akcija — koristi se pri inicijalizaciji baze i resetu
@@ -99,6 +101,9 @@ func ImaDozvolu(uloga, akcija string) bool {
 			return true
 		// backup
 		case "backup.pregled", "backup.pokreni":
+			return true
+		// pozadinske slike
+		case "podesavanja.login_pozadina", "podesavanja.app_pozadina":
 			return true
 		}
 		return false
