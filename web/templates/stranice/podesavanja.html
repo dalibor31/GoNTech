@@ -231,38 +231,40 @@
 
     </div>
 
-    <!-- pozadinska slika login stranice — posebna forma jer je multipart -->
-    <form method="POST" action="/podesavanja/login-pozadina" enctype="multipart/form-data">
-        <div class="kartica animiraj" style="margin-bottom:16px;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sb-akcent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Pozadinska slika prijave</span>
-            </div>
-            {{if .LoginPozadina}}
-            <div style="margin-bottom:14px;display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;">
-                <img src="{{.LoginPozadina}}" alt="Trenutna pozadina"
-                    style="width:160px;height:90px;object-fit:cover;border:0.5px solid var(--ivica);border-radius:8px;">
-                <form method="POST" action="/podesavanja/login-pozadina/ukloni" style="margin:0;">
-                    <button type="submit"
-                        style="padding:7px 14px;background:transparent;border:0.5px solid #fca5a5;border-radius:8px;color:#dc2626;font-size:12px;cursor:pointer;"
-                        onclick="return confirm('Ukloniti pozadinsku sliku?')">
-                        Ukloni sliku
-                    </button>
-                </form>
-            </div>
-            {{end}}
-            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-                <input type="file" name="login_pozadina" accept=".jpg,.jpeg,.png,.webp"
-                    style="flex:1;min-width:200px;font-size:13px;color:var(--tekst-sporedni);">
+    <!-- pozadinska slika login stranice -->
+    <div class="kartica animiraj" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sb-akcent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Pozadinska slika prijave</span>
+        </div>
+        {{if .LoginPozadina}}
+        <div style="margin-bottom:14px;display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;">
+            <img src="{{.LoginPozadina}}" alt="Trenutna pozadina"
+                style="width:160px;height:90px;object-fit:cover;border:0.5px solid var(--ivica);border-radius:8px;">
+            <form method="POST" action="/podesavanja/login-pozadina/ukloni">
+                <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
                 <button type="submit"
-                    style="padding:8px 16px;background:var(--sb-aktivan);color:var(--tekst-jak);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap;transition:opacity 0.2s;"
+                    style="padding:7px 14px;background:transparent;border:0.5px solid #fca5a5;border-radius:8px;color:#dc2626;font-size:12px;cursor:pointer;"
+                    data-potvrda="Ukloniti pozadinsku sliku?">
+                    Ukloni sliku
+                </button>
+            </form>
+        </div>
+        {{end}}
+        <form method="POST" action="/podesavanja/login-pozadina" enctype="multipart/form-data">
+            <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+            <div style="display:flex;gap:8px;align-items:center;">
+                <input type="file" name="login_pozadina" accept=".jpg,.jpeg,.png,.webp"
+                    style="font-size:13px;color:var(--tekst-sporedni);">
+                <button type="submit"
+                    style="padding:8px 16px;background:var(--sb-aktivan);color:var(--tekst-jak);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap;transition:opacity 0.2s;flex-shrink:0;"
                     onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
                     Otpremi sliku
                 </button>
             </div>
             <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:6px;">JPG, PNG ili WebP — maksimum 5 MB</div>
-        </div>
-    </form>
+        </form>
+    </div>
 
     <form method="POST" action="/podesavanja/sacuvaj">
 
