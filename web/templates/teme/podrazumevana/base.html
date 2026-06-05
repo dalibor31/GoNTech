@@ -63,12 +63,21 @@
         border: 1px solid rgba(255,255,255,0.12) !important;
       }
     </style>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var meni = document.getElementById('avatar-meni');
+        if (!meni) return;
+        meni.style.backdropFilter = 'none';
+        meni.style.webkitBackdropFilter = 'none';
+        meni.style.background = 'var(--kartica)';
+    });
+    </script>
     {{end}}
   </head>
   <body>
     {{if .AppPozadina}}<div class="app-overlay"></div>{{end}}
-    <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <div class="raspored">
+      <div class="sidebar-overlay" id="sidebar-overlay"></div>
       {{template "sidebar" .}}
 
       <div class="glavni-sadrzaj">
