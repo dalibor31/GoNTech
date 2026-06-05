@@ -23,6 +23,12 @@ type StavkaProdajePregled struct {
 	Datum        string // kratki format, npr. "01.06."
 }
 
+// FlashPoruka je jednokratna poruka koja se prikazuje korisniku nakon redirecta
+type FlashPoruka struct {
+	Tip    string // "uspeh" ili "greska"
+	Poruka string
+}
+
 // PodaciStranice su zajednički podaci koje svaka stranica prima
 type PodaciStranice struct {
 	Stranica       string
@@ -37,6 +43,7 @@ type PodaciStranice struct {
 	KorisnikUloga  string          // uloga: "superadmin", "admin", "radnik"
 	CsrfToken      string          // CSRF zaštitni token za forme
 	Dozvole        map[string]bool // mapa akcija → dozvoljeno/nije
+	Flash          *FlashPoruka    // jednokratna poruka nakon redirecta
 }
 
 // PodaciDashboarda su podaci specifični za dashboard stranicu
