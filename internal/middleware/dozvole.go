@@ -45,6 +45,10 @@ var sveAkcije = []string{
 	"backup.pokreni",
 	"podesavanja.login_pozadina",
 	"podesavanja.app_pozadina",
+	"tema.globalno",
+	"tema.lokalno",
+	"dashboard.prihod",
+	"prodaja.storno",
 }
 
 // SveAkcije vraća listu svih poznatih akcija — koristi se pri inicijalizaciji baze i resetu
@@ -81,7 +85,7 @@ func ImaDozvolu(uloga, akcija string) bool {
 			"servis.izmeni", "servis.obrisi":
 			return true
 		// prodaja
-		case "prodaja.pregled", "prodaja.dodaj", "prodaja.obrisi":
+		case "prodaja.pregled", "prodaja.dodaj", "prodaja.obrisi", "prodaja.storno":
 			return true
 		// klijent
 		case "klijent.pregled", "klijent.dodaj",
@@ -105,19 +109,22 @@ func ImaDozvolu(uloga, akcija string) bool {
 		// pozadinske slike
 		case "podesavanja.login_pozadina", "podesavanja.app_pozadina":
 			return true
+		// teme
+		case "tema.globalno", "tema.lokalno":
+			return true
+		// dashboard — prihod samo admin+
+		case "dashboard.prihod":
+			return true
 		}
 		return false
 
 	case "radnik":
 		switch akcija {
-		// artikal — bez brisanja i premeštanja
-		case "artikal.pregled", "artikal.dodaj", "artikal.izmeni":
+		// artikal — samo pregled
+		case "artikal.pregled":
 			return true
 		// kategorija — samo pregled
 		case "kategorija.pregled":
-			return true
-		// nabavka — bez brisanja
-		case "nabavka.pregled", "nabavka.dodaj":
 			return true
 		// dobavljač — bez brisanja
 		case "dobavljac.pregled", "dobavljac.dodaj", "dobavljac.izmeni":
@@ -125,7 +132,7 @@ func ImaDozvolu(uloga, akcija string) bool {
 		// servis — bez brisanja
 		case "servis.pregled", "servis.dodaj", "servis.izmeni":
 			return true
-		// prodaja — bez brisanja
+		// prodaja — bez brisanja i storna
 		case "prodaja.pregled", "prodaja.dodaj":
 			return true
 		// klijent — bez brisanja
@@ -134,6 +141,9 @@ func ImaDozvolu(uloga, akcija string) bool {
 		// podsetnik — sve
 		case "podsetnik.pregled", "podsetnik.dodaj",
 			"podsetnik.izmeni", "podsetnik.obrisi":
+			return true
+		// lokalna tema
+		case "tema.lokalno":
 			return true
 		}
 		return false

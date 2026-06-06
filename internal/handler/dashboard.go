@@ -5,7 +5,9 @@ import (
 	"net/http"
 	"time"
 
+	appdb "ntech/internal/db"
 	"ntech/internal/db/sqlite"
+	"ntech/internal/middleware"
 	"ntech/internal/model"
 )
 
@@ -47,11 +49,15 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		log.Printf("dashboard: aktivni servisi: %v", err)
 	}
 
-	if err := h.DB.QueryRowContext(ctx, `
-		SELECT COALESCE(SUM(ukupno), 0) FROM prodajni_nalozi
-		WHERE substr(datum, 1, 7) = strftime('%Y-%m', 'now', 'localtime')`,
-	).Scan(&prihodOvogMeseca); err != nil {
-		log.Printf("dashboard: prihod ovog meseca: %v", err)
+	// prihod se dohvata samo ako korisnik ima dozvolu dashboard.prihod
+	korisnikDash := middleware.KorisnikIzKonteksta(ctx)
+	if h.DozvoleRepo.ImaDozvolu(ctx, korisnikDash.Uloga, "dashboard.prihod") {
+		if err := h.DB.QueryRowContext(ctx, `
+			SELECT COALESCE(SUM(ukupno), 0) FROM prodajni_nalozi
+			WHERE substr(datum, 1, 7) = strftime('%Y-%m', 'now', 'localtime')`,
+		).Scan(&prihodOvogMeseca); err != nil {
+			log.Printf("dashboard: prihod ovog meseca: %v", err)
+		}
 	}
 
 	if err := h.DB.QueryRowContext(ctx,
@@ -60,7 +66,11 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		log.Printf("dashboard: kriticna zaliha: %v", err)
 	}
 
-	if n, err := h.PodsetniciFRepo.BrojAktivnih(ctx); err != nil {
+	korisnikFilter := appdb.PodsetnikFilter{}
+	if korisnikDash.Uloga == "radnik" {
+		korisnikFilter.KorisnikID = &korisnikDash.ID
+	}
+	if n, err := h.PodsetniciFRepo.BrojAktivnih(ctx, korisnikFilter); err != nil {
 		log.Printf("dashboard: aktivni podsetnici: %v", err)
 	} else {
 		aktivniPodsetnici = n

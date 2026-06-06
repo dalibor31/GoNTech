@@ -46,8 +46,12 @@
 
     <!-- dugmad -->
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        {{if index .Dozvole "artikal.dodaj"}}
         <a href="/magacin/novi" class="btn-primarno">+ Novi artikal</a>
+        {{end}}
+        {{if index .Dozvole "kategorija.pregled"}}
         <a href="/magacin/kategorije" class="btn-primarno">Kategorije</a>
+        {{end}}
     </div>
 
     <!-- pretraga i filteri -->
@@ -104,9 +108,11 @@
                         </td>
                         <td style="padding:12px 16px;text-align:center;">
                             <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+                                {{if index $.Dozvole "artikal.izmeni"}}
                                 <a href="/magacin/izmeni/{{.ID}}" class="btn-primarno-malo">
                                     Izmeni
                                 </a>
+                                {{end}}
                                 {{if index $.Dozvole "artikal.obrisi"}}
                                 <a href="/magacin/obrisi/{{.ID}}" class="btn-obrisi-malo"
                                     data-potvrda="Da li ste sigurni da želite da obrišete ovaj artikal?">
@@ -140,7 +146,9 @@
                     {{end}}
                 </div>
                 <div style="display:flex;gap:8px;flex-shrink:0;">
+                    {{if index $.Dozvole "artikal.izmeni"}}
                     <a href="/magacin/izmeni/{{.ID}}" class="btn-primarno-malo">Izmeni</a>
+                    {{end}}
                     {{if index $.Dozvole "artikal.obrisi"}}
                     <a href="/magacin/obrisi/{{.ID}}" class="btn-obrisi-malo"
                         data-potvrda="Da li ste sigurni da želite da obrišete ovaj artikal?">
