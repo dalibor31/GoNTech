@@ -132,20 +132,12 @@
         </a>
         {{end}}
 
-        {{if eq .KorisnikUloga "superadmin"}}
-        <a href="/admin/dozvole" class="nav-stavka {{if eq .Stranica "dozvole"}}aktivan{{end}}">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            <span>Dozvole</span>
-            <span class="nav-tooltip">Dozvole</span>
-        </a>
-        {{end}}
-
         {{if ne .KorisnikUloga "radnik"}}
         <div class="nav-separator"></div>
         <div class="nav-oznaka">Sistem</div>
 
         {{if index .Dozvole "podesavanja.pregled"}}
-        <div x-data="{ otvoren: {{if eq .Stranica "podesavanja"}}true{{else}}false{{end}} }">
+        <div x-data="{ otvoren: {{if or (eq .Stranica "podesavanja") (eq .Stranica "dozvole")}}true{{else}}false{{end}} }">
             <button type="button" @click="otvoren = !otvoren"
                     class="nav-stavka {{if eq .Stranica "podesavanja"}}aktivan{{end}}"
                     style="width:100%;background:none;border:none;cursor:pointer;">
@@ -175,6 +167,13 @@
                     <span>Sistem</span>
                     <span class="nav-tooltip">Sistem</span>
                 </a>
+                {{if or (eq .KorisnikUloga "superadmin") (eq .KorisnikUloga "admin")}}
+                <a href="/admin/dozvole" class="nav-stavka nav-podstavka {{if eq .Stranica "dozvole"}}aktivan{{end}}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    <span>Dozvole</span>
+                    <span class="nav-tooltip">Dozvole</span>
+                </a>
+                {{end}}
             </div>
         </div>
         {{end}}
