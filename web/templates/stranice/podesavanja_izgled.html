@@ -136,6 +136,7 @@
 
     </div>
 
+    {{if index .Dozvole "podesavanja.login_pozadina"}}
     <!-- pozadinska slika login stranice -->
     <div class="kartica animiraj" style="margin-bottom:16px;">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
@@ -223,41 +224,52 @@
 
         </div><!-- /x-data -->
     </div>
+    {{end}}
 
-    <!-- tema -->
+    {{if index .Dozvole "tema.globalno"}}
+    <!-- globalna tema -->
     <form method="POST" action="/podesavanja/sacuvaj">
         <input type="hidden" name="_next" value="/admin/podesavanja/izgled">
         <div class="kartica animiraj" style="margin-bottom:16px;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sb-akcent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-                <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Tema</span>
+                <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Globalna tema</span>
             </div>
+            <div style="font-size:13px;color:var(--tekst-sporedni);margin-bottom:12px;">Primenuje se na sve korisnike koji ne koriste svoju lokalnu temu.</div>
 
             <div>
-                <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:8px;">Izaberi temu</label>
                 <div class="teme-grid" style="display:flex;gap:10px;">
-                    <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;cursor:pointer;flex:1;{{if eq .Tema "tamna"}}border-color:var(--sb-akcent);{{end}}">
-                        <input type="radio" name="tema" value="tamna" {{if eq .Tema "tamna"}}checked{{end}} style="accent-color:var(--sb-akcent);">
+                    <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;cursor:pointer;flex:1;{{if eq .GlobalnaTema "tamna"}}border-color:var(--sb-akcent);{{end}}">
+                        <input type="radio" name="globalna_tema" value="tamna" {{if eq .GlobalnaTema "tamna"}}checked{{end}} style="accent-color:var(--sb-akcent);">
                         <div style="width:16px;height:16px;border-radius:50%;background:#1a1d27;flex-shrink:0;"></div>
                         <span style="font-size:13px;color:var(--tekst-glavni);">Tamna</span>
                     </label>
-                    <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;cursor:pointer;flex:1;{{if eq .Tema "svetla"}}border-color:var(--sb-akcent);{{end}}">
-                        <input type="radio" name="tema" value="svetla" {{if eq .Tema "svetla"}}checked{{end}} style="accent-color:var(--sb-akcent);">
+                    <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;cursor:pointer;flex:1;{{if eq .GlobalnaTema "svetla"}}border-color:var(--sb-akcent);{{end}}">
+                        <input type="radio" name="globalna_tema" value="svetla"
+                            {{if eq .GlobalnaTema "svetla"}}checked{{end}}
+                            style="accent-color:var(--sb-akcent);">
                         <div style="width:16px;height:16px;border-radius:50%;background:#f0f2f5;border:0.5px solid #e2e6ed;flex-shrink:0;"></div>
                         <span style="font-size:13px;color:var(--tekst-glavni);">Svetla</span>
                     </label>
                 </div>
             </div>
 
-            <div style="display:flex;justify-content:flex-end;margin-top:20px;">
+            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;">
+                <button type="submit" formaction="/podesavanja/tema/globalno"
+                    style="background:transparent;color:var(--sb-akcent);border:0.5px solid var(--sb-akcent);padding:10px 24px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:opacity 0.2s;"
+                    onmouseover="this.style.opacity='0.75'" onmouseout="this.style.opacity='1'"
+                    title="Primeni ovu temu na sve korisnike, poništi njihove lokalne teme">
+                    Primeni globalno
+                </button>
                 <button type="submit"
                     style="background:var(--sb-akcent);color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:opacity 0.2s;"
                     onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
-                    Sačuvaj izgled
+                    Sačuvaj
                 </button>
             </div>
         </div>
     </form>
+    {{end}}
 
 </div>
 {{end}}

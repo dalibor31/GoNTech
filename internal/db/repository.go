@@ -86,6 +86,8 @@ type KorisniciRepository interface {
 	AzurirajAktivan(ctx context.Context, id int64, aktivan bool) error
 	PromeniLozinku(ctx context.Context, id int64, hash string) error
 	SacuvajTotpTajnu(ctx context.Context, id int64, tajna string) error
+	SacuvajLokalnuTemu(ctx context.Context, id int64, lokalnaTema string, koristi bool) error
+	SacuvajLokalnuPozadinu(ctx context.Context, id int64, pozadina, opacity, blur, blurPozadine string) error
 	PostojiIjedan(ctx context.Context) (bool, error)
 	Obrisi(ctx context.Context, id int64) error
 }
@@ -101,7 +103,8 @@ type SesijeRepository interface {
 
 // PodsetnikFilter definiše parametre za filtriranje liste podsetnika
 type PodsetnikFilter struct {
-	SamoAktivni bool // true = samo nezavršeni; false = svi
+	SamoAktivni bool    // true = samo nezavršeni; false = svi
+	KorisnikID  *int64  // ako nije nil — samo podsetnici tog korisnika
 }
 
 // PokusajiPrijaveRepository definiše operacije nad evidencijom pokušaja prijave
@@ -134,5 +137,5 @@ type PodsetnikRepository interface {
 	Izmeni(ctx context.Context, p *model.Podsetnik) error
 	OznaciZavrsenim(ctx context.Context, id int64, zavrseno bool) error
 	Obrisi(ctx context.Context, id int64) error
-	BrojAktivnih(ctx context.Context) (int, error)
+	BrojAktivnih(ctx context.Context, filter PodsetnikFilter) (int, error)
 }

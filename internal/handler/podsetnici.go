@@ -3,15 +3,18 @@ package handler
 import (
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	"ntech/internal/db"
 	"ntech/internal/db/sqlite"
+	"ntech/internal/middleware"
 	"ntech/internal/model"
 
 	"github.com/go-chi/chi/v5"
 )
+
 
 // podaciPodsetnici su podaci za stranicu sa listom podsetnika
 type podaciPodsetnici struct {
@@ -28,10 +31,13 @@ type podaciPodsetnikForma struct {
 	Podsetnik model.Podsetnik
 	Greska    string
 	Izmena    bool
+	Korisnici []model.Korisnik
 }
 
 // Podsetnici renderuje listu podsetnika
 func (h *Handler) Podsetnici(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+
 	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
@@ -40,7 +46,13 @@ func (h *Handler) Podsetnici(w http.ResponseWriter, r *http.Request) {
 
 	samoAktivni := r.URL.Query().Get("samo_aktivni") == "1"
 
-	lista, err := h.PodsetniciFRepo.Lista(r.Context(), db.PodsetnikFilter{SamoAktivni: samoAktivni})
+	// radnik vidi samo podsetnik koji su mu dodeljeni
+	filter := db.PodsetnikFilter{SamoAktivni: samoAktivni}
+	if k.Uloga == "radnik" {
+		filter.KorisnikID = &k.ID
+	}
+
+	lista, err := h.PodsetniciFRepo.Lista(r.Context(), filter)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju podsetnika", http.StatusInternalServerError)
 		return
@@ -63,6 +75,8 @@ func (h *Handler) Podsetnici(w http.ResponseWriter, r *http.Request) {
 
 // NoviPodsetnik prikazuje praznu formu za unos novog podsetnika
 func (h *Handler) NoviPodsetnik(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+
 	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
@@ -73,46 +87,55 @@ func (h *Handler) NoviPodsetnik(w http.ResponseWriter, r *http.Request) {
 	ps.Stranica = "podsetnici"
 	ps.NaslovStranice = "Novi podsetnik"
 
+	var korisnici []model.Korisnik
+	if k.Uloga == "admin" || k.Uloga == "superadmin" {
+		korisnici, _ = h.KorisniciRepo.Lista(r.Context())
+	}
+
 	h.renderujFormuPodsetnika(w, podaciPodsetnikForma{
 		PodaciStranice: ps,
 		Izmena:         false,
+		Korisnici:      korisnici,
 	})
 }
 
 // SacuvajPodsetnik prima POST formu i upisuje novi podsetnik u bazu
 func (h *Handler) SacuvajPodsetnik(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
 		return
 	}
 
-	podsetnik, greska := parseFormuPodsetnika(r)
-	if greska != "" {
+	podsetnik, greska := parseFormuPodsetnika(r, k)
+
+	prikaziGresku := func(poruka string) {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		ps := h.popuniPodaciStranice(r, podesavanja)
 		ps.Stranica = "podsetnici"
 		ps.NaslovStranice = "Novi podsetnik"
+		var korisnici []model.Korisnik
+		if k.Uloga == "admin" || k.Uloga == "superadmin" {
+			korisnici, _ = h.KorisniciRepo.Lista(r.Context())
+		}
 		h.renderujFormuPodsetnika(w, podaciPodsetnikForma{
 			PodaciStranice: ps,
 			Podsetnik:      podsetnik,
-			Greska:         greska,
+			Greska:         poruka,
 			Izmena:         false,
+			Korisnici:      korisnici,
 		})
+	}
+
+	if greska != "" {
+		prikaziGresku(greska)
 		return
 	}
 
 	if _, err := h.PodsetniciFRepo.Kreiraj(r.Context(), &podsetnik); err != nil {
 		log.Printf("greška pri čuvanju podsetnika: %v", err)
-		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
-		ps := h.popuniPodaciStranice(r, podesavanja)
-		ps.Stranica = "podsetnici"
-		ps.NaslovStranice = "Novi podsetnik"
-		h.renderujFormuPodsetnika(w, podaciPodsetnikForma{
-			PodaciStranice: ps,
-			Podsetnik:      podsetnik,
-			Greska:         "Došlo je do greške pri čuvanju. Pokušajte ponovo.",
-			Izmena:         false,
-		})
+		prikaziGresku("Došlo je do greške pri čuvanju. Pokušajte ponovo.")
 		return
 	}
 
@@ -121,6 +144,8 @@ func (h *Handler) SacuvajPodsetnik(w http.ResponseWriter, r *http.Request) {
 
 // IzmeniPodsetnik učitava podsetnik po ID-u i prikazuje popunjenu formu za izmenu
 func (h *Handler) IzmeniPodsetnik(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+
 	id, err := parseID(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Neispravan ID podsetnika", http.StatusBadRequest)
@@ -143,15 +168,23 @@ func (h *Handler) IzmeniPodsetnik(w http.ResponseWriter, r *http.Request) {
 	ps.Stranica = "podsetnici"
 	ps.NaslovStranice = "Izmeni podsetnik"
 
+	var korisnici []model.Korisnik
+	if k.Uloga == "admin" || k.Uloga == "superadmin" {
+		korisnici, _ = h.KorisniciRepo.Lista(r.Context())
+	}
+
 	h.renderujFormuPodsetnika(w, podaciPodsetnikForma{
 		PodaciStranice: ps,
 		Podsetnik:      *podsetnik,
 		Izmena:         true,
+		Korisnici:      korisnici,
 	})
 }
 
 // SacuvajIzmenePodsetnika prima POST formu i ažurira postojeći podsetnik u bazi
 func (h *Handler) SacuvajIzmenePodsetnika(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+
 	id, err := parseID(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Neispravan ID podsetnika", http.StatusBadRequest)
@@ -163,34 +196,35 @@ func (h *Handler) SacuvajIzmenePodsetnika(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	podsetnik, greska := parseFormuPodsetnika(r)
+	podsetnik, greska := parseFormuPodsetnika(r, k)
 	podsetnik.ID = id
-	if greska != "" {
+
+	prikaziGresku := func(poruka string) {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		ps := h.popuniPodaciStranice(r, podesavanja)
 		ps.Stranica = "podsetnici"
 		ps.NaslovStranice = "Izmeni podsetnik"
+		var korisnici []model.Korisnik
+		if k.Uloga == "admin" || k.Uloga == "superadmin" {
+			korisnici, _ = h.KorisniciRepo.Lista(r.Context())
+		}
 		h.renderujFormuPodsetnika(w, podaciPodsetnikForma{
 			PodaciStranice: ps,
 			Podsetnik:      podsetnik,
-			Greska:         greska,
+			Greska:         poruka,
 			Izmena:         true,
+			Korisnici:      korisnici,
 		})
+	}
+
+	if greska != "" {
+		prikaziGresku(greska)
 		return
 	}
 
 	if err := h.PodsetniciFRepo.Izmeni(r.Context(), &podsetnik); err != nil {
 		log.Printf("greška pri čuvanju izmene podsetnika: %v", err)
-		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
-		ps := h.popuniPodaciStranice(r, podesavanja)
-		ps.Stranica = "podsetnici"
-		ps.NaslovStranice = "Izmeni podsetnik"
-		h.renderujFormuPodsetnika(w, podaciPodsetnikForma{
-			PodaciStranice: ps,
-			Podsetnik:      podsetnik,
-			Greska:         "Došlo je do greške pri čuvanju. Pokušajte ponovo.",
-			Izmena:         true,
-		})
+		prikaziGresku("Došlo je do greške pri čuvanju. Pokušajte ponovo.")
 		return
 	}
 
@@ -237,7 +271,7 @@ func (h *Handler) ObrisiPodsetnik(w http.ResponseWriter, r *http.Request) {
 }
 
 // parseFormuPodsetnika čita polja iz HTTP forme, validira ih i vraća model i eventualnu grešku
-func parseFormuPodsetnika(r *http.Request) (model.Podsetnik, string) {
+func parseFormuPodsetnika(r *http.Request, k *model.Korisnik) (model.Podsetnik, string) {
 	naslov := strings.TrimSpace(r.FormValue("naslov"))
 	if naslov == "" {
 		return model.Podsetnik{}, "Naslov je obavezan."
@@ -253,12 +287,26 @@ func parseFormuPodsetnika(r *http.Request) (model.Podsetnik, string) {
 		return model.Podsetnik{Naslov: naslov}, "Datum podsećanja nije u ispravnom formatu."
 	}
 
-	return model.Podsetnik{
+	p := model.Podsetnik{
 		Naslov:          naslov,
 		Napomena:        strings.TrimSpace(r.FormValue("napomena")),
 		DatumPodsecanja: datum,
 		Tip:             model.TipOpsti,
-	}, ""
+	}
+
+	// admin/superadmin mogu dodeliti podsetnik drugom korisniku
+	if k.Uloga == "admin" || k.Uloga == "superadmin" {
+		if kidStr := strings.TrimSpace(r.FormValue("korisnik_id")); kidStr != "" {
+			if kid, err := strconv.ParseInt(kidStr, 10, 64); err == nil && kid > 0 {
+				p.KorisnikID = &kid
+			}
+		}
+	} else {
+		// radnik dobija podsetnik dodeljen sebi
+		p.KorisnikID = &k.ID
+	}
+
+	return p, ""
 }
 
 // renderujFormuPodsetnika renderuje HTML šablon forme za unos ili izmenu podsetnika

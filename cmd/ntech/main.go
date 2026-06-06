@@ -118,9 +118,17 @@ func main() {
 	r.Use(middleware.Compress(5))
 
 	// uploads su uvek na disku — korisnički fajlovi, ne ugrađuju se
-	r.Handle("/static/uploads/*", http.StripPrefix("/static/uploads/", http.FileServer(http.Dir("web/static/uploads"))))
+	r.Handle("/static/uploads/*", http.StripPrefix("/static/uploads/",
+		http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			http.FileServer(http.Dir("web/static/uploads")).ServeHTTP(w, req)
+		})))
 	// ostali statični fajlovi: disk ako postoji web/static, inače embed
-	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
+	r.Handle("/static/*", http.StripPrefix("/static/",
+		http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			http.FileServer(http.FS(staticFS)).ServeHTTP(w, req)
+		})))
 
 	// javne rute (bez autentifikacije)
 	r.Get("/prijava", h.PrikazPrijave)
@@ -154,6 +162,8 @@ func main() {
 		r.Get("/podesavanja/backup", h.BackupBaze)
 		r.Post("/podesavanja/backup/vrati", h.VratiBackup)
 		r.Get("/tema/{tema}", h.PromeniTemu)
+		r.Post("/podesavanja/tema", h.PromeniGlobalnuTemu)
+		r.Post("/podesavanja/tema/globalno", h.PrimeniGlobalnuTemu)
 		r.Get("/magacin", h.Magacin)
 		r.Get("/magacin/novi", h.NoviArtikal)
 		r.Post("/magacin/novi", h.SacuvajArtikal)
@@ -192,6 +202,7 @@ func main() {
 		r.Get("/prodaja/nova", h.NovaProdaja)
 		r.Post("/prodaja/nova", h.SacuvajProdaju)
 		r.Post("/prodaja/obrisi/{id}", h.ObrisiProdaju)
+		r.Post("/prodaja/storno/{id}", h.StornoProdaje)
 		r.Get("/prodaja/{id}/stampa", h.StampaProdaje)
 		r.Get("/prodaja/{id}", h.DetaljiProdaje)
 
@@ -229,6 +240,11 @@ func main() {
 		r.Get("/admin/profil/totp/pokreni", h.AdminTotpPokreni)
 		r.Post("/admin/profil/totp/aktiviraj", h.AdminTotpAktivacija)
 		r.Post("/admin/profil/totp/deaktiviraj", h.AdminTotpDeaktivacija)
+		r.Post("/profil/tema", h.AdminSacuvajLokalnuTemu)
+		r.Get("/profil/tema", h.ProfilTema)
+		r.Post("/profil/pozadina", h.ProfilOtpremiPozadinu)
+		r.Post("/profil/pozadina/ukloni", h.ProfilUkloniPozadinu)
+		r.Post("/profil/pozadina/stilovi", h.ProfilSacuvajPozadinuStilove)
 	})
 
 	log.Printf("NTech pokrenut na portu %s", port)

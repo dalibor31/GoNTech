@@ -9,8 +9,14 @@ type Korisnik struct {
 	LozinkaHash    string
 	Uloga          string // "superadmin" | "admin" | "radnik"
 	Aktivan        bool
-	TotpTajna      string
-	DatumKreiranja time.Time
+	TotpTajna         string
+	LokalnaTema       string // "tamna" | "svetla" | ""
+	KoristiLokalnuTemu bool
+	DatumKreiranja    time.Time
+	LokalnaPozadina              string
+	LokalnaPozadinaOpacity       string
+	LokalnaPozadinaBlur          string
+	LokalnaPozadinaBlurPozadine  string
 }
 
 // Sesija predstavlja aktivnu sesiju prijavljenog korisnika

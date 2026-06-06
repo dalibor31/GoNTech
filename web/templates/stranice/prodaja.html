@@ -89,9 +89,18 @@
                             {{printf "%.2f" .Ukupno}} din
                         </td>
                         <td style="padding:12px 16px;text-align:center;">
-                            <a href="/prodaja/{{.ID}}" class="btn-primarno-malo">
-                                Detalji
-                            </a>
+                            <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+                                <a href="/prodaja/{{.ID}}" class="btn-primarno-malo">Detalji</a>
+                                {{if index $.Dozvole "prodaja.storno"}}
+                                <form method="POST" action="/prodaja/storno/{{.ID}}" style="margin:0;padding:0;">
+                                    <input type="hidden" name="_csrf" value="{{$.CsrfToken}}">
+                                    <button type="submit" class="btn-obrisi-malo"
+                                        data-potvrda="Da li ste sigurni da želite da stornirate ovaj nalog? Artikli će biti vraćeni na stanje.">
+                                        Storno
+                                    </button>
+                                </form>
+                                {{end}}
+                            </div>
                         </td>
                     </tr>
                     {{else}}

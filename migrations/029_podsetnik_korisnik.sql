@@ -1,0 +1,1 @@
+ALTER TABLE podsetnici ADD COLUMN korisnik_id INTEGER REFERENCES korisnici(id) ON DELETE SET NULL;
