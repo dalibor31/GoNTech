@@ -38,10 +38,14 @@ type PodaciPodesavanja struct {
 	LogoGreska      string
 	BackupVracen    bool
 	Backupi         []BackupInfo
-	LoginPozadina      string
-	AppPozadina        string
-	AppPozadinaOpacity string
-	AppPozadinaBlur    string
+	LoginPozadina             string
+	LoginPozadinaOpacity      string
+	LoginPozadinaBlurPozadine string
+	LoginPozadinaBlurKartice  string
+	AppPozadina               string
+	AppPozadinaOpacity        string
+	AppPozadinaBlur           string
+	AppPozadinaBlurPozadine   string
 }
 
 // BackupInfo opisuje jedan backup fajl
@@ -85,8 +89,23 @@ func (h *Handler) Podesavanja(w http.ResponseWriter, r *http.Request) {
 		Verzija:        h.Verzija,
 		LogoGreska:     r.URL.Query().Get("logo_greska"),
 		Backupi:        ucitajListuBackupa(),
-		LoginPozadina:  podesavanja["login_pozadina"],
-		AppPozadina:    podesavanja["app_pozadina"],
+		LoginPozadina: podesavanja["login_pozadina"],
+		LoginPozadinaOpacity: func() string {
+			v := podesavanja["login_pozadina_opacity"]
+			if v == "" { return "50" }
+			return v
+		}(),
+		LoginPozadinaBlurPozadine: func() string {
+			v := podesavanja["login_pozadina_blur_pozadine"]
+			if v == "" { return "0" }
+			return v
+		}(),
+		LoginPozadinaBlurKartice: func() string {
+			v := podesavanja["login_pozadina_blur_kartice"]
+			if v == "" { return "12" }
+			return v
+		}(),
+		AppPozadina: podesavanja["app_pozadina"],
 		AppPozadinaOpacity: func() string {
 			v := podesavanja["app_pozadina_opacity"]
 			if v == "" { return "50" }
@@ -95,6 +114,11 @@ func (h *Handler) Podesavanja(w http.ResponseWriter, r *http.Request) {
 		AppPozadinaBlur: func() string {
 			v := podesavanja["app_pozadina_blur"]
 			if v == "" { return "12" }
+			return v
+		}(),
+		AppPozadinaBlurPozadine: func() string {
+			v := podesavanja["app_pozadina_blur_pozadine"]
+			if v == "" { return "0" }
 			return v
 		}(),
 	}
@@ -247,7 +271,12 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	http.Redirect(w, r, "/podesavanja?sacuvano=1", http.StatusSeeOther)
+	sledeci := r.FormValue("_next")
+	if sledeci == "" {
+		http.Redirect(w, r, "/podesavanja?sacuvano=1", http.StatusSeeOther)
+	} else {
+		http.Redirect(w, r, sledeci+"?sacuvano=1", http.StatusSeeOther)
+	}
 }
 
 // BackupBaze kreira konzistentnu kopiju baze i šalje je kao attachment
@@ -645,11 +674,18 @@ func (h *Handler) SacuvajAppPozadinaStilove(w http.ResponseWriter, r *http.Reque
 	}
 
 	blurStr := r.FormValue("blur")
+	blurPozadineStr := r.FormValue("blur_pozadine")
 	opacityStr := r.FormValue("opacity")
 
 	blurVal, err := strconv.Atoi(blurStr)
 	if err != nil || blurVal < 0 || blurVal > 20 {
-		middleware.SetFlash(w, r, h.DB, "greska", "Neispravna vrednost zamućenja.")
+		middleware.SetFlash(w, r, h.DB, "greska", "Neispravna vrednost zamućenja stakla.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+	blurPozadineVal, err := strconv.Atoi(blurPozadineStr)
+	if err != nil || blurPozadineVal < 0 || blurPozadineVal > 20 {
+		middleware.SetFlash(w, r, h.DB, "greska", "Neispravna vrednost zamućenja pozadine.")
 		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
 		return
 	}
@@ -660,21 +696,184 @@ func (h *Handler) SacuvajAppPozadinaStilove(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "app_pozadina_blur", blurStr); err != nil {
-		log.Printf("stilovi app pozadine: greška pri čuvanju blur: %v", err)
-		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju podešavanja.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
-		return
-	}
-	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "app_pozadina_opacity", opacityStr); err != nil {
-		log.Printf("stilovi app pozadine: greška pri čuvanju opacity: %v", err)
-		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju podešavanja.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
-		return
+	for kljuc, vrednost := range map[string]string{
+		"app_pozadina_blur":          blurStr,
+		"app_pozadina_blur_pozadine": blurPozadineStr,
+		"app_pozadina_opacity":       opacityStr,
+	} {
+		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, kljuc, vrednost); err != nil {
+			log.Printf("stilovi app pozadine: greška pri čuvanju %s: %v", kljuc, err)
+			middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju podešavanja.")
+			http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+			return
+		}
 	}
 
 	middleware.SetFlash(w, r, h.DB, "uspeh", "Izgled pozadine aplikacije je sačuvan.")
 	http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+}
+
+// SacuvajLoginPozadinaStilove čuva vrednosti zamućenja i prozirnosti pozadine login stranice
+func (h *Handler) SacuvajLoginPozadinaStilove(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "podesavanja.login_pozadina") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čitanju forme.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+
+	blurPozadineStr := r.FormValue("blur_pozadine")
+	blurKarticeStr := r.FormValue("blur_kartice")
+	opacityStr := r.FormValue("opacity")
+
+	blurPozadineVal, err := strconv.Atoi(blurPozadineStr)
+	if err != nil || blurPozadineVal < 0 || blurPozadineVal > 20 {
+		middleware.SetFlash(w, r, h.DB, "greska", "Neispravna vrednost zamućenja pozadine.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+	blurKarticeVal, err := strconv.Atoi(blurKarticeStr)
+	if err != nil || blurKarticeVal < 0 || blurKarticeVal > 20 {
+		middleware.SetFlash(w, r, h.DB, "greska", "Neispravna vrednost zamućenja kartice.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+	opacityVal, err := strconv.Atoi(opacityStr)
+	if err != nil || opacityVal < 0 || opacityVal > 80 {
+		middleware.SetFlash(w, r, h.DB, "greska", "Neispravna vrednost prozirnosti.")
+		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		return
+	}
+
+	for kljuc, vrednost := range map[string]string{
+		"login_pozadina_blur_pozadine": blurPozadineStr,
+		"login_pozadina_blur_kartice":  blurKarticeStr,
+		"login_pozadina_opacity":       opacityStr,
+	} {
+		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, kljuc, vrednost); err != nil {
+			log.Printf("stilovi login pozadine: greška pri čuvanju %s: %v", kljuc, err)
+			middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju podešavanja.")
+			http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+			return
+		}
+	}
+
+	middleware.SetFlash(w, r, h.DB, "uspeh", "Izgled pozadine prijave je sačuvan.")
+	http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+}
+
+// napuniPodaciPodesavanja učitava sva podešavanja i kreira strukturu za template
+func (h *Handler) napuniPodaciPodesavanja(r *http.Request, naslov string) (PodaciPodesavanja, error) {
+	podesavanja, err := ntechsqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	if err != nil {
+		return PodaciPodesavanja{}, err
+	}
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "podesavanja"
+	ps.NaslovStranice = naslov
+	return PodaciPodesavanja{
+		PodaciStranice: ps,
+		NazivFirme:     podesavanja["naziv_firme"],
+		Podnazlov:      podesavanja["podnazlov"],
+		Adresa:         podesavanja["adresa"],
+		Telefon:        podesavanja["telefon"],
+		PIB:            podesavanja["pib"],
+		LogoTip:        podesavanja["logo_tip"],
+		LogoPutanja:    podesavanja["logo_putanja"],
+		Tema:           podesavanja["tema"],
+		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
+		BackupVracen:   r.URL.Query().Get("sacuvano") == "vraceno",
+		Verzija:        h.Verzija,
+		LogoGreska:     r.URL.Query().Get("logo_greska"),
+		Backupi:        ucitajListuBackupa(),
+		LoginPozadina:  podesavanja["login_pozadina"],
+		LoginPozadinaOpacity: func() string {
+			if v := podesavanja["login_pozadina_opacity"]; v != "" {
+				return v
+			}
+			return "50"
+		}(),
+		LoginPozadinaBlurPozadine: func() string {
+			if v := podesavanja["login_pozadina_blur_pozadine"]; v != "" {
+				return v
+			}
+			return "0"
+		}(),
+		LoginPozadinaBlurKartice: func() string {
+			if v := podesavanja["login_pozadina_blur_kartice"]; v != "" {
+				return v
+			}
+			return "12"
+		}(),
+		AppPozadina: podesavanja["app_pozadina"],
+		AppPozadinaOpacity: func() string {
+			if v := podesavanja["app_pozadina_opacity"]; v != "" {
+				return v
+			}
+			return "50"
+		}(),
+		AppPozadinaBlur: func() string {
+			if v := podesavanja["app_pozadina_blur"]; v != "" {
+				return v
+			}
+			return "12"
+		}(),
+		AppPozadinaBlurPozadine: func() string {
+			if v := podesavanja["app_pozadina_blur_pozadine"]; v != "" {
+				return v
+			}
+			return "0"
+		}(),
+	}, nil
+}
+
+// PodesavanjaOpste renderuje stranicu sa opštim podešavanjima (firma i logo)
+func (h *Handler) PodesavanjaOpste(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "podesavanja.pregled") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
+	podaci, err := h.napuniPodaciPodesavanja(r, "Podešavanja — Opšte")
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
+		return
+	}
+	h.renderujTemplate(w, "podesavanja_opste", podaci)
+}
+
+// PodesavanjaIzgled renderuje stranicu sa podešavanjima izgleda (pozadine i tema)
+func (h *Handler) PodesavanjaIzgled(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "podesavanja.pregled") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
+	podaci, err := h.napuniPodaciPodesavanja(r, "Podešavanja — Izgled")
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
+		return
+	}
+	h.renderujTemplate(w, "podesavanja_izgled", podaci)
+}
+
+// PodesavanjaSistem renderuje stranicu sa sistemskim podešavanjima (backup)
+func (h *Handler) PodesavanjaSistem(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "podesavanja.pregled") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
+	podaci, err := h.napuniPodaciPodesavanja(r, "Podešavanja — Sistem")
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
+		return
+	}
+	h.renderujTemplate(w, "podesavanja_sistem", podaci)
 }
 
 // PromeniTemu menja aktivnu temu i vraća na prethodnu stranicu

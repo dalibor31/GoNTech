@@ -24,7 +24,7 @@ var saSidebar = []string{
 	"klijenti", "klijent_forma",
 	"magacin", "magacin_forma",
 	"nabavke", "nabavka_forma", "nabavka_detalji",
-	"podesavanja",
+	"podesavanja", "podesavanja_opste", "podesavanja_izgled", "podesavanja_sistem",
 	"podsetnici", "podsetnik_forma",
 	"prodaja", "prodaja_detalji", "prodaja_forma",
 	"servis", "servis_forma", "servis_detalji",

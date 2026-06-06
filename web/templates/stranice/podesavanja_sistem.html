@@ -1,0 +1,89 @@
+{{template "base" .}}
+
+{{define "naslov"}}Podešavanja — Sistem — NTech{{end}}
+
+{{define "dodatni-css"}}
+<style>
+    .animiraj:nth-child(1) { animation-delay: 0.10s; }
+</style>
+{{end}}
+
+{{define "sadrzaj"}}
+<div style="width:100%;max-width:100%;">
+
+    <!-- sistem kartica -->
+    <div class="kartica animiraj" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sb-akcent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Sistem</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+            <div style="font-size:13px;color:var(--tekst-sporedni);">Verzija programa: <span style="color:var(--tekst-glavni);font-weight:500;">{{.Verzija}}</span></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <a href="/podesavanja/backup"
+                    style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--kartica);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;color:var(--tekst-sporedni);text-decoration:none;transition:background 0.2s;"
+                    onmouseover="this.style.background='var(--pozadina)'" onmouseout="this.style.background='var(--kartica)'">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Preuzmi backup baze
+                </a>
+                <button type="button" onclick="toggleBackupPanel()"
+                    style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--kartica);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;color:var(--tekst-sporedni);cursor:pointer;transition:background 0.2s;"
+                    onmouseover="this.style.background='var(--pozadina)'" onmouseout="this.style.background='var(--kartica)'">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><polyline points="7 5 12 10 17 5"/></svg>
+                    Vrati backup baze
+                </button>
+            </div>
+        </div>
+
+        <!-- panel sa listom backupa -->
+        <div id="backup-panel" style="display:none;margin-top:16px;border-top:0.5px solid var(--ivica);padding-top:16px;">
+            <div style="font-size:13px;font-weight:500;color:var(--tekst-glavni);margin-bottom:10px;">Dostupne rezervne kopije</div>
+            {{if .Backupi}}
+            <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                    <thead>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <th style="padding:8px 12px;text-align:left;font-weight:500;color:var(--tekst-sporedni);">Naziv fajla</th>
+                            <th style="padding:8px 12px;text-align:left;font-weight:500;color:var(--tekst-sporedni);">Datum</th>
+                            <th style="padding:8px 12px;text-align:right;font-weight:500;color:var(--tekst-sporedni);">Veličina</th>
+                            <th style="padding:8px 12px;text-align:right;font-weight:500;color:var(--tekst-sporedni);"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .Backupi}}
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:8px 12px;color:var(--tekst-glavni);font-family:monospace;font-size:12px;">{{.Ime}}</td>
+                            <td style="padding:8px 12px;color:var(--tekst-sporedni);">{{.Datum}}</td>
+                            <td style="padding:8px 12px;text-align:right;color:var(--tekst-sporedni);">{{.Velicina}}</td>
+                            <td style="padding:8px 12px;text-align:right;">
+                                <form method="POST" action="/podesavanja/backup/vrati"
+                                      onsubmit="return confirm('Vratiti bazu na stanje od: {{.Datum}}?\n\nTrenutna baza će biti automatski sačuvana pre obnove.')">
+                                    <input type="hidden" name="ime" value="{{.Ime}}">
+                                    <button type="submit"
+                                        style="padding:4px 12px;background:transparent;border:0.5px solid #fca5a5;border-radius:6px;color:#dc2626;font-size:12px;cursor:pointer;">
+                                        Vrati
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+            {{else}}
+            <div style="padding:20px;text-align:center;color:var(--tekst-sporedni);font-size:13px;">
+                Nema dostupnih rezervnih kopija.
+            </div>
+            {{end}}
+        </div>
+    </div>
+
+</div>
+
+<script>
+function toggleBackupPanel() {
+    var p = document.getElementById('backup-panel');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+</script>
+{{end}}

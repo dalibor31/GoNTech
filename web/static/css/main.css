@@ -201,6 +201,29 @@ body {
     pointer-events: none;
 }
 
+/* accordion podmeni u sidebaru */
+.nav-podmeni {
+    overflow: hidden;
+}
+/* u skupljenom modu alpine x-show kontroliše vidljivost — ne skrivamo display:none */
+.nav-podstavka {
+    padding-left: 48px !important;
+}
+.nav-podstavka span {
+    font-size: 13px !important;
+}
+/* u skupljenom modu reset uvlačenja — ikonica se prikazuje na istoj poziciji */
+.sidebar.skupljen .nav-podstavka {
+    padding-left: 16px !important;
+}
+/* strelica za accordion — sakriva se zajedno sa tekstom u skupljenom modu */
+.nav-strelica {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
 .nav-separator {
     height: 0.5px;
     background: var(--ivica);

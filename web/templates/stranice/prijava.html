@@ -16,29 +16,6 @@
             padding: 16px;
             position: relative;
         }
-        {{if .LoginPozadina}}
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background-image: url('{{.LoginPozadina}}');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            z-index: 0;
-        }
-        body::after {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.40);
-            z-index: 1;
-        }
-        .kartica {
-            position: relative;
-            z-index: 2;
-        }
-        {{end}}
         .kartica {
             background: #1a1d27;
             border: 0.5px solid #2d3148;
@@ -47,6 +24,15 @@
             width: 100%;
             max-width: 380px;
         }
+        {{if .LoginPozadina}}
+        .kartica {
+            background: rgba(255,255,255,0.08) !important;
+            backdrop-filter: blur({{.LoginPozadinaBlurKartice}}px);
+            -webkit-backdrop-filter: blur({{.LoginPozadinaBlurKartice}}px);
+            border: 1px solid rgba(255,255,255,0.18) !important;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        {{end}}
         .logo {
             text-align: center;
             margin-bottom: 32px;
@@ -122,6 +108,12 @@
     </style>
 </head>
 <body>
+    {{if .LoginPozadina}}
+    <div style="position:fixed;inset:0;z-index:-1;background-image:url('{{.LoginPozadina}}');background-size:cover;background-position:center;{{if ne .LoginPozadinaBlurPozadine "0"}}filter:blur({{.LoginPozadinaBlurPozadine}}px);transform:scale(1.05);{{end}}"></div>
+    <div style="position:fixed;inset:0;z-index:0;background:rgba(0,0,0,{{.LoginPozadinaOpacity}}%);"></div>
+    <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:1;padding:16px;">
+    {{end}}
+
     <div class="kartica animiraj">
         <div class="logo">
             <div class="logo-naziv">NTech</div>
@@ -160,5 +152,9 @@
             <button type="submit" class="dugme">Prijavi se</button>
         </form>
     </div>
+
+    {{if .LoginPozadina}}
+    </div>
+    {{end}}
 </body>
 </html>
