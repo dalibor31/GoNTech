@@ -17,6 +17,7 @@ type Korisnik struct {
 	LokalnaPozadinaOpacity       string
 	LokalnaPozadinaBlur          string
 	LokalnaPozadinaBlurPozadine  string
+	LokalnaPozadinaGlassOpacity  string
 }
 
 // Sesija predstavlja aktivnu sesiju prijavljenog korisnika

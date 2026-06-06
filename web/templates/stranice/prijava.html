@@ -26,7 +26,7 @@
         }
         {{if .LoginPozadina}}
         .kartica {
-            background: rgba(255,255,255,0.08) !important;
+            background: rgba(0,0,0,{{.LoginPozadinaZatamnjenjeKartice}}%) !important;
             backdrop-filter: blur({{.LoginPozadinaBlurKartice}}px);
             -webkit-backdrop-filter: blur({{.LoginPozadinaBlurKartice}}px);
             border: 1px solid rgba(255,255,255,0.18) !important;

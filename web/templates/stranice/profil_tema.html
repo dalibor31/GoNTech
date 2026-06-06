@@ -15,48 +15,52 @@
 
     <!-- kartica: moja tema -->
     <div class="kartica animiraj" x-data="{
-        globalnu: {{if .KoristiGlobalnuTemu}}true{{else}}false{{end}},
         tema: '{{if .LokalnaTema}}{{.LokalnaTema}}{{else}}tamna{{end}}'
     }" style="margin-bottom:16px;">
         <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
             Moja tema
         </div>
 
-        {{if not .AppPozadina}}
-        <div style="display:flex;align-items:center;justify-content:space-between;opacity:0.5;cursor:not-allowed;"
-            title="Administrator nije postavio pozadinsku sliku">
+        {{if .LokalnaPozadina}}
+        <!-- lična pozadina je aktivna — tamna tema se forsira automatski -->
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(99,102,241,0.10);border:0.5px solid rgba(99,102,241,0.3);border-radius:8px;margin-bottom:14px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--sb-akcent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             <div>
-                <div style="font-size:14px;color:var(--tekst-glavni);font-weight:500;">Koristi globalnu temu</div>
-                <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:2px;">Nema aktivne pozadinske slike</div>
+                <div style="font-size:13px;color:var(--tekst-glavni);font-weight:500;">Tamna tema je aktivna</div>
+                <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:2px;">Lična pozadinska slika automatski primenjuje tamnu temu.</div>
             </div>
-            <label style="position:relative;display:inline-block;width:44px;height:24px;pointer-events:none;">
-                <span style="position:absolute;inset:0;border-radius:24px;background:var(--ivica);"></span>
-                <span style="position:absolute;left:2px;top:2px;width:20px;height:20px;background:#fff;border-radius:50%;"></span>
-            </label>
         </div>
-        {{else}}
         <form method="POST" action="/profil/tema">
             <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
-            <div style="display:flex;flex-direction:column;gap:14px;">
-
-                <!-- svič: globalnu=true → koristi globalnu; globalnu=false → koristi lokalnu -->
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <div>
-                        <div style="font-size:14px;color:var(--tekst-glavni);font-weight:500;">Koristi globalnu temu</div>
-                        <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:2px;" x-text="globalnu ? 'Primenjuje se globalna tema sistema' : 'Primenjuje se vaša lična tema'"></div>
-                    </div>
-                    <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;">
-                        <input type="checkbox" style="opacity:0;width:0;height:0;position:absolute;"
-                            x-model="globalnu">
-                        <span :style="'position:absolute;inset:0;border-radius:24px;transition:0.2s;background:' + (globalnu ? 'var(--sb-akcent)' : 'var(--ivica)')"></span>
-                        <span :style="'position:absolute;left:' + (globalnu ? '22px' : '2px') + ';top:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:0.2s;'"></span>
+            <!-- kada postoji lična pozadina, uvek čuvamo lokalni režim kako bi tema bila primenjena po uklanjanju pozadine -->
+            <input type="hidden" name="koristi_lokalnu_temu" value="1">
+            <div style="padding:12px;background:var(--pozadina);border-radius:8px;border:0.5px solid var(--ivica);">
+                <div style="font-size:13px;color:var(--tekst-sporedni);margin-bottom:10px;">Tema po uklanjanju pozadine:</div>
+                <div style="display:flex;gap:16px;">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;color:var(--tekst-glavni);">
+                        <input type="radio" name="lokalna_tema" value="tamna" x-model="tema">
+                        Tamna
                     </label>
-                    <!-- globalnu=true → koristi_lokalnu_temu=0; globalnu=false → koristi_lokalnu_temu=1 -->
-                    <input type="hidden" name="koristi_lokalnu_temu" :value="globalnu ? '0' : '1'">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;color:var(--tekst-glavni);">
+                        <input type="radio" name="lokalna_tema" value="svetla" x-model="tema">
+                        Svetla
+                    </label>
                 </div>
-
-                <!-- radio dugmići vidljivi samo kada je lokalna tema aktivna -->
-                <div x-show="!globalnu" x-transition style="padding:12px;background:var(--pozadina);border-radius:8px;border:0.5px solid var(--ivica);">
+            </div>
+            <div style="margin-top:12px;">
+                <button type="submit"
+                    style="padding:9px 20px;background:var(--sb-akcent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;">
+                    Sačuvaj
+                </button>
+            </div>
+        </form>
+        {{else}}
+        <!-- nema lične pozadine — direktan izbor između tamne i svetle teme -->
+        <form method="POST" action="/profil/tema">
+            <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+            <input type="hidden" name="koristi_lokalnu_temu" value="1">
+            <div style="display:flex;flex-direction:column;gap:14px;">
+                <div style="padding:12px;background:var(--pozadina);border-radius:8px;border:0.5px solid var(--ivica);">
                     <div style="font-size:13px;color:var(--tekst-sporedni);margin-bottom:10px;">Izaberite temu:</div>
                     <div style="display:flex;gap:16px;">
                         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;color:var(--tekst-glavni);">
@@ -69,7 +73,6 @@
                         </label>
                     </div>
                 </div>
-
                 <div>
                     <button type="submit"
                         style="padding:9px 20px;background:var(--sb-akcent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;">
@@ -120,24 +123,24 @@
             <div style="font-size:12px;color:var(--tekst-sporedni);">JPG, PNG ili WebP — maksimum 5 MB</div>
         </form>
 
-        <div x-data="{ blur: {{.LokalnaPozadinaBlur}}, opacity: {{.LokalnaPozadinaOpacity}}, blurPozadine: {{.LokalnaPozadinaBlurPozadine}} }"
+        <div x-data="{ blur: {{.LokalnaPozadinaBlur}}, opacity: {{.LokalnaPozadinaOpacity}}, blurPozadine: {{.LokalnaPozadinaBlurPozadine}}, glassOpacity: {{.LokalnaPozadinaGlassOpacity}} }"
              style="margin-top:20px;">
 
             <div style="position:relative;width:100%;height:180px;border-radius:8px;overflow:hidden;">
                 <div :style="`position:absolute;inset:0;{{if .LokalnaPozadina}}background:url('{{.LokalnaPozadina}}') center/cover;{{else}}background:#1a2033;{{end}}z-index:0;filter:blur(${blurPozadine}px);-webkit-filter:blur(${blurPozadine}px);transform:scale(1.05);`"></div>
                 <div :style="`position:absolute;inset:0;z-index:1;pointer-events:none;background:rgba(0,0,0,${opacity/100})`"></div>
-                <div :style="`position:absolute;top:0;left:0;bottom:0;z-index:2;width:56px;background:rgba(255,255,255,0.10);backdrop-filter:blur(${blur}px);-webkit-backdrop-filter:blur(${blur}px);border-right:1px solid rgba(255,255,255,0.15);display:flex;flex-direction:column;align-items:center;padding-top:10px;gap:12px`">
+                <div :style="`position:absolute;top:0;left:0;bottom:0;z-index:2;width:56px;background:rgba(0,0,0,${glassOpacity/100});backdrop-filter:blur(${blur}px);-webkit-backdrop-filter:blur(${blur}px);border-right:1px solid rgba(255,255,255,0.15);display:flex;flex-direction:column;align-items:center;padding-top:10px;gap:12px`">
                     <div style="width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,0.25);flex-shrink:0;"></div>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
                 </div>
                 <div style="position:absolute;top:12px;left:68px;right:12px;z-index:2;display:flex;flex-direction:column;gap:7px;">
-                    <div :style="`height:36px;border-radius:6px;background:rgba(255,255,255,0.10);backdrop-filter:blur(${blur}px);-webkit-backdrop-filter:blur(${blur}px);border:1px solid rgba(255,255,255,0.15);display:flex;flex-direction:column;justify-content:center;padding:0 10px`">
+                    <div :style="`height:36px;border-radius:6px;background:rgba(0,0,0,${glassOpacity/100});backdrop-filter:blur(${blur}px);-webkit-backdrop-filter:blur(${blur}px);border:1px solid rgba(255,255,255,0.15);display:flex;flex-direction:column;justify-content:center;padding:0 10px`">
                         <div style="display:block;font-size:9px;color:white;opacity:0.7;line-height:1.2;">Artikli</div>
                         <div style="display:block;font-size:13px;color:white;font-weight:500;line-height:1.3;">1.284</div>
                     </div>
-                    <div :style="`height:36px;border-radius:6px;background:rgba(255,255,255,0.10);backdrop-filter:blur(${blur}px);-webkit-backdrop-filter:blur(${blur}px);border:1px solid rgba(255,255,255,0.15);display:flex;flex-direction:column;justify-content:center;padding:0 10px`">
+                    <div :style="`height:36px;border-radius:6px;background:rgba(0,0,0,${glassOpacity/100});backdrop-filter:blur(${blur}px);-webkit-backdrop-filter:blur(${blur}px);border:1px solid rgba(255,255,255,0.15);display:flex;flex-direction:column;justify-content:center;padding:0 10px`">
                         <div style="display:block;font-size:9px;color:white;opacity:0.7;line-height:1.2;">Servis</div>
                         <div style="display:block;font-size:13px;color:white;font-weight:500;line-height:1.3;">47</div>
                     </div>
@@ -162,10 +165,18 @@
             </div>
             <div style="margin-top:12px;">
                 <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-                    <span style="font-size:13px;color:var(--tekst-sporedni);">Zatamnjivanje</span>
+                    <span style="font-size:13px;color:var(--tekst-sporedni);">Zatamnjivanje pozadine</span>
                     <span style="font-size:13px;color:var(--tekst-glavni);font-weight:500;" x-text="opacity + '%'"></span>
                 </div>
                 <input type="range" x-model.number="opacity" min="0" max="80" step="1"
+                    style="width:100%;accent-color:var(--sb-akcent);cursor:pointer;">
+            </div>
+            <div style="margin-top:12px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                    <span style="font-size:13px;color:var(--tekst-sporedni);">Zatamnjivanje stakla</span>
+                    <span style="font-size:13px;color:var(--tekst-glavni);font-weight:500;" x-text="glassOpacity + '%'"></span>
+                </div>
+                <input type="range" x-model.number="glassOpacity" min="0" max="80" step="1"
                     style="width:100%;accent-color:var(--sb-akcent);cursor:pointer;">
             </div>
             <form method="POST" action="/profil/pozadina/stilovi" style="margin-top:16px;">
@@ -173,6 +184,7 @@
                 <input type="hidden" name="lokalna_pozadina_opacity" :value="opacity">
                 <input type="hidden" name="lokalna_pozadina_blur" :value="blur">
                 <input type="hidden" name="lokalna_pozadina_blur_pozadine" :value="blurPozadine">
+                <input type="hidden" name="lokalna_pozadina_glass_opacity" :value="glassOpacity">
                 <button type="submit"
                     style="padding:9px 22px;background:var(--sb-akcent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;">
                     Sačuvaj izgled
