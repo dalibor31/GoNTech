@@ -1,15 +1,13 @@
 {{template "base" .}}
 
-{{define "naslov"}}Podešavanja — NTech{{end}}
+{{define "naslov"}}Podešavanja — Izgled — NTech{{end}}
 
 {{define "dodatni-css"}}
 <style>
     .animiraj:nth-child(1) { animation-delay: 0.10s; }
     .animiraj:nth-child(2) { animation-delay: 0.16s; }
     .animiraj:nth-child(3) { animation-delay: 0.22s; }
-    .animiraj:nth-child(4) { animation-delay: 0.28s; }
 
-    /* dvostupčani raspored za app pozadinu */
     .app-poz-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -18,63 +16,6 @@
     }
     @media (max-width: 680px) {
         .app-poz-grid { grid-template-columns: 1fr; }
-    }
-
-    /* custom file input */
-    .custom-file-label {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 12px;
-        background: var(--pozadina);
-        border: 0.5px solid var(--ivica);
-        border-radius: 8px;
-        font-size: 13px;
-        color: var(--tekst-sporedni);
-        cursor: pointer;
-        transition: border-color 0.2s;
-        min-width: 0;
-        overflow: hidden;
-    }
-    .custom-file-label:hover { border-color: var(--sb-akcent); color: var(--tekst-glavni); }
-    .custom-file-label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-    .toast {
-        position: fixed;
-        bottom: 24px;
-        right: 24px;
-        z-index: 9999;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 12px 18px;
-        border-radius: 10px;
-        font-size: 13px;
-        font-weight: 500;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-        animation: toastIn 0.3s ease forwards;
-        max-width: 340px;
-    }
-    .toast-greska {
-        background: #fef2f2;
-        color: #dc2626;
-        border: 0.5px solid #fca5a5;
-    }
-    .toast-uspeh {
-        background: #f0fdf4;
-        color: #16a34a;
-        border: 0.5px solid #86efac;
-    }
-    @keyframes toastIn {
-        from { opacity: 0; transform: translateY(12px); }
-        to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes toastOut {
-        from { opacity: 1; transform: translateY(0); }
-        to   { opacity: 0; transform: translateY(12px); }
-    }
-    .toast.nestaje {
-        animation: toastOut 0.3s ease forwards;
     }
 </style>
 {{end}}
@@ -85,128 +26,14 @@
     {{if .Sacuvano}}
     <div class="poruka-uspeh">Podešavanja su uspešno sačuvana.</div>
     {{end}}
-    {{if .BackupVracen}}
-    <div class="poruka-uspeh">Baza je uspešno obnovljena iz rezervne kopije.</div>
-    {{end}}
-
-    <!-- ═══════════════════════════════════════════════ OPŠTE ══ -->
-    <div id="opste" style="scroll-margin-top:20px;">
-
-    <!-- upload loga — posebna forma jer je multipart, mora biti van glavne forme -->
-    <form method="POST" action="/podesavanja/logo" enctype="multipart/form-data">
-        <div class="kartica animiraj" style="margin-bottom:16px;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sb-akcent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Logo firme</span>
-            </div>
-            {{if .LogoPutanja}}
-            <div style="margin-bottom:12px;">
-                <img src="{{.LogoPutanja}}" alt="Trenutni logo"
-                    style="max-height:60px;max-width:200px;object-fit:contain;border:0.5px solid var(--ivica);border-radius:8px;padding:6px;background:var(--kartica);">
-            </div>
-            {{end}}
-            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-                <input type="file" name="logo" accept=".png,.jpg,.jpeg,.svg"
-                    style="flex:1;min-width:200px;font-size:13px;color:var(--tekst-sporedni);">
-                <button type="submit"
-                    style="padding:8px 16px;background:var(--sb-aktivan);color:var(--tekst-jak);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap;transition:opacity 0.2s;"
-                    onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
-                    Otpremi logo
-                </button>
-            </div>
-            <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:6px;">PNG, JPG ili SVG — maksimum 2 MB</div>
-        </div>
-    </form>
-
-    <!-- firma: naziv, podnazlov, adresa, telefon, PIB, logo zona -->
-    <form method="POST" action="/podesavanja/sacuvaj">
-        <div class="kartica animiraj" style="margin-bottom:16px;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sb-akcent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Firma</span>
-            </div>
-
-            <div style="display:flex;flex-direction:column;gap:14px;">
-                <div>
-                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Naziv firme</label>
-                    <input type="text" name="naziv_firme" value="{{.NazivFirme}}"
-                        style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;"
-                        placeholder="npr. NTech">
-                </div>
-
-                <div>
-                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Podnazlov</label>
-                    <input type="text" name="podnazlov" value="{{.Podnazlov}}"
-                        style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;"
-                        placeholder="npr. Servis računara">
-                </div>
-
-                <div>
-                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Adresa</label>
-                    <input type="text" name="adresa" value="{{.Adresa}}"
-                        style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;"
-                        placeholder="npr. Ulica i broj, Grad">
-                </div>
-
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-                    <div>
-                        <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Telefon</label>
-                        <input type="text" name="telefon" value="{{.Telefon}}"
-                            style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;"
-                            placeholder="npr. +381 11 123 4567">
-                    </div>
-                    <div>
-                        <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">PIB</label>
-                        <input type="text" name="pib" value="{{.PIB}}"
-                            style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;"
-                            placeholder="npr. 123456789">
-                    </div>
-                </div>
-
-                <div>
-                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:8px;">Logo zona</label>
-                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                        <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;cursor:pointer;flex:1;{{if or (eq .LogoTip "sa_nazivom") (eq .LogoTip "tekst") (eq .LogoTip "ikonica") (not .LogoTip)}}border-color:var(--sb-akcent);background:var(--pozadina);{{end}}">
-                            <input type="radio" name="logo_tip" value="sa_nazivom" {{if or (eq .LogoTip "sa_nazivom") (eq .LogoTip "tekst") (eq .LogoTip "ikonica") (not .LogoTip)}}checked{{end}} style="accent-color:var(--sb-akcent);">
-                            <span style="font-size:13px;color:var(--tekst-glavni);">Sa nazivom</span>
-                        </label>
-                        <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;cursor:pointer;flex:1;{{if eq .LogoTip "bez_naziva"}}border-color:var(--sb-akcent);background:var(--pozadina);{{end}}">
-                            <input type="radio" name="logo_tip" value="bez_naziva" {{if eq .LogoTip "bez_naziva"}}checked{{end}} style="accent-color:var(--sb-akcent);">
-                            <span style="font-size:13px;color:var(--tekst-glavni);">Bez naziva</span>
-                        </label>
-                        <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;flex:1;{{if eq .LogoTip "slika"}}border-color:var(--sb-akcent);background:var(--pozadina);{{end}}{{if not .LogoPutanja}}opacity:0.45;cursor:not-allowed;{{else}}cursor:pointer;{{end}}">
-                            <input type="radio" name="logo_tip" value="slika" {{if eq .LogoTip "slika"}}checked{{end}} {{if not .LogoPutanja}}disabled{{end}} style="accent-color:var(--sb-akcent);">
-                            <span style="font-size:13px;color:var(--tekst-glavni);">Sa logom</span>
-                        </label>
-                    </div>
-                </div>
-
-            </div>
-
-            <div style="display:flex;justify-content:flex-end;margin-top:20px;">
-                <button type="submit"
-                    style="background:var(--sb-akcent);color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:opacity 0.2s;"
-                    onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
-                    Sačuvaj opšte
-                </button>
-            </div>
-        </div>
-    </form>
-
-    </div><!-- /opste -->
-
-    <!-- ══════════════════════════════════════════════ IZGLED ══ -->
-    <div id="izgled" style="scroll-margin-top:20px;">
 
     <!-- pozadinska slika aplikacije -->
     <div class="kartica animiraj" style="margin-bottom:16px;">
 
-        <!-- naslov sekcije -->
         <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
             Pozadinska slika aplikacije
         </div>
 
-        <!-- thumbnail trenutne slike + brisanje -->
         {{if .AppPozadina}}
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
             <img src="{{.AppPozadina}}" alt="Trenutna pozadina"
@@ -222,7 +49,6 @@
         </div>
         {{end}}
 
-        <!-- upload forma -->
         <form method="POST" action="/podesavanja/app-pozadina" enctype="multipart/form-data">
             <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
@@ -240,20 +66,12 @@
             <div style="font-size:12px;color:var(--tekst-sporedni);">JPG, PNG ili WebP — maksimum 5 MB</div>
         </form>
 
-        <!-- pregled -->
         <div x-data="{ blur: {{.AppPozadinaBlur}}, blurPozadine: {{.AppPozadinaBlurPozadine}}, opacity: {{.AppPozadinaOpacity}} }"
              style="margin-top:20px;">
 
-            <!-- panel za pregled -->
             <div style="position:relative;width:100%;height:200px;border-radius:8px;overflow:hidden;">
-
-                <!-- pozadinska slika sa blur-om -->
                 <div :style="`position:absolute;inset:${blurPozadine > 0 ? '-20px' : '0'};{{if .AppPozadina}}background:url('{{.AppPozadina}}') center/cover;{{else}}background:#1a2033;{{end}}filter:blur(${blurPozadine}px);z-index:0;`"></div>
-
-                <!-- overlay: svi stilovi u :style jer Alpine cssText zamenjuje ceo style atribut -->
                 <div :style="`position:absolute;inset:0;z-index:1;pointer-events:none;background:rgba(0,0,0,${opacity/100})`"></div>
-
-                <!-- levi stub: simulacija sidebara sa glass stilom i inline SVG ikonama -->
                 <div :style="`position:absolute;top:0;left:0;bottom:0;z-index:2;width:56px;background:rgba(255,255,255,0.10);backdrop-filter:blur(${blur}px);-webkit-backdrop-filter:blur(${blur}px);border-right:1px solid rgba(255,255,255,0.15);display:flex;flex-direction:column;align-items:center;padding-top:10px;gap:12px`">
                     <div style="width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,0.25);flex-shrink:0;"></div>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
@@ -263,8 +81,6 @@
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
                 </div>
-
-                <!-- desna oblast -->
                 <div style="position:absolute;top:12px;left:68px;right:12px;z-index:2;display:flex;flex-direction:column;gap:7px;">
                     <div :style="`height:40px;border-radius:6px;background:rgba(255,255,255,0.10);backdrop-filter:blur(${blur}px);-webkit-backdrop-filter:blur(${blur}px);border:1px solid rgba(255,255,255,0.15);display:flex;flex-direction:column;justify-content:center;padding:0 10px`">
                         <div style="display:block;font-size:9px;color:white;opacity:0.7;line-height:1.2;">Artikli</div>
@@ -279,10 +95,8 @@
                         <div style="display:block;font-size:13px;color:white;font-weight:500;line-height:1.3;">284.500</div>
                     </div>
                 </div>
-
             </div>
 
-            <!-- slider: zamućenje pozadine -->
             <div style="margin-top:16px;">
                 <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
                     <span style="font-size:13px;color:var(--tekst-sporedni);">Zamućenje pozadine</span>
@@ -291,8 +105,6 @@
                 <input type="range" x-model.number="blurPozadine" min="0" max="20" step="1"
                     style="width:100%;accent-color:var(--sb-akcent);cursor:pointer;">
             </div>
-
-            <!-- slider: zamućenje stakla -->
             <div style="margin-top:12px;">
                 <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
                     <span style="font-size:13px;color:var(--tekst-sporedni);">Zamućenje stakla</span>
@@ -301,8 +113,6 @@
                 <input type="range" x-model.number="blur" min="0" max="20" step="1"
                     style="width:100%;accent-color:var(--sb-akcent);cursor:pointer;">
             </div>
-
-            <!-- slider: zatamnjivanje -->
             <div style="margin-top:12px;">
                 <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
                     <span style="font-size:13px;color:var(--tekst-sporedni);">Zatamnjivanje</span>
@@ -311,8 +121,6 @@
                 <input type="range" x-model.number="opacity" min="0" max="80" step="1"
                     style="width:100%;accent-color:var(--sb-akcent);cursor:pointer;">
             </div>
-
-            <!-- forma za čuvanje stilova -->
             <form method="POST" action="/podesavanja/app-pozadina/stilovi" style="margin-top:16px;">
                 <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
                 <input type="hidden" name="blur" :value="blur">
@@ -362,19 +170,12 @@
             <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:6px;">JPG, PNG ili WebP — maksimum 5 MB</div>
         </form>
 
-        <!-- pregled login pozadine -->
         <div x-data="{ blurPozadine: {{.LoginPozadinaBlurPozadine}}, blurKartice: {{.LoginPozadinaBlurKartice}}, opacity: {{.LoginPozadinaOpacity}} }"
              style="margin-top:20px;">
 
-            <!-- panel za pregled -->
             <div style="position:relative;width:100%;height:220px;border-radius:8px;overflow:hidden;">
-                <!-- pozadinska slika sa blur-om — mora biti zasebni div jer Alpine :style zamenjuje ceo style atribut -->
                 <div :style="`position:absolute;inset:${blurPozadine > 0 ? '-20px' : '0'};{{if .LoginPozadina}}background:url('{{.LoginPozadina}}') center/cover;{{else}}background:#1a2033;{{end}}filter:blur(${blurPozadine}px);z-index:0;`"></div>
-
-                <!-- overlay zatamnjivanje -->
                 <div :style="`position:absolute;inset:0;z-index:1;pointer-events:none;background:rgba(0,0,0,${opacity/100})`"></div>
-
-                <!-- lažni login form u centru -->
                 <div style="position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;pointer-events:none;">
                     <div :style="`width:140px;border-radius:10px;background:rgba(255,255,255,0.08);backdrop-filter:blur(${blurKartice}px);-webkit-backdrop-filter:blur(${blurKartice}px);border:1px solid rgba(255,255,255,0.18);box-shadow:0 8px 32px rgba(0,0,0,0.3);padding:14px 16px;`">
                         <div style="font-size:11px;font-weight:600;color:white;text-align:center;margin-bottom:10px;letter-spacing:-0.2px;">NTech</div>
@@ -383,10 +184,8 @@
                         <div style="height:22px;background:#e53e3e;border-radius:5px;opacity:0.85;"></div>
                     </div>
                 </div>
-
             </div>
 
-            <!-- slider: zamućenje pozadine -->
             <div style="margin-top:16px;">
                 <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
                     <span style="font-size:13px;color:var(--tekst-sporedni);">Zamućenje pozadine</span>
@@ -395,8 +194,6 @@
                 <input type="range" x-model.number="blurPozadine" min="0" max="20" step="1"
                     style="width:100%;accent-color:var(--sb-akcent);cursor:pointer;">
             </div>
-
-            <!-- slider: zamućenje kartice -->
             <div style="margin-top:12px;">
                 <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
                     <span style="font-size:13px;color:var(--tekst-sporedni);">Zamućenje kartice (glass)</span>
@@ -405,8 +202,6 @@
                 <input type="range" x-model.number="blurKartice" min="0" max="20" step="1"
                     style="width:100%;accent-color:var(--sb-akcent);cursor:pointer;">
             </div>
-
-            <!-- slider: zatamnjivanje -->
             <div style="margin-top:12px;">
                 <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
                     <span style="font-size:13px;color:var(--tekst-sporedni);">Zatamnjivanje</span>
@@ -415,8 +210,6 @@
                 <input type="range" x-model.number="opacity" min="0" max="80" step="1"
                     style="width:100%;accent-color:var(--sb-akcent);cursor:pointer;">
             </div>
-
-            <!-- forma za čuvanje stilova -->
             <form method="POST" action="/podesavanja/login-pozadina/stilovi" style="margin-top:16px;">
                 <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
                 <input type="hidden" name="blur_pozadine" :value="blurPozadine">
@@ -433,6 +226,7 @@
 
     <!-- tema -->
     <form method="POST" action="/podesavanja/sacuvaj">
+        <input type="hidden" name="_next" value="/admin/podesavanja/izgled">
         <div class="kartica animiraj" style="margin-bottom:16px;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sb-akcent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
@@ -465,102 +259,5 @@
         </div>
     </form>
 
-    </div><!-- /izgled -->
-
-    <!-- ══════════════════════════════════════════════ SISTEM ══ -->
-    <div id="sistem" style="scroll-margin-top:20px;">
-
-    <div class="kartica animiraj" style="margin-bottom:16px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sb-akcent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Sistem</span>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-            <div style="font-size:13px;color:var(--tekst-sporedni);">Verzija programa: <span style="color:var(--tekst-glavni);font-weight:500;">{{.Verzija}}</span></div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <a href="/podesavanja/backup"
-                    style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--kartica);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;color:var(--tekst-sporedni);text-decoration:none;transition:background 0.2s;"
-                    onmouseover="this.style.background='var(--pozadina)'" onmouseout="this.style.background='var(--kartica)'">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    Preuzmi backup baze
-                </a>
-                <button type="button" onclick="toggleBackupPanel()"
-                    style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--kartica);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;color:var(--tekst-sporedni);cursor:pointer;transition:background 0.2s;"
-                    onmouseover="this.style.background='var(--pozadina)'" onmouseout="this.style.background='var(--kartica)'">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><polyline points="7 5 12 10 17 5"/></svg>
-                    Vrati backup baze
-                </button>
-            </div>
-        </div>
-
-        <!-- panel sa listom backupa -->
-        <div id="backup-panel" style="display:none;margin-top:16px;border-top:0.5px solid var(--ivica);padding-top:16px;">
-            <div style="font-size:13px;font-weight:500;color:var(--tekst-glavni);margin-bottom:10px;">Dostupne rezervne kopije</div>
-            {{if .Backupi}}
-            <div style="overflow-x:auto;">
-                <table style="width:100%;border-collapse:collapse;font-size:13px;">
-                    <thead>
-                        <tr style="border-bottom:0.5px solid var(--ivica);">
-                            <th style="padding:8px 12px;text-align:left;font-weight:500;color:var(--tekst-sporedni);">Naziv fajla</th>
-                            <th style="padding:8px 12px;text-align:left;font-weight:500;color:var(--tekst-sporedni);">Datum</th>
-                            <th style="padding:8px 12px;text-align:right;font-weight:500;color:var(--tekst-sporedni);">Veličina</th>
-                            <th style="padding:8px 12px;text-align:right;font-weight:500;color:var(--tekst-sporedni);"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {{range .Backupi}}
-                        <tr style="border-bottom:0.5px solid var(--ivica);">
-                            <td style="padding:8px 12px;color:var(--tekst-glavni);font-family:monospace;font-size:12px;">{{.Ime}}</td>
-                            <td style="padding:8px 12px;color:var(--tekst-sporedni);">{{.Datum}}</td>
-                            <td style="padding:8px 12px;text-align:right;color:var(--tekst-sporedni);">{{.Velicina}}</td>
-                            <td style="padding:8px 12px;text-align:right;">
-                                <form method="POST" action="/podesavanja/backup/vrati"
-                                      onsubmit="return confirm('Vratiti bazu na stanje od: {{.Datum}}?\n\nTrenutna baza će biti automatski sačuvana pre obnove.')">
-                                    <input type="hidden" name="ime" value="{{.Ime}}">
-                                    <button type="submit"
-                                        style="padding:4px 12px;background:transparent;border:0.5px solid #fca5a5;border-radius:6px;color:#dc2626;font-size:12px;cursor:pointer;">
-                                        Vrati
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        {{end}}
-                    </tbody>
-                </table>
-            </div>
-            {{else}}
-            <div style="padding:20px;text-align:center;color:var(--tekst-sporedni);font-size:13px;">
-                Nema dostupnih rezervnih kopija.
-            </div>
-            {{end}}
-        </div>
-    </div>
-
-    </div><!-- /sistem -->
-
 </div>
-
-<script>
-function toggleBackupPanel() {
-    var p = document.getElementById('backup-panel');
-    p.style.display = p.style.display === 'none' ? 'block' : 'none';
-}
-</script>
-
-{{if .LogoGreska}}
-<div id="toast-logo" class="toast toast-greska">
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-    {{.LogoGreska}}
-</div>
-<script>
-(function() {
-    var t = document.getElementById('toast-logo');
-    if (!t) return;
-    setTimeout(function() {
-        t.classList.add('nestaje');
-        setTimeout(function() { t.remove(); }, 300);
-    }, 4000);
-})();
-</script>
-{{end}}
 {{end}}

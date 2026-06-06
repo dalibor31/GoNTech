@@ -45,9 +45,10 @@ type PodaciStranice struct {
 	Dozvole        map[string]bool // mapa akcija → dozvoljeno/nije
 	Flash          *FlashPoruka    // jednokratna poruka nakon redirecta
 	// app pozadina — popunjava se iz podešavanja za sve stranice
-	AppPozadina        string
-	AppPozadinaOpacity string // vrednost 0-80 (% overlay zatamnjivanja)
-	AppPozadinaBlur    string // vrednost 0-20 (px backdrop-filter blur)
+	AppPozadina             string
+	AppPozadinaOpacity      string // vrednost 0-80 (% overlay zatamnjivanja)
+	AppPozadinaBlur         string // vrednost 0-20 (px backdrop-filter blur na elementima)
+	AppPozadinaBlurPozadine string // vrednost 0-20 (px filter blur na pozadinskoj slici)
 }
 
 // PodaciDashboarda su podaci specifični za dashboard stranicu

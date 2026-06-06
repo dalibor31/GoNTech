@@ -31,16 +31,31 @@ func (h *Handler) PrikazPrijave(w http.ResponseWriter, r *http.Request) {
 
 	greska := r.URL.Query().Get("greska")
 
-	// login_pozadina se čita bez prijavljenog korisnika — koristimo background kontekst
+	// login_pozadina i stilovi se čitaju bez prijavljenog korisnika — koristimo background kontekst
 	loginPozadina := ""
+	loginOpacity := "50"
+	loginBlurPozadine := "0"
+	loginBlurKartice := "12"
 	if podesavanja, err := ntechsqlite.DohvatiSvaPodesavanja(context.Background(), h.DB); err == nil {
 		loginPozadina = podesavanja["login_pozadina"]
+		if v := podesavanja["login_pozadina_opacity"]; v != "" {
+			loginOpacity = v
+		}
+		if v := podesavanja["login_pozadina_blur_pozadine"]; v != "" {
+			loginBlurPozadine = v
+		}
+		if v := podesavanja["login_pozadina_blur_kartice"]; v != "" {
+			loginBlurKartice = v
+		}
 	}
 
 	h.renderujStandalone(w, "prijava", map[string]any{
-		"Greska":        greska,
-		"CsrfToken":     middleware.CsrfToken(r.Context()),
-		"LoginPozadina": loginPozadina,
+		"Greska":                  greska,
+		"CsrfToken":               middleware.CsrfToken(r.Context()),
+		"LoginPozadina":           loginPozadina,
+		"LoginPozadinaOpacity":    loginOpacity,
+		"LoginPozadinaBlurPozadine": loginBlurPozadine,
+		"LoginPozadinaBlurKartice": loginBlurKartice,
 	})
 }
 
