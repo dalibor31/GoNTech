@@ -57,6 +57,23 @@
                         style="width:100%;resize:vertical;">{{.Podsetnik.Napomena}}</textarea>
                 </div>
 
+                {{if .Korisnici}}
+                <div>
+                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">
+                        Dodeli korisniku
+                    </label>
+                    <select name="korisnik_id" style="width:100%;">
+                        <option value="">— Nije dodeljeno —</option>
+                        {{range .Korisnici}}
+                        <option value="{{.ID}}"
+                            {{if eq $.Podsetnik.KorisnikIDVal .ID}}selected{{end}}>
+                            {{.KorisnickoIme}} ({{.Uloga}})
+                        </option>
+                        {{end}}
+                    </select>
+                </div>
+                {{end}}
+
                 <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:4px;">
                     <a href="/podsetnici" class="btn-sekundarno">Odustani</a>
                     <button type="submit" class="btn-primarno">

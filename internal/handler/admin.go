@@ -30,7 +30,22 @@ type podaciAdminProfil struct {
 	TotpURI   string
 	TotpTajna string
 	TotpQR    template.URL
-	TotpAktivan bool
+	TotpAktivan        bool
+	LokalnaTema        string
+	KoristiLokalnuTemu bool
+	GlobalnaTema       string
+}
+
+type podaciProfilTema struct {
+	model.PodaciStranice
+	LokalnaTema                 string
+	KoristiLokalnuTemu          bool
+	KoristiGlobalnuTemu         bool // !KoristiLokalnuTemu — za Alpine.js svič "Koristi globalnu temu"
+	GlobalnaTema                string
+	LokalnaPozadina             string
+	LokalnaPozadinaOpacity      string
+	LokalnaPozadinaBlur         string
+	LokalnaPozadinaBlurPozadine string
 }
 
 // AdminKorisnici prikazuje listu korisnika
@@ -285,9 +300,51 @@ func (h *Handler) AdminProfil(w http.ResponseWriter, r *http.Request) {
 	ps.NaslovStranice = "Moj profil"
 
 	h.renderujTemplate(w, "admin_profil", podaciAdminProfil{
-		PodaciStranice: ps,
-		TotpAktivan:    svezi.TotpTajna != "",
+		PodaciStranice:     ps,
+		TotpAktivan:        svezi.TotpTajna != "",
+		LokalnaTema:        svezi.LokalnaTema,
+		KoristiLokalnuTemu: svezi.KoristiLokalnuTemu,
+		GlobalnaTema:       podesavanja["globalna_tema"],
 	})
+}
+
+// AdminSacuvajLokalnuTemu čuva korisnikovu lokalnu temu
+func (h *Handler) AdminSacuvajLokalnuTemu(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil {
+		http.Redirect(w, r, "/prijava", http.StatusSeeOther)
+		return
+	}
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "tema.lokalno") {
+		http.Error(w, "Pristup odbijen", http.StatusForbidden)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška. Pokušajte ponovo.")
+		http.Redirect(w, r, "/admin/profil", http.StatusSeeOther)
+		return
+	}
+
+	koristi := r.FormValue("koristi_lokalnu_temu") == "1"
+	lokalnaTema := r.FormValue("lokalna_tema")
+	if lokalnaTema != "tamna" && lokalnaTema != "svetla" {
+		lokalnaTema = "tamna"
+	}
+
+	if err := h.KorisniciRepo.SacuvajLokalnuTemu(r.Context(), k.ID, lokalnaTema, koristi); err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju. Pokušajte ponovo.")
+		http.Redirect(w, r, "/admin/profil", http.StatusSeeOther)
+		return
+	}
+
+	middleware.SetFlash(w, r, h.DB, "uspeh", "Tema je sačuvana.")
+	// vrati korisnika na stranicu odakle je došao (Referer), ili na profil kao fallback
+	if ref := r.Referer(); ref != "" {
+		http.Redirect(w, r, ref, http.StatusSeeOther)
+		return
+	}
+	http.Redirect(w, r, "/admin/profil", http.StatusSeeOther)
 }
 
 // AdminPromeniLozinku menja lozinku prijavljenog korisnika

@@ -36,6 +36,11 @@
         filter: blur({{.AppPozadinaBlurPozadine}}px);
         pointer-events: none;
         z-index: 0;
+        animation: appBgFadeIn 0.35s ease forwards;
+      }
+      @keyframes appBgFadeIn {
+        from { opacity: 0; }
+        to   { opacity: 1; }
       }
       .app-overlay {
         position: fixed;
@@ -120,19 +125,6 @@
         meni.style.backdropFilter = 'none';
         meni.style.webkitBackdropFilter = 'none';
         meni.style.background = 'var(--kartica)';
-    });
-    </script>
-    {{if ne .Tema "tamna"}}
-    <script>window.location.replace('/tema/tamna');</script>
-    {{end}}
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        var poruka = 'Uklonite pozadinsku sliku da biste mogli da menjate temu';
-        document.querySelectorAll('.tema-krug').forEach(function(el) {
-            el.style.pointerEvents = 'none';
-            el.style.opacity = '0.4';
-            el.title = poruka;
-        });
     });
     </script>
     {{end}}

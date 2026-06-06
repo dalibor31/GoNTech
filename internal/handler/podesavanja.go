@@ -32,7 +32,7 @@ type PodaciPodesavanja struct {
 	PIB             string
 	LogoTip         string
 	LogoPutanja     string
-	Tema            string
+	GlobalnaTema    string // stvarna vrednost iz podešavanja (ne senči PodaciStranice.Tema)
 	Sacuvano        bool
 	Verzija         string
 	LogoGreska      string
@@ -83,7 +83,15 @@ func (h *Handler) Podesavanja(w http.ResponseWriter, r *http.Request) {
 		PIB:            podesavanja["pib"],
 		LogoTip:        podesavanja["logo_tip"],
 		LogoPutanja:    podesavanja["logo_putanja"],
-		Tema:           podesavanja["tema"],
+		GlobalnaTema: func() string {
+			if v := podesavanja["globalna_tema"]; v != "" {
+				return v
+			}
+			if v := podesavanja["tema"]; v != "" {
+				return v
+			}
+			return "tamna"
+		}(),
 		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
 		BackupVracen:   r.URL.Query().Get("sacuvano") == "vraceno",
 		Verzija:        h.Verzija,
@@ -252,13 +260,14 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 	}
 
 	polja := map[string]string{
-		"naziv_firme": r.FormValue("naziv_firme"),
-		"podnazlov":   r.FormValue("podnazlov"),
-		"adresa":      r.FormValue("adresa"),
-		"telefon":     r.FormValue("telefon"),
-		"pib":         r.FormValue("pib"),
-		"logo_tip":    r.FormValue("logo_tip"),
-		"tema":        r.FormValue("tema"),
+		"naziv_firme":  r.FormValue("naziv_firme"),
+		"podnazlov":    r.FormValue("podnazlov"),
+		"adresa":       r.FormValue("adresa"),
+		"telefon":      r.FormValue("telefon"),
+		"pib":          r.FormValue("pib"),
+		"logo_tip":     r.FormValue("logo_tip"),
+		"tema":         r.FormValue("tema"),
+		"globalna_tema": r.FormValue("globalna_tema"),
 	}
 
 	for kljuc, vrednost := range polja {
@@ -409,21 +418,21 @@ func (h *Handler) OtpremiLoginPozadinu(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 5<<20+4096)
 	if err := r.ParseMultipartForm(5 << 20); err != nil {
 		middleware.SetFlash(w, r, h.DB, "greska", "Fajl je prevelik (maksimum 5 MB).")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 
 	fajl, zaglavlje, err := r.FormFile("login_pozadina")
 	if err != nil {
 		middleware.SetFlash(w, r, h.DB, "greska", "Nije odabran fajl.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 	defer fajl.Close()
 
 	if zaglavlje.Size > 5<<20 {
 		middleware.SetFlash(w, r, h.DB, "greska", "Fajl je prevelik (maksimum 5 MB).")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 
@@ -437,7 +446,7 @@ func (h *Handler) OtpremiLoginPozadinu(w http.ResponseWriter, r *http.Request) {
 	ocekivaniMime, ok := dozvoljenoExt[ext]
 	if !ok {
 		middleware.SetFlash(w, r, h.DB, "greska", "Dozvoljeni formati su JPG, PNG i WebP.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 
@@ -447,12 +456,12 @@ func (h *Handler) OtpremiLoginPozadinu(w http.ResponseWriter, r *http.Request) {
 	stvarniMime := http.DetectContentType(buf[:n])
 	if !strings.HasPrefix(stvarniMime, ocekivaniMime) {
 		middleware.SetFlash(w, r, h.DB, "greska", "Sadržaj fajla ne odgovara odabranoj ekstenziji.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 	if _, err := fajl.Seek(0, io.SeekStart); err != nil {
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri obradi fajla.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 
@@ -469,7 +478,7 @@ func (h *Handler) OtpremiLoginPozadinu(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("upload login pozadine: greška pri generisanju imena: %v", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju fajla.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 
@@ -478,7 +487,7 @@ func (h *Handler) OtpremiLoginPozadinu(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("upload login pozadine: ne mogu kreirati fajl: %v", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju fajla.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 	defer dst.Close()
@@ -486,7 +495,7 @@ func (h *Handler) OtpremiLoginPozadinu(w http.ResponseWriter, r *http.Request) {
 	if _, err := io.Copy(dst, fajl); err != nil {
 		log.Printf("upload login pozadine: greška pri kopiranju: %v", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju fajla.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 
@@ -494,12 +503,12 @@ func (h *Handler) OtpremiLoginPozadinu(w http.ResponseWriter, r *http.Request) {
 	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "login_pozadina", putanja); err != nil {
 		log.Printf("upload login pozadine: greška pri čuvanju putanje: %v", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju podešavanja.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 
 	middleware.SetFlash(w, r, h.DB, "uspeh", "Pozadinska slika je uspešno otpremljena.")
-	http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 }
 
 // UkloniLoginPozadinu briše pozadinsku sliku login stranice sa diska i iz podešavanja
@@ -522,12 +531,12 @@ func (h *Handler) UkloniLoginPozadinu(w http.ResponseWriter, r *http.Request) {
 	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "login_pozadina", ""); err != nil {
 		log.Printf("ukloni login pozadinu: greška pri čuvanju: %v", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri uklanjanju slike.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 
 	middleware.SetFlash(w, r, h.DB, "uspeh", "Pozadinska slika je uklonjena.")
-	http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 }
 
 // OtpremiAppPozadinu prima multipart upload slike i čuva je kao pozadinsku sliku aplikacije
@@ -541,21 +550,21 @@ func (h *Handler) OtpremiAppPozadinu(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 5<<20+4096)
 	if err := r.ParseMultipartForm(5 << 20); err != nil {
 		middleware.SetFlash(w, r, h.DB, "greska", "Fajl je prevelik (maksimum 5 MB).")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 
 	fajl, zaglavlje, err := r.FormFile("app_pozadina")
 	if err != nil {
 		middleware.SetFlash(w, r, h.DB, "greska", "Nije odabran fajl.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 	defer fajl.Close()
 
 	if zaglavlje.Size > 5<<20 {
 		middleware.SetFlash(w, r, h.DB, "greska", "Fajl je prevelik (maksimum 5 MB).")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 
@@ -569,7 +578,7 @@ func (h *Handler) OtpremiAppPozadinu(w http.ResponseWriter, r *http.Request) {
 	ocekivaniMime, ok := dozvoljenoExt[ext]
 	if !ok {
 		middleware.SetFlash(w, r, h.DB, "greska", "Dozvoljeni formati su JPG, PNG i WebP.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 
@@ -578,12 +587,12 @@ func (h *Handler) OtpremiAppPozadinu(w http.ResponseWriter, r *http.Request) {
 	stvarniMime := http.DetectContentType(buf[:n])
 	if !strings.HasPrefix(stvarniMime, ocekivaniMime) {
 		middleware.SetFlash(w, r, h.DB, "greska", "Sadržaj fajla ne odgovara odabranoj ekstenziji.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 	if _, err := fajl.Seek(0, io.SeekStart); err != nil {
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri obradi fajla.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 
@@ -599,7 +608,7 @@ func (h *Handler) OtpremiAppPozadinu(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("upload app pozadine: greška pri generisanju imena: %v", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju fajla.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 
@@ -608,7 +617,7 @@ func (h *Handler) OtpremiAppPozadinu(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("upload app pozadine: ne mogu kreirati fajl: %v", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju fajla.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 	defer dst.Close()
@@ -616,7 +625,7 @@ func (h *Handler) OtpremiAppPozadinu(w http.ResponseWriter, r *http.Request) {
 	if _, err := io.Copy(dst, fajl); err != nil {
 		log.Printf("upload app pozadine: greška pri kopiranju: %v", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju fajla.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 
@@ -624,12 +633,23 @@ func (h *Handler) OtpremiAppPozadinu(w http.ResponseWriter, r *http.Request) {
 	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "app_pozadina", putanja); err != nil {
 		log.Printf("upload app pozadine: greška pri čuvanju putanje: %v", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju podešavanja.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 
+	// zapamti trenutnu globalnu temu pre nego što je forsiramo na tamnu
+	trenutnaTema := staraPodesavanja["globalna_tema"]
+	if trenutnaTema == "" {
+		trenutnaTema = staraPodesavanja["tema"]
+	}
+	if trenutnaTema == "" {
+		trenutnaTema = "tamna"
+	}
+	_ = ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "tema_pre_slike", trenutnaTema)
+	_ = ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "globalna_tema", "tamna")
+
 	middleware.SetFlash(w, r, h.DB, "uspeh", "Pozadinska slika aplikacije je uspešno otpremljena.")
-	http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 }
 
 // UkloniAppPozadinu briše pozadinsku sliku aplikacije sa diska i iz podešavanja
@@ -652,12 +672,22 @@ func (h *Handler) UkloniAppPozadinu(w http.ResponseWriter, r *http.Request) {
 	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "app_pozadina", ""); err != nil {
 		log.Printf("ukloni app pozadinu: greška pri čuvanju: %v", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri uklanjanju slike.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 
+	// vrati temu koja je bila aktivna pre dodavanja slike
+	if err == nil {
+		temaPreSlike := podesavanja["tema_pre_slike"]
+		if temaPreSlike == "" {
+			temaPreSlike = "tamna"
+		}
+		_ = ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "globalna_tema", temaPreSlike)
+		_ = ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "tema_pre_slike", "")
+	}
+
 	middleware.SetFlash(w, r, h.DB, "uspeh", "Pozadinska slika aplikacije je uklonjena.")
-	http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 }
 
 // SacuvajAppPozadinaStilove čuva vrednosti zamućenja i prozirnosti pozadine aplikacije
@@ -669,7 +699,7 @@ func (h *Handler) SacuvajAppPozadinaStilove(w http.ResponseWriter, r *http.Reque
 	}
 	if err := r.ParseForm(); err != nil {
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čitanju forme.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 
@@ -680,19 +710,19 @@ func (h *Handler) SacuvajAppPozadinaStilove(w http.ResponseWriter, r *http.Reque
 	blurVal, err := strconv.Atoi(blurStr)
 	if err != nil || blurVal < 0 || blurVal > 20 {
 		middleware.SetFlash(w, r, h.DB, "greska", "Neispravna vrednost zamućenja stakla.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 	blurPozadineVal, err := strconv.Atoi(blurPozadineStr)
 	if err != nil || blurPozadineVal < 0 || blurPozadineVal > 20 {
 		middleware.SetFlash(w, r, h.DB, "greska", "Neispravna vrednost zamućenja pozadine.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 	opacityVal, err := strconv.Atoi(opacityStr)
 	if err != nil || opacityVal < 0 || opacityVal > 80 {
 		middleware.SetFlash(w, r, h.DB, "greska", "Neispravna vrednost prozirnosti.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 
@@ -704,13 +734,13 @@ func (h *Handler) SacuvajAppPozadinaStilove(w http.ResponseWriter, r *http.Reque
 		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, kljuc, vrednost); err != nil {
 			log.Printf("stilovi app pozadine: greška pri čuvanju %s: %v", kljuc, err)
 			middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju podešavanja.")
-			http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+			http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 			return
 		}
 	}
 
 	middleware.SetFlash(w, r, h.DB, "uspeh", "Izgled pozadine aplikacije je sačuvan.")
-	http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 }
 
 // SacuvajLoginPozadinaStilove čuva vrednosti zamućenja i prozirnosti pozadine login stranice
@@ -722,7 +752,7 @@ func (h *Handler) SacuvajLoginPozadinaStilove(w http.ResponseWriter, r *http.Req
 	}
 	if err := r.ParseForm(); err != nil {
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čitanju forme.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 
@@ -733,19 +763,19 @@ func (h *Handler) SacuvajLoginPozadinaStilove(w http.ResponseWriter, r *http.Req
 	blurPozadineVal, err := strconv.Atoi(blurPozadineStr)
 	if err != nil || blurPozadineVal < 0 || blurPozadineVal > 20 {
 		middleware.SetFlash(w, r, h.DB, "greska", "Neispravna vrednost zamućenja pozadine.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 	blurKarticeVal, err := strconv.Atoi(blurKarticeStr)
 	if err != nil || blurKarticeVal < 0 || blurKarticeVal > 20 {
 		middleware.SetFlash(w, r, h.DB, "greska", "Neispravna vrednost zamućenja kartice.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 	opacityVal, err := strconv.Atoi(opacityStr)
 	if err != nil || opacityVal < 0 || opacityVal > 80 {
 		middleware.SetFlash(w, r, h.DB, "greska", "Neispravna vrednost prozirnosti.")
-		http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
 	}
 
@@ -757,13 +787,13 @@ func (h *Handler) SacuvajLoginPozadinaStilove(w http.ResponseWriter, r *http.Req
 		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, kljuc, vrednost); err != nil {
 			log.Printf("stilovi login pozadine: greška pri čuvanju %s: %v", kljuc, err)
 			middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju podešavanja.")
-			http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+			http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 			return
 		}
 	}
 
 	middleware.SetFlash(w, r, h.DB, "uspeh", "Izgled pozadine prijave je sačuvan.")
-	http.Redirect(w, r, "/podesavanja", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 }
 
 // napuniPodaciPodesavanja učitava sva podešavanja i kreira strukturu za template
@@ -784,7 +814,15 @@ func (h *Handler) napuniPodaciPodesavanja(r *http.Request, naslov string) (Podac
 		PIB:            podesavanja["pib"],
 		LogoTip:        podesavanja["logo_tip"],
 		LogoPutanja:    podesavanja["logo_putanja"],
-		Tema:           podesavanja["tema"],
+		GlobalnaTema: func() string {
+			if v := podesavanja["globalna_tema"]; v != "" {
+				return v
+			}
+			if v := podesavanja["tema"]; v != "" {
+				return v
+			}
+			return "tamna"
+		}(),
 		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
 		BackupVracen:   r.URL.Query().Get("sacuvano") == "vraceno",
 		Verzija:        h.Verzija,
@@ -876,28 +914,81 @@ func (h *Handler) PodesavanjaSistem(w http.ResponseWriter, r *http.Request) {
 	h.renderujTemplate(w, "podesavanja_sistem", podaci)
 }
 
-// PromeniTemu menja aktivnu temu i vraća na prethodnu stranicu
+// PromeniTemu menja aktivnu temu i vraća na prethodnu stranicu (stara GET ruta, zadržana za kompatibilnost)
 func (h *Handler) PromeniTemu(w http.ResponseWriter, r *http.Request) {
 	tema := chi.URLParam(r, "tema")
 
-	// proveravamo da li je validna tema
-	validne := map[string]bool{
-		"tamna": true, "svetla": true,
-	}
+	validne := map[string]bool{"tamna": true, "svetla": true}
 	if !validne[tema] {
 		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 		return
 	}
 
-	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "tema", tema); err != nil {
-		http.Error(w, "Greška pri promeni teme", http.StatusInternalServerError)
-		return
-	}
+	_ = ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "globalna_tema", tema)
 
-	// vraćamo se na stranicu sa koje je kliknut dugmić
 	referer := r.Header.Get("Referer")
 	if referer == "" {
 		referer = "/dashboard"
 	}
 	http.Redirect(w, r, referer, http.StatusSeeOther)
+}
+
+// PromeniGlobalnuTemu prima POST sa poljem "tema" i čuva u globalna_tema u podešavanjima
+func (h *Handler) PromeniGlobalnuTemu(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
+		return
+	}
+
+	tema := r.FormValue("tema")
+	validne := map[string]bool{"tamna": true, "svetla": true}
+	if !validne[tema] {
+		tema = "tamna"
+	}
+
+	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "globalna_tema", tema); err != nil {
+		http.Error(w, "Greška pri promeni teme", http.StatusInternalServerError)
+		return
+	}
+
+	referer := r.Header.Get("Referer")
+	if referer == "" {
+		referer = "/dashboard"
+	}
+	http.Redirect(w, r, referer, http.StatusSeeOther)
+}
+
+// PrimeniGlobalnuTemu čuva globalnu temu i resetuje lokalne teme svih korisnika
+func (h *Handler) PrimeniGlobalnuTemu(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "tema.globalno") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
+		return
+	}
+
+	tema := r.FormValue("globalna_tema")
+	validne := map[string]bool{"tamna": true, "svetla": true}
+	if !validne[tema] {
+		tema = "tamna"
+	}
+
+	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "globalna_tema", tema); err != nil {
+		http.Error(w, "Greška pri čuvanju teme", http.StatusInternalServerError)
+		return
+	}
+
+	// poništi lokalne teme svih korisnika — tema se primenjuje globalno
+	if _, err := h.DB.ExecContext(r.Context(),
+		"UPDATE korisnici SET koristi_lokalnu_temu = 0, lokalna_tema = ''",
+	); err != nil {
+		log.Printf("PrimeniGlobalnuTemu: reset lokalnih tema: %v", err)
+	}
+
+	middleware.SetFlash(w, r, h.DB, "uspeh", "Globalna tema primenjena na sve korisnike.")
+	http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 }

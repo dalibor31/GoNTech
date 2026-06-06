@@ -29,41 +29,69 @@ func (r *sqliteKorisniciRepo) Kreiraj(ctx context.Context, korisnickoIme, lozink
 
 func (r *sqliteKorisniciRepo) DohvatiPoImenu(ctx context.Context, korisnickoIme string) (*model.Korisnik, error) {
 	k := &model.Korisnik{}
-	var aktivan int
-	var totpTajna sql.NullString
+	var aktivan, koristiLokalnuTemu int
+	var totpTajna, lokalnaTema sql.NullString
+	var lokalnaPozadina, lokalnaPozadinaOpacity, lokalnaPozadinaBlur, lokalnaPozadinaBlurPozadine sql.NullString
 	var datumKreiranja time.Time
 	err := r.db.QueryRowContext(ctx,
-		`SELECT id, korisnicko_ime, lozinka_hash, uloga, aktivan, COALESCE(totp_tajna, ''), datum_kreiranja
+		`SELECT id, korisnicko_ime, lozinka_hash, uloga, aktivan, COALESCE(totp_tajna, ''),
+		        COALESCE(lokalna_tema, ''), koristi_lokalnu_temu, datum_kreiranja,
+		        COALESCE(lokalna_pozadina, ''), COALESCE(lokalna_pozadina_opacity, '50'),
+		        COALESCE(lokalna_pozadina_blur, '12'), COALESCE(lokalna_pozadina_blur_pozadine, '0')
 		 FROM korisnici WHERE korisnicko_ime = ?`, korisnickoIme).
-		Scan(&k.ID, &k.KorisnickoIme, &k.LozinkaHash, &k.Uloga, &aktivan, &totpTajna, &datumKreiranja)
+		Scan(&k.ID, &k.KorisnickoIme, &k.LozinkaHash, &k.Uloga, &aktivan, &totpTajna,
+			&lokalnaTema, &koristiLokalnuTemu, &datumKreiranja,
+			&lokalnaPozadina, &lokalnaPozadinaOpacity, &lokalnaPozadinaBlur, &lokalnaPozadinaBlurPozadine)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: korisnici.DohvatiPoImenu: %w", err)
 	}
 	k.Aktivan = aktivan == 1
 	k.TotpTajna = totpTajna.String
+	k.LokalnaTema = lokalnaTema.String
+	k.KoristiLokalnuTemu = koristiLokalnuTemu == 1
 	k.DatumKreiranja = datumKreiranja
+	k.LokalnaPozadina = lokalnaPozadina.String
+	k.LokalnaPozadinaOpacity = lokalnaPozadinaOpacity.String
+	k.LokalnaPozadinaBlur = lokalnaPozadinaBlur.String
+	k.LokalnaPozadinaBlurPozadine = lokalnaPozadinaBlurPozadine.String
 	return k, nil
 }
 
 func (r *sqliteKorisniciRepo) DohvatiPoID(ctx context.Context, id int64) (*model.Korisnik, error) {
 	k := &model.Korisnik{}
-	var aktivan int
+	var aktivan, koristiLokalnuTemu int
+	var lokalnaTema sql.NullString
+	var lokalnaPozadina, lokalnaPozadinaOpacity, lokalnaPozadinaBlur, lokalnaPozadinaBlurPozadine sql.NullString
 	var datumKreiranja time.Time
 	err := r.db.QueryRowContext(ctx,
-		`SELECT id, korisnicko_ime, lozinka_hash, uloga, aktivan, COALESCE(totp_tajna, ''), datum_kreiranja
+		`SELECT id, korisnicko_ime, lozinka_hash, uloga, aktivan, COALESCE(totp_tajna, ''),
+		        COALESCE(lokalna_tema, ''), koristi_lokalnu_temu, datum_kreiranja,
+		        COALESCE(lokalna_pozadina, ''), COALESCE(lokalna_pozadina_opacity, '50'),
+		        COALESCE(lokalna_pozadina_blur, '12'), COALESCE(lokalna_pozadina_blur_pozadine, '0')
 		 FROM korisnici WHERE id = ?`, id).
-		Scan(&k.ID, &k.KorisnickoIme, &k.LozinkaHash, &k.Uloga, &aktivan, &k.TotpTajna, &datumKreiranja)
+		Scan(&k.ID, &k.KorisnickoIme, &k.LozinkaHash, &k.Uloga, &aktivan, &k.TotpTajna,
+			&lokalnaTema, &koristiLokalnuTemu, &datumKreiranja,
+			&lokalnaPozadina, &lokalnaPozadinaOpacity, &lokalnaPozadinaBlur, &lokalnaPozadinaBlurPozadine)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: korisnici.DohvatiPoID: %w", err)
 	}
 	k.Aktivan = aktivan == 1
+	k.LokalnaTema = lokalnaTema.String
+	k.KoristiLokalnuTemu = koristiLokalnuTemu == 1
 	k.DatumKreiranja = datumKreiranja
+	k.LokalnaPozadina = lokalnaPozadina.String
+	k.LokalnaPozadinaOpacity = lokalnaPozadinaOpacity.String
+	k.LokalnaPozadinaBlur = lokalnaPozadinaBlur.String
+	k.LokalnaPozadinaBlurPozadine = lokalnaPozadinaBlurPozadine.String
 	return k, nil
 }
 
 func (r *sqliteKorisniciRepo) Lista(ctx context.Context) ([]model.Korisnik, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, korisnicko_ime, lozinka_hash, uloga, aktivan, COALESCE(totp_tajna, ''), datum_kreiranja
+		`SELECT id, korisnicko_ime, lozinka_hash, uloga, aktivan, COALESCE(totp_tajna, ''),
+		        COALESCE(lokalna_tema, ''), koristi_lokalnu_temu, datum_kreiranja,
+		        COALESCE(lokalna_pozadina, ''), COALESCE(lokalna_pozadina_opacity, '50'),
+		        COALESCE(lokalna_pozadina_blur, '12'), COALESCE(lokalna_pozadina_blur_pozadine, '0')
 		 FROM korisnici ORDER BY datum_kreiranja ASC`)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: korisnici.Lista: %w", err)
@@ -72,16 +100,56 @@ func (r *sqliteKorisniciRepo) Lista(ctx context.Context) ([]model.Korisnik, erro
 	var lista []model.Korisnik
 	for rows.Next() {
 		var k model.Korisnik
-		var aktivan int
+		var aktivan, koristiLokalnuTemu int
+		var lokalnaTema sql.NullString
+		var lokalnaPozadina, lokalnaPozadinaOpacity, lokalnaPozadinaBlur, lokalnaPozadinaBlurPozadine sql.NullString
 		var datumKreiranja time.Time
-		if err := rows.Scan(&k.ID, &k.KorisnickoIme, &k.LozinkaHash, &k.Uloga, &aktivan, &k.TotpTajna, &datumKreiranja); err != nil {
+		if err := rows.Scan(&k.ID, &k.KorisnickoIme, &k.LozinkaHash, &k.Uloga, &aktivan, &k.TotpTajna,
+			&lokalnaTema, &koristiLokalnuTemu, &datumKreiranja,
+			&lokalnaPozadina, &lokalnaPozadinaOpacity, &lokalnaPozadinaBlur, &lokalnaPozadinaBlurPozadine); err != nil {
 			return nil, fmt.Errorf("ntech: korisnici.Lista: %w", err)
 		}
 		k.Aktivan = aktivan == 1
+		k.LokalnaTema = lokalnaTema.String
+		k.KoristiLokalnuTemu = koristiLokalnuTemu == 1
 		k.DatumKreiranja = datumKreiranja
+		k.LokalnaPozadina = lokalnaPozadina.String
+		k.LokalnaPozadinaOpacity = lokalnaPozadinaOpacity.String
+		k.LokalnaPozadinaBlur = lokalnaPozadinaBlur.String
+		k.LokalnaPozadinaBlurPozadine = lokalnaPozadinaBlurPozadine.String
 		lista = append(lista, k)
 	}
 	return lista, nil
+}
+
+func (r *sqliteKorisniciRepo) SacuvajLokalnuPozadinu(ctx context.Context, id int64, pozadina, opacity, blur, blurPozadine string) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE korisnici SET lokalna_pozadina = ?, lokalna_pozadina_opacity = ?, lokalna_pozadina_blur = ?, lokalna_pozadina_blur_pozadine = ? WHERE id = ?`,
+		pozadina, opacity, blur, blurPozadine, id)
+	if err != nil {
+		return fmt.Errorf("ntech: korisnici.SacuvajLokalnuPozadinu: %w", err)
+	}
+	return nil
+}
+
+func (r *sqliteKorisniciRepo) SacuvajLokalnuTemu(ctx context.Context, id int64, lokalnaTema string, koristi bool) error {
+	koristiInt := 0
+	if koristi {
+		koristiInt = 1
+	}
+	var tema interface{}
+	if lokalnaTema == "" {
+		tema = nil
+	} else {
+		tema = lokalnaTema
+	}
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE korisnici SET lokalna_tema = ?, koristi_lokalnu_temu = ? WHERE id = ?`,
+		tema, koristiInt, id)
+	if err != nil {
+		return fmt.Errorf("ntech: korisnici.SacuvajLokalnuTemu: %w", err)
+	}
+	return nil
 }
 
 func (r *sqliteKorisniciRepo) AzurirajUlogu(ctx context.Context, id int64, uloga string) error {

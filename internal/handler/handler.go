@@ -74,35 +74,91 @@ func (h *Handler) reinicijalzijRepozitorijume(novaDB *sql.DB) {
 
 // popuniPodaciStranice popunjava zajednička polja stranice uključujući prijavljenog korisnika
 func (h *Handler) popuniPodaciStranice(r *http.Request, podesavanja map[string]string) model.PodaciStranice {
+	// redosled prioriteta teme: pozadinska slika → lokalna → globalna → fallback
+	globalnaTema := podesavanja["globalna_tema"]
+	if globalnaTema == "" {
+		globalnaTema = podesavanja["tema"]
+	}
+	if globalnaTema == "" {
+		globalnaTema = "tamna"
+	}
+	tema := globalnaTema
+
 	ps := model.PodaciStranice{
-		Tema:        podesavanja["tema"],
+		Tema:        tema,
 		NazivFirme:  podesavanja["naziv_firme"],
 		Podnazlov:   podesavanja["podnazlov"],
 		LogoTip:     podesavanja["logo_tip"],
 		LogoPutanja: podesavanja["logo_putanja"],
 		Korisnik:    "Admin",
 	}
+	var korisnik *model.Korisnik
 	if k := middleware.KorisnikIzKonteksta(r.Context()); k != nil {
+		korisnik = k
 		ps.Korisnik = k.KorisnickoIme
 		ps.KorisnikIme = k.KorisnickoIme
 		ps.KorisnikUloga = k.Uloga
 		ps.Dozvole = h.DozvoleRepo.SveDozvole(r.Context(), k.Uloga)
+		// lokalna tema korisnika
+		if k.KoristiLokalnuTemu && k.LokalnaTema != "" {
+			ps.Tema = k.LokalnaTema
+		}
 	}
 	ps.CsrfToken = middleware.CsrfToken(r.Context())
 	ps.Flash = middleware.GetFlash(r, h.DB)
 
-	ps.AppPozadina = podesavanja["app_pozadina"]
-	ps.AppPozadinaOpacity = podesavanja["app_pozadina_opacity"]
-	if ps.AppPozadinaOpacity == "" {
-		ps.AppPozadinaOpacity = "50"
-	}
-	ps.AppPozadinaBlur = podesavanja["app_pozadina_blur"]
-	if ps.AppPozadinaBlur == "" {
-		ps.AppPozadinaBlur = "12"
-	}
-	ps.AppPozadinaBlurPozadine = podesavanja["app_pozadina_blur_pozadine"]
-	if ps.AppPozadinaBlurPozadine == "" {
-		ps.AppPozadinaBlurPozadine = "0"
+	// logika pozadine:
+	// - lična pozadina (samo kada je lokalni režim aktivan) → zamenjuje globalnu
+	// - globalna pozadina → prikazuje se svima koji nemaju ličnu
+	// KoristiLokalnuTemu utiče na izbor tamne/svetle teme, ne na vidljivost pozadine
+	if korisnik != nil && korisnik.KoristiLokalnuTemu && korisnik.LokalnaPozadina != "" {
+		ps.AppPozadina = korisnik.LokalnaPozadina
+		ps.Tema = "tamna"
+		ps.AppPozadinaOpacity = korisnik.LokalnaPozadinaOpacity
+		if ps.AppPozadinaOpacity == "" {
+			ps.AppPozadinaOpacity = "50"
+		}
+		ps.AppPozadinaBlur = korisnik.LokalnaPozadinaBlur
+		if ps.AppPozadinaBlur == "" {
+			ps.AppPozadinaBlur = "12"
+		}
+		ps.AppPozadinaBlurPozadine = korisnik.LokalnaPozadinaBlurPozadine
+		if ps.AppPozadinaBlurPozadine == "" {
+			ps.AppPozadinaBlurPozadine = "0"
+		}
+	} else {
+		ps.AppPozadina = podesavanja["app_pozadina"]
+		if ps.AppPozadina != "" {
+			// globalna pozadina forsira tamnu temu, osim ako korisnik ima aktivnu lokalnu temu
+			if korisnik == nil || !korisnik.KoristiLokalnuTemu {
+				ps.Tema = "tamna"
+			}
+			ps.AppPozadinaOpacity = podesavanja["app_pozadina_opacity"]
+			if ps.AppPozadinaOpacity == "" {
+				ps.AppPozadinaOpacity = "50"
+			}
+			ps.AppPozadinaBlur = podesavanja["app_pozadina_blur"]
+			if ps.AppPozadinaBlur == "" {
+				ps.AppPozadinaBlur = "12"
+			}
+			ps.AppPozadinaBlurPozadine = podesavanja["app_pozadina_blur_pozadine"]
+			if ps.AppPozadinaBlurPozadine == "" {
+				ps.AppPozadinaBlurPozadine = "0"
+			}
+		} else {
+			ps.AppPozadinaOpacity = podesavanja["app_pozadina_opacity"]
+			if ps.AppPozadinaOpacity == "" {
+				ps.AppPozadinaOpacity = "50"
+			}
+			ps.AppPozadinaBlur = podesavanja["app_pozadina_blur"]
+			if ps.AppPozadinaBlur == "" {
+				ps.AppPozadinaBlur = "12"
+			}
+			ps.AppPozadinaBlurPozadine = podesavanja["app_pozadina_blur_pozadine"]
+			if ps.AppPozadinaBlurPozadine == "" {
+				ps.AppPozadinaBlurPozadine = "0"
+			}
+		}
 	}
 
 	return ps

@@ -376,6 +376,26 @@ func parseFormuProdaje(r *http.Request) (model.ProdajniNalog, []model.StavkaProd
 	return nalog, stavke, ""
 }
 
+// StornoProdaje stornira prodajni nalog: vraća artikle na stanje i briše nalog
+func (h *Handler) StornoProdaje(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "prodaja.storno") {
+		http.Error(w, "Nemate dozvolu za storniranje prodaje.", http.StatusForbidden)
+		return
+	}
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+	if err := h.ProdajaRepo.Obrisi(r.Context(), id); err != nil {
+		http.Error(w, "Greška pri storniranju naloga", http.StatusInternalServerError)
+		return
+	}
+	middleware.SetFlash(w, r, h.DB, "uspeh", "Prodajni nalog je storniran.")
+	http.Redirect(w, r, "/prodaja", http.StatusSeeOther)
+}
+
 // renderujFormuProdaje renderuje HTML šablon forme za unos nove prodaje
 func (h *Handler) renderujFormuProdaje(w http.ResponseWriter, podaci PodaciFormeProdaje) {
 	h.renderujTemplate(w, "prodaja_forma", podaci)
