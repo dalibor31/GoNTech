@@ -27,28 +27,46 @@
 
     {{if .AppPozadina}}
     <style>
-      body {
+      .app-bg {
+        position: fixed;
+        inset: {{if ne .AppPozadinaBlurPozadine "0"}}-20px{{else}}0{{end}};
         background-image: url('{{.AppPozadina}}');
         background-size: cover;
         background-position: center;
-        background-attachment: fixed;
+        filter: blur({{.AppPozadinaBlurPozadine}}px);
+        pointer-events: none;
+        z-index: 0;
       }
       .app-overlay {
         position: fixed;
         inset: 0;
         background: rgba(0,0,0,{{.AppPozadinaOpacity}}%);
         pointer-events: none;
-        z-index: 0;
+        z-index: 1;
       }
       .raspored {
         position: relative;
-        z-index: 1;
+        z-index: 2;
       }
       .sidebar {
-        background: rgba(255,255,255,0.08) !important;
+        background: rgba(0,0,0,0.3) !important;
         backdrop-filter: blur({{.AppPozadinaBlur}}px);
         -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px);
         border-right: 1px solid rgba(255,255,255,0.12) !important;
+      }
+      .sidebar .nav-stavka,
+      .sidebar .logo-naziv,
+      .sidebar .logo-podnazlov {
+        text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+        color: rgba(255,255,255,0.95) !important;
+      }
+      .sidebar .nav-stavka svg {
+        color: rgba(255,255,255,0.95) !important;
+        stroke: rgba(255,255,255,0.95) !important;
+      }
+      .sidebar .nav-oznaka {
+        text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+        color: rgba(255,255,255,0.7) !important;
       }
       .topbar {
         background: rgba(255,255,255,0.08) !important;
@@ -62,6 +80,38 @@
         -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px);
         border: 1px solid rgba(255,255,255,0.12) !important;
       }
+      .kartica p,
+      .kartica span,
+      .kartica h1,
+      .kartica h2,
+      .kartica h3,
+      .kartica h4,
+      .kartica label,
+      .kartica td,
+      .kartica th,
+      .kartica li,
+      .kartica a {
+        color: rgba(255,255,255,0.95) !important;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+      }
+      table, th, td {
+        color: rgba(255,255,255,0.95) !important;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+      }
+      tr {
+        background: rgba(0,0,0,0.2);
+      }
+      tr:hover {
+        background: rgba(0,0,0,0.35);
+      }
+      thead th {
+        background: rgba(0,0,0,0.4) !important;
+      }
+      div:has(> canvas) {
+        background: rgba(0,0,0,0.3);
+        border-radius: 8px;
+        padding: 8px;
+      }
     </style>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -72,10 +122,23 @@
         meni.style.background = 'var(--kartica)';
     });
     </script>
+    {{if ne .Tema "tamna"}}
+    <script>window.location.replace('/tema/tamna');</script>
+    {{end}}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var poruka = 'Uklonite pozadinsku sliku da biste mogli da menjate temu';
+        document.querySelectorAll('.tema-krug').forEach(function(el) {
+            el.style.pointerEvents = 'none';
+            el.style.opacity = '0.4';
+            el.title = poruka;
+        });
+    });
+    </script>
     {{end}}
   </head>
   <body>
-    {{if .AppPozadina}}<div class="app-overlay"></div>{{end}}
+    {{if .AppPozadina}}<div class="app-bg"></div><div class="app-overlay"></div>{{end}}
     <div class="raspored">
       <div class="sidebar-overlay" id="sidebar-overlay"></div>
       {{template "sidebar" .}}

@@ -100,6 +100,10 @@ func (h *Handler) popuniPodaciStranice(r *http.Request, podesavanja map[string]s
 	if ps.AppPozadinaBlur == "" {
 		ps.AppPozadinaBlur = "12"
 	}
+	ps.AppPozadinaBlurPozadine = podesavanja["app_pozadina_blur_pozadine"]
+	if ps.AppPozadinaBlurPozadine == "" {
+		ps.AppPozadinaBlurPozadine = "0"
+	}
 
 	return ps
 }

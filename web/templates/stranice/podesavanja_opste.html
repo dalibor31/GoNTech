@@ -1,0 +1,177 @@
+{{template "base" .}}
+
+{{define "naslov"}}Podešavanja — Opšte — NTech{{end}}
+
+{{define "dodatni-css"}}
+<style>
+    .animiraj:nth-child(1) { animation-delay: 0.10s; }
+    .animiraj:nth-child(2) { animation-delay: 0.16s; }
+
+    .toast {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 18px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 500;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        animation: toastIn 0.3s ease forwards;
+        max-width: 340px;
+    }
+    .toast-greska {
+        background: #fef2f2;
+        color: #dc2626;
+        border: 0.5px solid #fca5a5;
+    }
+    .toast-uspeh {
+        background: #f0fdf4;
+        color: #16a34a;
+        border: 0.5px solid #86efac;
+    }
+    @keyframes toastIn {
+        from { opacity: 0; transform: translateY(12px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes toastOut {
+        from { opacity: 1; transform: translateY(0); }
+        to   { opacity: 0; transform: translateY(12px); }
+    }
+    .toast.nestaje {
+        animation: toastOut 0.3s ease forwards;
+    }
+</style>
+{{end}}
+
+{{define "sadrzaj"}}
+<div style="width:100%;max-width:100%;">
+
+    {{if .Sacuvano}}
+    <div class="poruka-uspeh">Podešavanja su uspešno sačuvana.</div>
+    {{end}}
+
+    <!-- upload loga — posebna forma jer je multipart, mora biti van glavne forme -->
+    <form method="POST" action="/podesavanja/logo" enctype="multipart/form-data">
+        <div class="kartica animiraj" style="margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sb-akcent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Logo firme</span>
+            </div>
+            {{if .LogoPutanja}}
+            <div style="margin-bottom:12px;">
+                <img src="{{.LogoPutanja}}" alt="Trenutni logo"
+                    style="max-height:60px;max-width:200px;object-fit:contain;border:0.5px solid var(--ivica);border-radius:8px;padding:6px;background:var(--kartica);">
+            </div>
+            {{end}}
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                <input type="file" name="logo" accept=".png,.jpg,.jpeg,.svg"
+                    style="flex:1;min-width:200px;font-size:13px;color:var(--tekst-sporedni);">
+                <button type="submit"
+                    style="padding:8px 16px;background:var(--sb-aktivan);color:var(--tekst-jak);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap;transition:opacity 0.2s;"
+                    onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                    Otpremi logo
+                </button>
+            </div>
+            <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:6px;">PNG, JPG ili SVG — maksimum 2 MB</div>
+        </div>
+    </form>
+
+    <!-- firma: naziv, podnazlov, adresa, telefon, PIB, logo zona -->
+    <form method="POST" action="/podesavanja/sacuvaj">
+        <input type="hidden" name="_next" value="/admin/podesavanja/opste">
+        <div class="kartica animiraj" style="margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sb-akcent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Firma</span>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:14px;">
+                <div>
+                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Naziv firme</label>
+                    <input type="text" name="naziv_firme" value="{{.NazivFirme}}"
+                        style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;"
+                        placeholder="npr. NTech">
+                </div>
+
+                <div>
+                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Podnazlov</label>
+                    <input type="text" name="podnazlov" value="{{.Podnazlov}}"
+                        style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;"
+                        placeholder="npr. Servis računara">
+                </div>
+
+                <div>
+                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Adresa</label>
+                    <input type="text" name="adresa" value="{{.Adresa}}"
+                        style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;"
+                        placeholder="npr. Ulica i broj, Grad">
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                    <div>
+                        <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Telefon</label>
+                        <input type="text" name="telefon" value="{{.Telefon}}"
+                            style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;"
+                            placeholder="npr. +381 11 123 4567">
+                    </div>
+                    <div>
+                        <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">PIB</label>
+                        <input type="text" name="pib" value="{{.PIB}}"
+                            style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;"
+                            placeholder="npr. 123456789">
+                    </div>
+                </div>
+
+                <div>
+                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:8px;">Logo zona</label>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                        <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;cursor:pointer;flex:1;{{if or (eq .LogoTip "sa_nazivom") (eq .LogoTip "tekst") (eq .LogoTip "ikonica") (not .LogoTip)}}border-color:var(--sb-akcent);background:var(--pozadina);{{end}}">
+                            <input type="radio" name="logo_tip" value="sa_nazivom" {{if or (eq .LogoTip "sa_nazivom") (eq .LogoTip "tekst") (eq .LogoTip "ikonica") (not .LogoTip)}}checked{{end}} style="accent-color:var(--sb-akcent);">
+                            <span style="font-size:13px;color:var(--tekst-glavni);">Sa nazivom</span>
+                        </label>
+                        <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;cursor:pointer;flex:1;{{if eq .LogoTip "bez_naziva"}}border-color:var(--sb-akcent);background:var(--pozadina);{{end}}">
+                            <input type="radio" name="logo_tip" value="bez_naziva" {{if eq .LogoTip "bez_naziva"}}checked{{end}} style="accent-color:var(--sb-akcent);">
+                            <span style="font-size:13px;color:var(--tekst-glavni);">Bez naziva</span>
+                        </label>
+                        <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;flex:1;{{if eq .LogoTip "slika"}}border-color:var(--sb-akcent);background:var(--pozadina);{{end}}{{if not .LogoPutanja}}opacity:0.45;cursor:not-allowed;{{else}}cursor:pointer;{{end}}">
+                            <input type="radio" name="logo_tip" value="slika" {{if eq .LogoTip "slika"}}checked{{end}} {{if not .LogoPutanja}}disabled{{end}} style="accent-color:var(--sb-akcent);">
+                            <span style="font-size:13px;color:var(--tekst-glavni);">Sa logom</span>
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;margin-top:20px;">
+                <button type="submit"
+                    style="background:var(--sb-akcent);color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:opacity 0.2s;"
+                    onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                    Sačuvaj opšte
+                </button>
+            </div>
+        </div>
+    </form>
+
+</div>
+
+{{if .LogoGreska}}
+<div id="toast-logo" class="toast toast-greska">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    {{.LogoGreska}}
+</div>
+<script>
+(function() {
+    var t = document.getElementById('toast-logo');
+    if (!t) return;
+    setTimeout(function() {
+        t.classList.add('nestaje');
+        setTimeout(function() { t.remove(); }, 300);
+    }, 4000);
+})();
+</script>
+{{end}}
+{{end}}
