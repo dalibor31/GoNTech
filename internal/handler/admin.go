@@ -33,19 +33,17 @@ type podaciAdminProfil struct {
 	TotpAktivan        bool
 	LokalnaTema        string
 	KoristiLokalnuTemu bool
-	GlobalnaTema       string
 }
 
 type podaciProfilTema struct {
 	model.PodaciStranice
 	LokalnaTema                 string
 	KoristiLokalnuTemu          bool
-	KoristiGlobalnuTemu         bool // !KoristiLokalnuTemu — za Alpine.js svič "Koristi globalnu temu"
-	GlobalnaTema                string
 	LokalnaPozadina             string
 	LokalnaPozadinaOpacity      string
 	LokalnaPozadinaBlur         string
 	LokalnaPozadinaBlurPozadine string
+	LokalnaPozadinaGlassOpacity string
 }
 
 // AdminKorisnici prikazuje listu korisnika
@@ -304,7 +302,6 @@ func (h *Handler) AdminProfil(w http.ResponseWriter, r *http.Request) {
 		TotpAktivan:        svezi.TotpTajna != "",
 		LokalnaTema:        svezi.LokalnaTema,
 		KoristiLokalnuTemu: svezi.KoristiLokalnuTemu,
-		GlobalnaTema:       podesavanja["globalna_tema"],
 	})
 }
 
@@ -561,13 +558,20 @@ func (h *Handler) AdminDozvole(w http.ResponseWriter, r *http.Request) {
 	ps.Stranica = "dozvole"
 	ps.NaslovStranice = "Dozvole"
 
+	dozvoleAdmin := map[string]bool{}
+	dozvoleSuperadmin := map[string]bool{}
+	if k.Uloga == "superadmin" {
+		dozvoleAdmin = h.DozvoleRepo.SveDozvole(r.Context(), "admin")
+		dozvoleSuperadmin = h.DozvoleRepo.SveDozvole(r.Context(), "superadmin")
+	}
+
 	h.renderujTemplate(w, "admin_dozvole", podaciAdminDozvole{
 		PodaciStranice:    ps,
 		Korisnici:         lista,
 		TrenutniID:        k.ID,
 		DozvoleRadnik:     h.DozvoleRepo.SveDozvole(r.Context(), "radnik"),
-		DozvoleAdmin:      h.DozvoleRepo.SveDozvole(r.Context(), "admin"),
-		DozvoleSuperadmin: h.DozvoleRepo.SveDozvole(r.Context(), "superadmin"),
+		DozvoleAdmin:      dozvoleAdmin,
+		DozvoleSuperadmin: dozvoleSuperadmin,
 	})
 }
 
@@ -644,8 +648,12 @@ func (h *Handler) AdminDozvoleSacuvaj(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/admin/dozvole", http.StatusSeeOther)
 		return
 	}
-	// čuvamo dozvole samo za radnik i admin — superadmin uvek ima sve
-	for _, uloga := range []string{"radnik", "admin"} {
+	// čuvamo dozvole: superadmin menja radnik i admin, admin menja samo radnik
+	uloge := []string{"radnik", "admin"}
+	if k.Uloga != "superadmin" {
+		uloge = []string{"radnik"}
+	}
+	for _, uloga := range uloge {
 		for _, akcija := range middleware.SveAkcije() {
 			kljuc := uloga + "__" + akcija
 			dozvoljeno := r.FormValue(kljuc) == "on"

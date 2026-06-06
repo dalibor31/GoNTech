@@ -12,23 +12,6 @@
 
     <span class="topbar-naslov">{{.NaslovStranice}}</span>
 
-    {{if not .AppPozadina}}
-    <div class="topbar-teme" style="display:flex;align-items:center;gap:8px;">
-        <form method="POST" action="/podesavanja/tema" style="margin:0;padding:0;">
-            <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
-            <input type="hidden" name="tema" value="tamna">
-            <button type="submit" class="tema-krug {{if eq .Tema "tamna"}}tema-krug-aktivan{{end}}"
-                style="background:#1a1d27;border:none;padding:0;cursor:pointer;" title="Tamna"></button>
-        </form>
-        <form method="POST" action="/podesavanja/tema" style="margin:0;padding:0;">
-            <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
-            <input type="hidden" name="tema" value="svetla">
-            <button type="submit" class="tema-krug {{if eq .Tema "svetla"}}tema-krug-aktivan{{end}}"
-                style="background:#f0f2f5;border:1px solid #e2e6ed;padding:0;cursor:pointer;" title="Svetla"></button>
-        </form>
-    </div>
-    {{end}}
-
     <div style="position:relative;" id="avatar-wrapper">
         <div class="avatar-korisnik" id="avatar-dugme" style="cursor:pointer;" title="{{.Korisnik}}">
             {{if .Korisnik}}{{slice .Korisnik 0 2}}{{else}}NT{{end}}

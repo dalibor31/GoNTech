@@ -12,6 +12,17 @@
     if (window.innerWidth > 768 && localStorage.getItem('sidebar-skupljen') === 'true') {
         document.documentElement.classList.add('sidebar-init-skupljen');
     }
+    // pozadinska slika iz prethodne stranice — sprečava treperenje pri navigaciji
+    (function() {
+        var bg = sessionStorage.getItem('ntech-bg');
+        if (bg) {
+            var s = document.documentElement.style;
+            s.backgroundImage = 'url(' + bg + ')';
+            s.backgroundSize = 'cover';
+            s.backgroundPosition = 'center';
+            s.backgroundAttachment = 'fixed';
+        }
+    })();
     </script>
 
     <!-- tema — učitava se prva -->
@@ -36,11 +47,6 @@
         filter: blur({{.AppPozadinaBlurPozadine}}px);
         pointer-events: none;
         z-index: 0;
-        animation: appBgFadeIn 0.35s ease forwards;
-      }
-      @keyframes appBgFadeIn {
-        from { opacity: 0; }
-        to   { opacity: 1; }
       }
       .app-overlay {
         position: fixed;
@@ -54,7 +60,7 @@
         z-index: 2;
       }
       .sidebar {
-        background: rgba(0,0,0,0.3) !important;
+        background: rgba(0,0,0,{{if .AppPozadinaGlassOpacity}}{{.AppPozadinaGlassOpacity}}%{{else}}0.3{{end}}) !important;
         backdrop-filter: blur({{.AppPozadinaBlur}}px);
         -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px);
         border-right: 1px solid rgba(255,255,255,0.12) !important;
@@ -74,13 +80,13 @@
         color: rgba(255,255,255,0.7) !important;
       }
       .topbar {
-        background: rgba(255,255,255,0.08) !important;
+        background: rgba(0,0,0,{{if .AppPozadinaGlassOpacity}}{{.AppPozadinaGlassOpacity}}%{{else}}0.08{{end}}) !important;
         backdrop-filter: blur({{.AppPozadinaBlur}}px);
         -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px);
         border-bottom: 1px solid rgba(255,255,255,0.12) !important;
       }
       .kartica {
-        background: rgba(255,255,255,0.08) !important;
+        background: rgba(0,0,0,{{if .AppPozadinaGlassOpacity}}{{.AppPozadinaGlassOpacity}}%{{else}}0.08{{end}}) !important;
         backdrop-filter: blur({{.AppPozadinaBlur}}px);
         -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px);
         border: 1px solid rgba(255,255,255,0.12) !important;
@@ -215,6 +221,16 @@
     </script>
 
     {{block "dodatni-js" .}}{{end}}
+
+    <!-- čuva URL pozadine za sledeću navigaciju (bez treperenja) -->
+    <script>
+    {{if .AppPozadina}}
+    sessionStorage.setItem('ntech-bg', '{{.AppPozadina}}');
+    {{else}}
+    sessionStorage.removeItem('ntech-bg');
+    document.documentElement.style.backgroundImage = '';
+    {{end}}
+    </script>
 
     <!-- CSRF: automatski dodaje skriveno polje u sve POST forme -->
     <script>

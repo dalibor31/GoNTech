@@ -42,12 +42,11 @@ func (h *Handler) ProfilTema(w http.ResponseWriter, r *http.Request) {
 		PodaciStranice:      ps,
 		LokalnaTema:         svezi.LokalnaTema,
 		KoristiLokalnuTemu:  svezi.KoristiLokalnuTemu,
-		KoristiGlobalnuTemu: !svezi.KoristiLokalnuTemu,
-		GlobalnaTema:        podesavanja["globalna_tema"],
 		LokalnaPozadina:             svezi.LokalnaPozadina,
 		LokalnaPozadinaOpacity:      svezi.LokalnaPozadinaOpacity,
 		LokalnaPozadinaBlur:         svezi.LokalnaPozadinaBlur,
 		LokalnaPozadinaBlurPozadine: svezi.LokalnaPozadinaBlurPozadine,
+		LokalnaPozadinaGlassOpacity: svezi.LokalnaPozadinaGlassOpacity,
 	}
 	if podaci.LokalnaPozadinaOpacity == "" {
 		podaci.LokalnaPozadinaOpacity = "50"
@@ -57,6 +56,9 @@ func (h *Handler) ProfilTema(w http.ResponseWriter, r *http.Request) {
 	}
 	if podaci.LokalnaPozadinaBlurPozadine == "" {
 		podaci.LokalnaPozadinaBlurPozadine = "0"
+	}
+	if podaci.LokalnaPozadinaGlassOpacity == "" {
+		podaci.LokalnaPozadinaGlassOpacity = "10"
 	}
 	h.renderujTemplate(w, "profil_tema", podaci)
 }
@@ -149,6 +151,7 @@ func (h *Handler) ProfilOtpremiPozadinu(w http.ResponseWriter, r *http.Request) 
 	opacity := "50"
 	blur := "12"
 	blurPozadine := "0"
+	glassOpacity := "10"
 	if svezi != nil {
 		if svezi.LokalnaPozadinaOpacity != "" {
 			opacity = svezi.LokalnaPozadinaOpacity
@@ -159,9 +162,12 @@ func (h *Handler) ProfilOtpremiPozadinu(w http.ResponseWriter, r *http.Request) 
 		if svezi.LokalnaPozadinaBlurPozadine != "" {
 			blurPozadine = svezi.LokalnaPozadinaBlurPozadine
 		}
+		if svezi.LokalnaPozadinaGlassOpacity != "" {
+			glassOpacity = svezi.LokalnaPozadinaGlassOpacity
+		}
 	}
 
-	if err := h.KorisniciRepo.SacuvajLokalnuPozadinu(r.Context(), k.ID, putanja, opacity, blur, blurPozadine); err != nil {
+	if err := h.KorisniciRepo.SacuvajLokalnuPozadinu(r.Context(), k.ID, putanja, opacity, blur, blurPozadine, glassOpacity); err != nil {
 		log.Printf("ProfilOtpremiPozadinu: greška pri čuvanju: %v", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju podešavanja.")
 		http.Redirect(w, r, "/profil/tema", http.StatusSeeOther)
@@ -186,7 +192,7 @@ func (h *Handler) ProfilUkloniPozadinu(w http.ResponseWriter, r *http.Request) {
 		os.Remove(filepath.Join("web/static/uploads", filepath.Base(deo)))
 	}
 
-	if err := h.KorisniciRepo.SacuvajLokalnuPozadinu(r.Context(), k.ID, "", "50", "12", "0"); err != nil {
+	if err := h.KorisniciRepo.SacuvajLokalnuPozadinu(r.Context(), k.ID, "", "50", "12", "0", "10"); err != nil {
 		log.Printf("ProfilUkloniPozadinu: %v", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri uklanjanju slike.")
 		http.Redirect(w, r, "/profil/tema", http.StatusSeeOther)
@@ -220,6 +226,7 @@ func (h *Handler) ProfilSacuvajPozadinuStilove(w http.ResponseWriter, r *http.Re
 	opacity := r.FormValue("lokalna_pozadina_opacity")
 	blur := r.FormValue("lokalna_pozadina_blur")
 	blurPozadineSt := r.FormValue("lokalna_pozadina_blur_pozadine")
+	glassOpacitySt := r.FormValue("lokalna_pozadina_glass_opacity")
 	if opacity == "" {
 		opacity = "50"
 	}
@@ -229,8 +236,11 @@ func (h *Handler) ProfilSacuvajPozadinuStilove(w http.ResponseWriter, r *http.Re
 	if blurPozadineSt == "" {
 		blurPozadineSt = "0"
 	}
+	if glassOpacitySt == "" {
+		glassOpacitySt = "10"
+	}
 
-	if err := h.KorisniciRepo.SacuvajLokalnuPozadinu(r.Context(), k.ID, pozadina, opacity, blur, blurPozadineSt); err != nil {
+	if err := h.KorisniciRepo.SacuvajLokalnuPozadinu(r.Context(), k.ID, pozadina, opacity, blur, blurPozadineSt, glassOpacitySt); err != nil {
 		log.Printf("ProfilSacuvajPozadinuStilove: %v", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju podešavanja.")
 		http.Redirect(w, r, "/profil/tema", http.StatusSeeOther)

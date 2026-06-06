@@ -36,6 +36,7 @@ func (h *Handler) PrikazPrijave(w http.ResponseWriter, r *http.Request) {
 	loginOpacity := "50"
 	loginBlurPozadine := "0"
 	loginBlurKartice := "12"
+	loginZatamnjenjeKartice := "0"
 	if podesavanja, err := ntechsqlite.DohvatiSvaPodesavanja(context.Background(), h.DB); err == nil {
 		loginPozadina = podesavanja["login_pozadina"]
 		if v := podesavanja["login_pozadina_opacity"]; v != "" {
@@ -47,15 +48,19 @@ func (h *Handler) PrikazPrijave(w http.ResponseWriter, r *http.Request) {
 		if v := podesavanja["login_pozadina_blur_kartice"]; v != "" {
 			loginBlurKartice = v
 		}
+		if v := podesavanja["login_pozadina_zatamnjenje_kartice"]; v != "" {
+			loginZatamnjenjeKartice = v
+		}
 	}
 
 	h.renderujStandalone(w, "prijava", map[string]any{
-		"Greska":                  greska,
-		"CsrfToken":               middleware.CsrfToken(r.Context()),
-		"LoginPozadina":           loginPozadina,
-		"LoginPozadinaOpacity":    loginOpacity,
-		"LoginPozadinaBlurPozadine": loginBlurPozadine,
-		"LoginPozadinaBlurKartice": loginBlurKartice,
+		"Greska":                          greska,
+		"CsrfToken":                       middleware.CsrfToken(r.Context()),
+		"LoginPozadina":                   loginPozadina,
+		"LoginPozadinaOpacity":            loginOpacity,
+		"LoginPozadinaBlurPozadine":       loginBlurPozadine,
+		"LoginPozadinaBlurKartice":        loginBlurKartice,
+		"LoginPozadinaZatamnjenjeKartice": loginZatamnjenjeKartice,
 	})
 }
 
