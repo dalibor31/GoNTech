@@ -4,22 +4,12 @@
 
 {{define "dodatni-css"}}
 <style>
-    @keyframes modalIn {
-        from { opacity: 0; transform: translateY(-16px) scale(0.97); }
-        to   { opacity: 1; transform: translateY(0) scale(1); }
-    }
-
+    @keyframes modalIn { from { opacity: 0; transform: translateY(-16px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
     .forma-kartica:nth-child(1) { animation-delay: 0.04s; }
     .forma-kartica:nth-child(2) { animation-delay: 0.12s; }
-
     .greska-animacija { animation: shake 0.4s ease; }
-
     .modal-sadrzaj { animation: modalIn 0.25s ease forwards; }
-
-    @media (max-width: 768px) {
-        .stavke-tabela-wrapper { display: none; }
-        .stavke-kartice { display: flex !important; }
-    }
+    @media (max-width: 768px) { .stavke-tabela-wrapper { display: none; } .stavke-kartice { display: flex !important; } }
 </style>
 {{end}}
 

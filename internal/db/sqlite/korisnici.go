@@ -11,6 +11,33 @@ import (
 
 type sqliteKorisniciRepo struct{ db *sql.DB }
 
+// skeniraiKorisnika čita jedan red iz baze i popunjava model.Korisnik
+func skeniraiKorisnika(row interface{ Scan(...any) error }) (*model.Korisnik, error) {
+	k := &model.Korisnik{}
+	var aktivan, koristiLokalnuTemu int
+	var lokalnaTema sql.NullString
+	var lokalnaPozadina, lokalnaPozadinaOpacity, lokalnaPozadinaBlur, lokalnaPozadinaBlurPozadine, lokalnaPozadinaGlassOpacity sql.NullString
+	var datumKreiranja time.Time
+	if err := row.Scan(
+		&k.ID, &k.KorisnickoIme, &k.LozinkaHash, &k.Uloga, &aktivan, &k.TotpTajna,
+		&lokalnaTema, &koristiLokalnuTemu, &datumKreiranja,
+		&lokalnaPozadina, &lokalnaPozadinaOpacity, &lokalnaPozadinaBlur,
+		&lokalnaPozadinaBlurPozadine, &lokalnaPozadinaGlassOpacity,
+	); err != nil {
+		return nil, err
+	}
+	k.Aktivan = aktivan == 1
+	k.LokalnaTema = lokalnaTema.String
+	k.KoristiLokalnuTemu = koristiLokalnuTemu == 1
+	k.DatumKreiranja = datumKreiranja
+	k.LokalnaPozadina = lokalnaPozadina.String
+	k.LokalnaPozadinaOpacity = lokalnaPozadinaOpacity.String
+	k.LokalnaPozadinaBlur = lokalnaPozadinaBlur.String
+	k.LokalnaPozadinaBlurPozadine = lokalnaPozadinaBlurPozadine.String
+	k.LokalnaPozadinaGlassOpacity = lokalnaPozadinaGlassOpacity.String
+	return k, nil
+}
+
 // NoviKorisniciRepo kreira SQLite implementaciju KorisniciRepository
 func NoviKorisniciRepo(db *sql.DB) *sqliteKorisniciRepo {
 	return &sqliteKorisniciRepo{db: db}
@@ -28,67 +55,32 @@ func (r *sqliteKorisniciRepo) Kreiraj(ctx context.Context, korisnickoIme, lozink
 }
 
 func (r *sqliteKorisniciRepo) DohvatiPoImenu(ctx context.Context, korisnickoIme string) (*model.Korisnik, error) {
-	k := &model.Korisnik{}
-	var aktivan, koristiLokalnuTemu int
-	var totpTajna, lokalnaTema sql.NullString
-	var lokalnaPozadina, lokalnaPozadinaOpacity, lokalnaPozadinaBlur, lokalnaPozadinaBlurPozadine, lokalnaPozadinaGlassOpacity sql.NullString
-	var datumKreiranja time.Time
-	err := r.db.QueryRowContext(ctx,
+	row := r.db.QueryRowContext(ctx,
 		`SELECT id, korisnicko_ime, lozinka_hash, uloga, aktivan, COALESCE(totp_tajna, ''),
 		        COALESCE(lokalna_tema, ''), koristi_lokalnu_temu, datum_kreiranja,
 		        COALESCE(lokalna_pozadina, ''), COALESCE(lokalna_pozadina_opacity, '50'),
 		        COALESCE(lokalna_pozadina_blur, '12'), COALESCE(lokalna_pozadina_blur_pozadine, '0'),
 		        COALESCE(lokalna_pozadina_glass_opacity, '10')
-		 FROM korisnici WHERE korisnicko_ime = ?`, korisnickoIme).
-		Scan(&k.ID, &k.KorisnickoIme, &k.LozinkaHash, &k.Uloga, &aktivan, &totpTajna,
-			&lokalnaTema, &koristiLokalnuTemu, &datumKreiranja,
-			&lokalnaPozadina, &lokalnaPozadinaOpacity, &lokalnaPozadinaBlur, &lokalnaPozadinaBlurPozadine,
-			&lokalnaPozadinaGlassOpacity)
+		 FROM korisnici WHERE korisnicko_ime = ?`, korisnickoIme)
+	k, err := skeniraiKorisnika(row)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: korisnici.DohvatiPoImenu: %w", err)
 	}
-	k.Aktivan = aktivan == 1
-	k.TotpTajna = totpTajna.String
-	k.LokalnaTema = lokalnaTema.String
-	k.KoristiLokalnuTemu = koristiLokalnuTemu == 1
-	k.DatumKreiranja = datumKreiranja
-	k.LokalnaPozadina = lokalnaPozadina.String
-	k.LokalnaPozadinaOpacity = lokalnaPozadinaOpacity.String
-	k.LokalnaPozadinaBlur = lokalnaPozadinaBlur.String
-	k.LokalnaPozadinaBlurPozadine = lokalnaPozadinaBlurPozadine.String
-	k.LokalnaPozadinaGlassOpacity = lokalnaPozadinaGlassOpacity.String
 	return k, nil
 }
 
 func (r *sqliteKorisniciRepo) DohvatiPoID(ctx context.Context, id int64) (*model.Korisnik, error) {
-	k := &model.Korisnik{}
-	var aktivan, koristiLokalnuTemu int
-	var lokalnaTema sql.NullString
-	var lokalnaPozadina, lokalnaPozadinaOpacity, lokalnaPozadinaBlur, lokalnaPozadinaBlurPozadine, lokalnaPozadinaGlassOpacity sql.NullString
-	var datumKreiranja time.Time
-	err := r.db.QueryRowContext(ctx,
+	row := r.db.QueryRowContext(ctx,
 		`SELECT id, korisnicko_ime, lozinka_hash, uloga, aktivan, COALESCE(totp_tajna, ''),
 		        COALESCE(lokalna_tema, ''), koristi_lokalnu_temu, datum_kreiranja,
 		        COALESCE(lokalna_pozadina, ''), COALESCE(lokalna_pozadina_opacity, '50'),
 		        COALESCE(lokalna_pozadina_blur, '12'), COALESCE(lokalna_pozadina_blur_pozadine, '0'),
 		        COALESCE(lokalna_pozadina_glass_opacity, '10')
-		 FROM korisnici WHERE id = ?`, id).
-		Scan(&k.ID, &k.KorisnickoIme, &k.LozinkaHash, &k.Uloga, &aktivan, &k.TotpTajna,
-			&lokalnaTema, &koristiLokalnuTemu, &datumKreiranja,
-			&lokalnaPozadina, &lokalnaPozadinaOpacity, &lokalnaPozadinaBlur, &lokalnaPozadinaBlurPozadine,
-			&lokalnaPozadinaGlassOpacity)
+		 FROM korisnici WHERE id = ?`, id)
+	k, err := skeniraiKorisnika(row)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: korisnici.DohvatiPoID: %w", err)
 	}
-	k.Aktivan = aktivan == 1
-	k.LokalnaTema = lokalnaTema.String
-	k.KoristiLokalnuTemu = koristiLokalnuTemu == 1
-	k.DatumKreiranja = datumKreiranja
-	k.LokalnaPozadina = lokalnaPozadina.String
-	k.LokalnaPozadinaOpacity = lokalnaPozadinaOpacity.String
-	k.LokalnaPozadinaBlur = lokalnaPozadinaBlur.String
-	k.LokalnaPozadinaBlurPozadine = lokalnaPozadinaBlurPozadine.String
-	k.LokalnaPozadinaGlassOpacity = lokalnaPozadinaGlassOpacity.String
 	return k, nil
 }
 

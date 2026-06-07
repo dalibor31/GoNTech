@@ -1,160 +1,74 @@
 <!DOCTYPE html>
 <html lang="sr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prijava — NTech</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #0f1117;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-            position: relative;
-        }
-        .kartica {
-            background: #1a1d27;
-            border: 0.5px solid #2d3148;
-            border-radius: 16px;
-            padding: 40px;
-            width: 100%;
-            max-width: 380px;
-        }
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Prijava — NTech</title>
+        <style>
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; position: relative; }
+            .kartica { background: #1a1d27; border: 0.5px solid #2d3148; border-radius: 16px; padding: 40px; width: 100%; max-width: 380px; }
+            {{if .LoginPozadina}}.kartica { background: rgba(0, 0, 0, {{.LoginPozadinaZatamnjenjeKartice}}%) !important; backdrop-filter: blur({{.LoginPozadinaBlurKartice}}px); -webkit-backdrop-filter: blur({{.LoginPozadinaBlurKartice}}px); border: 1px solid rgba(255, 255, 255, 0.18) !important; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }{{end}}
+            .logo { text-align: center; margin-bottom: 32px; }
+            .logo-naziv { font-size: 22px; font-weight: 600; color: #fff; letter-spacing: -0.3px; }
+            .logo-podnazlov { font-size: 13px; color: #6b7280; margin-top: 4px; }
+            h1 { font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 24px; }
+            .polje { margin-bottom: 16px; }
+            label { display: block; font-size: 13px; color: #9ca3af; margin-bottom: 6px; }
+            input { width: 100%; padding: 8px 12px; background: #0f1117; border: 0.5px solid #2d3148; border-radius: 8px; font-size: 14px; color: #fff; outline: none; transition: border-color 0.2s; }
+            input:focus { border-color: #e53e3e; }
+            .dugme { width: 100%; padding: 11px; background: #e53e3e; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; margin-top: 8px; transition: opacity 0.2s; }
+            .dugme:hover { opacity: 0.88; }
+            .greska { background: #fef2f2; border: 0.5px solid #fca5a5; color: #dc2626; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 20px; }
+            .uspeh { background: #f0fdf4; border: 0.5px solid #86efac; color: #16a34a; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 20px; }
+        </style>
+    </head>
+    <body>
         {{if .LoginPozadina}}
-        .kartica {
-            background: rgba(0,0,0,{{.LoginPozadinaZatamnjenjeKartice}}%) !important;
-            backdrop-filter: blur({{.LoginPozadinaBlurKartice}}px);
-            -webkit-backdrop-filter: blur({{.LoginPozadinaBlurKartice}}px);
-            border: 1px solid rgba(255,255,255,0.18) !important;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-        }
-        {{end}}
-        .logo {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-        .logo-naziv {
-            font-size: 22px;
-            font-weight: 600;
-            color: #fff;
-            letter-spacing: -0.3px;
-        }
-        .logo-podnazlov {
-            font-size: 13px;
-            color: #6b7280;
-            margin-top: 4px;
-        }
-        h1 {
-            font-size: 18px;
-            font-weight: 600;
-            color: #fff;
-            margin-bottom: 24px;
-        }
-        .polje { margin-bottom: 16px; }
-        label {
-            display: block;
-            font-size: 13px;
-            color: #9ca3af;
-            margin-bottom: 6px;
-        }
-        input {
-            width: 100%;
-            padding: 8px 12px;
-            background: #0f1117;
-            border: 0.5px solid #2d3148;
-            border-radius: 8px;
-            font-size: 14px;
-            color: #fff;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        input:focus { border-color: #e53e3e; }
-        .dugme {
-            width: 100%;
-            padding: 11px;
-            background: #e53e3e;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            margin-top: 8px;
-            transition: opacity 0.2s;
-        }
-        .dugme:hover { opacity: 0.88; }
-        .greska {
-            background: #fef2f2;
-            border: 0.5px solid #fca5a5;
-            color: #dc2626;
-            border-radius: 8px;
-            padding: 10px 14px;
-            font-size: 13px;
-            margin-bottom: 20px;
-        }
-        .uspeh {
-            background: #f0fdf4;
-            border: 0.5px solid #86efac;
-            color: #16a34a;
-            border-radius: 8px;
-            padding: 10px 14px;
-            font-size: 13px;
-            margin-bottom: 20px;
-        }
-    </style>
-</head>
-<body>
-    {{if .LoginPozadina}}
-    <div style="position:fixed;inset:0;z-index:-1;background-image:url('{{.LoginPozadina}}');background-size:cover;background-position:center;{{if ne .LoginPozadinaBlurPozadine "0"}}filter:blur({{.LoginPozadinaBlurPozadine}}px);transform:scale(1.05);{{end}}"></div>
-    <div style="position:fixed;inset:0;z-index:0;background:rgba(0,0,0,{{.LoginPozadinaOpacity}}%);"></div>
-    <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:1;padding:16px;">
-    {{end}}
+        <div style="position:fixed;inset:0;z-index:-1;background-image:url('{{.LoginPozadina}}');background-size:cover;background-position:center;{{if ne .LoginPozadinaBlurPozadine " 0"}}filter:blur({{.LoginPozadinaBlurPozadine}}px);transform:scale(1.05);{{end}}"></div>
+        <div style="position:fixed;inset:0;z-index:0;background:rgba(0,0,0,{{.LoginPozadinaOpacity}}%);"></div>
+        <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:1;padding:16px;">
+            {{end}}
 
-    <div class="kartica animiraj">
-        <div class="logo">
-            <div class="logo-naziv">NTech</div>
-            <div class="logo-podnazlov">Sistem za upravljanje</div>
-        </div>
+            <div class="kartica animiraj">
+                <div class="logo">
+                    <div class="logo-naziv">NTech</div>
+                    <div class="logo-podnazlov">Sistem za upravljanje</div>
+                </div>
 
-        <h1>Prijava</h1>
+                <h1>Prijava</h1>
 
-        {{if eq .Greska "1"}}
-        <div class="greska">Pogrešno korisničko ime ili lozinka.</div>
-        {{else if eq .Greska "2"}}
-        <div class="greska">Greška na serveru. Pokušajte ponovo.</div>
-        {{else if eq .Greska "zakljucano"}}
-        <div class="greska">
-            Previše neuspelih pokušaja prijave. IP adresa je privremeno blokirana.
-            {{if .Preostalo}}<br>Pokušajte ponovo za: <strong>{{.Preostalo}}</strong>{{end}}
+                {{if eq .Greska "1"}}
+                <div class="greska">Pogrešno korisničko ime ili lozinka.</div>
+                {{else if eq .Greska "2"}}
+                <div class="greska">Greška na serveru. Pokušajte ponovo.</div>
+                {{else if eq .Greska "zakljucano"}}
+                <div class="greska">
+                    Previše neuspelih pokušaja prijave. IP adresa je privremeno blokirana.
+                    {{if .Preostalo}}<br>Pokušajte ponovo za: <strong>{{.Preostalo}}</strong>{{end}}
+                </div>
+                {{end}}
+
+                {{if .Sacuvano}}
+                <div class="uspeh">Nalog je kreiran. Možete se prijaviti.</div>
+                {{end}}
+
+                <form method="POST" action="/prijava">
+                    <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+                    <div class="polje">
+                        <label for="korisnicko_ime">Korisničko ime</label>
+                        <input type="text" id="korisnicko_ime" name="korisnicko_ime" autocomplete="username" autofocus required>
+                    </div>
+                    <div class="polje">
+                        <label for="lozinka">Lozinka</label>
+                        <input type="password" id="lozinka" name="lozinka" autocomplete="current-password" required>
+                    </div>
+                    <button type="submit" class="dugme">Prijavi se</button>
+                </form>
+            </div>
+
+            {{if .LoginPozadina}}
         </div>
         {{end}}
-
-        {{if .Sacuvano}}
-        <div class="uspeh">Nalog je kreiran. Možete se prijaviti.</div>
-        {{end}}
-
-        <form method="POST" action="/prijava">
-            <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
-            <div class="polje">
-                <label for="korisnicko_ime">Korisničko ime</label>
-                <input type="text" id="korisnicko_ime" name="korisnicko_ime"
-                    autocomplete="username" autofocus required>
-            </div>
-            <div class="polje">
-                <label for="lozinka">Lozinka</label>
-                <input type="password" id="lozinka" name="lozinka"
-                    autocomplete="current-password" required>
-            </div>
-            <button type="submit" class="dugme">Prijavi se</button>
-        </form>
-    </div>
-
-    {{if .LoginPozadina}}
-    </div>
-    {{end}}
-</body>
+    </body>
 </html>

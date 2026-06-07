@@ -234,7 +234,7 @@ func main() {
 		r.Get("/admin/profil/totp/pokreni", h.AdminTotpPokreni)
 		r.Post("/admin/profil/totp/aktiviraj", h.AdminTotpAktivacija)
 		r.Post("/admin/profil/totp/deaktiviraj", h.AdminTotpDeaktivacija)
-		r.Post("/profil/tema", h.AdminSacuvajLokalnuTemu)
+		r.Post("/profil/tema", h.SacuvajLokalnuTemu)
 		r.Get("/profil/tema", h.ProfilTema)
 		r.Post("/profil/pozadina", h.ProfilOtpremiPozadinu)
 		r.Post("/profil/pozadina/ukloni", h.ProfilUkloniPozadinu)

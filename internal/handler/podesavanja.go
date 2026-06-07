@@ -82,27 +82,11 @@ func (h *Handler) Podesavanja(w http.ResponseWriter, r *http.Request) {
 		Verzija:        h.Verzija,
 		LogoGreska:     r.URL.Query().Get("logo_greska"),
 		Backupi:        ucitajListuBackupa(),
-		LoginPozadina: podesavanja["login_pozadina"],
-		LoginPozadinaOpacity: func() string {
-			v := podesavanja["login_pozadina_opacity"]
-			if v == "" { return "50" }
-			return v
-		}(),
-		LoginPozadinaBlurPozadine: func() string {
-			v := podesavanja["login_pozadina_blur_pozadine"]
-			if v == "" { return "0" }
-			return v
-		}(),
-		LoginPozadinaBlurKartice: func() string {
-			v := podesavanja["login_pozadina_blur_kartice"]
-			if v == "" { return "12" }
-			return v
-		}(),
-		LoginPozadinaZatamnjenjeKartice: func() string {
-			v := podesavanja["login_pozadina_zatamnjenje_kartice"]
-			if v == "" { return "0" }
-			return v
-		}(),
+		LoginPozadina:                   podesavanja["login_pozadina"],
+		LoginPozadinaOpacity:            vrednostIliDefault(podesavanja, "login_pozadina_opacity", "50"),
+		LoginPozadinaBlurPozadine:       vrednostIliDefault(podesavanja, "login_pozadina_blur_pozadine", "0"),
+		LoginPozadinaBlurKartice:        vrednostIliDefault(podesavanja, "login_pozadina_blur_kartice", "12"),
+		LoginPozadinaZatamnjenjeKartice: vrednostIliDefault(podesavanja, "login_pozadina_zatamnjenje_kartice", "0"),
 	}
 
 	h.renderujTemplate(w, "podesavanja", podaci)
@@ -134,6 +118,14 @@ func ucitajListuBackupa() []BackupInfo {
 		})
 	}
 	return lista
+}
+
+// vrednostIliDefault vraća vrednost iz mape ako postoji i nije prazan string, inače vraća podrazumevanu vrednost
+func vrednostIliDefault(m map[string]string, kljuc, podrazumevano string) string {
+	if v := m[kljuc]; v != "" {
+		return v
+	}
+	return podrazumevano
 }
 
 // VratiBackup zamenjuje trenutnu bazu sa izabranim backup fajlom
@@ -197,7 +189,7 @@ func (h *Handler) VratiBackup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.reinicijalzijRepozitorijume(novaDB)
+	h.reinicijalizujRepozitorijume(novaDB)
 	log.Printf("Baza uspešno obnovljena iz: %s", ime)
 
 	http.Redirect(w, r, "/podesavanja?sacuvano=vraceno", http.StatusSeeOther)
@@ -594,31 +586,11 @@ func (h *Handler) napuniPodaciPodesavanja(r *http.Request, naslov string) (Podac
 		Verzija:        h.Verzija,
 		LogoGreska:     r.URL.Query().Get("logo_greska"),
 		Backupi:        ucitajListuBackupa(),
-		LoginPozadina:  podesavanja["login_pozadina"],
-		LoginPozadinaOpacity: func() string {
-			if v := podesavanja["login_pozadina_opacity"]; v != "" {
-				return v
-			}
-			return "50"
-		}(),
-		LoginPozadinaBlurPozadine: func() string {
-			if v := podesavanja["login_pozadina_blur_pozadine"]; v != "" {
-				return v
-			}
-			return "0"
-		}(),
-		LoginPozadinaBlurKartice: func() string {
-			if v := podesavanja["login_pozadina_blur_kartice"]; v != "" {
-				return v
-			}
-			return "12"
-		}(),
-		LoginPozadinaZatamnjenjeKartice: func() string {
-			if v := podesavanja["login_pozadina_zatamnjenje_kartice"]; v != "" {
-				return v
-			}
-			return "0"
-		}(),
+		LoginPozadina:                   podesavanja["login_pozadina"],
+		LoginPozadinaOpacity:            vrednostIliDefault(podesavanja, "login_pozadina_opacity", "50"),
+		LoginPozadinaBlurPozadine:       vrednostIliDefault(podesavanja, "login_pozadina_blur_pozadine", "0"),
+		LoginPozadinaBlurKartice:        vrednostIliDefault(podesavanja, "login_pozadina_blur_kartice", "12"),
+		LoginPozadinaZatamnjenjeKartice: vrednostIliDefault(podesavanja, "login_pozadina_zatamnjenje_kartice", "0"),
 	}, nil
 }
 
