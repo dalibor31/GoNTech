@@ -2,6 +2,8 @@
 
 [🇬🇧 English version](Readme.md)
 
+<img width="1440" height="754" alt="image" src="https://github.com/user-attachments/assets/05ade210-6c54-41d8-8006-707c3077944d" />
+
 ![Go Version](https://img.shields.io/badge/go-1.24-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
