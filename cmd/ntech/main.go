@@ -42,12 +42,12 @@ func main() {
 	if _, err := os.Stat("migrations"); err == nil {
 		migrFS = os.DirFS(".")
 	}
-	// staticFS je rootovan na "web/static" (isti kao fs.Sub embed-a) — uploads ostaju van embed-a
+	// staticFS je rootovan na "web/static" — u produkciji embed, u razvoju disk
 	var staticFS fs.FS
-	if _, err := os.Stat("web/static"); err == nil {
-		staticFS = os.DirFS("web/static")
-	} else {
+	if os.Getenv("NTECH_ENV") == "production" {
 		staticFS, _ = fs.Sub(assets.StaticFS, "web/static")
+	} else {
+		staticFS = os.DirFS("web/static")
 	}
 
 	if config.JelPrvoPokretanje() {

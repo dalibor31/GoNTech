@@ -1,148 +1,88 @@
 # NTech
 
+[🇷🇸 Srpska verzija](README.sr.md)
+
 ![Go Version](https://img.shields.io/badge/go-1.24-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-Poslovna aplikacija za upravljanje servisom računara, magacinom delova i prodajom. Napravljena u Go-u, radi u brauzeru, ne zahteva internet vezu ni eksterne servise.
+A business application for computer repair shop management, parts inventory tracking, and sales. Built with Go, it runs in the browser and requires no internet connection or external services.
 
-> ⚠️ Projekat je u aktivnom razvoju. Nije spreman za produkcijsku upotrebu.
-
----
-
-## O projektu
-
-NTech je interna aplikacija napravljena za konkretnog korisnika — servis računara koji pored popravki vodi i magacin delova, prodaju komponenti i gotovih konfiguracija, te evidenciju klijenata i dobavljača.
-
-Cilj je jednostavan: sve što servis treba da prati nalazi se na jednom mestu, bez oslanjanja na tabele u Excelu ili papirnu evidenciju.
+> ⚠️ The project is under active development. It is not ready for production use.
 
 ---
 
-## Funkcionalnosti
+## About the Project
 
-### Implementirano
+NTech is an internal application built for a specific user — a computer repair shop that, in addition to repairs, manages a parts inventory, sales of components and pre-built configurations, as well as client and supplier records.
 
-- Inicijalno podešavanje pri prvom pokretanju (setup wizard)
-- Sistem migracija baze podataka
-- Korisnički interfejs — sidebar navigacija, sistem tema (tamna/svetla), dashboard sa statistikama
-- Prijava korisnika — sesije na serveru, zaključavanje naloga
-- Dvofaktorska autentifikacija (TOTP) — aktivacija sa QR kodom, rezervni kodovi
-- Bruteforce zaštita — IP zaključavanje nakon 5 neuspelih pokušaja u 15 minuta
-- CSRF zaštita — double-submit cookie pattern, automatska injekcija tokena u sve forme
-- Bezbednosni HTTP headeri (CSP, X-Frame-Options, Referrer-Policy, nosniff...)
-- Evidencija pokušaja prijave — istorija po korisniku, IP, razlog, datum
-- Korisnici i uloge — admin panel, upravljanje korisnicima
-- Magacin — artikli, kategorije, filtriranje, kritični nivoi zaliha
-- Servisni nalozi — prijem, statusna traka, troškovi, priznanica
-- Prodajni nalozi — stavke, obračun, priznanica sa podacima firme i klijenta
-- Nabavke — evidencija nabavki od dobavljača
-- Klijenti i dobavljači — baza kontakata
-- Podsetnici — evidencija sa rokom
-- Izveštaji — pregled prihoda, stanje magacina
-- Podešavanja — naziv, adresa, PIB, logo firme; promena teme
-
-### Planirano
-
-- Podrška za PostgreSQL (za višekorisničko okruženje)
-- WebAuthn / Passkey prijava (šema baze je pripremljena)
-- Obaveštenja (e-pošta / WhatsApp) — odloženo za kasniju fazu
-- Skeniranje barkodova putem kamere — odloženo za kasniju fazu
+The goal is simple: everything the repair shop needs to track is located in one place, without relying on Excel spreadsheets or paper records.
 
 ---
 
-## Tehnologije
+## Features
 
-| Tehnologija                                                                          | Uloga                           |
+### Implemented
+
+- Initial setup on first run (setup wizard)
+- Database migration system
+- User interface — sidebar navigation, theme system (dark/light), dashboard with statistics
+- User login — server-side sessions, account locking
+- Two-factor authentication (TOTP) — activation with a QR code, backup codes
+- Brute-force protection — IP locking after 5 failed attempts within 15 minutes
+- CSRF protection — double-submit cookie pattern, automatic token injection into all forms
+- Security HTTP headers (CSP, X-Frame-Options, Referrer-Policy, nosniff...)
+- Login attempt logging — history by user, IP, reason, date
+- Users and roles — admin panel, user management
+- Inventory — items, categories, filtering, critical stock levels
+- Service orders — intake, status bar, costs, receipt
+- Sales orders — items, calculation, receipt with company and client details
+- Procurement — records of purchases from suppliers
+- Clients and suppliers — contact database
+- Reminders — records with deadlines
+- Reports — revenue overview, inventory status
+- Settings — company name, address, Tax ID (PIB), logo; theme toggle
+
+### Planned
+
+- PostgreSQL support (for multi-user environments)
+- WebAuthn / Passkey login (database schema is already prepared)
+- Notifications (email / WhatsApp) — deferred to a later phase
+- Barcode scanning via camera — deferred to a later phase
+
+---
+
+## Technologies
+
+| Technology                                                                           | Role                            |
 | ------------------------------------------------------------------------------------ | ------------------------------- |
-| [Go](https://go.dev)                                                                 | backend jezik                   |
-| [chi](https://github.com/go-chi/chi)                                                 | HTTP ruter                      |
-| [html/template](https://pkg.go.dev/html/template)                                    | serverski šabloni               |
-| [Alpine.js](https://alpinejs.dev)                                                    | UI logika na strani klijenta    |
-| [SQLite](https://sqlite.org) + [modernc.org/sqlite](https://gitlab.com/cznic/sqlite) | glavna baza (čisti Go, bez CGO) |
-| [PostgreSQL](https://www.postgresql.org) + [pgx/v5](https://github.com/jackc/pgx)   | opciona baza za produkciju      |
+| [Go](https://go.dev)                                                                 | backend language                |
+| [chi](https://github.com/go-chi/chi)                                                 | HTTP router                     |
+| [html/template](https://pkg.go.dev/html/template)                                    | server-side templates           |
+| [Alpine.js](https://alpinejs.dev)                                                    | client-side UI logic            |
+| [SQLite](https://sqlite.org) + [modernc.org/sqlite](https://gitlab.com/cznic/sqlite) | main database (pure Go, no CGO) |
+| [PostgreSQL](https://www.postgresql.org) + [pgx/v5](https://github.com/jackc/pgx)    | optional production database    |
 
 ---
 
-## Pokretanje
+## Running the Application
 
-### Zahtevi
+### Requirements
 
-- Go 1.22 ili noviji
+- Go 1.22 or newer
 - Git
 
-### Koraci
+### Steps
 
 ```bash
-# 1. Kloniranje repozitorijuma
-git clone <url-repozitorijuma>
+# 1. Clone the repository
+git clone <repository-url>
 cd GoNtech
 
-# 2. Kopiranje konfiguracionog fajla
+# 2. Copy the configuration file
 cp ntech.env.example ntech.env
-# Otvori ntech.env i postavi vrednosti (videti tabelu ispod)
+# Open ntech.env and set the values (see the table below)
 
-# 3. Učitavanje promenljivih i pokretanje u razvojnom okruženju
+# 3. Load environment variables and run in the development environment
 export $(grep -v '^#' ntech.env | xargs)
 go run ./cmd/ntech
-```
-
-Program se otvara na `http://localhost:8080` (ili na portu definisanom u `ntech.env`).
-
-Pri prvom pokretanju automatski se pokreće setup wizard.
-
-### Produkcioni build
-
-```bash
-# Pomoću build.sh skripte (prima opcioni argument verzije)
-./build.sh 1.0.0
-
-# Ili ručno
-CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build \
-  -ldflags "-X main.Verzija=1.0.0 -s -w" \
-  -o ntech ./cmd/ntech
-./ntech
-```
-
-Rezultat je jedan statički binarni fajl bez zavisnosti.
-
----
-
-## Promenljive okruženja
-
-Kopirati `ntech.env.example` u `ntech.env` i popuniti vrednosti. Fajl `ntech.env` se **ne commituje** u Git.
-
-| Promenljiva    | Podrazumevano | Opis                                         |
-| -------------- | ------------- | -------------------------------------------- |
-| `NTECH_ENV`    | `development` | Okruženje: `development` ili `production`    |
-| `NTECH_PORT`   | `8080`        | HTTP port                                    |
-| `NTECH_DB`     | `sqlite`      | Tip baze: `sqlite` ili `postgres`            |
-| `NTECH_SQLITE` | `ntech.db`    | Putanja do SQLite fajla                      |
-| `NTECH_DSN`    | —             | PostgreSQL connection string                 |
-| `NTECH_SECRET` | —             | Ključ za potpisivanje sesija (min. 32 bajta) |
-
----
-
-## Struktura projekta
-
-```
-ntech/
-├── cmd/
-│   └── ntech/          # ulazna tačka programa
-├── internal/
-│   ├── auth/           # prijava, sesije, fail2ban log
-│   ├── config/         # podešavanja, setup wizard
-│   ├── db/             # sloj baze podataka
-│   │   └── sqlite/     # SQLite implementacija
-│   ├── handler/        # HTTP handleri
-│   ├── middleware/      # CSRF, bezbednost headeri, autentifikacija
-│   └── model/          # zajednički tipovi podataka
-├── web/
-│   ├── static/         # CSS, JavaScript, slike, logotipi
-│   └── templates/      # HTML šabloni
-├── migrations/         # SQL migracije (001_opis.sql, 002_opis.sql, ...)
-├── logs/               # auth.log i ostali logovi
-├── backups/            # rezervne kopije baze
-├── build.sh            # skripta za produkcioni build
-├── ntech.env           # lokalna konfiguracija (ne commituje se)
-├── go.mod
-└── go.sum
 ```
