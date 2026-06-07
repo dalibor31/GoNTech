@@ -5,6 +5,8 @@
 ![Go Version](https://img.shields.io/badge/go-1.24-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
+<img width="1440" height="754" alt="image" src="https://github.com/user-attachments/assets/2ea0746f-2f8e-46f7-9551-06e49c0e61ed" />
+
 A business application for computer repair shop management, parts inventory tracking, and sales. Built with Go, it runs in the browser and requires no internet connection or external services.
 
 > ⚠️ The project is under active development. It is not ready for production use.
