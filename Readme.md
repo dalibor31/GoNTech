@@ -1,6 +1,6 @@
 # NTech
 
-[🇷🇸 Srpska verzija](README_sr.md)
+[🇷🇸 Srpska verzija](Readme_sr.md)
 
 ![Go Version](https://img.shields.io/badge/go-1.24-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
