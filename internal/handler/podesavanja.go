@@ -253,11 +253,10 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sledeci := r.FormValue("_next")
-	if sledeci == "" {
-		http.Redirect(w, r, "/podesavanja?sacuvano=1", http.StatusSeeOther)
-	} else {
-		http.Redirect(w, r, sledeci+"?sacuvano=1", http.StatusSeeOther)
+	if sledeci == "" || !strings.HasPrefix(sledeci, "/") {
+		sledeci = "/podesavanja"
 	}
+	http.Redirect(w, r, sledeci+"?sacuvano=1", http.StatusSeeOther)
 }
 
 // BackupBaze kreira konzistentnu kopiju baze i šalje je kao attachment

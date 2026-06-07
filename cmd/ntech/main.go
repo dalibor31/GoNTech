@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io"
 	"io/fs"
 	"log"
 	"net/http"
@@ -264,22 +263,15 @@ func napraviStartupBackup(putanjaBaze string) {
 	ime := fmt.Sprintf("ntech_%s.db", time.Now().Format("20060102_150405"))
 	odrediste := filepath.Join(folder, ime)
 
-	src, err := os.Open(putanjaBaze)
+	db, err := sqlite.OtvoriDB(putanjaBaze)
 	if err != nil {
 		log.Printf("backup: ne mogu otvoriti bazu: %v", err)
 		return
 	}
-	defer src.Close()
+	defer db.Close()
 
-	dst, err := os.Create(odrediste)
-	if err != nil {
-		log.Printf("backup: ne mogu kreirati backup fajl: %v", err)
-		return
-	}
-	defer dst.Close()
-
-	if _, err := io.Copy(dst, src); err != nil {
-		log.Printf("backup: greška pri kopiranju: %v", err)
+	if _, err := db.ExecContext(context.Background(), "VACUUM INTO ?", odrediste); err != nil {
+		log.Printf("backup: greška pri pravljenju backup-a: %v", err)
 		return
 	}
 

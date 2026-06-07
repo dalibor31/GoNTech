@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -304,6 +305,7 @@ func napraviKolacic(token string, istice time.Time) *http.Cookie {
 		Path:     "/",
 		Expires:  istice,
 		HttpOnly: true,
+		Secure:   os.Getenv("NTECH_ENV") == "production",
 		SameSite: http.SameSiteStrictMode,
 	}
 }
