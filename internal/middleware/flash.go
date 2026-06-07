@@ -29,17 +29,31 @@ func GetFlash(r *http.Request, db *sql.DB) *model.FlashPoruka {
 	if err != nil {
 		return nil
 	}
+
+	tx, err := db.BeginTx(r.Context(), nil)
+	if err != nil {
+		return nil
+	}
+	defer tx.Rollback()
+
 	var flashJSON sql.NullString
-	if err := db.QueryRowContext(r.Context(),
+	if err := tx.QueryRowContext(r.Context(),
 		`SELECT flash FROM sesije WHERE token = ?`, kolacic.Value).Scan(&flashJSON); err != nil {
 		return nil
 	}
 	if !flashJSON.Valid || flashJSON.String == "" {
 		return nil
 	}
-	// briše pre parsiranja — ako parsiranje ne uspe, poruka se svakako ne prikazuje
-	db.ExecContext(r.Context(),
-		`UPDATE sesije SET flash = NULL WHERE token = ?`, kolacic.Value)
+
+	if _, err := tx.ExecContext(r.Context(),
+		`UPDATE sesije SET flash = NULL WHERE token = ?`, kolacic.Value); err != nil {
+		return nil
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil
+	}
+
 	var f model.FlashPoruka
 	if err := json.Unmarshal([]byte(flashJSON.String), &f); err != nil {
 		return nil
