@@ -14,8 +14,7 @@ func BezbednostHeaders() func(http.Handler) http.Handler {
 			h.Set("Content-Security-Policy",
 				"default-src 'self'; "+
 					"style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; "+
-					// Alpine.js v3 koristi new Function() interno — unsafe-eval je neophodan; CSP build zahteva značajan refaktoring.
-				"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; "+
+				"script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; "+
 					"img-src 'self' data: blob:; "+
 					"font-src 'self'; "+
 					"connect-src 'self'")

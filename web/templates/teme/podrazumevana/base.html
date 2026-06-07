@@ -12,18 +12,9 @@
     if (window.innerWidth > 768 && localStorage.getItem('sidebar-skupljen') === 'true') {
         document.documentElement.classList.add('sidebar-init-skupljen');
     }
-    // pozadinska slika iz prethodne stranice — sprečava treperenje pri navigaciji
-    (function() {
-        var bg = sessionStorage.getItem('ntech-bg');
-        if (bg) {
-            var s = document.documentElement.style;
-            s.backgroundImage = 'url(' + bg + ')';
-            s.backgroundSize = 'cover';
-            s.backgroundPosition = 'center';
-            s.backgroundAttachment = 'fixed';
-        }
-    })();
     </script>
+
+    {{if .AppPozadina}}<link rel="preload" as="image" href="{{.AppPozadina}}">{{end}}
 
     <!-- tema — učitava se prva -->
     <link rel="stylesheet" href="/static/css/teme/{{.Tema}}.css" />
@@ -38,8 +29,28 @@
 
     {{if .AppPozadina}}
     <style>
-      .app-bg { position: fixed; inset: {{if ne .AppPozadinaBlurPozadine "0"}}-20px{{else}}0{{end}}; background-image: url('{{.AppPozadina}}'); background-size: cover; background-position: center; filter: blur({{.AppPozadinaBlurPozadine}}px); pointer-events: none; z-index: 0; }
-      .app-overlay { position: fixed; inset: 0; background: rgba(0,0,0,{{.AppPozadinaOpacity}}%); pointer-events: none; z-index: 1; }
+      html {
+        background: url('{{.AppPozadina}}') center/cover fixed;
+        background-color: #1f2228;
+      }
+      body { background: transparent; }
+      body::before {
+        content: '';
+        position: fixed;
+        inset: {{if ne .AppPozadinaBlurPozadine "0"}}-20px{{else}}0{{end}};
+        background: url('{{.AppPozadina}}') center/cover;
+        filter: blur({{.AppPozadinaBlurPozadine}}px);
+        z-index: 0;
+        pointer-events: none;
+      }
+      body::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,{{.AppPozadinaOpacity}}%);
+        z-index: 1;
+        pointer-events: none;
+      }
       .raspored { position: relative; z-index: 2; }
       .sidebar { background: rgba(0,0,0,{{if .AppPozadinaGlassOpacity}}{{.AppPozadinaGlassOpacity}}%{{else}}0.3{{end}}) !important; backdrop-filter: blur({{.AppPozadinaBlur}}px); -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px); border-right: 1px solid rgba(255,255,255,0.12) !important; }
       .sidebar .nav-stavka, .sidebar .logo-naziv, .sidebar .logo-podnazlov { text-shadow: 0 1px 3px rgba(0,0,0,0.8); color: rgba(255,255,255,0.95) !important; }
@@ -66,7 +77,6 @@
     {{end}}
   </head>
   <body>
-    {{if .AppPozadina}}<div class="app-bg"></div><div class="app-overlay"></div>{{end}}
     <div class="raspored">
       <div class="sidebar-overlay" id="sidebar-overlay"></div>
       {{template "sidebar" .}}
@@ -97,92 +107,91 @@
     </script>
     {{end}}
 
-    <!-- alpine.js za interaktivnost -->
-    <script
-      src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
-      defer
-    ></script>
+    <!-- alpine.js komponente (mora biti pre Alpine-a) -->
+    <script src="/static/js/ntech.js" defer></script>
+    <!-- alpine.js CSP build (lokalno, bez unsafe-eval) -->
+    <script src="/static/js/alpine.csp.min.js" defer></script>
 
     <!-- htmx za komunikaciju sa serverom -->
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.x.x/dist/htmx.min.js"></script>
 
     <!-- sidebar logika -->
-    <!-- sidebar logika -->
     <script>
-      const sidebar = document.getElementById("sidebar");
-      const hamburger = document.getElementById("hamburger");
-      const overlay = document.getElementById("sidebar-overlay");
-      const mobilni = () => window.innerWidth <= 768;
+    (function() {
+      function mobilni() { return window.innerWidth <= 768; }
 
-      // učitaj stanje iz localStorage samo za desktop
-      if (!mobilni() && localStorage.getItem("sidebar-skupljen") === "true") {
-        sidebar.classList.add("skupljen");
-      }
-      document.documentElement.classList.remove('sidebar-init-skupljen');
+      function inicijalizujSidebar() {
+        var sidebar = document.getElementById("sidebar");
+        var hamburger = document.getElementById("hamburger");
+        var overlay = document.getElementById("sidebar-overlay");
+        if (!sidebar || !hamburger || !overlay) return;
 
-      hamburger.addEventListener("click", () => {
-        if (mobilni()) {
-          // mobilno — drawer ponašanje
-          sidebar.classList.toggle("otvoren");
-          overlay.classList.toggle("aktivan");
-        } else {
-          // desktop — skupljanje
-          sidebar.classList.toggle("skupljen");
-          localStorage.setItem(
-            "sidebar-skupljen",
-            sidebar.classList.contains("skupljen"),
-          );
+        if (!mobilni() && localStorage.getItem("sidebar-skupljen") === "true") {
+          sidebar.classList.add("skupljen");
         }
-      });
+        document.documentElement.classList.remove('sidebar-init-skupljen');
 
-      // zatvori sidebar klikom na overlay
-      overlay.addEventListener("click", () => {
-        sidebar.classList.remove("otvoren");
-        overlay.classList.remove("aktivan");
-      });
+        hamburger.addEventListener("click", function() {
+          if (mobilni()) {
+            sidebar.classList.toggle("otvoren");
+            overlay.classList.toggle("aktivan");
+          } else {
+            sidebar.classList.toggle("skupljen");
+            localStorage.setItem("sidebar-skupljen", sidebar.classList.contains("skupljen"));
+          }
+        });
 
-      // zatvori sidebar kada se promeni veličina prozora
-      window.addEventListener("resize", () => {
-        if (!mobilni()) {
+        overlay.addEventListener("click", function() {
           sidebar.classList.remove("otvoren");
           overlay.classList.remove("aktivan");
-        }
-      });
+        });
+      }
+
+      // resize listener se dodaje samo jednom — ne sme da se gomila po swap-ovima
+      if (!window._ntechResizeDodato) {
+        window._ntechResizeDodato = true;
+        window.addEventListener("resize", function() {
+          var sidebar = document.getElementById("sidebar");
+          var overlay = document.getElementById("sidebar-overlay");
+          if (sidebar && overlay && !mobilni()) {
+            sidebar.classList.remove("otvoren");
+            overlay.classList.remove("aktivan");
+          }
+        });
+      }
+
+      inicijalizujSidebar();
+    })();
     </script>
 
     {{block "dodatni-js" .}}{{end}}
 
-    <!-- čuva URL pozadine za sledeću navigaciju (bez treperenja) -->
+    <!-- CSRF i potvrda: inicijalizacija na učitavanju i posle htmx swap-a -->
     <script>
-    {{if .AppPozadina}}
-    sessionStorage.setItem('ntech-bg', '{{.AppPozadina}}');
-    {{else}}
-    sessionStorage.removeItem('ntech-bg');
-    document.documentElement.style.backgroundImage = '';
-    {{end}}
-    </script>
-
-    <!-- CSRF: automatski dodaje skriveno polje u sve POST forme -->
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    function ntechInicijalizuj() {
         var m = document.querySelector('meta[name="csrf-token"]');
-        if (!m || !m.content) return;
-        document.querySelectorAll('form[method="POST"],form[method="post"]').forEach(function(f) {
-            if (f.querySelector('input[name="_csrf"]')) return;
-            var i = document.createElement('input');
-            i.type = 'hidden'; i.name = '_csrf'; i.value = m.content;
-            f.appendChild(i);
-        });
-
-        // data-potvrda: sigurna alternativa za onclick=confirm() na dugmadima i linkovima
-        // Vrednost atributa je poruka koja se prikazuje korisniku. Go template je HTML-escape-uje,
-        // JS čita originalnu vrednost — nema problema sa specijalnim karakterima u imenima.
+        if (m && m.content) {
+            document.querySelectorAll('form[method="POST"],form[method="post"]').forEach(function(f) {
+                if (f.querySelector('input[name="_csrf"]')) return;
+                var i = document.createElement('input');
+                i.type = 'hidden'; i.name = '_csrf'; i.value = m.content;
+                f.appendChild(i);
+            });
+        }
         document.querySelectorAll('[data-potvrda]').forEach(function(el) {
+            if (el._potvrda) return;
+            el._potvrda = true;
             el.addEventListener('click', function(e) {
                 if (!confirm(el.getAttribute('data-potvrda'))) e.preventDefault();
             });
         });
-    });
+    }
+    // htmx:afterSettle listener se dodaje samo jednom — ne sme da se gomila po swap-ovima
+    if (!window._ntechCsrfDodato) {
+        window._ntechCsrfDodato = true;
+        document.addEventListener('htmx:afterSettle', ntechInicijalizuj);
+    }
+    document.addEventListener('DOMContentLoaded', ntechInicijalizuj);
     </script>
   </body>
 </html>
