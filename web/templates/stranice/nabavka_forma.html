@@ -9,7 +9,6 @@
     .forma-kartica:nth-child(2) { animation-delay: 0.12s; }
     .greska-animacija { animation: shake 0.4s ease; }
     .modal-sadrzaj { animation: modalIn 0.25s ease forwards; }
-    @media (max-width: 768px) { .stavke-tabela-wrapper { display: none; } .stavke-kartice { display: flex !important; } }
 </style>
 {{end}}
 
@@ -18,89 +17,7 @@
 <!-- lista artikala kao JSON — bezbedno serijalizovana na serveru -->
 <script>var _ntechArtikli = {{.ArtikliJSON}};</script>
 
-<div style="width:100%;"
-    x-data="{
-        stavke: [{artikal_id: '', kolicina: 1, cena: 0}],
-        artikliOpcije: _ntechArtikli,
-        isMobile: window.matchMedia('(max-width: 768px)').matches,
-
-        init() {
-            window.matchMedia('(max-width: 768px)').addEventListener('change', e => {
-                this.isMobile = e.matches;
-            });
-        },
-        dodajStavku() {
-            this.stavke.push({artikal_id: '', kolicina: 1, cena: 0});
-        },
-        ukloniStavku(i) {
-            if (this.stavke.length > 1) this.stavke.splice(i, 1);
-        },
-        ukupnoStavke(s) {
-            return (parseFloat(s.kolicina) * parseFloat(s.cena) || 0).toFixed(2);
-        },
-        ukupnoSvega() {
-            return this.stavke.reduce((z, s) => z + (parseFloat(s.kolicina) * parseFloat(s.cena) || 0), 0).toFixed(2);
-        },
-
-        modal: false,
-        modalUcitavanje: false,
-        modalGreska: '',
-        modalNaziv: '',
-        modalKategorijaID: '',
-        modalCena: '',
-
-        otvoriModal() {
-            this.modal = true;
-            this.modalGreska = '';
-            this.modalNaziv = '';
-            this.modalKategorijaID = '';
-            this.modalCena = '';
-            this.$nextTick(() => this.$refs.modalNazivInput && this.$refs.modalNazivInput.focus());
-        },
-        zatvoriModal() {
-            this.modal = false;
-        },
-
-        async sacuvajArtikal() {
-            if (!this.modalNaziv.trim()) {
-                this.modalGreska = 'Naziv artikla je obavezan.';
-                return;
-            }
-
-            this.modalUcitavanje = true;
-            this.modalGreska = '';
-
-            const params = new URLSearchParams();
-            params.append('naziv', this.modalNaziv.trim());
-            if (this.modalKategorijaID) params.append('kategorija_id', this.modalKategorijaID);
-            if (this.modalCena) params.append('prodajna_cena', this.modalCena);
-            params.append('_csrf', document.querySelector('meta[name=csrf-token]')?.content || '');
-
-            try {
-                const odgovor = await fetch('/magacin/novi', {
-                    method: 'POST',
-                    headers: {'X-Requested-With': 'fetch', 'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: params
-                });
-
-                if (!odgovor.ok) {
-                    this.modalGreska = 'Greška pri čuvanju artikla. Pokušajte ponovo.';
-                    return;
-                }
-
-                const noviArtikal = await odgovor.json();
-
-                // dodajemo u listu — svi dropdown-ovi se automatski ažuriraju
-                this.artikliOpcije.push({id: noviArtikal.id, naziv: noviArtikal.naziv});
-
-                this.zatvoriModal();
-            } catch {
-                this.modalGreska = 'Greška pri komunikaciji sa serverom.';
-            } finally {
-                this.modalUcitavanje = false;
-            }
-        }
-    }">
+<div style="width:100%;" x-data="nabavkaForma">
 
     <!-- nazad dugme -->
     <a href="/nabavke" class="nazad-link">

@@ -13,52 +13,7 @@
   var _ntechArtikli = {{.ArtikliJSON }};
 </script>
 
-<div
-  style="width: 100%"
-  x-data="{
-        stavke: [{artikal_id: '', kolicina: 1, cena: 0}],
-        artikliOpcije: _ntechArtikli,
-        isMobile: window.matchMedia('(max-width: 768px)').matches,
-
-        init() {
-            window.matchMedia('(max-width: 768px)').addEventListener('change', e => {
-                this.isMobile = e.matches;
-            });
-        },
-        dodajStavku() {
-            this.stavke.push({artikal_id: '', kolicina: 1, cena: 0});
-        },
-        ukloniStavku(i) {
-            if (this.stavke.length > 1) this.stavke.splice(i, 1);
-        },
-        popuniCenu(stavka) {
-            const a = this.artikliOpcije.find(x => x.id == stavka.artikal_id);
-            if (a) stavka.cena = a.cena;
-        },
-        dostupnaKolicina(i) {
-            const stavka = this.stavke[i];
-            if (!stavka.artikal_id) return null;
-            const a = this.artikliOpcije.find(x => x.id == stavka.artikal_id);
-            if (!a) return null;
-            const ostale = this.stavke.reduce((sum, s, j) =>
-                sum + (j !== i && s.artikal_id == stavka.artikal_id ? (parseInt(s.kolicina) || 0) : 0), 0);
-            return a.kolicina - ostale;
-        },
-        prekoracenje(i) {
-            const d = this.dostupnaKolicina(i);
-            if (d === null) return false;
-            return (parseInt(this.stavke[i].kolicina) || 0) > d;
-        },
-        imaPrekoracenja() {
-            return this.stavke.some((_, i) => this.prekoracenje(i));
-        },
-        ukupnoStavke(s) {
-            return (parseFloat(s.kolicina) * parseFloat(s.cena) || 0).toFixed(2);
-        },
-        ukupnoSvega() {
-            return this.stavke.reduce((z, s) => z + (parseFloat(s.kolicina) * parseFloat(s.cena) || 0), 0).toFixed(2);
-        }
-    }">
+<div style="width: 100%" x-data="prodajaForma">
   <!-- nazad dugme -->
   <a href="/prodaja" class="nazad-link">
     <svg

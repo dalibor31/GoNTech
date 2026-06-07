@@ -5,6 +5,10 @@
     padding: 0;
 }
 
+html {
+    background: var(--pozadina);
+}
+
 body {
     font-family: system-ui, -apple-system, sans-serif;
     background: var(--pozadina);
@@ -590,6 +594,32 @@ select {
     animation: fadeInUp 0.2s ease both;
 }
 
+/* responsive prikaz — tabela/kartice za sve liste (mora biti u main.css jer HTMX ne učitava head ponovo) */
+.nabavke-kartice  { display: none; flex-direction: column; gap: 12px; }
+.dobavljaci-kartice { display: none; flex-direction: column; gap: 12px; }
+.klijenti-kartice { display: none; flex-direction: column; gap: 12px; }
+.magacin-kartice  { display: none; flex-direction: column; gap: 12px; }
+.servis-kartice   { display: none; flex-direction: column; gap: 12px; }
+.prodaja-kartice  { display: none; flex-direction: column; gap: 12px; }
+.pod-kartice      { display: none; flex-direction: column; gap: 12px; }
+.stavke-kartice   { display: none; flex-direction: column; gap: 10px; }
+
+@media (max-width: 768px) {
+    .nabavke-tabela     { display: none; } .nabavke-kartice  { display: flex; }
+    .dobavljaci-tabela  { display: none; } .dobavljaci-kartice { display: flex; }
+    .klijenti-tabela    { display: none; } .klijenti-kartice { display: flex; }
+    .magacin-tabela     { display: none; } .magacin-kartice  { display: flex; }
+    .servis-tabela      { display: none; } .servis-kartice   { display: flex; }
+    .prodaja-tabela     { display: none; } .prodaja-kartice  { display: flex; }
+    .pod-tabela         { display: none; } .pod-kartice      { display: flex; }
+    .stavke-tabela-wrapper { display: none; } .stavke-kartice { display: flex; }
+    .forma-grid-4       { grid-template-columns: 1fr 1fr !important; }
+}
+
+/* podešavanja — raspored pozadine */
+.app-poz-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+@media (max-width: 680px) { .app-poz-grid { grid-template-columns: 1fr; } }
+
 /* gornja traka magacina — responsive */
 .magacin-traka {
     display: flex;
@@ -688,4 +718,9 @@ select {
 #avatar-meni {
     z-index: 9999 !important;
     position: relative;
+}
+
+/* sprečava treperenje pozadine pri navigaciji između stranica (Chrome/Opera/noviji Firefox) */
+@view-transition {
+    navigation: auto;
 }

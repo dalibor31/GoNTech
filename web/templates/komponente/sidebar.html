@@ -24,7 +24,7 @@
         </div>
     </div>
 
-    <nav class="sidebar-nav" aria-label="Glavna navigacija">
+    <nav class="sidebar-nav" aria-label="Glavna navigacija" hx-boost="true" hx-target="body" hx-swap="innerHTML">
         <div class="nav-oznaka">Glavni meni</div>
 
         <a href="/dashboard" class="nav-stavka {{if eq .Stranica "dashboard"}}aktivan{{end}}">
@@ -89,7 +89,7 @@
         <div class="nav-oznaka">Nalog</div>
 
         {{if index .Dozvole "tema.lokalno"}}
-        <div x-data="{ otvoren: {{if or (eq .Stranica "profil") (eq .Stranica "profil-tema")}}true{{else}}false{{end}} }">
+        <div x-data="sidebarProfil" data-otvoren="{{if or (eq .Stranica "profil") (eq .Stranica "profil-tema")}}true{{else}}false{{end}}">
             <button type="button" @click="otvoren = !otvoren"
                     class="nav-stavka {{if or (eq .Stranica "profil") (eq .Stranica "profil-tema")}}aktivan{{end}}"
                     style="width:100%;background:none;border:none;cursor:pointer;">
@@ -97,7 +97,7 @@
                 <span>Moj profil</span>
                 <span class="nav-strelica">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                         :style="`transition:transform 0.2s;transform:${otvoren?'rotate(180deg)':'rotate(0deg)'}`">
+                         :style="'transition:transform 0.2s;transform:' + (otvoren ? 'rotate(180deg)' : 'rotate(0deg)')">
                         <polyline points="6 9 12 15 18 9"/>
                     </svg>
                 </span>
@@ -137,7 +137,7 @@
         <div class="nav-oznaka">Sistem</div>
 
         {{if index .Dozvole "podesavanja.pregled"}}
-        <div x-data="{ otvoren: {{if or (eq .Stranica "podesavanja") (eq .Stranica "dozvole")}}true{{else}}false{{end}} }">
+        <div x-data="sidebarPodesavanja" data-otvoren="{{if or (eq .Stranica "podesavanja") (eq .Stranica "dozvole")}}true{{else}}false{{end}}">
             <button type="button" @click="otvoren = !otvoren"
                     class="nav-stavka {{if eq .Stranica "podesavanja"}}aktivan{{end}}"
                     style="width:100%;background:none;border:none;cursor:pointer;">
@@ -145,7 +145,7 @@
                 <span>Podešavanja</span>
                 <span class="nav-strelica">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                         :style="`transition:transform 0.2s;transform:${otvoren?'rotate(180deg)':'rotate(0deg)'}`">
+                         :style="'transition:transform 0.2s;transform:' + (otvoren ? 'rotate(180deg)' : 'rotate(0deg)')">
                         <polyline points="6 9 12 15 18 9"/>
                     </svg>
                 </span>

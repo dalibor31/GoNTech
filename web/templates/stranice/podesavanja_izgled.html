@@ -7,8 +7,6 @@
     .animiraj:nth-child(1) { animation-delay: 0.10s; }
     .animiraj:nth-child(2) { animation-delay: 0.16s; }
     .animiraj:nth-child(3) { animation-delay: 0.22s; }
-    .app-poz-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
-    @media (max-width: 680px) { .app-poz-grid { grid-template-columns: 1fr; } }
 </style>
 {{end}}
 
@@ -54,14 +52,19 @@
             <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:6px;">JPG, PNG ili WebP — maksimum 5 MB</div>
         </form>
 
-        <div x-data="{ blurPozadine: {{.LoginPozadinaBlurPozadine}}, blurKartice: {{.LoginPozadinaBlurKartice}}, opacity: {{.LoginPozadinaOpacity}}, zatamnjenjeKartice: {{.LoginPozadinaZatamnjenjeKartice}} }"
+        <div x-data="loginPozadinaPreview"
+             data-blur-pozadine="{{.LoginPozadinaBlurPozadine}}"
+             data-blur-kartice="{{.LoginPozadinaBlurKartice}}"
+             data-opacity="{{.LoginPozadinaOpacity}}"
+             data-zatamnjenje-kartice="{{.LoginPozadinaZatamnjenjeKartice}}"
+             data-pozadina="{{.LoginPozadina}}"
              style="margin-top:20px;">
 
             <div style="position:relative;width:100%;height:220px;border-radius:8px;overflow:hidden;">
-                <div :style="`position:absolute;inset:${blurPozadine > 0 ? '-20px' : '0'};{{if .LoginPozadina}}background:url('{{.LoginPozadina}}') center/cover;{{else}}background:#1a2033;{{end}}filter:blur(${blurPozadine}px);z-index:0;`"></div>
-                <div :style="`position:absolute;inset:0;z-index:1;pointer-events:none;background:rgba(0,0,0,${opacity/100})`"></div>
+                <div :style="stilPozadine()"></div>
+                <div :style="stilOverlay()"></div>
                 <div style="position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;pointer-events:none;">
-                    <div :style="`width:140px;border-radius:10px;background:rgba(0,0,0,${zatamnjenjeKartice/100});backdrop-filter:blur(${blurKartice}px);-webkit-backdrop-filter:blur(${blurKartice}px);border:1px solid rgba(255,255,255,0.18);box-shadow:0 8px 32px rgba(0,0,0,0.3);padding:14px 16px;`">
+                    <div :style="stilKartice()">
                         <div style="font-size:11px;font-weight:600;color:white;text-align:center;margin-bottom:10px;letter-spacing:-0.2px;">NTech</div>
                         <div style="height:20px;background:rgba(255,255,255,0.1);border-radius:5px;margin-bottom:7px;border:0.5px solid rgba(255,255,255,0.15);"></div>
                         <div style="height:20px;background:rgba(255,255,255,0.1);border-radius:5px;margin-bottom:10px;border:0.5px solid rgba(255,255,255,0.15);"></div>
