@@ -70,7 +70,7 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	if korisnikDash.Uloga == "radnik" {
 		korisnikFilter.KorisnikID = &korisnikDash.ID
 	}
-	if n, err := h.PodsetniciFRepo.BrojAktivnih(ctx, korisnikFilter); err != nil {
+	if n, err := h.PodsetnikRepo.BrojAktivnih(ctx, korisnikFilter); err != nil {
 		log.Printf("dashboard: aktivni podsetnici: %v", err)
 	} else {
 		aktivniPodsetnici = n
