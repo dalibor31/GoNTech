@@ -1,6 +1,6 @@
 # NTech
 
-[🇬🇧 English version](README.md)
+[🇬🇧 English version](Readme.md)
 
 ![Go Version](https://img.shields.io/badge/go-1.24-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
