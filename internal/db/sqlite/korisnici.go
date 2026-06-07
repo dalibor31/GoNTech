@@ -94,7 +94,7 @@ func (r *sqliteKorisniciRepo) DohvatiPoID(ctx context.Context, id int64) (*model
 
 func (r *sqliteKorisniciRepo) Lista(ctx context.Context) ([]model.Korisnik, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, korisnicko_ime, lozinka_hash, uloga, aktivan, COALESCE(totp_tajna, ''),
+		`SELECT id, korisnicko_ime, uloga, aktivan, COALESCE(totp_tajna, ''),
 		        COALESCE(lokalna_tema, ''), koristi_lokalnu_temu, datum_kreiranja,
 		        COALESCE(lokalna_pozadina, ''), COALESCE(lokalna_pozadina_opacity, '50'),
 		        COALESCE(lokalna_pozadina_blur, '12'), COALESCE(lokalna_pozadina_blur_pozadine, '0'),
@@ -111,7 +111,7 @@ func (r *sqliteKorisniciRepo) Lista(ctx context.Context) ([]model.Korisnik, erro
 		var lokalnaTema sql.NullString
 		var lokalnaPozadina, lokalnaPozadinaOpacity, lokalnaPozadinaBlur, lokalnaPozadinaBlurPozadine, lokalnaPozadinaGlassOpacity sql.NullString
 		var datumKreiranja time.Time
-		if err := rows.Scan(&k.ID, &k.KorisnickoIme, &k.LozinkaHash, &k.Uloga, &aktivan, &k.TotpTajna,
+		if err := rows.Scan(&k.ID, &k.KorisnickoIme, &k.Uloga, &aktivan, &k.TotpTajna,
 			&lokalnaTema, &koristiLokalnuTemu, &datumKreiranja,
 			&lokalnaPozadina, &lokalnaPozadinaOpacity, &lokalnaPozadinaBlur, &lokalnaPozadinaBlurPozadine,
 			&lokalnaPozadinaGlassOpacity); err != nil {

@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"net/http"
+	"os"
 )
 
 const csrfKolacic = "ntech_csrf"
@@ -38,6 +39,7 @@ func CsrfMiddleware(next http.Handler) http.Handler {
 					Path:     "/",
 					MaxAge:   86400 * 30,
 					HttpOnly: true,
+					Secure:   os.Getenv("NTECH_ENV") == "production",
 					SameSite: http.SameSiteStrictMode,
 				})
 			}
