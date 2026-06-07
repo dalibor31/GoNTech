@@ -1,119 +1,304 @@
-{{template "base" .}}
-
-{{define "naslov"}}Detalji prodaje — NTech{{end}}
-
-{{define "dodatni-css"}}
+{{template "base" .}} {{define "naslov"}}Detalji prodaje — NTech{{end}} {{define
+"dodatni-css"}}
 <style>
-    .detalji-kartica:nth-child(1) { animation-delay: 0.04s; }
-    .detalji-kartica:nth-child(2) { animation-delay: 0.12s; }
-    .detalji-kartica:nth-child(3) { animation-delay: 0.20s; }
-
-    .poruka-animacija { animation: slideDown 0.3s ease forwards; }
+  .detalji-kartica:nth-child(1) { animation-delay: 0.04s; }
+  .detalji-kartica:nth-child(2) { animation-delay: 0.12s; }
+  .detalji-kartica:nth-child(3) { animation-delay: 0.2s; }
+  .poruka-animacija { animation: slideDown 0.3s ease forwards; }
 </style>
-{{end}}
+{{end}} {{define "sadrzaj"}}
+<div style="display: flex; flex-direction: column; gap: 16px">
+  {{if .Sacuvano}}
+  <div class="poruka-uspeh poruka-animacija">Prodaja je uspešno sačuvana.</div>
+  {{end}}
 
-{{define "sadrzaj"}}
-<div style="display:flex;flex-direction:column;gap:16px;">
+  <!-- nazad dugme -->
+  <a href="/prodaja" class="nazad-link">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true">
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+    Nazad na prodaju
+  </a>
 
-    {{if .Sacuvano}}
-    <div class="poruka-uspeh poruka-animacija">Prodaja je uspešno sačuvana.</div>
-    {{end}}
-
-    <!-- nazad dugme -->
-    <a href="/prodaja" class="nazad-link">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
-        Nazad na prodaju
-    </a>
-
-    <!-- zaglavlje naloga -->
-    <div class="kartica detalji-kartica animiraj">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);">
-            <span style="font-size:20px;font-weight:600;color:var(--tekst-glavni);font-family:monospace;">
-                {{.Nalog.BrojNaloga}}
-            </span>
-            <a href="/prodaja/{{.Nalog.ID}}/stampa" target="_blank" class="btn-sekundarno" style="gap:6px;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-                Štampaj
-            </a>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:16px;">
-            <div>
-                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Datum prodaje</div>
-                <div style="font-size:14px;color:var(--tekst-glavni);">{{.Nalog.Datum.Format "02.01.2006. u 15:04"}}</div>
-            </div>
-            <div>
-                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Klijent</div>
-                <div style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">
-                    {{if .KlijentNaziv}}{{.KlijentNaziv}}{{else}}—{{end}}
-                </div>
-            </div>
-            <div>
-                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Ukupno</div>
-                <div style="font-size:20px;font-weight:600;color:var(--sb-akcent);">{{printf "%.2f" .Nalog.Ukupno}} din</div>
-            </div>
-            {{if .Nalog.Napomena}}
-            <div style="grid-column:1/-1;">
-                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Napomena</div>
-                <div style="font-size:13px;color:var(--tekst-sporedni);">{{.Nalog.Napomena}}</div>
-            </div>
-            {{end}}
-        </div>
+  <!-- zaglavlje naloga -->
+  <div class="kartica detalji-kartica animiraj">
+    <div
+      style="
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 16px;
+        padding-bottom: 14px;
+        border-bottom: 0.5px solid var(--ivica);
+      ">
+      <span
+        style="
+          font-size: 20px;
+          font-weight: 600;
+          color: var(--tekst-glavni);
+          font-family: monospace;
+        ">
+        {{.Nalog.BrojNaloga}}
+      </span>
+      <a
+        href="/prodaja/{{.Nalog.ID}}/stampa"
+        target="_blank"
+        class="btn-sekundarno"
+        style="gap: 6px">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true">
+          <polyline points="6 9 6 2 18 2 18 9" />
+          <path
+            d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+          <rect x="6" y="14" width="12" height="8" />
+        </svg>
+        Štampaj
+      </a>
     </div>
-
-    <!-- stavke -->
-    <div class="kartica detalji-kartica animiraj" style="padding:0;overflow:hidden;">
-        <div style="padding:16px 20px;border-bottom:0.5px solid var(--ivica);">
-            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Stavke</span>
+    <div
+      style="
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 16px;
+      ">
+      <div>
+        <div
+          style="
+            font-size: 12px;
+            color: var(--tekst-sporedni);
+            margin-bottom: 4px;
+          ">
+          Datum prodaje
         </div>
-        <div style="overflow-x:auto;">
-            <table style="width:100%;border-collapse:collapse;">
-                <thead>
-                    <tr style="border-bottom:0.5px solid var(--ivica);">
-                        <th style="padding:10px 20px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Artikal</th>
-                        <th style="padding:10px 20px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:90px;">Količina</th>
-                        <th style="padding:10px 20px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:140px;">Cena/kom</th>
-                        <th style="padding:10px 20px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:120px;">Ukupno</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {{range .Stavke}}
-                    <tr style="border-bottom:0.5px solid var(--ivica);">
-                        <td style="padding:10px 20px;font-size:14px;color:var(--tekst-glavni);">{{.ArtikalNaziv}}</td>
-                        <td style="padding:10px 20px;text-align:center;font-size:14px;color:var(--tekst-glavni);">{{.Kolicina}}</td>
-                        <td style="padding:10px 20px;text-align:right;font-size:14px;color:var(--tekst-sporedni);">{{printf "%.2f" .CenaPoKomadu}} din</td>
-                        <td style="padding:10px 20px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{printf "%.2f" .Ukupno}} din</td>
-                    </tr>
-                    {{end}}
-                </tbody>
-                <tfoot>
-                    <tr style="border-top:0.5px solid var(--ivica);">
-                        <td colspan="3" style="padding:12px 20px;text-align:right;font-size:13px;font-weight:500;color:var(--tekst-sporedni);">Ukupno:</td>
-                        <td style="padding:12px 20px;text-align:right;font-size:16px;font-weight:600;color:var(--sb-akcent);">{{printf "%.2f" .Nalog.Ukupno}} din</td>
-                    </tr>
-                </tfoot>
-            </table>
+        <div style="font-size: 14px; color: var(--tekst-glavni)">
+          {{.Nalog.Datum.Format "02.01.2006. u 15:04"}}
         </div>
+      </div>
+      <div>
+        <div
+          style="
+            font-size: 12px;
+            color: var(--tekst-sporedni);
+            margin-bottom: 4px;
+          ">
+          Klijent
+        </div>
+        <div
+          style="font-size: 14px; font-weight: 500; color: var(--tekst-glavni)">
+          {{if .KlijentNaziv}}{{.KlijentNaziv}}{{else}}—{{end}}
+        </div>
+      </div>
+      <div>
+        <div
+          style="
+            font-size: 12px;
+            color: var(--tekst-sporedni);
+            margin-bottom: 4px;
+          ">
+          Ukupno
+        </div>
+        <div style="font-size: 20px; font-weight: 600; color: var(--sb-akcent)">
+          {{printf "%.2f" .Nalog.Ukupno}} din
+        </div>
+      </div>
+      {{if .Nalog.Napomena}}
+      <div style="grid-column: 1/-1">
+        <div
+          style="
+            font-size: 12px;
+            color: var(--tekst-sporedni);
+            margin-bottom: 4px;
+          ">
+          Napomena
+        </div>
+        <div style="font-size: 13px; color: var(--tekst-sporedni)">
+          {{.Nalog.Napomena}}
+        </div>
+      </div>
+      {{end}}
     </div>
+  </div>
 
-    {{if index $.Dozvole "prodaja.obrisi"}}
-    <!-- zona za brisanje -->
-    <div class="kartica detalji-kartica animiraj" style="border-color:#dc262633;">
-        <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
-            <div style="flex:1;min-width:200px;">
-                <div style="font-size:14px;font-weight:500;color:#dc2626;margin-bottom:4px;">Brisanje naloga</div>
-                <div style="font-size:13px;color:var(--tekst-sporedni);">
-                    Brisanje je trajno. Količine artikala biće vraćene na stanje u magacinu.
-                </div>
-            </div>
-            <form method="POST" action="/prodaja/obrisi/{{.Nalog.ID}}">
-                <button type="submit" class="btn-primarno" style="background:#dc2626;"
-                    data-potvrda="Da li ste sigurni da želite da obrišete nalog {{.Nalog.BrojNaloga}}? Količine artikala biće vraćene na stanje.">
-                    Obriši nalog
-                </button>
-            </form>
-        </div>
+  <!-- stavke -->
+  <div
+    class="kartica detalji-kartica animiraj"
+    style="padding: 0; overflow: hidden">
+    <div style="padding: 16px 20px; border-bottom: 0.5px solid var(--ivica)">
+      <span
+        style="font-size: 15px; font-weight: 500; color: var(--tekst-glavni)">Stavke</span>
     </div>
-    {{end}}
+    <div style="overflow-x: auto">
+      <table style="width: 100%; border-collapse: collapse">
+        <thead>
+          <tr style="border-bottom: 0.5px solid var(--ivica)">
+            <th
+              style="
+                padding: 10px 20px;
+                text-align: left;
+                font-size: 12px;
+                font-weight: 500;
+                color: var(--tekst-sporedni);
+              ">
+              Artikal
+            </th>
+            <th
+              style="
+                padding: 10px 20px;
+                text-align: center;
+                font-size: 12px;
+                font-weight: 500;
+                color: var(--tekst-sporedni);
+                width: 90px;
+              ">
+              Količina
+            </th>
+            <th
+              style="
+                padding: 10px 20px;
+                text-align: right;
+                font-size: 12px;
+                font-weight: 500;
+                color: var(--tekst-sporedni);
+                width: 140px;
+              ">
+              Cena/kom
+            </th>
+            <th
+              style="
+                padding: 10px 20px;
+                text-align: right;
+                font-size: 12px;
+                font-weight: 500;
+                color: var(--tekst-sporedni);
+                width: 120px;
+              ">
+              Ukupno
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Stavke}}
+          <tr style="border-bottom: 0.5px solid var(--ivica)">
+            <td
+              style="
+                padding: 10px 20px;
+                font-size: 14px;
+                color: var(--tekst-glavni);
+              ">
+              {{.ArtikalNaziv}}
+            </td>
+            <td
+              style="
+                padding: 10px 20px;
+                text-align: center;
+                font-size: 14px;
+                color: var(--tekst-glavni);
+              ">
+              {{.Kolicina}}
+            </td>
+            <td
+              style="
+                padding: 10px 20px;
+                text-align: right;
+                font-size: 14px;
+                color: var(--tekst-sporedni);
+              ">
+              {{printf "%.2f" .CenaPoKomadu}} din
+            </td>
+            <td
+              style="
+                padding: 10px 20px;
+                text-align: right;
+                font-size: 14px;
+                font-weight: 500;
+                color: var(--tekst-glavni);
+              ">
+              {{printf "%.2f" .Ukupno}} din
+            </td>
+          </tr>
+          {{end}}
+        </tbody>
+        <tfoot>
+          <tr style="border-top: 0.5px solid var(--ivica)">
+            <td
+              colspan="3"
+              style="
+                padding: 12px 20px;
+                text-align: right;
+                font-size: 13px;
+                font-weight: 500;
+                color: var(--tekst-sporedni);
+              ">
+              Ukupno:
+            </td>
+            <td
+              style="
+                padding: 12px 20px;
+                text-align: right;
+                font-size: 16px;
+                font-weight: 600;
+                color: var(--sb-akcent);
+              ">
+              {{printf "%.2f" .Nalog.Ukupno}} din
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
 
+  {{if index $.Dozvole "prodaja.obrisi"}}
+  <!-- zona za brisanje -->
+  <div class="kartica detalji-kartica animiraj" style="border-color: #dc262633">
+    <div
+      style="display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap">
+      <div style="flex: 1; min-width: 200px">
+        <div
+          style="
+            font-size: 14px;
+            font-weight: 500;
+            color: #dc2626;
+            margin-bottom: 4px;
+          ">
+          Brisanje naloga
+        </div>
+        <div style="font-size: 13px; color: var(--tekst-sporedni)">
+          Brisanje je trajno. Količine artikala biće vraćene na stanje u
+          magacinu.
+        </div>
+      </div>
+      <form method="POST" action="/prodaja/obrisi/{{.Nalog.ID}}">
+        <button
+          type="submit"
+          class="btn-primarno"
+          style="background: #dc2626"
+          data-potvrda="Da li ste sigurni da želite da obrišete nalog {{.Nalog.BrojNaloga}}? Količine artikala biće vraćene na stanje.">
+          Obriši nalog
+        </button>
+      </form>
+    </div>
+  </div>
+  {{end}}
 </div>
 {{end}}

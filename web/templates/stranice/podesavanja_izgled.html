@@ -7,16 +7,8 @@
     .animiraj:nth-child(1) { animation-delay: 0.10s; }
     .animiraj:nth-child(2) { animation-delay: 0.16s; }
     .animiraj:nth-child(3) { animation-delay: 0.22s; }
-
-    .app-poz-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-        align-items: start;
-    }
-    @media (max-width: 680px) {
-        .app-poz-grid { grid-template-columns: 1fr; }
-    }
+    .app-poz-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 680px) { .app-poz-grid { grid-template-columns: 1fr; } }
 </style>
 {{end}}
 

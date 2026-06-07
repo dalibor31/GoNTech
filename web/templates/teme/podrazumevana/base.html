@@ -38,91 +38,21 @@
 
     {{if .AppPozadina}}
     <style>
-      .app-bg {
-        position: fixed;
-        inset: {{if ne .AppPozadinaBlurPozadine "0"}}-20px{{else}}0{{end}};
-        background-image: url('{{.AppPozadina}}');
-        background-size: cover;
-        background-position: center;
-        filter: blur({{.AppPozadinaBlurPozadine}}px);
-        pointer-events: none;
-        z-index: 0;
-      }
-      .app-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,{{.AppPozadinaOpacity}}%);
-        pointer-events: none;
-        z-index: 1;
-      }
-      .raspored {
-        position: relative;
-        z-index: 2;
-      }
-      .sidebar {
-        background: rgba(0,0,0,{{if .AppPozadinaGlassOpacity}}{{.AppPozadinaGlassOpacity}}%{{else}}0.3{{end}}) !important;
-        backdrop-filter: blur({{.AppPozadinaBlur}}px);
-        -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px);
-        border-right: 1px solid rgba(255,255,255,0.12) !important;
-      }
-      .sidebar .nav-stavka,
-      .sidebar .logo-naziv,
-      .sidebar .logo-podnazlov {
-        text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-        color: rgba(255,255,255,0.95) !important;
-      }
-      .sidebar .nav-stavka svg {
-        color: rgba(255,255,255,0.95) !important;
-        stroke: rgba(255,255,255,0.95) !important;
-      }
-      .sidebar .nav-oznaka {
-        text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-        color: rgba(255,255,255,0.7) !important;
-      }
-      .topbar {
-        background: rgba(0,0,0,{{if .AppPozadinaGlassOpacity}}{{.AppPozadinaGlassOpacity}}%{{else}}0.08{{end}}) !important;
-        backdrop-filter: blur({{.AppPozadinaBlur}}px);
-        -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px);
-        border-bottom: 1px solid rgba(255,255,255,0.12) !important;
-      }
-      .kartica {
-        background: rgba(0,0,0,{{if .AppPozadinaGlassOpacity}}{{.AppPozadinaGlassOpacity}}%{{else}}0.08{{end}}) !important;
-        backdrop-filter: blur({{.AppPozadinaBlur}}px);
-        -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px);
-        border: 1px solid rgba(255,255,255,0.12) !important;
-      }
-      .kartica p,
-      .kartica span,
-      .kartica h1,
-      .kartica h2,
-      .kartica h3,
-      .kartica h4,
-      .kartica label,
-      .kartica td,
-      .kartica th,
-      .kartica li,
-      .kartica a {
-        color: rgba(255,255,255,0.95) !important;
-        text-shadow: 0 1px 3px rgba(0,0,0,0.7);
-      }
-      table, th, td {
-        color: rgba(255,255,255,0.95) !important;
-        text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-      }
-      tr {
-        background: rgba(0,0,0,0.2);
-      }
-      tr:hover {
-        background: rgba(0,0,0,0.35);
-      }
-      thead th {
-        background: rgba(0,0,0,0.4) !important;
-      }
-      div:has(> canvas) {
-        background: rgba(0,0,0,0.3);
-        border-radius: 8px;
-        padding: 8px;
-      }
+      .app-bg { position: fixed; inset: {{if ne .AppPozadinaBlurPozadine "0"}}-20px{{else}}0{{end}}; background-image: url('{{.AppPozadina}}'); background-size: cover; background-position: center; filter: blur({{.AppPozadinaBlurPozadine}}px); pointer-events: none; z-index: 0; }
+      .app-overlay { position: fixed; inset: 0; background: rgba(0,0,0,{{.AppPozadinaOpacity}}%); pointer-events: none; z-index: 1; }
+      .raspored { position: relative; z-index: 2; }
+      .sidebar { background: rgba(0,0,0,{{if .AppPozadinaGlassOpacity}}{{.AppPozadinaGlassOpacity}}%{{else}}0.3{{end}}) !important; backdrop-filter: blur({{.AppPozadinaBlur}}px); -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px); border-right: 1px solid rgba(255,255,255,0.12) !important; }
+      .sidebar .nav-stavka, .sidebar .logo-naziv, .sidebar .logo-podnazlov { text-shadow: 0 1px 3px rgba(0,0,0,0.8); color: rgba(255,255,255,0.95) !important; }
+      .sidebar .nav-stavka svg { color: rgba(255,255,255,0.95) !important; stroke: rgba(255,255,255,0.95) !important; }
+      .sidebar .nav-oznaka { text-shadow: 0 1px 3px rgba(0,0,0,0.8); color: rgba(255,255,255,0.7) !important; }
+      .topbar { background: rgba(0,0,0,{{if .AppPozadinaGlassOpacity}}{{.AppPozadinaGlassOpacity}}%{{else}}0.08{{end}}) !important; backdrop-filter: blur({{.AppPozadinaBlur}}px); -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px); border-bottom: 1px solid rgba(255,255,255,0.12) !important; }
+      .kartica { background: rgba(0,0,0,{{if .AppPozadinaGlassOpacity}}{{.AppPozadinaGlassOpacity}}%{{else}}0.08{{end}}) !important; backdrop-filter: blur({{.AppPozadinaBlur}}px); -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px); border: 1px solid rgba(255,255,255,0.12) !important; }
+      .kartica p, .kartica span, .kartica h1, .kartica h2, .kartica h3, .kartica h4, .kartica label, .kartica td, .kartica th, .kartica li, .kartica a { color: rgba(255,255,255,0.95) !important; text-shadow: 0 1px 3px rgba(0,0,0,0.7); }
+      table, th, td { color: rgba(255,255,255,0.95) !important; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+      tr { background: rgba(0,0,0,0.2); }
+      tr:hover { background: rgba(0,0,0,0.35); }
+      thead th { background: rgba(0,0,0,0.4) !important; }
+      div:has(> canvas) { background: rgba(0,0,0,0.3); border-radius: 8px; padding: 8px; }
     </style>
     <script>
     document.addEventListener('DOMContentLoaded', function() {

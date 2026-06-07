@@ -25,7 +25,7 @@ type Handler struct {
 	ProdajaRepo     db.ProdajaRepository
 	KorisniciRepo   db.KorisniciRepository
 	SesijeRepo      db.SesijeRepository
-	PodsetniciFRepo db.PodsetnikRepository
+	PodsetnikRepo db.PodsetnikRepository
 	PokusajiRepo       db.PokusajiPrijaveRepository
 	LoginIstorijsaRepo db.LoginIstorijsaRepository
 	DozvoleRepo     db.DozvoleRepository
@@ -47,15 +47,15 @@ func Novi(baza *sql.DB) *Handler {
 		ProdajaRepo:    sqlite.NoviProdajaRepo(baza),
 		KorisniciRepo:   sqlite.NoviKorisniciRepo(baza),
 		SesijeRepo:      sqlite.NoviSesijeRepo(baza),
-		PodsetniciFRepo: sqlite.NoviPodsetnikRepo(baza),
+		PodsetnikRepo: sqlite.NoviPodsetnikRepo(baza),
 		PokusajiRepo:       sqlite.NoviPokusajiPrijaveRepo(baza),
 		LoginIstorijsaRepo: sqlite.NoviLoginIstorijsaRepo(baza),
 		DozvoleRepo:     sqlite.NoviDozvoleRepo(baza, middleware.ImaDozvolu, middleware.SveAkcije()),
 	}
 }
 
-// reinicijalzijRepozitorijume zamenjuje sve repozitorijume posle obnove baze
-func (h *Handler) reinicijalzijRepozitorijume(novaDB *sql.DB) {
+// reinicijalizujRepozitorijume zamenjuje sve repozitorijume posle obnove baze
+func (h *Handler) reinicijalizujRepozitorijume(novaDB *sql.DB) {
 	h.DB = novaDB
 	h.Artikli = sqlite.NoviArtikalRepo(novaDB)
 	h.KategorijeRepo = sqlite.NovaKategorijaRepo(novaDB)
@@ -66,7 +66,7 @@ func (h *Handler) reinicijalzijRepozitorijume(novaDB *sql.DB) {
 	h.ProdajaRepo = sqlite.NoviProdajaRepo(novaDB)
 	h.KorisniciRepo = sqlite.NoviKorisniciRepo(novaDB)
 	h.SesijeRepo = sqlite.NoviSesijeRepo(novaDB)
-	h.PodsetniciFRepo = sqlite.NoviPodsetnikRepo(novaDB)
+	h.PodsetnikRepo = sqlite.NoviPodsetnikRepo(novaDB)
 	h.PokusajiRepo = sqlite.NoviPokusajiPrijaveRepo(novaDB)
 	h.LoginIstorijsaRepo = sqlite.NoviLoginIstorijsaRepo(novaDB)
 	h.DozvoleRepo = sqlite.NoviDozvoleRepo(novaDB, middleware.ImaDozvolu, middleware.SveAkcije())

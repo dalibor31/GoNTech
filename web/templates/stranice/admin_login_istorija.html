@@ -1,86 +1,59 @@
-{{template "base" .}}
-
-{{define "naslov"}}Istorija prijava — NTech{{end}}
-
-{{define "dodatni-css"}}
+{{template "base" .}} {{define "naslov"}}Istorija prijava — NTech{{end}} {{define "dodatni-css"}}
 <style>
-    .animiraj:nth-child(1) { animation-delay: 0.10s; }
-    .animiraj:nth-child(2) { animation-delay: 0.16s; }
-    .animiraj:nth-child(3) { animation-delay: 0.22s; }
-    .animiraj:nth-child(4) { animation-delay: 0.28s; }
+  .animiraj:nth-child(1) { animation-delay: 0.1s; }
+  .animiraj:nth-child(2) { animation-delay: 0.16s; }
+  .animiraj:nth-child(3) { animation-delay: 0.22s; }
+  .animiraj:nth-child(4) { animation-delay: 0.28s; }
 </style>
-{{end}}
+{{end}} {{define "sadrzaj"}}
+<div style="display: flex; flex-direction: column; gap: 16px">
+  <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+    <a href="/admin/korisnici" style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border: 0.5px solid var(--ivica); border-radius: 8px; color: var(--tekst-sporedni); font-size: 13px; text-decoration: none">← Nazad</a>
+    <span style="font-size: 15px; font-weight: 500; color: var(--tekst-glavni)">Istorija prijava — {{.PrikazKorisnik.KorisnickoIme}}</span>
+  </div>
 
-{{define "sadrzaj"}}
-<div style="display:flex;flex-direction:column;gap:16px;">
-
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <a href="/admin/korisnici"
-            style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:0.5px solid var(--ivica);border-radius:8px;color:var(--tekst-sporedni);font-size:13px;text-decoration:none;">
-            ← Nazad
-        </a>
-        <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">
-            Istorija prijava — {{.PrikazKorisnik.KorisnickoIme}}
-        </span>
+  <div class="kartica animiraj" style="padding: 0; overflow: hidden">
+    <div style="padding: 16px 20px; border-bottom: 0.5px solid var(--ivica); display: flex; align-items: center; justify-content: space-between">
+      <span style="font-size: 15px; font-weight: 500; color: var(--tekst-glavni)">Poslednjih 50 pokušaja</span>
+      <span style="font-size: 12px; color: var(--tekst-sporedni)">Vreme prikazano po lokalnom vremenu servera</span>
     </div>
 
-    <div class="kartica animiraj" style="padding:0;overflow:hidden;">
-        <div style="padding:16px 20px;border-bottom:0.5px solid var(--ivica);display:flex;align-items:center;justify-content:space-between;">
-            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Poslednjih 50 pokušaja</span>
-            <span style="font-size:12px;color:var(--tekst-sporedni);">Vreme prikazano po lokalnom vremenu servera</span>
-        </div>
-
-        {{if .Istorija}}
-        <div style="overflow-x:auto;">
-            <table style="width:100%;border-collapse:collapse;">
-                <thead>
-                    <tr style="border-bottom:0.5px solid var(--ivica);">
-                        <th style="padding:10px 20px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);white-space:nowrap;">Datum i vreme</th>
-                        <th style="padding:10px 20px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">IP adresa</th>
-                        <th style="padding:10px 20px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Pregledač</th>
-                        <th style="padding:10px 20px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Status</th>
-                        <th style="padding:10px 20px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Razlog</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {{range .Istorija}}
-                    <tr class="animiraj" style="border-bottom:0.5px solid var(--ivica);">
-                        <td style="padding:10px 20px;font-size:13px;color:var(--tekst-sporedni);white-space:nowrap;">
-                            {{.Vreme.Format "02.01.2006. 15:04:05"}}
-                        </td>
-                        <td style="padding:10px 20px;font-size:13px;color:var(--tekst-glavni);font-family:monospace;">
-                            {{.IP}}
-                        </td>
-                        <td style="padding:10px 20px;font-size:12px;color:var(--tekst-sporedni);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                            {{.UserAgent}}
-                        </td>
-                        <td style="padding:10px 20px;text-align:center;">
-                            {{if .Uspeh}}
-                            <span style="display:inline-block;padding:2px 10px;border-radius:20px;background:#f0fdf4;color:#16a34a;font-size:11px;font-weight:500;">Uspeh</span>
-                            {{else}}
-                            <span style="display:inline-block;padding:2px 10px;border-radius:20px;background:#fef2f2;color:#dc2626;font-size:11px;font-weight:500;">Neuspeh</span>
-                            {{end}}
-                        </td>
-                        <td style="padding:10px 20px;font-size:13px;color:var(--tekst-sporedni);">
-                            {{if eq .Razlog "korisnik_ne_postoji"}}Korisnik ne postoji
-                            {{else if eq .Razlog "nalog_neaktivan"}}Nalog neaktivan
-                            {{else if eq .Razlog "pogrešna_lozinka"}}Pogrešna lozinka
-                            {{else if eq .Razlog "ip_zaklucano"}}IP zaključano
-                            {{else if .Uspeh}}—
-                            {{else}}{{.Razlog}}
-                            {{end}}
-                        </td>
-                    </tr>
-                    {{end}}
-                </tbody>
-            </table>
-        </div>
-        {{else}}
-        <div style="padding:40px 20px;text-align:center;color:var(--tekst-sporedni);font-size:14px;">
-            Nema zabeleženih pokušaja prijave za ovog korisnika.
-        </div>
-        {{end}}
+    {{if .Istorija}}
+    <div style="overflow-x: auto">
+      <table style="width: 100%; border-collapse: collapse">
+        <thead>
+          <tr style="border-bottom: 0.5px solid var(--ivica)">
+            <th style="padding: 10px 20px; text-align: left; font-size: 12px; font-weight: 500; color: var(--tekst-sporedni); white-space: nowrap">Datum i vreme</th>
+            <th style="padding: 10px 20px; text-align: left; font-size: 12px; font-weight: 500; color: var(--tekst-sporedni)">IP adresa</th>
+            <th style="padding: 10px 20px; text-align: left; font-size: 12px; font-weight: 500; color: var(--tekst-sporedni)">Pregledač</th>
+            <th style="padding: 10px 20px; text-align: center; font-size: 12px; font-weight: 500; color: var(--tekst-sporedni)">Status</th>
+            <th style="padding: 10px 20px; text-align: left; font-size: 12px; font-weight: 500; color: var(--tekst-sporedni)">Razlog</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Istorija}}
+          <tr class="animiraj" style="border-bottom: 0.5px solid var(--ivica)">
+            <td style="padding: 10px 20px; font-size: 13px; color: var(--tekst-sporedni); white-space: nowrap">{{.Vreme.Format "02.01.2006. 15:04:05"}}</td>
+            <td style="padding: 10px 20px; font-size: 13px; color: var(--tekst-glavni); font-family: monospace">{{.IP}}</td>
+            <td style="padding: 10px 20px; font-size: 12px; color: var(--tekst-sporedni); max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{.UserAgent}}</td>
+            <td style="padding: 10px 20px; text-align: center">
+              {{if .Uspeh}}
+              <span style="display: inline-block; padding: 2px 10px; border-radius: 20px; background: #035f1f; color: #16a34a; font-size: 11px; font-weight: 500">Uspeh</span>
+              {{else}}
+              <span style="display: inline-block; padding: 2px 10px; border-radius: 20px; background: #e21313; color: #dc2626; font-size: 11px; font-weight: 500">Neuspeh</span>
+              {{end}}
+            </td>
+            <td style="padding: 10px 20px; font-size: 13px; color: var(--tekst-sporedni)">
+              {{if eq .Razlog "korisnik_ne_postoji"}}Korisnik ne postoji {{else if eq .Razlog "nalog_neaktivan"}}Nalog neaktivan {{else if eq .Razlog "pogrešna_lozinka"}}Pogrešna lozinka {{else if eq .Razlog "ip_zaklucano"}}IP zaključano {{else if .Uspeh}}— {{else}}{{.Razlog}} {{end}}
+            </td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
     </div>
-
+    {{else}}
+    <div style="padding: 40px 20px; text-align: center; color: var(--tekst-sporedni); font-size: 14px">Nema zabeleženih pokušaja prijave za ovog korisnika.</div>
+    {{end}}
+  </div>
 </div>
 {{end}}
