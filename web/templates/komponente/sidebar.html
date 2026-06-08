@@ -24,7 +24,7 @@
         </div>
     </div>
 
-    <nav class="sidebar-nav" aria-label="Glavna navigacija" hx-boost="true" hx-target="body" hx-swap="innerHTML">
+    <nav class="sidebar-nav" aria-label="Glavna navigacija" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML">
         <div class="nav-oznaka">Glavni meni</div>
 
         <a href="/dashboard" class="nav-stavka {{if eq .Stranica "dashboard"}}aktivan{{end}}">
@@ -89,21 +89,21 @@
         <div class="nav-oznaka">Nalog</div>
 
         {{if index .Dozvole "tema.lokalno"}}
-        <div x-data="sidebarProfil" data-otvoren="{{if or (eq .Stranica "profil") (eq .Stranica "profil-tema")}}true{{else}}false{{end}}">
-            <button type="button" @click="otvoren = !otvoren"
+        <div>
+            <button type="button" data-podmeni-dugme
                     class="nav-stavka {{if or (eq .Stranica "profil") (eq .Stranica "profil-tema")}}aktivan{{end}}"
                     style="width:100%;background:none;border:none;cursor:pointer;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 <span>Moj profil</span>
                 <span class="nav-strelica">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                         :style="'transition:transform 0.2s;transform:' + (otvoren ? 'rotate(180deg)' : 'rotate(0deg)')">
+                         style="transition:transform 0.2s;transform:{{if or (eq .Stranica "profil") (eq .Stranica "profil-tema")}}rotate(180deg){{else}}rotate(0deg){{end}}">
                         <polyline points="6 9 12 15 18 9"/>
                     </svg>
                 </span>
                 <span class="nav-tooltip">Moj profil</span>
             </button>
-            <div class="nav-podmeni" x-show="otvoren" x-transition>
+            <div class="nav-podmeni {{if or (eq .Stranica "profil") (eq .Stranica "profil-tema")}}otvoren{{end}}">
                 <a href="/admin/profil" class="nav-stavka nav-podstavka {{if eq .Stranica "profil"}}aktivan{{end}}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     <span>Opšte</span>
@@ -137,32 +137,32 @@
         <div class="nav-oznaka">Sistem</div>
 
         {{if index .Dozvole "podesavanja.pregled"}}
-        <div x-data="sidebarPodesavanja" data-otvoren="{{if or (eq .Stranica "podesavanja") (eq .Stranica "dozvole")}}true{{else}}false{{end}}">
-            <button type="button" @click="otvoren = !otvoren"
-                    class="nav-stavka {{if eq .Stranica "podesavanja"}}aktivan{{end}}"
+        <div>
+            <button type="button" data-podmeni-dugme
+                    class="nav-stavka {{if or (eq .Stranica "podesavanja") (eq .Stranica "podesavanja-opste") (eq .Stranica "podesavanja-izgled") (eq .Stranica "podesavanja-sistem") (eq .Stranica "dozvole")}}aktivan{{end}}"
                     style="width:100%;background:none;border:none;cursor:pointer;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 <span>Podešavanja</span>
                 <span class="nav-strelica">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                         :style="'transition:transform 0.2s;transform:' + (otvoren ? 'rotate(180deg)' : 'rotate(0deg)')">
+                         style="transition:transform 0.2s;transform:{{if or (eq .Stranica "podesavanja") (eq .Stranica "podesavanja-opste") (eq .Stranica "podesavanja-izgled") (eq .Stranica "podesavanja-sistem") (eq .Stranica "dozvole")}}rotate(180deg){{else}}rotate(0deg){{end}}">
                         <polyline points="6 9 12 15 18 9"/>
                     </svg>
                 </span>
                 <span class="nav-tooltip">Podešavanja</span>
             </button>
-            <div class="nav-podmeni" x-show="otvoren" x-transition>
-                <a href="/admin/podesavanja/opste" class="nav-stavka nav-podstavka">
+            <div class="nav-podmeni {{if or (eq .Stranica "podesavanja") (eq .Stranica "podesavanja-opste") (eq .Stranica "podesavanja-izgled") (eq .Stranica "podesavanja-sistem") (eq .Stranica "dozvole")}}otvoren{{end}}">
+                <a href="/admin/podesavanja/opste" class="nav-stavka nav-podstavka {{if eq .Stranica "podesavanja-opste"}}aktivan{{end}}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M9 21v-5h6v5"/><path d="M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/></svg>
                     <span>Opšte</span>
                     <span class="nav-tooltip">Opšte</span>
                 </a>
-                <a href="/admin/podesavanja/izgled" class="nav-stavka nav-podstavka">
+                <a href="/admin/podesavanja/izgled" class="nav-stavka nav-podstavka {{if eq .Stranica "podesavanja-izgled"}}aktivan{{end}}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 1 0-18c4.97 0 9 3.582 9 8 0 1.06-.474 2.078-1.318 2.828S17.626 15 16.5 15H15a2 2 0 0 0-2 2 2 2 0 0 0 2 2h.5"/><circle cx="8.5" cy="10.5" r=".5"/><circle cx="12" cy="7.5" r=".5"/><circle cx="15.5" cy="10.5" r=".5"/></svg>
                     <span>Izgled</span>
                     <span class="nav-tooltip">Izgled</span>
                 </a>
-                <a href="/admin/podesavanja/sistem" class="nav-stavka nav-podstavka">
+                <a href="/admin/podesavanja/sistem" class="nav-stavka nav-podstavka {{if eq .Stranica "podesavanja-sistem"}}aktivan{{end}}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="8" rx="1"/><rect x="2" y="13" width="20" height="8" rx="1"/><path d="M6 7h.01M6 17h.01"/></svg>
                     <span>Sistem</span>
                     <span class="nav-tooltip">Sistem</span>
@@ -181,11 +181,33 @@
     </nav>
 
     <div class="sidebar-dno">
-        <a href="/odjava" class="nav-stavka">
+        <a href="/odjava" class="nav-stavka" hx-boost="false">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             <span>Odjava</span>
             <span class="nav-tooltip">Odjava</span>
         </a>
     </div>
 </aside>
+<script>
+(function() {
+    var sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+    sidebar.querySelectorAll('[data-podmeni-dugme]').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (sidebar.classList.contains('skupljen')) {
+                sidebar.classList.remove('skupljen');
+                localStorage.setItem('sidebar-skupljen', 'false');
+            }
+            var podmeni = btn.nextElementSibling;
+            if (!podmeni) return;
+            podmeni.classList.toggle('otvoren');
+            var svg = btn.querySelector('.nav-strelica svg');
+            if (svg) {
+                svg.style.transform = podmeni.classList.contains('otvoren') ? 'rotate(180deg)' : 'rotate(0deg)';
+            }
+        });
+    });
+})();
+</script>
 {{end}}

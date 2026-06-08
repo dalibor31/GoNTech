@@ -49,35 +49,28 @@
           style="font-size: 16px; font-weight: 500; color: var(--tekst-glavni)">Nova prodaja</span>
       </div>
       <div style="display: flex; flex-direction: column; gap: 14px">
-        <div>
-          <label
-            style="
-              font-size: 13px;
-              color: var(--tekst-sporedni);
-              display: block;
-              margin-bottom: 6px;
-            ">Klijent</label>
-          <select name="klijent_id" style="width: 100%">
-            <option value="">— bez klijenta —</option>
-            {{range .Klijenti}}
-            <option value="{{.ID}}">
-              {{if .NazivFirme}}{{.NazivFirme}}{{else}}{{.Ime}}
-              {{.Prezime}}{{end}}
-            </option>
-            {{end}}
-          </select>
+        <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Klijent</label>
+            <select name="klijent_id" style="width: 100%">
+              <option value="">— bez klijenta —</option>
+              {{range .Klijenti}}
+              <option value="{{.ID}}">{{.PunoIme}}</option>
+              {{end}}
+            </select>
+          </div>
+          <div>
+            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Način plaćanja</label>
+            <select name="nacin_placanja" style="width:100%;">
+              <option value="gotovina">Gotovina</option>
+              <option value="kartica">Platna kartica</option>
+              <option value="prenos">Bankarski prenos</option>
+            </select>
+          </div>
         </div>
         <div>
-          <label
-            style="
-              font-size: 13px;
-              color: var(--tekst-sporedni);
-              display: block;
-              margin-bottom: 6px;
-            ">Napomena</label>
-          <textarea
-            name="napomena"
-            rows="2"
+          <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Napomena</label>
+          <textarea name="napomena" rows="2"
             placeholder="Interna napomena o prodaji..."
             style="width: 100%; resize: vertical"></textarea>
         </div>
@@ -163,6 +156,7 @@
             <template x-for="(stavka, i) in stavke" :key="i">
               <tr style="border-bottom: 0.5px solid var(--ivica)">
                 <td style="padding: 8px 10px">
+                  <input type="hidden" :name="'pdv_stopa[]'" :value="stavka.pdv_stopa">
                   <select
                     :name="'artikal_id[]'"
                     x-model="stavka.artikal_id"
@@ -322,6 +316,7 @@
               </button>
             </div>
             <div style="display: flex; flex-direction: column; gap: 10px">
+              <input type="hidden" :name="'pdv_stopa[]'" :value="stavka.pdv_stopa">
               <div>
                 <label
                   style="

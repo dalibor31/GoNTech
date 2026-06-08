@@ -606,6 +606,7 @@ func (h *Handler) PodesavanjaOpste(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
 		return
 	}
+	podaci.Stranica = "podesavanja-opste"
 	h.renderujTemplate(w, "podesavanja_opste", podaci)
 }
 
@@ -621,6 +622,7 @@ func (h *Handler) PodesavanjaIzgled(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
 		return
 	}
+	podaci.Stranica = "podesavanja-izgled"
 	h.renderujTemplate(w, "podesavanja_izgled", podaci)
 }
 
@@ -636,6 +638,7 @@ func (h *Handler) PodesavanjaSistem(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
 		return
 	}
+	podaci.Stranica = "podesavanja-sistem"
 	h.renderujTemplate(w, "podesavanja_sistem", podaci)
 }
 

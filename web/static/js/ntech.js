@@ -1,3 +1,43 @@
+// otvara/zatvara podmeni u sidebaru — funkcioniše i posle HTMX swap-a (čisti onclick, bez Alpine-a)
+function ntechTogglePodmeni(btn) {
+    var sidebar = document.getElementById('sidebar');
+    // ako je sidebar skupljen, raširimo ga pre nego otvorimo podmeni
+    if (sidebar && sidebar.classList.contains('skupljen')) {
+        sidebar.classList.remove('skupljen');
+        localStorage.setItem('sidebar-skupljeno', 'false');
+    }
+    var podmeni = btn.nextElementSibling;
+    if (!podmeni) return;
+    podmeni.classList.toggle('otvoren');
+    var strelicaSvg = btn.querySelector('.nav-strelica svg');
+    if (strelicaSvg) {
+        strelicaSvg.style.transform = podmeni.classList.contains('otvoren') ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
+}
+
+// registruje klik listenere na podmeni dugmad — sidebar se nikad ne menja, poziva se jednom
+function ntechDodajPodmeniListenere() {
+    document.querySelectorAll('#sidebar [data-podmeni-dugme]').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            ntechTogglePodmeni(btn);
+        });
+    });
+}
+
+// sprečava CSS tranziciju na podmeniima koji su već otvoreni pri inicijalnom učitavanju
+// (bez ovoga, max-height animira od 0 do 300px pri svakom swap-u)
+function ntechInicijalizujPodmeni() {
+    document.querySelectorAll('.nav-podmeni.otvoren').forEach(function(el) {
+        el.classList.add('bez-tranzicije');
+        requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+                el.classList.remove('bez-tranzicije');
+            });
+        });
+    });
+}
+
 document.addEventListener('alpine:init', () => {
 
     // sidebar — podmeni "Moj profil"
@@ -82,7 +122,7 @@ document.addEventListener('alpine:init', () => {
 
     // forma za prodaju
     Alpine.data('prodajaForma', () => ({
-        stavke: [{artikal_id: '', kolicina: 1, cena: 0}],
+        stavke: [{artikal_id: '', kolicina: 1, cena: 0, pdv_stopa: 20}],
         artikliOpcije: [],
         isMobile: false,
         init() {
@@ -93,14 +133,17 @@ document.addEventListener('alpine:init', () => {
             })
         },
         dodajStavku() {
-            this.stavke.push({artikal_id: '', kolicina: 1, cena: 0})
+            this.stavke.push({artikal_id: '', kolicina: 1, cena: 0, pdv_stopa: 20})
         },
         ukloniStavku(i) {
             if (this.stavke.length > 1) this.stavke.splice(i, 1)
         },
         popuniCenu(stavka) {
             const a = this.artikliOpcije.find(x => x.id == stavka.artikal_id)
-            if (a) stavka.cena = a.cena
+            if (a) {
+                stavka.cena = a.cena
+                stavka.pdv_stopa = a.pdv_stopa !== undefined ? a.pdv_stopa : 20
+            }
         },
         dostupnaKolicina(i) {
             const stavka = this.stavke[i]
@@ -202,3 +245,8 @@ document.addEventListener('alpine:init', () => {
     }))
 
 })
+
+// za prvo učitavanje (defer script) — sprečava animaciju podmenia koji su inicijalno otvoreni
+ntechInicijalizujPodmeni()
+// dodaje klik listenere na podmeni dugmad (data-podmeni-dugme)
+ntechDodajPodmeniListenere()

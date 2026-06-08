@@ -4,8 +4,10 @@ import (
 	"database/sql"
 	"fmt"
 	"io/fs"
+	"log"
 	"path"
 	"sort"
+	"strings"
 
 	_ "modernc.org/sqlite"
 )
@@ -82,7 +84,13 @@ func PokreniMigracije(db *sql.DB, fsys fs.FS) error {
 
 		// izvršavamo SQL
 		if _, err := db.Exec(string(sadrzaj)); err != nil {
-			return fmt.Errorf("ntech: PokreniMigracije: izvršavanje %s: %w", naziv, err)
+			// "duplicate column name" znači da kolona već postoji — željeno stanje je ispunjeno,
+			// pa nastavljamo i beležimo migraciju kao izvršenu
+			if strings.Contains(err.Error(), "duplicate column name") {
+				log.Printf("Upozorenje: migration %s: kolona već postoji, preskačemo", naziv)
+			} else {
+				return fmt.Errorf("ntech: PokreniMigracije: izvršavanje %s: %w", naziv, err)
+			}
 		}
 
 		// upisujemo u tabelu migracija da je izvršena

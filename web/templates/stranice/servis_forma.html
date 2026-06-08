@@ -70,25 +70,42 @@
                     </div>
                 </div>
 
-                <!-- klijent -->
+                <!-- klijent i tehničar -->
                 <div>
-                    <div class="sekcija-naslov">Klijent</div>
-                    <select name="klijent_id" style="width:100%;">
-                        <option value="">— bez klijenta —</option>
-                        {{range .Klijenti}}
-                        <option value="{{.ID}}"
-                            {{if eq .ID $.Nalog.KlijentIDVrednost}}selected{{end}}>
-                            {{if .NazivFirme}}{{.NazivFirme}}{{else}}{{.Ime}} {{.Prezime}}{{end}}
-                        </option>
-                        {{end}}
-                    </select>
-                </div>
-
-                <!-- status i datum završetka -->
-                <div>
-                    <div class="sekcija-naslov">Status</div>
+                    <div class="sekcija-naslov">Klijent i tehničar</div>
                     <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                         <div>
+                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Klijent</label>
+                            <select name="klijent_id" style="width:100%;">
+                                <option value="">— bez klijenta —</option>
+                                {{range .Klijenti}}
+                                <option value="{{.ID}}"
+                                    {{if eq .ID $.Nalog.KlijentIDVrednost}}selected{{end}}>
+                                    {{.PunoIme}}
+                                </option>
+                                {{end}}
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Tehničar</label>
+                            <select name="tehnicar_id" style="width:100%;">
+                                <option value="">— nedodeljen —</option>
+                                {{range .Tehnicari}}
+                                <option value="{{.ID}}"
+                                    {{if eq .ID $.Nalog.TehnicarIDVrednost}}selected{{end}}>
+                                    {{.KorisnickoIme}}
+                                </option>
+                                {{end}}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- status i datumi -->
+                <div>
+                    <div class="sekcija-naslov">Status i datumi</div>
+                    <div class="forma-grid-4" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;">
+                        <div style="grid-column:span 2;">
                             <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Status naloga</label>
                             <select name="status" style="width:100%;">
                                 {{range .SviStatusi}}
@@ -100,6 +117,12 @@
                             <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Datum završetka</label>
                             <input type="date" name="datum_zavrsetka"
                                 value="{{if .Nalog.DatumZavrsetka}}{{.Nalog.DatumZavrsetka.Format "2006-01-02"}}{{end}}"
+                                style="width:100%;">
+                        </div>
+                        <div>
+                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Garancija do</label>
+                            <input type="date" name="garancija_do"
+                                value="{{if .Nalog.GarancijaDo}}{{.Nalog.GarancijaDo.Format "2006-01-02"}}{{end}}"
                                 style="width:100%;">
                         </div>
                     </div>

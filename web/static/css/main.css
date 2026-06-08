@@ -208,8 +208,22 @@ body {
 /* accordion podmeni u sidebaru */
 .nav-podmeni {
     overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.22s ease-out;
 }
-/* u skupljenom modu alpine x-show kontroliše vidljivost — ne skrivamo display:none */
+.nav-podmeni.otvoren {
+    max-height: 300px;
+    transition: max-height 0.25s ease-in;
+}
+/* pri inicijalnom učitavanju sprečavamo animaciju podmenia */
+.nav-podmeni.bez-tranzicije {
+    transition: none !important;
+}
+/* u skupljenom modu podmeni se nikad ne prikazuje */
+.sidebar.skupljen .nav-podmeni {
+    max-height: 0 !important;
+    transition: none;
+}
 .nav-podstavka {
     padding-left: 48px !important;
 }
@@ -256,8 +270,10 @@ body {
     display: none;
 }
 
-.nav-stavka:hover .nav-tooltip {
+/* specifičniji selektor pobjeđuje .sidebar.skupljen .nav-stavka span { opacity:0 } */
+.sidebar.skupljen .nav-stavka:hover .nav-tooltip {
     opacity: 1;
+    pointer-events: none;
 }
 
 /* dno sidebara */
