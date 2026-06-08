@@ -41,8 +41,10 @@
 (function() {
     var dugme = document.getElementById('avatar-dugme');
     var meni  = document.getElementById('avatar-meni');
+    if (!dugme || !meni) return;
 
-    // premesti meni na kraj body — izlazi iz stacking contexta topbara
+    // ukloni stari meni iz body-ja (ostao od prethodne stranice) i dodaj novi
+    document.querySelectorAll('body > #avatar-meni').forEach(function(el) { el.remove(); });
     document.body.appendChild(meni);
 
     function pozicioniraj() {
@@ -52,6 +54,7 @@
         meni.style.left  = 'auto';
     }
 
+    // dugme dobija novi listener svaki put (novi element pri svakoj navigaciji)
     dugme.addEventListener('click', function(e) {
         e.stopPropagation();
         if (meni.style.display === 'none' || meni.style.display === '') {
@@ -63,13 +66,23 @@
         }
     });
 
-    document.addEventListener('click', function() {
-        meni.style.display = 'none';
-    });
-
-    window.addEventListener('resize', function() {
-        if (meni.style.display !== 'none') pozicioniraj();
-    });
+    // document i window listeneri — samo jednom, ne smeju da se gomilaju
+    if (!window._ntechAvatarDodato) {
+        window._ntechAvatarDodato = true;
+        document.addEventListener('click', function() {
+            var m = document.getElementById('avatar-meni');
+            if (m) m.style.display = 'none';
+        });
+        window.addEventListener('resize', function() {
+            var m = document.getElementById('avatar-meni');
+            var d = document.getElementById('avatar-dugme');
+            if (m && d && m.style.display !== 'none') {
+                var r = d.getBoundingClientRect();
+                m.style.top   = (r.bottom + 8) + 'px';
+                m.style.right = (window.innerWidth - r.right) + 'px';
+            }
+        });
+    }
 })();
 </script>
 {{end}}

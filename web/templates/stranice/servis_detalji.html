@@ -68,12 +68,24 @@
                 <div style="font-size:14px;color:var(--tekst-glavni);">{{.Nalog.DatumZavrsetka.Format "02.01.2006."}}</div>
             </div>
             {{end}}
+            {{if .Nalog.GarancijaDo}}
+            <div>
+                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Garancija do</div>
+                <div style="font-size:14px;color:#16a34a;font-weight:500;">{{.Nalog.GarancijaDo.Format "02.01.2006."}}</div>
+            </div>
+            {{end}}
             <div>
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Klijent</div>
                 <div style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">
                     {{if .KlijentNaziv}}{{.KlijentNaziv}}{{else}}—{{end}}
                 </div>
             </div>
+            {{if .TehnicarNaziv}}
+            <div>
+                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Tehničar</div>
+                <div style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{.TehnicarNaziv}}</div>
+            </div>
+            {{end}}
         </div>
     </div>
 
@@ -149,12 +161,81 @@
         </div>
     </div>
 
-    <!-- placeholder za buduće funkcije -->
-    <div class="kartica detalji-kartica animiraj" style="border-style:dashed;">
-        <div style="display:flex;align-items:center;gap:10px;color:var(--tekst-sporedni);">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span style="font-size:13px;">Istorija promena statusa i vezani artikli biće dostupni u narednoj verziji.</span>
+    <!-- ugrađeni delovi -->
+    <div class="kartica detalji-kartica animiraj">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);flex-wrap:wrap;gap:10px;">
+            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Ugrađeni delovi</span>
         </div>
+
+        <!-- forma za dodavanje dela -->
+        {{if index .Dozvole "servis.izmeni"}}
+        <form method="POST" action="/servis/{{.Nalog.ID}}/delovi" style="margin-bottom:16px;">
+            <input type="hidden" name="csrf_token" value="{{.CsrfToken}}">
+            <div style="display:grid;grid-template-columns:1fr 80px 120px auto;gap:10px;align-items:flex-end;">
+                <div>
+                    <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Artikal</label>
+                    <select name="artikal_id" style="width:100%;" required>
+                        <option value="">— odaberi —</option>
+                        {{range .Artikli}}
+                        <option value="{{.ID}}">{{.Naziv}} ({{.Kolicina}} kom)</option>
+                        {{end}}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Kol.</label>
+                    <input type="number" name="kolicina" min="1" value="1" style="width:100%;" required>
+                </div>
+                <div>
+                    <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Cena/kom (din)</label>
+                    <input type="number" name="cena_komada" min="0" step="0.01" value="0" style="width:100%;" required>
+                </div>
+                <div>
+                    <button type="submit" class="btn-primarno" style="font-size:13px;padding:8px 14px;white-space:nowrap;">+ Dodaj</button>
+                </div>
+            </div>
+        </form>
+        {{end}}
+
+        <!-- lista delova -->
+        {{if .ServisniDelovi}}
+        <table style="width:100%;border-collapse:collapse;">
+            <thead>
+                <tr style="border-bottom:0.5px solid var(--ivica);">
+                    <th style="padding:8px 10px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Artikal</th>
+                    <th style="padding:8px 10px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:80px;">Kol.</th>
+                    <th style="padding:8px 10px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:130px;">Cena/kom</th>
+                    <th style="padding:8px 10px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:130px;">Ukupno</th>
+                    <th style="width:50px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .ServisniDelovi}}
+                <tr style="border-bottom:0.5px solid var(--ivica);">
+                    <td style="padding:9px 10px;font-size:14px;color:var(--tekst-glavni);">{{.ArtikalNaziv}}</td>
+                    <td style="padding:9px 10px;text-align:center;font-size:14px;color:var(--tekst-glavni);">{{.Kolicina}}</td>
+                    <td style="padding:9px 10px;text-align:right;font-size:14px;color:var(--tekst-glavni);">{{printf "%.2f" .CenaKomada}} din</td>
+                    <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{printf "%.2f" .Ukupno}} din</td>
+                    <td style="padding:9px 10px;text-align:center;">
+                        {{if index $.Dozvole "servis.izmeni"}}
+                        <form method="POST" action="/servis/{{$.Nalog.ID}}/delovi/{{.ID}}/obrisi" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{$.CsrfToken}}">
+                            <button type="submit"
+                                data-potvrda="Ukloniti deo '{{.ArtikalNaziv}}'?"
+                                style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px;padding:2px 6px;border-radius:4px;">
+                                ×
+                            </button>
+                        </form>
+                        {{end}}
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+        {{else}}
+        <div style="font-size:13px;color:var(--tekst-sporedni);text-align:center;padding:16px 0;">
+            Nema ugrađenih delova za ovaj nalog.
+        </div>
+        {{end}}
     </div>
 
     <!-- zona za brisanje -->

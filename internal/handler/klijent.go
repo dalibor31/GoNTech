@@ -227,21 +227,31 @@ func (h *Handler) ObrisiKlijenta(w http.ResponseWriter, r *http.Request) {
 
 // parseFormuKlijenta čita polja iz HTTP forme, validira ih i vraća model i eventualnu grešku
 func parseFormuKlijenta(r *http.Request) (model.Klijent, string) {
+	tip := r.FormValue("tip")
+	if tip != "fizicko" && tip != "pravno" {
+		tip = "fizicko"
+	}
+
 	ime := strings.TrimSpace(r.FormValue("ime"))
 	nazivFirme := strings.TrimSpace(r.FormValue("naziv_firme"))
 
-	if ime == "" && nazivFirme == "" {
-		return model.Klijent{}, "Mora biti uneto ime i prezime ili naziv firme."
+	if tip == "fizicko" && ime == "" {
+		return model.Klijent{Tip: tip}, "Za fizičko lice obavezno je uneti ime."
+	}
+	if tip == "pravno" && nazivFirme == "" {
+		return model.Klijent{Tip: tip}, "Za pravno lice obavezan je naziv firme."
 	}
 
 	email := strings.TrimSpace(r.FormValue("email"))
 	if email != "" && !strings.Contains(email, "@") {
-		return model.Klijent{}, "Adresa e-pošte nije ispravna."
+		return model.Klijent{Tip: tip}, "Adresa e-pošte nije ispravna."
 	}
 
 	return model.Klijent{
+		Tip:        tip,
 		Ime:        ime,
 		Prezime:    strings.TrimSpace(r.FormValue("prezime")),
+		JMBG:       strings.TrimSpace(r.FormValue("jmbg")),
 		NazivFirme: nazivFirme,
 		PIB:        strings.TrimSpace(r.FormValue("pib")),
 		Telefon:    strings.TrimSpace(r.FormValue("telefon")),

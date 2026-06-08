@@ -3,7 +3,6 @@
 {{define "naslov"}}Izveštaji — NTech{{end}}
 
 {{define "dodatni-css"}}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
     .izv-naslov { font-size: 13px; font-weight: 500; color: var(--tekst-sporedni); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; }
     .toggle-red { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
@@ -194,11 +193,13 @@
 (function() {
     var podaci = {{.GrafikonJSON}};
 
-    var isDark = document.documentElement.getAttribute('data-tema') !== 'svetla';
+    function inicijalizujGrafikon() {
     var tekstBoja = getComputedStyle(document.documentElement).getPropertyValue('--tekst-sporedni').trim() || '#6b7280';
     var ivicaBoja = getComputedStyle(document.documentElement).getPropertyValue('--ivica').trim() || '#e5e7eb';
 
-    var ctx = document.getElementById('grafikon-prihod').getContext('2d');
+    var canvas = document.getElementById('grafikon-prihod');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
     var grafikon = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -256,6 +257,16 @@
     document.getElementById('toggle-grafikon').addEventListener('change', function() {
         document.getElementById('grafikon-wrapper').style.display = this.checked ? 'block' : 'none';
     });
+    } // kraj inicijalizujGrafikon
+
+    if (window.Chart) {
+        inicijalizujGrafikon();
+    } else {
+        var s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js';
+        s.onload = inicijalizujGrafikon;
+        document.head.appendChild(s);
+    }
 })();
 </script>
 {{end}}

@@ -29,6 +29,7 @@ var SviStatusi = []string{
 type ServisniNalog struct {
 	ID             int64
 	KlijentID      *int64
+	TehnicarID     *int64
 	BrojNaloga     string
 	Uredjaj        string
 	SerijskiBroj   string
@@ -39,8 +40,30 @@ type ServisniNalog struct {
 	CenaKonacna    *float64
 	Avans          *float64
 	Napomena       string
+	GarancijaDo    *time.Time
 	DatumPrijema   time.Time
 	DatumZavrsetka *time.Time
+}
+
+// ServisniDeo predstavlja jedan artikal ugrađen u servisni nalog
+type ServisniDeo struct {
+	ID         int64
+	NalogID    int64
+	ArtikalID  int64
+	Kolicina   int
+	CenaKomada float64
+	Datum      time.Time
+}
+
+// Ukupno vraća ukupnu vrednost dela (kolicina × cena)
+func (d ServisniDeo) Ukupno() float64 {
+	return float64(d.Kolicina) * d.CenaKomada
+}
+
+// ServisniDeoSaArtiklom je servisni deo sa nazivom artikla — za prikaz
+type ServisniDeoSaArtiklom struct {
+	ServisniDeo
+	ArtikalNaziv string
 }
 
 // ServisniNalogSaKlijentom proširuje ServisniNalog sa nazivom klijenta za prikaz u listi
@@ -55,6 +78,14 @@ func (n ServisniNalog) KlijentIDVrednost() int64 {
 		return 0
 	}
 	return *n.KlijentID
+}
+
+// TehnicarIDVrednost vraća vrednost TehnicarID pointera, ili 0 ako je nil
+func (n ServisniNalog) TehnicarIDVrednost() int64 {
+	if n.TehnicarID == nil {
+		return 0
+	}
+	return *n.TehnicarID
 }
 
 // CenaOdStr vraća formatiranu procenu od, ili prazan string ako nije uneta

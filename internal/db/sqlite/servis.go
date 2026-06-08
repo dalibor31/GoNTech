@@ -40,9 +40,9 @@ func (r *ServisRepo) SledeciBroj(ctx context.Context) (string, error) {
 func (r *ServisRepo) Lista(ctx context.Context, pretraga, status string) ([]model.ServisniNalogSaKlijentom, error) {
 	upit := `
 		SELECT
-			sn.id, sn.klijent_id, sn.broj_naloga, sn.uredjaj, sn.serijski_broj,
+			sn.id, sn.klijent_id, sn.tehnicar_id, sn.broj_naloga, sn.uredjaj, sn.serijski_broj,
 			sn.opis_kvara, sn.status, sn.cena_od, sn.cena_do, sn.cena_konacna,
-			sn.avans, sn.napomena, sn.datum_prijema, sn.datum_zavrsetka,
+			sn.avans, sn.napomena, sn.garancija_do, sn.datum_prijema, sn.datum_zavrsetka,
 			COALESCE(NULLIF(k.naziv_firme, ''), TRIM(COALESCE(k.ime, '') || ' ' || COALESCE(k.prezime, '')), '') AS klijent_naziv
 		FROM servisni_nalozi sn
 		LEFT JOIN klijenti k ON k.id = sn.klijent_id
@@ -86,9 +86,9 @@ func (r *ServisRepo) Lista(ctx context.Context, pretraga, status string) ([]mode
 func (r *ServisRepo) DohvatiID(ctx context.Context, id int64) (*model.ServisniNalog, error) {
 	red := r.db.QueryRowContext(ctx, `
 		SELECT
-			id, klijent_id, broj_naloga, uredjaj, serijski_broj,
+			id, klijent_id, tehnicar_id, broj_naloga, uredjaj, serijski_broj,
 			opis_kvara, status, cena_od, cena_do, cena_konacna,
-			avans, napomena, datum_prijema, datum_zavrsetka
+			avans, napomena, garancija_do, datum_prijema, datum_zavrsetka
 		FROM servisni_nalozi WHERE id = ?`, id)
 
 	var n model.ServisniNalog
@@ -104,13 +104,14 @@ func (r *ServisRepo) DohvatiID(ctx context.Context, id int64) (*model.ServisniNa
 func (r *ServisRepo) Kreiraj(ctx context.Context, n *model.ServisniNalog) (int64, error) {
 	rezultat, err := r.db.ExecContext(ctx, `
 		INSERT INTO servisni_nalozi
-			(klijent_id, broj_naloga, uredjaj, serijski_broj, opis_kvara,
-			 status, cena_od, cena_do, cena_konacna, avans, napomena, datum_zavrsetka)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		nullInt64(n.KlijentID), n.BrojNaloga, n.Uredjaj, nullString(n.SerijskiBroj),
-		n.OpisKvara, n.Status, nullFloat64(n.CenaOd), nullFloat64(n.CenaDo),
-		nullFloat64(n.CenaKonacna), nullFloat64(n.Avans), nullString(n.Napomena),
-		nullTime(n.DatumZavrsetka),
+			(klijent_id, tehnicar_id, broj_naloga, uredjaj, serijski_broj, opis_kvara,
+			 status, cena_od, cena_do, cena_konacna, avans, napomena, garancija_do, datum_zavrsetka)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		nullInt64(n.KlijentID), nullInt64(n.TehnicarID), n.BrojNaloga, n.Uredjaj,
+		nullString(n.SerijskiBroj), n.OpisKvara, n.Status,
+		nullFloat64(n.CenaOd), nullFloat64(n.CenaDo), nullFloat64(n.CenaKonacna),
+		nullFloat64(n.Avans), nullString(n.Napomena),
+		nullTime(n.GarancijaDo), nullTime(n.DatumZavrsetka),
 	)
 	if err != nil {
 		return 0, fmt.Errorf("ntech: ServisRepo.Kreiraj: %w", err)
@@ -128,13 +129,13 @@ func (r *ServisRepo) Kreiraj(ctx context.Context, n *model.ServisniNalog) (int64
 func (r *ServisRepo) Izmeni(ctx context.Context, n *model.ServisniNalog) error {
 	_, err := r.db.ExecContext(ctx, `
 		UPDATE servisni_nalozi SET
-			klijent_id = ?, uredjaj = ?, serijski_broj = ?, opis_kvara = ?,
+			klijent_id = ?, tehnicar_id = ?, uredjaj = ?, serijski_broj = ?, opis_kvara = ?,
 			status = ?, cena_od = ?, cena_do = ?, cena_konacna = ?,
-			avans = ?, napomena = ?, datum_zavrsetka = ?
+			avans = ?, napomena = ?, garancija_do = ?, datum_zavrsetka = ?
 		WHERE id = ?`,
-		nullInt64(n.KlijentID), n.Uredjaj, nullString(n.SerijskiBroj), n.OpisKvara,
+		nullInt64(n.KlijentID), nullInt64(n.TehnicarID), n.Uredjaj, nullString(n.SerijskiBroj), n.OpisKvara,
 		n.Status, nullFloat64(n.CenaOd), nullFloat64(n.CenaDo), nullFloat64(n.CenaKonacna),
-		nullFloat64(n.Avans), nullString(n.Napomena), nullTime(n.DatumZavrsetka),
+		nullFloat64(n.Avans), nullString(n.Napomena), nullTime(n.GarancijaDo), nullTime(n.DatumZavrsetka),
 		n.ID,
 	)
 	if err != nil {
@@ -157,15 +158,15 @@ func (r *ServisRepo) Obrisi(ctx context.Context, id int64) error {
 // scanNalog čita redove iz upita u ServisniNalog struct —
 // klijentNaziv je opcioni pokazivač, nil kada se čita bez JOIN-a
 func scanNalog(scan func(...any) error, n *model.ServisniNalog, klijentNaziv *string) error {
-	var klijentID sql.NullInt64
+	var klijentID, tehnicarID sql.NullInt64
 	var serijskiBroj, napomena sql.NullString
 	var cenaOd, cenaDo, cenaKonacna, avans sql.NullFloat64
-	var datumZavrsetka sql.NullTime
+	var garancijaDo, datumZavrsetka sql.NullTime
 
 	args := []any{
-		&n.ID, &klijentID, &n.BrojNaloga, &n.Uredjaj, &serijskiBroj,
+		&n.ID, &klijentID, &tehnicarID, &n.BrojNaloga, &n.Uredjaj, &serijskiBroj,
 		&n.OpisKvara, &n.Status, &cenaOd, &cenaDo, &cenaKonacna,
-		&avans, &napomena, &n.DatumPrijema, &datumZavrsetka,
+		&avans, &napomena, &garancijaDo, &n.DatumPrijema, &datumZavrsetka,
 	}
 
 	if klijentNaziv != nil {
@@ -179,6 +180,10 @@ func scanNalog(scan func(...any) error, n *model.ServisniNalog, klijentNaziv *st
 	if klijentID.Valid {
 		v := klijentID.Int64
 		n.KlijentID = &v
+	}
+	if tehnicarID.Valid {
+		v := tehnicarID.Int64
+		n.TehnicarID = &v
 	}
 	n.SerijskiBroj = serijskiBroj.String
 	n.Napomena = napomena.String
@@ -197,6 +202,10 @@ func scanNalog(scan func(...any) error, n *model.ServisniNalog, klijentNaziv *st
 	if avans.Valid {
 		v := avans.Float64
 		n.Avans = &v
+	}
+	if garancijaDo.Valid {
+		v := garancijaDo.Time
+		n.GarancijaDo = &v
 	}
 	if datumZavrsetka.Valid {
 		v := datumZavrsetka.Time

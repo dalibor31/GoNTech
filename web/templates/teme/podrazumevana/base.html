@@ -81,31 +81,31 @@
       <div class="sidebar-overlay" id="sidebar-overlay"></div>
       {{template "sidebar" .}}
 
-      <div class="glavni-sadrzaj">
+      <div class="glavni-sadrzaj" id="glavni-sadrzaj">
         {{template "topbar" .}}
 
-        <main class="sadrzaj">{{block "sadrzaj" .}}{{end}}</main>
+        <main class="sadrzaj" id="sadrzaj">
+          {{if .Flash}}
+          <div id="flash-toast" class="flash-toast flash-{{.Flash.Tip}}" role="alert">
+            <span class="flash-ikona">{{if eq .Flash.Tip "uspeh"}}✓{{else}}!{{end}}</span>
+            <span class="flash-tekst">{{.Flash.Poruka}}</span>
+            <button class="flash-zatvori" onclick="this.parentElement.remove()" aria-label="Zatvori">×</button>
+          </div>
+          <script>
+          (function() {
+            var t = document.getElementById('flash-toast');
+            if (!t) return;
+            setTimeout(function() {
+              t.classList.add('flash-izlaz');
+              setTimeout(function() { if (t.parentElement) t.remove(); }, 350);
+            }, 4000);
+          })();
+          </script>
+          {{end}}
+          {{block "sadrzaj" .}}{{end}}
+        </main>
       </div>
     </div>
-
-    <!-- flash poruka — prikazuje se kao toast u gornjem desnom uglu -->
-    {{if .Flash}}
-    <div id="flash-toast" class="flash-toast flash-{{.Flash.Tip}}" role="alert">
-      <span class="flash-ikona">{{if eq .Flash.Tip "uspeh"}}✓{{else}}!{{end}}</span>
-      <span class="flash-tekst">{{.Flash.Poruka}}</span>
-      <button class="flash-zatvori" onclick="this.parentElement.remove()" aria-label="Zatvori">×</button>
-    </div>
-    <script>
-    (function() {
-      var t = document.getElementById('flash-toast');
-      if (!t) return;
-      setTimeout(function() {
-        t.classList.add('flash-izlaz');
-        setTimeout(function() { if (t.parentElement) t.remove(); }, 350);
-      }, 4000);
-    })();
-    </script>
-    {{end}}
 
     <!-- alpine.js komponente (mora biti pre Alpine-a) -->
     <script src="/static/js/ntech.js" defer></script>
@@ -115,22 +115,27 @@
     <!-- htmx za komunikaciju sa serverom -->
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.x.x/dist/htmx.min.js"></script>
 
-    <!-- sidebar logika -->
+    <!-- sidebar logika — sidebar se NIKAD ne menja pri HTMX navigaciji, pa nema potrebe za swap logikom -->
     <script>
     (function() {
+      if (window._ntechSidebarDodato) return;
+      window._ntechSidebarDodato = true;
+
       function mobilni() { return window.innerWidth <= 768; }
 
-      function inicijalizujSidebar() {
-        var sidebar = document.getElementById("sidebar");
-        var hamburger = document.getElementById("hamburger");
-        var overlay = document.getElementById("sidebar-overlay");
-        if (!sidebar || !hamburger || !overlay) return;
+      var sidebar = document.getElementById("sidebar");
+      var hamburger = document.getElementById("hamburger");
+      var overlay = document.getElementById("sidebar-overlay");
 
-        if (!mobilni() && localStorage.getItem("sidebar-skupljen") === "true") {
-          sidebar.classList.add("skupljen");
-        }
-        document.documentElement.classList.remove('sidebar-init-skupljen');
+      // skupljeno stanje pri učitavanju stranice
+      if (sidebar && !mobilni() && localStorage.getItem("sidebar-skupljen") === "true") {
+        sidebar.classList.add("skupljen");
+      }
+      document.documentElement.classList.remove('sidebar-init-skupljen');
+      if (typeof ntechInicijalizujPodmeni === 'function') ntechInicijalizujPodmeni();
 
+      // hamburger — sidebar element živi ceo vek stranice, listener se dodaje jednom
+      if (hamburger && sidebar && overlay) {
         hamburger.addEventListener("click", function() {
           if (mobilni()) {
             sidebar.classList.toggle("otvoren");
@@ -140,27 +145,50 @@
             localStorage.setItem("sidebar-skupljen", sidebar.classList.contains("skupljen"));
           }
         });
-
         overlay.addEventListener("click", function() {
           sidebar.classList.remove("otvoren");
           overlay.classList.remove("aktivan");
         });
       }
 
-      // resize listener se dodaje samo jednom — ne sme da se gomila po swap-ovima
-      if (!window._ntechResizeDodato) {
-        window._ntechResizeDodato = true;
-        window.addEventListener("resize", function() {
-          var sidebar = document.getElementById("sidebar");
-          var overlay = document.getElementById("sidebar-overlay");
-          if (sidebar && overlay && !mobilni()) {
-            sidebar.classList.remove("otvoren");
-            overlay.classList.remove("aktivan");
+      window.addEventListener("resize", function() {
+        if (!mobilni() && sidebar && overlay) {
+          sidebar.classList.remove("otvoren");
+          overlay.classList.remove("aktivan");
+        }
+      });
+
+      // aktivna stavka — ažurira se pri svakoj HTMX navigaciji
+      function azurirajAktivne() {
+        var putanja = window.location.pathname;
+        document.querySelectorAll('#sidebar .nav-stavka').forEach(function(el) {
+          el.classList.remove('aktivan');
+        });
+        document.querySelectorAll('#sidebar .nav-podmeni').forEach(function(el) {
+          el.classList.remove('otvoren');
+          var strelica = el.previousElementSibling && el.previousElementSibling.querySelector('.nav-strelica svg');
+          if (strelica) strelica.style.transform = 'rotate(0deg)';
+        });
+        document.querySelectorAll('#sidebar a.nav-stavka').forEach(function(el) {
+          var href = el.getAttribute('href');
+          if (!href) return;
+          if (putanja === href || putanja.startsWith(href + '/')) {
+            el.classList.add('aktivan');
+            var podmeni = el.closest('.nav-podmeni');
+            if (podmeni) {
+              podmeni.classList.add('otvoren');
+              var roditelj = podmeni.previousElementSibling;
+              if (roditelj) {
+                roditelj.classList.add('aktivan');
+                var str = roditelj.querySelector('.nav-strelica svg');
+                if (str) str.style.transform = 'rotate(180deg)';
+              }
+            }
           }
         });
       }
 
-      inicijalizujSidebar();
+      document.addEventListener('htmx:afterSwap', azurirajAktivne);
     })();
     </script>
 
