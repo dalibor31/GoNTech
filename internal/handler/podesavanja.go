@@ -248,22 +248,38 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// backup podešavanja — čuvamo samo ako su validni pozitivni brojevi u razumnom opsegu
-	if v := r.FormValue("backup_interval_sati"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n >= 1 && n <= 720 {
-			_ = ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "backup_interval_sati", strconv.Itoa(n))
-		}
-	}
-	if v := r.FormValue("backup_broj_kopija"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n >= 1 && n <= 100 {
-			_ = ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "backup_broj_kopija", strconv.Itoa(n))
-		}
-	}
-
 	sledeci := r.FormValue("_next")
 	if sledeci == "" || !strings.HasPrefix(sledeci, "/") {
 		sledeci = "/podesavanja"
 	}
+
+	// backup podešavanja — pri neispravnom unosu javljamo jasnu grešku
+	// umesto da ga tiho preskočimo a korisniku prikažemo "sačuvano"
+	if v := r.FormValue("backup_interval_sati"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 1 || n > 720 {
+			middleware.SetFlash(w, r, h.DB, "greska", "Razmak između backupa mora biti broj između 1 i 720 sati.")
+			http.Redirect(w, r, sledeci, http.StatusSeeOther)
+			return
+		}
+		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "backup_interval_sati", strconv.Itoa(n)); err != nil {
+			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
+			return
+		}
+	}
+	if v := r.FormValue("backup_broj_kopija"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 1 || n > 100 {
+			middleware.SetFlash(w, r, h.DB, "greska", "Broj kopija mora biti broj između 1 i 100.")
+			http.Redirect(w, r, sledeci, http.StatusSeeOther)
+			return
+		}
+		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "backup_broj_kopija", strconv.Itoa(n)); err != nil {
+			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
+			return
+		}
+	}
+
 	http.Redirect(w, r, sledeci+"?sacuvano=1", http.StatusSeeOther)
 }
 

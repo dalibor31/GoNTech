@@ -31,11 +31,6 @@ type PodaciFormeKlijenta struct {
 
 // Klijenti renderuje listu svih klijenata sa opcionom pretragom
 func (h *Handler) Klijenti(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "klijent.pregled") {
-		http.Error(w, "Nemate dozvolu za pregled klijenata.", http.StatusForbidden)
-		return
-	}
 	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)

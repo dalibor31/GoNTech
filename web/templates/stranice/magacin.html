@@ -133,15 +133,7 @@
                                 </a>
                                 {{end}}
                                 {{if index $.Dozvole "artikal.premesti"}}{{if $.Kategorije}}
-                                <details class="premesti-meni" style="align-self:center;">
-                                    <summary class="btn-primarno-malo" style="cursor:pointer;">Premesti</summary>
-                                    <form method="POST" action="/magacin/premesti/{{.ID}}" class="premesti-panel">
-                                        {{range $.Kategorije}}
-                                        <button type="submit" name="kategorija_id" value="{{.ID}}" class="premesti-opcija">{{.Naziv}}</button>
-                                        {{end}}
-                                        <button type="submit" name="kategorija_id" value="" class="premesti-opcija premesti-opcija-prazno">Bez kategorije</button>
-                                    </form>
-                                </details>
+                                {{template "premestiMeni" (dict "ID" .ID "Kategorije" $.Kategorije)}}
                                 {{end}}{{end}}
                                 {{if index $.Dozvole "artikal.obrisi"}}
                                 <a href="/magacin/obrisi/{{.ID}}" class="btn-obrisi-malo"
@@ -180,15 +172,7 @@
                     <a href="/magacin/izmeni/{{.ID}}" class="btn-primarno-malo">Izmeni</a>
                     {{end}}
                     {{if index $.Dozvole "artikal.premesti"}}{{if $.Kategorije}}
-                    <details class="premesti-meni">
-                        <summary class="btn-primarno-malo" style="cursor:pointer;">Premesti</summary>
-                        <form method="POST" action="/magacin/premesti/{{.ID}}" class="premesti-panel">
-                            {{range $.Kategorije}}
-                            <button type="submit" name="kategorija_id" value="{{.ID}}" class="premesti-opcija">{{.Naziv}}</button>
-                            {{end}}
-                            <button type="submit" name="kategorija_id" value="" class="premesti-opcija premesti-opcija-prazno">Bez kategorije</button>
-                        </form>
-                    </details>
+                    {{template "premestiMeni" (dict "ID" .ID "Kategorije" $.Kategorije)}}
                     {{end}}{{end}}
                     {{if index $.Dozvole "artikal.obrisi"}}
                     <a href="/magacin/obrisi/{{.ID}}" class="btn-obrisi-malo"
@@ -221,4 +205,17 @@
     </div>
 
 </div>
+{{end}}
+
+{{/* padajući meni za premeštanje artikla — prima dict {ID, Kategorije}; koristi se i u tabeli i u mobilnoj kartici */}}
+{{define "premestiMeni"}}
+<details class="premesti-meni" style="align-self:center;">
+    <summary class="btn-primarno-malo" style="cursor:pointer;">Premesti</summary>
+    <form method="POST" action="/magacin/premesti/{{.ID}}" class="premesti-panel">
+        {{range .Kategorije}}
+        <button type="submit" name="kategorija_id" value="{{.ID}}" class="premesti-opcija">{{.Naziv}}</button>
+        {{end}}
+        <button type="submit" name="kategorija_id" value="" class="premesti-opcija premesti-opcija-prazno">Bez kategorije</button>
+    </form>
+</details>
 {{end}}
