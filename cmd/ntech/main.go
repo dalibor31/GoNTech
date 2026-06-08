@@ -191,6 +191,8 @@ func main() {
 		r.Post("/servis/izmeni/{id}", h.SacuvajIzmenaNaloga)
 		r.Post("/servis/obrisi/{id}", h.ObrisiNalog)
 		r.Get("/servis/{id}", h.DetaljiNaloga)
+		r.Post("/servis/{id}/delovi", h.DodajDeloNalogu)
+		r.Post("/servis/{id}/delovi/{deo_id}/obrisi", h.ObrisiDeloNaloga)
 		r.Get("/izvestaji", h.Izvestaji)
 		r.Get("/prodaja", h.Prodaja)
 		r.Get("/prodaja/nova", h.NovaProdaja)

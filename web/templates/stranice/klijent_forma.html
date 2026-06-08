@@ -5,13 +5,23 @@
 {{define "dodatni-css"}}
 <style>
     .greska-animacija { animation: shake 0.4s ease; }
+    .tip-radio { display:flex; gap:12px; }
+    .tip-radio label {
+        display:flex; align-items:center; gap:6px;
+        cursor:pointer; font-size:14px; color:var(--tekst-glavni);
+        padding:8px 14px; border-radius:6px; border:1px solid var(--ivica);
+        transition:background 0.15s, border-color 0.15s;
+    }
+    .tip-radio input[type=radio] { accent-color: var(--akcentna); }
+    .tip-radio label:has(input:checked) {
+        background:var(--akcentna-bleda); border-color:var(--akcentna);
+    }
 </style>
 {{end}}
 
 {{define "sadrzaj"}}
 <div style="width:100%;">
 
-    <!-- nazad dugme -->
     <a href="/klijenti" class="nazad-link">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
         Nazad na klijente
@@ -29,67 +39,84 @@
         {{end}}
 
         <form method="POST" action="{{if .Izmena}}/klijenti/izmeni/{{.Klijent.ID}}{{else}}/klijenti/novi{{end}}">
-            <div style="display:flex;flex-direction:column;gap:14px;">
+            <input type="hidden" name="csrf_token" value="{{.CsrfToken}}">
+            <div style="display:flex;flex-direction:column;gap:18px;">
 
-                <!-- ime i prezime -->
+                <!-- tip klijenta -->
                 <div>
-                    <div style="font-size:12px;font-weight:500;color:var(--tekst-sporedni);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">
-                        Fizičko lice
+                    <div class="sekcija-naslov">Tip klijenta</div>
+                    <div class="tip-radio">
+                        <label>
+                            <input type="radio" name="tip" value="fizicko"
+                                {{if or (eq .Klijent.Tip "fizicko") (eq .Klijent.Tip "")}}checked{{end}}
+                                onchange="promenaTipa(this.value)">
+                            Fizičko lice
+                        </label>
+                        <label>
+                            <input type="radio" name="tip" value="pravno"
+                                {{if eq .Klijent.Tip "pravno"}}checked{{end}}
+                                onchange="promenaTipa(this.value)">
+                            Pravno lice
+                        </label>
                     </div>
+                </div>
+
+                <!-- sekcija fizičko lice -->
+                <div id="sec-fizicko" style="display:flex;flex-direction:column;gap:12px;">
+                    <div class="sekcija-naslov">Ime i prezime</div>
                     <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                         <div>
-                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Ime</label>
+                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">
+                                Ime <span id="ime-oznaka" style="color:#dc2626;">*</span>
+                            </label>
                             <input type="text" name="ime" value="{{.Klijent.Ime}}"
-                                placeholder="npr. Marko"
-                                style="width:100%;">
+                                placeholder="npr. Marko" style="width:100%;">
                         </div>
                         <div>
                             <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Prezime</label>
                             <input type="text" name="prezime" value="{{.Klijent.Prezime}}"
-                                placeholder="npr. Petrović"
-                                style="width:100%;">
+                                placeholder="npr. Petrović" style="width:100%;">
                         </div>
+                    </div>
+                    <div style="max-width:260px;">
+                        <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">JMBG</label>
+                        <input type="text" name="jmbg" value="{{.Klijent.JMBG}}"
+                            placeholder="13 cifara" maxlength="13" style="width:100%;">
                     </div>
                 </div>
 
-                <!-- naziv firme i pib -->
-                <div>
-                    <div style="font-size:12px;font-weight:500;color:var(--tekst-sporedni);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">
-                        Firma
-                    </div>
+                <!-- sekcija pravno lice -->
+                <div id="sec-pravno" style="display:none;flex-direction:column;gap:12px;">
+                    <div class="sekcija-naslov">Firma</div>
                     <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                         <div>
-                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Naziv firme</label>
+                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">
+                                Naziv firme <span style="color:#dc2626;">*</span>
+                            </label>
                             <input type="text" name="naziv_firme" value="{{.Klijent.NazivFirme}}"
-                                placeholder="npr. TechSolutions d.o.o."
-                                style="width:100%;">
+                                placeholder="npr. TechSolutions d.o.o." style="width:100%;">
                         </div>
                         <div>
                             <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">PIB</label>
                             <input type="text" name="pib" value="{{.Klijent.PIB}}"
-                                placeholder="npr. 123456789"
-                                style="width:100%;">
+                                placeholder="npr. 123456789" style="width:100%;">
                         </div>
                     </div>
                 </div>
 
-                <!-- telefon i e-pošta -->
+                <!-- kontakt -->
                 <div>
-                    <div style="font-size:12px;font-weight:500;color:var(--tekst-sporedni);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">
-                        Kontakt
-                    </div>
+                    <div class="sekcija-naslov">Kontakt</div>
                     <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                         <div>
                             <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Telefon</label>
                             <input type="text" name="telefon" value="{{.Klijent.Telefon}}"
-                                placeholder="npr. 060 123 4567"
-                                style="width:100%;">
+                                placeholder="npr. 060 123 4567" style="width:100%;">
                         </div>
                         <div>
                             <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">E-pošta</label>
                             <input type="text" name="email" value="{{.Klijent.Email}}"
-                                placeholder="npr. marko@example.com"
-                                style="width:100%;">
+                                placeholder="npr. marko@example.com" style="width:100%;">
                         </div>
                     </div>
                 </div>
@@ -100,11 +127,6 @@
                     <textarea name="napomena" rows="3"
                         placeholder="Interna napomena o klijentu..."
                         style="width:100%;resize:vertical;">{{.Klijent.Napomena}}</textarea>
-                </div>
-
-                <!-- obaveštenje o obaveznim poljima -->
-                <div style="font-size:12px;color:var(--tekst-sporedni);">
-                    Mora biti uneto ime i prezime <em>ili</em> naziv firme.
                 </div>
 
                 <!-- dugmad -->
@@ -119,4 +141,23 @@
         </form>
     </div>
 </div>
+
+<script>
+function promenaTipa(tip) {
+    var secFiz = document.getElementById('sec-fizicko');
+    var secPrav = document.getElementById('sec-pravno');
+    if (tip === 'pravno') {
+        secFiz.style.display = 'none';
+        secPrav.style.display = 'flex';
+    } else {
+        secFiz.style.display = 'flex';
+        secPrav.style.display = 'none';
+    }
+}
+// pri učitavanju prikazujemo ispravnu sekciju
+(function() {
+    var checked = document.querySelector('input[name="tip"]:checked');
+    if (checked) promenaTipa(checked.value);
+})();
+</script>
 {{end}}
