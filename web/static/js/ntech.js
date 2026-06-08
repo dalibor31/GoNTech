@@ -1,17 +1,25 @@
-// otvara/zatvara podmeni u sidebaru — funkcioniše i posle HTMX swap-a (čisti onclick, bez Alpine-a)
+// otvara/zatvara podmeni u sidebaru — radi i kad je sidebar skupljen i kad je proširen
+// (sidebar ostaje u zatečenom stanju). U isto vreme sme biti otvoren samo jedan podmeni.
 function ntechTogglePodmeni(btn) {
-    var sidebar = document.getElementById('sidebar');
-    // ako je sidebar skupljen, raširimo ga pre nego otvorimo podmeni
-    if (sidebar && sidebar.classList.contains('skupljen')) {
-        sidebar.classList.remove('skupljen');
-        localStorage.setItem('sidebar-skupljeno', 'false');
-    }
     var podmeni = btn.nextElementSibling;
     if (!podmeni) return;
-    podmeni.classList.toggle('otvoren');
-    var strelicaSvg = btn.querySelector('.nav-strelica svg');
-    if (strelicaSvg) {
-        strelicaSvg.style.transform = podmeni.classList.contains('otvoren') ? 'rotate(180deg)' : 'rotate(0deg)';
+    var jeOtvoren = podmeni.classList.contains('otvoren');
+
+    // zatvori sve podmenije i vrati njihove strelice — međusobna isključivost
+    document.querySelectorAll('#sidebar .nav-podmeni').forEach(function(el) {
+        el.classList.remove('otvoren');
+        var dugme = el.previousElementSibling;
+        if (dugme) {
+            var s = dugme.querySelector('.nav-strelica svg');
+            if (s) s.style.transform = 'rotate(0deg)';
+        }
+    });
+
+    // ako kliknuti nije već bio otvoren — otvori ga
+    if (!jeOtvoren) {
+        podmeni.classList.add('otvoren');
+        var svg = btn.querySelector('.nav-strelica svg');
+        if (svg) svg.style.transform = 'rotate(180deg)';
     }
 }
 
@@ -248,5 +256,4 @@ document.addEventListener('alpine:init', () => {
 
 // za prvo učitavanje (defer script) — sprečava animaciju podmenia koji su inicijalno otvoreni
 ntechInicijalizujPodmeni()
-// dodaje klik listenere na podmeni dugmad (data-podmeni-dugme)
 ntechDodajPodmeniListenere()

@@ -35,6 +35,8 @@ type PodaciPodesavanja struct {
 	LogoGreska      string
 	BackupVracen    bool
 	Backupi         []BackupInfo
+	BackupIntervalSati string
+	BackupBrojKopija   string
 	LoginPozadina                    string
 	LoginPozadinaOpacity             string
 	LoginPozadinaBlurPozadine        string
@@ -87,6 +89,8 @@ func (h *Handler) Podesavanja(w http.ResponseWriter, r *http.Request) {
 		LoginPozadinaBlurPozadine:       vrednostIliDefault(podesavanja, "login_pozadina_blur_pozadine", "0"),
 		LoginPozadinaBlurKartice:        vrednostIliDefault(podesavanja, "login_pozadina_blur_kartice", "12"),
 		LoginPozadinaZatamnjenjeKartice: vrednostIliDefault(podesavanja, "login_pozadina_zatamnjenje_kartice", "0"),
+		BackupIntervalSati:              vrednostIliDefault(podesavanja, "backup_interval_sati", "24"),
+		BackupBrojKopija:                vrednostIliDefault(podesavanja, "backup_broj_kopija", "7"),
 	}
 
 	h.renderujTemplate(w, "podesavanja", podaci)
@@ -241,6 +245,18 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, kljuc, vrednost); err != nil {
 			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
 			return
+		}
+	}
+
+	// backup podešavanja — čuvamo samo ako su validni pozitivni brojevi u razumnom opsegu
+	if v := r.FormValue("backup_interval_sati"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n >= 1 && n <= 720 {
+			_ = ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "backup_interval_sati", strconv.Itoa(n))
+		}
+	}
+	if v := r.FormValue("backup_broj_kopija"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n >= 1 && n <= 100 {
+			_ = ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "backup_broj_kopija", strconv.Itoa(n))
 		}
 	}
 
@@ -591,6 +607,8 @@ func (h *Handler) napuniPodaciPodesavanja(r *http.Request, naslov string) (Podac
 		LoginPozadinaBlurPozadine:       vrednostIliDefault(podesavanja, "login_pozadina_blur_pozadine", "0"),
 		LoginPozadinaBlurKartice:        vrednostIliDefault(podesavanja, "login_pozadina_blur_kartice", "12"),
 		LoginPozadinaZatamnjenjeKartice: vrednostIliDefault(podesavanja, "login_pozadina_zatamnjenje_kartice", "0"),
+		BackupIntervalSati:              vrednostIliDefault(podesavanja, "backup_interval_sati", "24"),
+		BackupBrojKopija:                vrednostIliDefault(podesavanja, "backup_broj_kopija", "7"),
 	}, nil
 }
 

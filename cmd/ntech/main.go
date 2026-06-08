@@ -2,13 +2,16 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
 	"os"
+	"mime"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"time"
 
 	"ntech"
@@ -27,6 +30,8 @@ import (
 var Verzija = "dev"
 
 func main() {
+	mime.AddExtensionType(".js", "text/javascript")
+	mime.AddExtensionType(".css", "text/css")
 	godotenv.Load("ntech.env")
 	auth.InitAuthLog()
 
@@ -80,7 +85,24 @@ func main() {
 		log.Printf("Upozorenje: greška pri inicijalizaciji dozvola: %v", err)
 	}
 
-	napraviStartupBackup(putanjaBaze)
+	// ukloni zastarele dozvole (siročiće) koje više ne postoje u kodu
+	if br, err := sqlite.OcistiSirociceDoz(context.Background(), db, ntechmw.SveAkcije()); err != nil {
+		log.Printf("Upozorenje: greška pri čišćenju dozvola: %v", err)
+	} else if br > 0 {
+		log.Printf("Dozvole: uklonjeno %d zastarelih redova", br)
+	}
+
+	napraviBackup(db, putanjaBaze)
+
+	// periodični automatski backup — interval se čita iz podešavanja u svakom ciklusu,
+	// tako da izmena u podešavanjima stupa na snagu bez restarta (od sledećeg ciklusa)
+	go func() {
+		for {
+			sati := procitajIntPodesavanje(db, "backup_interval_sati", 24)
+			time.Sleep(time.Duration(sati) * time.Hour)
+			napraviBackup(db, putanjaBaze)
+		}
+	}()
 
 	// periodično brisanje isteklih sesija i starih pokušaja prijave
 	go func() {
@@ -164,6 +186,7 @@ func main() {
 		r.Get("/magacin/izmeni/{id}", h.IzmeniArtikal)
 		r.Post("/magacin/izmeni/{id}", h.SacuvajIzmenuArtikla)
 		r.Get("/magacin/obrisi/{id}", h.ObrisiArtikal)
+		r.Post("/magacin/premesti/{id}", h.PremestiArtikal)
 		r.Get("/magacin/kategorije", h.Kategorije)
 		r.Post("/magacin/kategorije/dodaj", h.DodajKategoriju)
 		r.Get("/magacin/kategorije/obrisi/{id}", h.ObrisiKategoriju)
@@ -250,8 +273,9 @@ func main() {
 	}
 }
 
-// napraviStartupBackup kreira kopiju baze pri pokretanju i čuva poslednjih 7
-func napraviStartupBackup(putanjaBaze string) {
+// napraviBackup kreira konzistentnu kopiju baze i briše najstarije preko zadatog broja kopija.
+// Koristi već otvorenu vezu ka bazi (VACUUM INTO je bezbedan na pooled konekciji).
+func napraviBackup(db *sql.DB, putanjaBaze string) {
 	if _, err := os.Stat(putanjaBaze); os.IsNotExist(err) {
 		return
 	}
@@ -265,20 +289,27 @@ func napraviStartupBackup(putanjaBaze string) {
 	ime := fmt.Sprintf("ntech_%s.db", time.Now().Format("20060102_150405"))
 	odrediste := filepath.Join(folder, ime)
 
-	db, err := sqlite.OtvoriDB(putanjaBaze)
-	if err != nil {
-		log.Printf("backup: ne mogu otvoriti bazu: %v", err)
-		return
-	}
-	defer db.Close()
-
 	if _, err := db.ExecContext(context.Background(), "VACUUM INTO ?", odrediste); err != nil {
 		log.Printf("backup: greška pri pravljenju backup-a: %v", err)
 		return
 	}
 
 	log.Printf("Backup kreiran: %s", odrediste)
-	ocistiStareBackupe(folder, 7)
+	ocistiStareBackupe(folder, procitajIntPodesavanje(db, "backup_broj_kopija", 7))
+}
+
+// procitajIntPodesavanje vraća celobrojnu vrednost podešavanja iz baze,
+// ili podrazumevanu ako ključ ne postoji ili nije validan pozitivan broj
+func procitajIntPodesavanje(db *sql.DB, kljuc string, podrazumevano int) int {
+	v, err := sqlite.DohvatiPodesavanje(context.Background(), db, kljuc)
+	if err != nil || v == "" {
+		return podrazumevano
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil || n < 1 {
+		return podrazumevano
+	}
+	return n
 }
 
 // ocistiStareBackupe briše najstarije backup fajlove ako ih ima više od max
