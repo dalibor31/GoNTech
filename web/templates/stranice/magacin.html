@@ -19,6 +19,34 @@
     .magacin-kartica:nth-child(3) { animation-delay: 0.16s; }
     .magacin-kartica:nth-child(4) { animation-delay: 0.22s; }
     .magacin-kartica:nth-child(5) { animation-delay: 0.28s; }
+
+    /* padajući meni za premeštanje artikla u drugu kategoriju */
+    .premesti-meni summary { list-style: none; }
+    .premesti-meni summary::-webkit-details-marker { display: none; }
+    .premesti-meni .premesti-panel {
+        margin-top: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        background: var(--pozadina);
+        border: 0.5px solid var(--ivica);
+        border-radius: 8px;
+        padding: 4px;
+        min-width: 150px;
+    }
+    .premesti-opcija {
+        text-align: left;
+        padding: 7px 10px;
+        background: none;
+        border: none;
+        border-radius: 6px;
+        color: var(--tekst-glavni);
+        font-size: 13px;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    .premesti-opcija:hover { background: var(--pozadina-hover); }
+    .premesti-opcija-prazno { color: var(--tekst-sporedni); border-top: 0.5px solid var(--ivica); }
 </style>
 {{end}}
 
@@ -30,6 +58,9 @@
     {{end}}
     {{if .Obrisan}}
     <div class="poruka-uspeh">Artikal je uspešno obrisan.</div>
+    {{end}}
+    {{if .Premesten}}
+    <div class="poruka-uspeh">Artikal je premešten u drugu kategoriju.</div>
     {{end}}
 
     <!-- dugmad -->
@@ -101,6 +132,17 @@
                                     Izmeni
                                 </a>
                                 {{end}}
+                                {{if index $.Dozvole "artikal.premesti"}}{{if $.Kategorije}}
+                                <details class="premesti-meni" style="align-self:center;">
+                                    <summary class="btn-primarno-malo" style="cursor:pointer;">Premesti</summary>
+                                    <form method="POST" action="/magacin/premesti/{{.ID}}" class="premesti-panel">
+                                        {{range $.Kategorije}}
+                                        <button type="submit" name="kategorija_id" value="{{.ID}}" class="premesti-opcija">{{.Naziv}}</button>
+                                        {{end}}
+                                        <button type="submit" name="kategorija_id" value="" class="premesti-opcija premesti-opcija-prazno">Bez kategorije</button>
+                                    </form>
+                                </details>
+                                {{end}}{{end}}
                                 {{if index $.Dozvole "artikal.obrisi"}}
                                 <a href="/magacin/obrisi/{{.ID}}" class="btn-obrisi-malo"
                                     data-potvrda="Da li ste sigurni da želite da obrišete ovaj artikal?">
@@ -133,10 +175,21 @@
                     <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:2px;">{{.KategorijaNaziv}}</div>
                     {{end}}
                 </div>
-                <div style="display:flex;gap:8px;flex-shrink:0;">
+                <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">
                     {{if index $.Dozvole "artikal.izmeni"}}
                     <a href="/magacin/izmeni/{{.ID}}" class="btn-primarno-malo">Izmeni</a>
                     {{end}}
+                    {{if index $.Dozvole "artikal.premesti"}}{{if $.Kategorije}}
+                    <details class="premesti-meni">
+                        <summary class="btn-primarno-malo" style="cursor:pointer;">Premesti</summary>
+                        <form method="POST" action="/magacin/premesti/{{.ID}}" class="premesti-panel">
+                            {{range $.Kategorije}}
+                            <button type="submit" name="kategorija_id" value="{{.ID}}" class="premesti-opcija">{{.Naziv}}</button>
+                            {{end}}
+                            <button type="submit" name="kategorija_id" value="" class="premesti-opcija premesti-opcija-prazno">Bez kategorije</button>
+                        </form>
+                    </details>
+                    {{end}}{{end}}
                     {{if index $.Dozvole "artikal.obrisi"}}
                     <a href="/magacin/obrisi/{{.ID}}" class="btn-obrisi-malo"
                         data-potvrda="Da li ste sigurni da želite da obrišete ovaj artikal?">

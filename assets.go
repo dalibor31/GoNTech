@@ -5,7 +5,7 @@ import "embed"
 //go:embed migrations
 var MigracijeFS embed.FS
 
-//go:embed web/static/css
+//go:embed web/static
 var StaticFS embed.FS
 
 //go:embed web/templates

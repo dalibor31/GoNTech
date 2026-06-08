@@ -30,6 +30,11 @@ type PodaciFormeDobavljaca struct {
 
 // Dobavljaci renderuje listu svih dobavljača
 func (h *Handler) Dobavljaci(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "dobavljac.pregled") {
+		http.Error(w, "Nemate dozvolu za pregled dobavljača.", http.StatusForbidden)
+		return
+	}
 	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)

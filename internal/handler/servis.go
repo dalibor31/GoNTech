@@ -50,6 +50,11 @@ type PodaciDetaljiNaloga struct {
 
 // Servis renderuje listu servisnih naloga sa opcionom pretragom i filterom statusa
 func (h *Handler) Servis(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "servis.pregled") {
+		http.Error(w, "Nemate dozvolu za pregled servisnih naloga.", http.StatusForbidden)
+		return
+	}
 	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
@@ -307,6 +312,11 @@ func (h *Handler) ObrisiNalog(w http.ResponseWriter, r *http.Request) {
 
 // DetaljiNaloga prikazuje sve podatke jednog servisnog naloga sa ugrađenim delovima
 func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "servis.pregled") {
+		http.Error(w, "Nemate dozvolu za pregled servisnih naloga.", http.StatusForbidden)
+		return
+	}
 	id, err := parseID(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)

@@ -76,6 +76,11 @@ func artikalUJSONSaCenom(artikli []model.ArtikalSaKategorijom) template.JS {
 
 // Prodaja renderuje listu svih prodajnih naloga
 func (h *Handler) Prodaja(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "prodaja.pregled") {
+		http.Error(w, "Nemate dozvolu za pregled prodaje.", http.StatusForbidden)
+		return
+	}
 	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
@@ -203,6 +208,11 @@ func (h *Handler) SacuvajProdaju(w http.ResponseWriter, r *http.Request) {
 
 // DetaljiProdaje prikazuje pregled jednog prodajnog naloga sa svim stavkama
 func (h *Handler) DetaljiProdaje(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "prodaja.pregled") {
+		http.Error(w, "Nemate dozvolu za pregled prodaje.", http.StatusForbidden)
+		return
+	}
 	id, err := parseID(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
@@ -255,6 +265,11 @@ func (h *Handler) DetaljiProdaje(w http.ResponseWriter, r *http.Request) {
 
 // StampaProdaje renderuje print-friendly stranicu za dati prodajni nalog
 func (h *Handler) StampaProdaje(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "prodaja.pregled") {
+		http.Error(w, "Nemate dozvolu za pregled prodaje.", http.StatusForbidden)
+		return
+	}
 	id, err := parseID(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
