@@ -109,6 +109,24 @@ func RequireAdmin(next http.Handler) http.Handler {
 	})
 }
 
+// RequireDozvola je middleware koji propušta korisnika samo ako njegova uloga
+// ima traženu akciju. Provera je DB-backed (prosleđuje se DozvoleRepo.ImaDozvolu),
+// tako da poštuje izmene matrice dozvola. Koristi se na nivou rute za "pregled"
+// stranica, umesto ponavljanja iste provere u svakom handleru.
+func RequireDozvola(proveri func(ctx context.Context, uloga, akcija string) bool, akcija string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			k := KorisnikIzKonteksta(r.Context())
+			if k == nil || !proveri(r.Context(), k.Uloga, akcija) {
+				postaviFlashGresku(w, "Nemate dozvolu za ovu stranicu.")
+				http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // postaviFlashGresku upisuje jednokratnu poruku o grešci u kolačić
 func postaviFlashGresku(w http.ResponseWriter, poruka string) {
 	http.SetCookie(w, &http.Cookie{

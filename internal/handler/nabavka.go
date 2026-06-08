@@ -57,12 +57,6 @@ func artikalUJSON(artikli []model.ArtikalSaKategorijom) template.JS {
 
 // Nabavke renderuje listu svih nabavki
 func (h *Handler) Nabavke(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "nabavka.pregled") {
-		http.Error(w, "Nemate dozvolu za pregled nabavki.", http.StatusForbidden)
-		return
-	}
-
 	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
@@ -90,12 +84,6 @@ func (h *Handler) Nabavke(w http.ResponseWriter, r *http.Request) {
 
 // NovaNabavka prikazuje formu za unos nove nabavke
 func (h *Handler) NovaNabavka(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "nabavka.pregled") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
-		return
-	}
-
 	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
@@ -175,12 +163,6 @@ func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
 
 // DetaljiNabavke prikazuje pregled jedne nabavke sa svim stavkama
 func (h *Handler) DetaljiNabavke(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "nabavka.pregled") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
-		return
-	}
-
 	id, err := parseID(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Neispravan ID nabavke", http.StatusBadRequest)
