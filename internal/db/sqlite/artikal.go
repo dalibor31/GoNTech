@@ -147,6 +147,17 @@ func (r *ArtikalRepo) Izmeni(ctx context.Context, a *model.Artikal) error {
 	return nil
 }
 
+// PremestiKategoriju menja samo kategoriju artikla (premeštanje u drugu kategoriju).
+// kategorijaID može biti nil — tada artikal ostaje bez kategorije.
+func (r *ArtikalRepo) PremestiKategoriju(ctx context.Context, id int64, kategorijaID *int64) error {
+	_, err := r.db.ExecContext(ctx,
+		"UPDATE artikli SET kategorija_id = ? WHERE id = ?", kategorijaID, id)
+	if err != nil {
+		return fmt.Errorf("ntech: ArtikalRepo.PremestiKategoriju: %w", err)
+	}
+	return nil
+}
+
 // Obrisi briše artikal po ID-u
 func (r *ArtikalRepo) Obrisi(ctx context.Context, id int64) error {
 	_, err := r.db.ExecContext(ctx, "DELETE FROM artikli WHERE id = ?", id)

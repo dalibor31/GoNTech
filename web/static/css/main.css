@@ -219,10 +219,10 @@ body {
 .nav-podmeni.bez-tranzicije {
     transition: none !important;
 }
-/* u skupljenom modu podmeni se nikad ne prikazuje */
-.sidebar.skupljen .nav-podmeni {
-    max-height: 0 !important;
-    transition: none;
+/* u skupljenom modu otvoren podmeni dobija vizuelnu oznaku — pozadina + leva akcenat-linija */
+.sidebar.skupljen .nav-podmeni.otvoren {
+    background: var(--sb-aktivan);
+    border-left: 3px solid var(--sb-akcent);
 }
 .nav-podstavka {
     padding-left: 48px !important;
