@@ -740,3 +740,20 @@ select {
 @view-transition {
     navigation: auto;
 }
+
+/* pomoćne klase (ranije iz Tailwind-a, sada lokalno da ne zavisimo od CDN-a) */
+.grid { display: grid; }
+.gap-3 { gap: 12px; }
+.gap-4 { gap: 16px; }
+.mb-6 { margin-bottom: 24px; }
+
+/* broj kolona u grid rasporedu — bazne (mobilni-first) vrednosti */
+.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* responsive varijante — primenjuju se od 768px naviše (Tailwind „md") */
+@media (min-width: 768px) {
+    .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .md\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
