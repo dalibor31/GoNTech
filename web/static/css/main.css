@@ -331,6 +331,101 @@ body {
     box-shadow: var(--senka);
 }
 
+/* modal za premeštanje artikla — koristi promenljive teme, pa prati svetlu/tamnu;
+   kad je aktivna slika u pozadini, glass-override u base.html ga čini providnim kao kartice */
+.premesti-modal {
+    border: 0.5px solid var(--ivica);
+    border-radius: 12px;
+    padding: 0;
+    background: var(--pozadina);
+    color: var(--tekst-glavni);
+    width: min(90vw, 320px);
+    /* eksplicitno centriranje — main.css reset gazi UA „margin:auto", pa bez ovoga modal padne u gornji levi ćošak */
+    margin: auto;
+    /* dvoslojna senka: meka difuzna + dublja bliža, da modal jače „iskoči" iznad pozadine */
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35),
+                0 32px 80px rgba(0, 0, 0, 0.55);
+    /* polazno stanje + prelaz za fade in/out (transform daje blagi „zoom") */
+    opacity: 0;
+    transform: scale(0.96);
+    transition: opacity 0.32s ease, transform 0.32s ease,
+                overlay 0.32s ease allow-discrete, display 0.32s ease allow-discrete;
+}
+.premesti-modal[open] {
+    opacity: 1;
+    transform: scale(1);
+}
+/* početno stanje na samom otvaranju — bez ovoga nema fade in animacije */
+@starting-style {
+    .premesti-modal[open] {
+        opacity: 0;
+        transform: scale(0.96);
+    }
+}
+/* zatamnjena pozadina iza modala */
+.premesti-modal::backdrop {
+    background: rgba(0, 0, 0, 0);
+    transition: background 0.32s ease,
+                overlay 0.32s ease allow-discrete, display 0.32s ease allow-discrete;
+}
+.premesti-modal[open]::backdrop {
+    background: rgba(0, 0, 0, 0.72);
+}
+@starting-style {
+    .premesti-modal[open]::backdrop {
+        background: rgba(0, 0, 0, 0);
+    }
+}
+/* zaglavlje modala: naslov + dugme za zatvaranje */
+.premesti-zaglavlje {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    margin: 0;
+    border-bottom: 0.5px solid var(--ivica);
+}
+.premesti-zaglavlje h3 {
+    margin: 0;
+    font-size: 15px;
+    color: var(--tekst-glavni);
+}
+.premesti-zatvori {
+    background: none;
+    border: none;
+    color: var(--tekst-sporedni);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+}
+/* spisak kategorija unutar modala */
+.premesti-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px;
+    margin: 0;
+}
+.premesti-opcija {
+    text-align: left;
+    padding: 9px 12px;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: var(--tekst-glavni);
+    font-size: 14px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.premesti-opcija:hover { background: var(--pozadina-hover); }
+.premesti-opcija-prazno {
+    color: var(--tekst-sporedni);
+    border-top: 0.5px solid var(--ivica);
+    margin-top: 4px;
+    padding-top: 11px;
+}
+
 /* primarna dugmad — rade na svim temama */
 .btn-primarno {
     display: inline-flex;
@@ -442,6 +537,62 @@ body {
     color: #fff;
     flex-shrink: 0;
 }
+
+/* klizač (input[type=range]) — ujednačen izgled na svim brauzerima.
+   Chromium ne stilizuje nativni slajder kao Firefox niti popunjava deo pre glave,
+   pa oblik crtamo ručno preko pseudo-elemenata oba motora. */
+.klizac {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 18px;            /* visina klik-zone; sama staza je tanja, crta se u pseudo-elementima */
+    background: transparent;
+    cursor: pointer;
+    --popunjeno: 0%;          /* postavlja JS; Firefox to ne koristi (ima ::-moz-range-progress) */
+}
+/* ——— Chromium/Blink: Opera, Chrome, Edge ——— */
+.klizac::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 999px;
+    /* plavo do --popunjeno, dalje siva staza — tvrdi prelaz na istom procentu */
+    background: linear-gradient(to right,
+        var(--sb-akcent) var(--popunjeno),
+        var(--pozadina-hover) var(--popunjeno));
+}
+.klizac::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    margin-top: -5px;         /* (6px staza − 16px glava) / 2 — centrira glavu na stazu */
+    border-radius: 50%;
+    background: #b0b6be;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+/* ——— Firefox ——— */
+.klizac::-moz-range-track {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--pozadina-hover);
+}
+.klizac::-moz-range-progress {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--sb-akcent);
+}
+.klizac::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: #b0b6be;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+/* fokus — suptilan prsten oko glave (bez podrazumevanog outline-a) */
+.klizac:focus { outline: none; }
+.klizac:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px rgba(31, 111, 235, 0.25); }
+.klizac:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px rgba(31, 111, 235, 0.25); }
 
 /* input polja — konzistentna za sve teme */
 input[type="text"],

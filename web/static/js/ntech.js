@@ -257,3 +257,30 @@ document.addEventListener('alpine:init', () => {
 // za prvo učitavanje (defer script) — sprečava animaciju podmenia koji su inicijalno otvoreni
 ntechInicijalizujPodmeni()
 ntechDodajPodmeniListenere()
+
+// klizač (input[type=range].klizac): popunjava plavom deo pre glave u Chromium-u
+// preko CSS promenljive --popunjeno. Firefox to radi sam (::-moz-range-progress).
+function ntechAzurirajKlizac(el) {
+    var min = parseFloat(el.min) || 0
+    var max = parseFloat(el.max)
+    if (isNaN(max)) max = 100
+    var v = parseFloat(el.value) || 0
+    var procenat = max > min ? ((v - min) / (max - min)) * 100 : 0
+    el.style.setProperty('--popunjeno', procenat + '%')
+}
+function ntechInicijalizujKlizace() {
+    document.querySelectorAll('input[type="range"].klizac').forEach(ntechAzurirajKlizac)
+}
+(function() {
+    if (window._ntechKlizacDodato) return
+    window._ntechKlizacDodato = true
+    // delegirani listener — hvata i klizače ubačene kasnije (HTMX swap)
+    document.addEventListener('input', function(e) {
+        var t = e.target
+        if (t && t.classList && t.classList.contains('klizac')) ntechAzurirajKlizac(t)
+    })
+    // početno popunjavanje: posle učitavanja, posle HTMX swap-a i kad Alpine postavi vrednosti
+    document.addEventListener('DOMContentLoaded', ntechInicijalizujKlizace)
+    document.addEventListener('htmx:afterSettle', ntechInicijalizujKlizace)
+    document.addEventListener('alpine:initialized', ntechInicijalizujKlizace)
+})()
