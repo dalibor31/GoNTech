@@ -2,7 +2,7 @@
 
 [🇷🇸 Srpska verzija](Readme_sr.md)
 
-![Go Version](https://img.shields.io/badge/go-1.24-blue)
+![Go Version](https://img.shields.io/badge/go-1.26-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 <img width="1440" height="754" alt="image" src="https://github.com/user-attachments/assets/2ea0746f-2f8e-46f7-9551-06e49c0e61ed" />
@@ -43,9 +43,16 @@ The goal is simple: everything the repair shop needs to track is located in one 
 - Reminders — records with deadlines
 - Reports — revenue overview, inventory status
 - Settings — company name, address, Tax ID (PIB), logo; theme toggle
+- Background images — login page and app, with blur, transparency and glass effect
+- Personal theme and background — each user can set their own theme and background image
+- Permission matrix (RBAC) — admin panel for setting permissions by role
+- Flash messages — one-time feedback after an action
+- Automatic SQLite backup — with configurable number of retained copies
+- Charts — monthly revenue on reports (Chart.js)
 
 ### Planned
 
+- Fiscalization and VAT calculation (specification in Project.md)
 - PostgreSQL support (for multi-user environments)
 - WebAuthn / Passkey login (database schema is already prepared)
 - Notifications (email / WhatsApp) — deferred to a later phase
@@ -70,7 +77,7 @@ The goal is simple: everything the repair shop needs to track is located in one 
 
 ### Requirements
 
-- Go 1.22 or newer
+- Go 1.24 or newer
 - Git
 
 ### Steps

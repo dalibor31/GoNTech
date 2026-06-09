@@ -4,7 +4,7 @@
 
 <img width="1440" height="754" alt="image" src="https://github.com/user-attachments/assets/05ade210-6c54-41d8-8006-707c3077944d" />
 
-![Go Version](https://img.shields.io/badge/go-1.24-blue)
+![Go Version](https://img.shields.io/badge/go-1.26-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 Poslovna aplikacija za upravljanje servisom računara, magacinom delova i prodajom. Napravljena u Go-u, radi u brauzeru, ne zahteva internet vezu ni eksterne servise.
@@ -43,9 +43,16 @@ Cilj je jednostavan: sve što servis treba da prati nalazi se na jednom mestu, b
 - Podsetnici — evidencija sa rokom
 - Izveštaji — pregled prihoda, stanje magacina
 - Podešavanja — naziv, adresa, PIB, logo firme; promena teme
+- Pozadinske slike — login stranica i aplikacija, sa zamućenjem, providnošću i glass efektom
+- Lična tema i pozadina — svaki korisnik može svoju temu i pozadinsku sliku
+- Matrica dozvola (RBAC) — admin panel za podešavanje dozvola po ulogama
+- Flash poruke — jednokratne povratne informacije nakon akcije
+- Automatski backup SQLite baze — sa podešavanjem broja čuvanih kopija
+- Grafikoni — mesečni prihod na izveštajima (Chart.js)
 
 ### Planirano
 
+- Fiskalizacija i PDV obračun (specifikacija u Project.md)
 - Podrška za PostgreSQL (za višekorisničko okruženje)
 - WebAuthn / Passkey prijava (šema baze je pripremljena)
 - Obaveštenja (e-pošta / WhatsApp) — odloženo za kasniju fazu
@@ -70,7 +77,7 @@ Cilj je jednostavan: sve što servis treba da prati nalazi se na jednom mestu, b
 
 ### Zahtevi
 
-- Go 1.22 ili noviji
+- Go 1.24 ili noviji
 - Git
 
 ### Koraci
@@ -121,7 +128,6 @@ Kopirati `ntech.env.example` u `ntech.env` i popuniti vrednosti. Fajl `ntech.env
 | `NTECH_DB`     | `sqlite`      | Tip baze: `sqlite` ili `postgres`            |
 | `NTECH_SQLITE` | `ntech.db`    | Putanja do SQLite fajla                      |
 | `NTECH_DSN`    | —             | PostgreSQL connection string                 |
-| `NTECH_SECRET` | —             | Ključ za potpisivanje sesija (min. 32 bajta) |
 
 ---
 
