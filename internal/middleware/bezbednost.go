@@ -13,8 +13,8 @@ func BezbednostHeaders() func(http.Handler) http.Handler {
 			h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
 			h.Set("Content-Security-Policy",
 				"default-src 'self'; "+
-					"style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; "+
-				"script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; "+
+					"style-src 'self' 'unsafe-inline'; "+
+					"script-src 'self' 'unsafe-inline'; "+
 					"img-src 'self' data: blob:; "+
 					"font-src 'self'; "+
 					"connect-src 'self'")
