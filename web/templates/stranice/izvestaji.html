@@ -226,7 +226,7 @@
             maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    labels: { color: tekstBoja, font: { size: 12 }, boxWidth: 12, padding: 16 }
+                    labels: { color: tekstBoja, font: { size: 12, family: 'DejaVu Sans, Ubuntu, system-ui, sans-serif' }, boxWidth: 12, padding: 16 }
                 },
                 tooltip: {
                     callbacks: {
@@ -239,13 +239,13 @@
             scales: {
                 x: {
                     stacked: false,
-                    ticks: { color: tekstBoja, font: { size: 11 } },
+                    ticks: { color: tekstBoja, font: { size: 11, family: 'DejaVu Sans, Ubuntu, system-ui, sans-serif' } },
                     grid: { color: ivicaBoja }
                 },
                 y: {
                     ticks: {
                         color: tekstBoja,
-                        font: { size: 11 },
+                        font: { size: 11, family: 'DejaVu Sans, Ubuntu, system-ui, sans-serif' },
                         callback: function(v) { return Math.round(v).toLocaleString('sr-RS') + ' din'; }
                     },
                     grid: { color: ivicaBoja }
