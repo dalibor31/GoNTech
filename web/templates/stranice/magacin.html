@@ -20,33 +20,7 @@
     .magacin-kartica:nth-child(4) { animation-delay: 0.22s; }
     .magacin-kartica:nth-child(5) { animation-delay: 0.28s; }
 
-    /* padajući meni za premeštanje artikla u drugu kategoriju */
-    .premesti-meni summary { list-style: none; }
-    .premesti-meni summary::-webkit-details-marker { display: none; }
-    .premesti-meni .premesti-panel {
-        margin-top: 6px;
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        background: var(--pozadina);
-        border: 0.5px solid var(--ivica);
-        border-radius: 8px;
-        padding: 4px;
-        min-width: 150px;
-    }
-    .premesti-opcija {
-        text-align: left;
-        padding: 7px 10px;
-        background: none;
-        border: none;
-        border-radius: 6px;
-        color: var(--tekst-glavni);
-        font-size: 13px;
-        cursor: pointer;
-        white-space: nowrap;
-    }
-    .premesti-opcija:hover { background: var(--pozadina-hover); }
-    .premesti-opcija-prazno { color: var(--tekst-sporedni); border-top: 0.5px solid var(--ivica); }
+    /* CSS modala „premesti" je u main.css — mora preživeti HTMX swap (header se ne menja) */
 </style>
 {{end}}
 
@@ -209,13 +183,20 @@
 
 {{/* padajući meni za premeštanje artikla — prima dict {ID, Kategorije}; koristi se i u tabeli i u mobilnoj kartici */}}
 {{define "premestiMeni"}}
-<details class="premesti-meni" style="align-self:center;">
-    <summary class="btn-primarno-malo" style="cursor:pointer;">Premesti</summary>
+<button type="button" class="btn-primarno-malo" style="cursor:pointer;align-self:center;"
+        onclick="document.getElementById('premesti-{{.ID}}').showModal()">Premesti</button>
+{{/* nativni modal — showModal() ga stavlja u „top layer", pa je uvek iznad svega bez obzira na z-index/overflow */}}
+<dialog id="premesti-{{.ID}}" class="premesti-modal" onclick="if(event.target===this)this.close()">
+    {{/* zaglavlje sa dugmetom za zatvaranje; method="dialog" zatvara modal bez slanja */}}
+    <form method="dialog" class="premesti-zaglavlje">
+        <h3>Premesti artikal</h3>
+        <button type="submit" class="premesti-zatvori" aria-label="Zatvori">&times;</button>
+    </form>
     <form method="POST" action="/magacin/premesti/{{.ID}}" class="premesti-panel">
         {{range .Kategorije}}
         <button type="submit" name="kategorija_id" value="{{.ID}}" class="premesti-opcija">{{.Naziv}}</button>
         {{end}}
         <button type="submit" name="kategorija_id" value="" class="premesti-opcija premesti-opcija-prazno">Bez kategorije</button>
     </form>
-</details>
+</dialog>
 {{end}}
