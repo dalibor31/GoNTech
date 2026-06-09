@@ -16,7 +16,6 @@ func BezbednostHeaders() func(http.Handler) http.Handler {
 					"style-src 'self' 'unsafe-inline'; "+
 					"script-src 'self' 'unsafe-inline'; "+
 					"img-src 'self' data: blob:; "+
-					"font-src 'self'; "+
 					"connect-src 'self'")
 			next.ServeHTTP(w, r)
 		})
