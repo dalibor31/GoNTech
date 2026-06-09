@@ -22,9 +22,6 @@
     <!-- glavni stilovi -->
     <link rel="stylesheet" href="/static/css/main.css" />
 
-    <!-- tailwind -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
     {{block "dodatni-css" .}}{{end}}
 
     {{if .AppPozadina}}
@@ -112,8 +109,8 @@
     <!-- alpine.js CSP build (lokalno, bez unsafe-eval) -->
     <script src="/static/js/alpine.csp.min.js" defer></script>
 
-    <!-- htmx za komunikaciju sa serverom -->
-    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.x.x/dist/htmx.min.js"></script>
+    <!-- htmx za komunikaciju sa serverom (lokalno) -->
+    <script src="/static/js/htmx.min.js"></script>
 
     <!-- sidebar logika — sidebar se NIKAD ne menja pri HTMX navigaciji, pa nema potrebe za swap logikom -->
     <script>
