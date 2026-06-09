@@ -16,7 +16,7 @@ var bazniSabloni = []string{
 
 // saSidebar su šabloni koji koriste base layout (sidebar + topbar)
 var saSidebar = []string{
-	"admin_korisnici", "admin_profil", "admin_login_istorija",
+	"admin_korisnici", "admin_profil", "admin_login_istorija", "admin_dozvole",
 	"dashboard",
 	"dobavljaci", "dobavljac_forma",
 	"izvestaji",
@@ -36,6 +36,26 @@ var standaloneIme = []string{
 	"prijava", "setup", "totp_provera", "prodaja_stampa",
 }
 
+// sablonskeFunkcije su pomoćne funkcije dostupne u svim šablonima.
+// dict gradi mapu iz parova ključ/vrednost — koristi se da se jednom partialu
+// prosledi više vrednosti (npr. {{template "x" (dict "ID" .ID "Lista" $.Lista)}}).
+var sablonskeFunkcije = template.FuncMap{
+	"dict": func(parovi ...any) (map[string]any, error) {
+		if len(parovi)%2 != 0 {
+			return nil, fmt.Errorf("dict: neparan broj argumenata")
+		}
+		m := make(map[string]any, len(parovi)/2)
+		for i := 0; i < len(parovi); i += 2 {
+			kljuc, ok := parovi[i].(string)
+			if !ok {
+				return nil, fmt.Errorf("dict: ključ mora biti string")
+			}
+			m[kljuc] = parovi[i+1]
+		}
+		return m, nil
+	},
+}
+
 // KreirajKes parsuje sve šablone iz fsys i vraća ih keširane u mapi
 func KreirajKes(fsys fs.FS) (map[string]*template.Template, error) {
 	kes := make(map[string]*template.Template)
@@ -44,7 +64,7 @@ func KreirajKes(fsys fs.FS) (map[string]*template.Template, error) {
 		fajlovi := make([]string, len(bazniSabloni), len(bazniSabloni)+1)
 		copy(fajlovi, bazniSabloni)
 		fajlovi = append(fajlovi, "web/templates/stranice/"+ime+".html")
-		t, err := template.ParseFS(fsys, fajlovi...)
+		t, err := template.New(ime).Funcs(sablonskeFunkcije).ParseFS(fsys, fajlovi...)
 		if err != nil {
 			return nil, fmt.Errorf("kes: %s: %w", ime, err)
 		}
@@ -80,7 +100,7 @@ func (h *Handler) renderujTemplate(w http.ResponseWriter, ime string, podaci any
 		copy(fajlovi, bazniSabloni)
 		fajlovi = append(fajlovi, "web/templates/stranice/"+ime+".html")
 		var err error
-		if tmpl, err = template.ParseFS(h.TemplatesFS, fajlovi...); err != nil {
+		if tmpl, err = template.New(ime).Funcs(sablonskeFunkcije).ParseFS(h.TemplatesFS, fajlovi...); err != nil {
 			log.Printf("greška pri parsiranju šablona %s: %v", ime, err)
 			http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
 			return

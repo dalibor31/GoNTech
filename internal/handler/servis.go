@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	appdbPkg "ntech/internal/db"
 	"ntech/internal/db/sqlite"
 	"ntech/internal/middleware"
 	"ntech/internal/model"
@@ -30,6 +31,7 @@ type PodaciFormeNaloga struct {
 	model.PodaciStranice
 	Nalog      model.ServisniNalog
 	Klijenti   []model.Klijent
+	Tehnicari  []model.Korisnik
 	SviStatusi []string
 	Greska     string
 	Izmena     bool
@@ -38,9 +40,12 @@ type PodaciFormeNaloga struct {
 // PodaciDetaljiNaloga su podaci za pregled jednog servisnog naloga
 type PodaciDetaljiNaloga struct {
 	model.PodaciStranice
-	Nalog        model.ServisniNalog
-	KlijentNaziv string
-	Sacuvano     bool
+	Nalog          model.ServisniNalog
+	KlijentNaziv   string
+	TehnicarNaziv  string
+	ServisniDelovi []model.ServisniDeoSaArtiklom
+	Artikli        []model.ArtikalSaKategorijom
+	Sacuvano       bool
 }
 
 // Servis renderuje listu servisnih naloga sa opcionom pretragom i filterom statusa
@@ -96,6 +101,12 @@ func (h *Handler) NoviNalog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tehnicari, err := h.KorisniciRepo.Lista(r.Context())
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju tehničara", http.StatusInternalServerError)
+		return
+	}
+
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "servis"
 	ps.NaslovStranice = "Novi nalog"
@@ -103,6 +114,7 @@ func (h *Handler) NoviNalog(w http.ResponseWriter, r *http.Request) {
 		PodaciStranice: ps,
 		Nalog:          model.ServisniNalog{BrojNaloga: brojNaloga, Status: model.StatusPrimljeno},
 		Klijenti:       klijenti,
+		Tehnicari:      tehnicari,
 		SviStatusi:     model.SviStatusi,
 		Izmena:         false,
 	})
@@ -124,6 +136,7 @@ func (h *Handler) SacuvajNalog(w http.ResponseWriter, r *http.Request) {
 	if greska != "" {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		klijenti, _ := h.KlijentiRepo.Lista(r.Context(), "")
+		tehnicari, _ := h.KorisniciRepo.Lista(r.Context())
 		ps := h.popuniPodaciStranice(r, podesavanja)
 		ps.Stranica = "servis"
 		ps.NaslovStranice = "Novi nalog"
@@ -131,6 +144,7 @@ func (h *Handler) SacuvajNalog(w http.ResponseWriter, r *http.Request) {
 			PodaciStranice: ps,
 			Nalog:          nalog,
 			Klijenti:       klijenti,
+			Tehnicari:      tehnicari,
 			SviStatusi:     model.SviStatusi,
 			Greska:         greska,
 			Izmena:         false,
@@ -143,6 +157,7 @@ func (h *Handler) SacuvajNalog(w http.ResponseWriter, r *http.Request) {
 		log.Printf("greška pri čuvanju naloga: %v", err)
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		klijenti, _ := h.KlijentiRepo.Lista(r.Context(), "")
+		tehnicari, _ := h.KorisniciRepo.Lista(r.Context())
 		ps := h.popuniPodaciStranice(r, podesavanja)
 		ps.Stranica = "servis"
 		ps.NaslovStranice = "Novi nalog"
@@ -150,6 +165,7 @@ func (h *Handler) SacuvajNalog(w http.ResponseWriter, r *http.Request) {
 			PodaciStranice: ps,
 			Nalog:          nalog,
 			Klijenti:       klijenti,
+			Tehnicari:      tehnicari,
 			SviStatusi:     model.SviStatusi,
 			Greska:         "Došlo je do greške pri čuvanju. Pokušajte ponovo.",
 			Izmena:         false,
@@ -186,6 +202,12 @@ func (h *Handler) IzmeniNalog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tehnicari, err := h.KorisniciRepo.Lista(r.Context())
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju tehničara", http.StatusInternalServerError)
+		return
+	}
+
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "servis"
 	ps.NaslovStranice = "Izmeni nalog"
@@ -193,6 +215,7 @@ func (h *Handler) IzmeniNalog(w http.ResponseWriter, r *http.Request) {
 		PodaciStranice: ps,
 		Nalog:          *nalog,
 		Klijenti:       klijenti,
+		Tehnicari:      tehnicari,
 		SviStatusi:     model.SviStatusi,
 		Izmena:         true,
 	})
@@ -220,6 +243,7 @@ func (h *Handler) SacuvajIzmenaNaloga(w http.ResponseWriter, r *http.Request) {
 	if greska != "" {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		klijenti, _ := h.KlijentiRepo.Lista(r.Context(), "")
+		tehnicari, _ := h.KorisniciRepo.Lista(r.Context())
 		nalog.ID = id
 		ps := h.popuniPodaciStranice(r, podesavanja)
 		ps.Stranica = "servis"
@@ -228,6 +252,7 @@ func (h *Handler) SacuvajIzmenaNaloga(w http.ResponseWriter, r *http.Request) {
 			PodaciStranice: ps,
 			Nalog:          nalog,
 			Klijenti:       klijenti,
+			Tehnicari:      tehnicari,
 			SviStatusi:     model.SviStatusi,
 			Greska:         greska,
 			Izmena:         true,
@@ -240,6 +265,7 @@ func (h *Handler) SacuvajIzmenaNaloga(w http.ResponseWriter, r *http.Request) {
 		log.Printf("greška pri čuvanju izmene naloga: %v", err)
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		klijenti, _ := h.KlijentiRepo.Lista(r.Context(), "")
+		tehnicari, _ := h.KorisniciRepo.Lista(r.Context())
 		ps := h.popuniPodaciStranice(r, podesavanja)
 		ps.Stranica = "servis"
 		ps.NaslovStranice = "Izmeni nalog"
@@ -247,6 +273,7 @@ func (h *Handler) SacuvajIzmenaNaloga(w http.ResponseWriter, r *http.Request) {
 			PodaciStranice: ps,
 			Nalog:          nalog,
 			Klijenti:       klijenti,
+			Tehnicari:      tehnicari,
 			SviStatusi:     model.SviStatusi,
 			Greska:         "Došlo je do greške pri čuvanju. Pokušajte ponovo.",
 			Izmena:         true,
@@ -278,7 +305,7 @@ func (h *Handler) ObrisiNalog(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/servis?obrisan=1", http.StatusSeeOther)
 }
 
-// DetaljiNaloga prikazuje sve podatke jednog servisnog naloga
+// DetaljiNaloga prikazuje sve podatke jednog servisnog naloga sa ugrađenim delovima
 func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(chi.URLParam(r, "id"))
 	if err != nil {
@@ -302,12 +329,27 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 	if nalog.KlijentID != nil {
 		klijent, err := h.KlijentiRepo.DohvatiID(r.Context(), *nalog.KlijentID)
 		if err == nil {
-			if klijent.NazivFirme != "" {
-				klijentNaziv = klijent.NazivFirme
-			} else {
-				klijentNaziv = strings.TrimSpace(klijent.Ime + " " + klijent.Prezime)
-			}
+			klijentNaziv = klijent.PunoIme()
 		}
+	}
+
+	tehnicarNaziv := ""
+	if nalog.TehnicarID != nil {
+		tehnicar, err := h.KorisniciRepo.DohvatiPoID(r.Context(), *nalog.TehnicarID)
+		if err == nil {
+			tehnicarNaziv = tehnicar.KorisnickoIme
+		}
+	}
+
+	delovi, err := h.ServisniDeloviRepo.DohvatiZaNalog(r.Context(), id)
+	if err != nil {
+		log.Printf("greška pri učitavanju delova: %v", err)
+	}
+
+	appdb := appdbPkg.ArtikalFilter{}
+	artikli, err := h.Artikli.Lista(r.Context(), appdb)
+	if err != nil {
+		log.Printf("greška pri učitavanju artikala: %v", err)
 	}
 
 	ps := h.popuniPodaciStranice(r, podesavanja)
@@ -317,10 +359,94 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 		PodaciStranice: ps,
 		Nalog:          *nalog,
 		KlijentNaziv:   klijentNaziv,
+		TehnicarNaziv:  tehnicarNaziv,
+		ServisniDelovi: delovi,
+		Artikli:        artikli,
 		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
 	}
 
 	h.renderujTemplate(w, "servis_detalji", podaci)
+}
+
+// DodajDeloNalogu prima POST formu i dodaje artikal kao deo servisnog naloga
+func (h *Handler) DodajDeloNalogu(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "servis.izmeni") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
+
+	nalogID, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
+		return
+	}
+
+	artikalID, err := strconv.ParseInt(r.FormValue("artikal_id"), 10, 64)
+	if err != nil || artikalID <= 0 {
+		middleware.SetFlash(w, r, h.DB, "greska", "Neispravan artikal.")
+		http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
+		return
+	}
+
+	kolicina, err := strconv.Atoi(r.FormValue("kolicina"))
+	if err != nil || kolicina <= 0 {
+		middleware.SetFlash(w, r, h.DB, "greska", "Količina mora biti pozitivan broj.")
+		http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
+		return
+	}
+
+	cena, err := strconv.ParseFloat(r.FormValue("cena_komada"), 64)
+	if err != nil || cena < 0 {
+		middleware.SetFlash(w, r, h.DB, "greska", "Cena mora biti pozitivan broj.")
+		http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
+		return
+	}
+
+	if _, err := h.ServisniDeloviRepo.Dodaj(r.Context(), nalogID, artikalID, kolicina, cena, &k.ID); err != nil {
+		log.Printf("greška pri dodavanju dela: %v", err)
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri dodavanju dela. Proverite stanje na magacinu.")
+		http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
+		return
+	}
+
+	middleware.SetFlash(w, r, h.DB, "uspeh", "Deo je dodat.")
+	http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
+}
+
+// ObrisiDeloNaloga prima POST zahtev i uklanja deo iz servisnog naloga
+func (h *Handler) ObrisiDeloNaloga(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "servis.izmeni") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
+
+	nalogID, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+
+	deoID, err := parseID(chi.URLParam(r, "deo_id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID dela", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.ServisniDeloviRepo.Obrisi(r.Context(), deoID, &k.ID); err != nil {
+		log.Printf("greška pri brisanju dela: %v", err)
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri uklanjanju dela.")
+	} else {
+		middleware.SetFlash(w, r, h.DB, "uspeh", "Deo je uklonjen.")
+	}
+
+	http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
 }
 
 // parseFormuNaloga čita i validira polja iz HTTP forme
@@ -355,6 +481,13 @@ func parseFormuNaloga(r *http.Request) (model.ServisniNalog, string) {
 		}
 	}
 
+	// opcioni tehničar
+	if tidStr := r.FormValue("tehnicar_id"); tidStr != "" {
+		if tid, err := strconv.ParseInt(tidStr, 10, 64); err == nil {
+			nalog.TehnicarID = &tid
+		}
+	}
+
 	// opcione cene — prazno polje ostaje nil
 	nalog.CenaOd = parseOpcionuCenu(r.FormValue("cena_od"))
 	nalog.CenaDo = parseOpcionuCenu(r.FormValue("cena_do"))
@@ -365,6 +498,13 @@ func parseFormuNaloga(r *http.Request) (model.ServisniNalog, string) {
 	if dz := strings.TrimSpace(r.FormValue("datum_zavrsetka")); dz != "" {
 		if t, err := time.Parse("2006-01-02", dz); err == nil {
 			nalog.DatumZavrsetka = &t
+		}
+	}
+
+	// opcioni datum garancije
+	if gd := strings.TrimSpace(r.FormValue("garancija_do")); gd != "" {
+		if t, err := time.Parse("2006-01-02", gd); err == nil {
+			nalog.GarancijaDo = &t
 		}
 	}
 

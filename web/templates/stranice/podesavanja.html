@@ -47,8 +47,14 @@
             </div>
             {{end}}
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-                <input type="file" name="logo" accept=".png,.jpg,.jpeg,.svg"
-                    style="flex:1;min-width:200px;font-size:13px;color:var(--tekst-sporedni);">
+                <input type="file" id="logo-file" name="logo" accept=".png,.jpg,.jpeg,.svg"
+                    style="display:none;"
+                    onchange="var s=document.getElementById('logo-ime');s.textContent=this.files[0]?this.files[0].name:'Nijedan fajl nije izabran'">
+                <label for="logo-file"
+                    style="padding:8px 16px;background:var(--sb-akcent);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap;font-weight:500;">
+                    Izaberi fajl
+                </label>
+                <span id="logo-ime" style="font-size:13px;color:var(--tekst-sporedni);">Nijedan fajl nije izabran</span>
                 <button type="submit"
                     style="padding:8px 16px;background:var(--sb-aktivan);color:var(--tekst-jak);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap;transition:opacity 0.2s;"
                     onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
@@ -161,9 +167,15 @@
         {{end}}
         <form method="POST" action="/podesavanja/login-pozadina" enctype="multipart/form-data">
             <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
-            <div style="display:flex;gap:8px;align-items:center;">
-                <input type="file" name="login_pozadina" accept=".jpg,.jpeg,.png,.webp"
-                    style="font-size:13px;color:var(--tekst-sporedni);">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <input type="file" id="login-pozadina-file" name="login_pozadina" accept=".jpg,.jpeg,.png,.webp"
+                    style="display:none;"
+                    onchange="var s=document.getElementById('login-pozadina-ime');s.textContent=this.files[0]?this.files[0].name:'Nijedan fajl nije izabran'">
+                <label for="login-pozadina-file"
+                    style="padding:8px 16px;background:var(--sb-akcent);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap;font-weight:500;">
+                    Izaberi fajl
+                </label>
+                <span id="login-pozadina-ime" style="font-size:13px;color:var(--tekst-sporedni);">Nijedan fajl nije izabran</span>
                 <button type="submit"
                     style="padding:8px 16px;background:var(--sb-aktivan);color:var(--tekst-jak);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap;transition:opacity 0.2s;flex-shrink:0;"
                     onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
@@ -203,7 +215,7 @@
                     <span style="font-size:13px;color:var(--tekst-glavni);font-weight:500;" x-text="blurPozadine + 'px'"></span>
                 </div>
                 <input type="range" x-model.number="blurPozadine" min="0" max="20" step="1"
-                    style="width:100%;accent-color:var(--sb-akcent);cursor:pointer;">
+                    class="klizac">
             </div>
 
             <!-- slider: zamućenje kartice -->
@@ -213,7 +225,7 @@
                     <span style="font-size:13px;color:var(--tekst-glavni);font-weight:500;" x-text="blurKartice + 'px'"></span>
                 </div>
                 <input type="range" x-model.number="blurKartice" min="0" max="20" step="1"
-                    style="width:100%;accent-color:var(--sb-akcent);cursor:pointer;">
+                    class="klizac">
             </div>
 
             <!-- slider: zatamnjivanje pozadine -->
@@ -223,7 +235,7 @@
                     <span style="font-size:13px;color:var(--tekst-glavni);font-weight:500;" x-text="opacity + '%'"></span>
                 </div>
                 <input type="range" x-model.number="opacity" min="0" max="80" step="1"
-                    style="width:100%;accent-color:var(--sb-akcent);cursor:pointer;">
+                    class="klizac">
             </div>
 
             <!-- slider: zatamnjivanje kartice NTech -->
@@ -233,7 +245,7 @@
                     <span style="font-size:13px;color:var(--tekst-glavni);font-weight:500;" x-text="zatamnjenjeKartice + '%'"></span>
                 </div>
                 <input type="range" x-model.number="zatamnjenjeKartice" min="0" max="80" step="1"
-                    style="width:100%;accent-color:var(--sb-akcent);cursor:pointer;">
+                    class="klizac">
             </div>
 
             <!-- forma za čuvanje stilova -->
