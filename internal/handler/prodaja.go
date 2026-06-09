@@ -57,17 +57,18 @@ type PodaciStampeProdaje struct {
 	PIB          string
 }
 
-// artikalUJSONSaCenom pretvara listu artikala u template.JS vrednost sa prodajnom cenom i stanjem
+// artikalUJSONSaCenom pretvara listu artikala u template.JS vrednost sa prodajnom cenom, PDV stopom i stanjem
 func artikalUJSONSaCenom(artikli []model.ArtikalSaKategorijom) template.JS {
 	type stavka struct {
 		ID       int64   `json:"id"`
 		Naziv    string  `json:"naziv"`
 		Cena     float64 `json:"cena"`
+		PdvStopa float64 `json:"pdv_stopa"`
 		Kolicina int     `json:"kolicina"`
 	}
 	lista := make([]stavka, 0, len(artikli))
 	for _, a := range artikli {
-		lista = append(lista, stavka{ID: a.ID, Naziv: a.Naziv, Cena: a.ProdajnaCena, Kolicina: a.Kolicina})
+		lista = append(lista, stavka{ID: a.ID, Naziv: a.Naziv, Cena: a.ProdajnaCena, PdvStopa: a.PdvStopa, Kolicina: a.Kolicina})
 	}
 	b, _ := json.Marshal(lista)
 	return template.JS(b)
@@ -185,7 +186,7 @@ func (h *Handler) SacuvajProdaju(w http.ResponseWriter, r *http.Request) {
 	}
 	nalog.Ukupno = ukupno
 
-	id, err := h.ProdajaRepo.Kreiraj(r.Context(), &nalog, stavke)
+	id, err := h.ProdajaRepo.Kreiraj(r.Context(), &nalog, stavke, &k.ID)
 	if err != nil {
 		var errStanje *appdb.ErrNedovoljnoKolicine
 		if errors.As(err, &errStanje) {
@@ -336,10 +337,15 @@ func parseFormuProdaje(r *http.Request) (model.ProdajniNalog, []model.StavkaProd
 		}
 	}
 	nalog.Napomena = strings.TrimSpace(r.FormValue("napomena"))
+	nalog.NacinPlacanja = r.FormValue("nacin_placanja")
+	if nalog.NacinPlacanja != "gotovina" && nalog.NacinPlacanja != "kartica" && nalog.NacinPlacanja != "prenos" {
+		nalog.NacinPlacanja = "gotovina"
+	}
 
 	artikalIDovi := r.Form["artikal_id[]"]
 	kolicine := r.Form["kolicina[]"]
 	cene := r.Form["cena_po_komadu[]"]
+	pdvStope := r.Form["pdv_stopa[]"]
 
 	if len(artikalIDovi) == 0 {
 		return nalog, nil, "Prodaja mora imati najmanje jednu stavku."
@@ -366,17 +372,23 @@ func parseFormuProdaje(r *http.Request) (model.ProdajniNalog, []model.StavkaProd
 			return nalog, nil, "Cena mora biti pozitivan broj."
 		}
 
+		var pdvStopa float64
+		if i < len(pdvStope) {
+			pdvStopa, _ = strconv.ParseFloat(strings.TrimSpace(pdvStope[i]), 64)
+		}
+
 		stavke = append(stavke, model.StavkaProdaje{
 			ArtikalID:    artikalID,
 			Kolicina:     kolicina,
 			CenaPoKomadu: cena,
+			PdvStopa:     pdvStopa,
 		})
 	}
 
 	return nalog, stavke, ""
 }
 
-// StornoProdaje stornira prodajni nalog: vraća artikle na stanje i briše nalog
+// StornoProdaje stornira prodajni nalog: vraća artikle na stanje i označava nalog kao storniran
 func (h *Handler) StornoProdaje(w http.ResponseWriter, r *http.Request) {
 	k := middleware.KorisnikIzKonteksta(r.Context())
 	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "prodaja.storno") {
@@ -388,12 +400,19 @@ func (h *Handler) StornoProdaje(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
 		return
 	}
-	if err := h.ProdajaRepo.Obrisi(r.Context(), id); err != nil {
-		http.Error(w, "Greška pri storniranju naloga", http.StatusInternalServerError)
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
+		return
+	}
+	razlog := strings.TrimSpace(r.FormValue("razlog"))
+	if err := h.ProdajaRepo.Storno(r.Context(), id, razlog, &k.ID); err != nil {
+		log.Printf("greška pri storniranju naloga: %v", err)
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri storniranju. Možda je nalog već storniran.")
+		http.Redirect(w, r, "/prodaja/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
 		return
 	}
 	middleware.SetFlash(w, r, h.DB, "uspeh", "Prodajni nalog je storniran.")
-	http.Redirect(w, r, "/prodaja", http.StatusSeeOther)
+	http.Redirect(w, r, "/prodaja/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
 }
 
 // renderujFormuProdaje renderuje HTML šablon forme za unos nove prodaje

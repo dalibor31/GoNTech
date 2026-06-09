@@ -21,7 +21,9 @@ type Handler struct {
 	DobavljaciRepo  db.DobavljacRepository
 	NabavkeRepo     db.NabavkaRepository
 	KlijentiRepo    db.KlijentRepository
-	ServisRepo      db.ServisRepository
+	ServisRepo          db.ServisRepository
+	ServisniDeloviRepo  db.ServisniDeloviRepository
+	MagacinskePromeneRepo db.MagacinskePromeneRepository
 	ProdajaRepo     db.ProdajaRepository
 	KorisniciRepo   db.KorisniciRepository
 	SesijeRepo      db.SesijeRepository
@@ -43,8 +45,10 @@ func Novi(baza *sql.DB) *Handler {
 		DobavljaciRepo: sqlite.NoviDobavljacRepo(baza),
 		NabavkeRepo:    sqlite.NoviNabavkaRepo(baza),
 		KlijentiRepo:   sqlite.NoviKlijentRepo(baza),
-		ServisRepo:     sqlite.NoviServisRepo(baza),
-		ProdajaRepo:    sqlite.NoviProdajaRepo(baza),
+		ServisRepo:            sqlite.NoviServisRepo(baza),
+		ServisniDeloviRepo:    sqlite.NoviServisniDeloviRepo(baza),
+		MagacinskePromeneRepo: sqlite.NoviMagacinskePromeneRepo(baza),
+		ProdajaRepo:           sqlite.NoviProdajaRepo(baza),
 		KorisniciRepo:   sqlite.NoviKorisniciRepo(baza),
 		SesijeRepo:      sqlite.NoviSesijeRepo(baza),
 		PodsetnikRepo: sqlite.NoviPodsetnikRepo(baza),
@@ -63,6 +67,8 @@ func (h *Handler) reinicijalizujRepozitorijume(novaDB *sql.DB) {
 	h.NabavkeRepo = sqlite.NoviNabavkaRepo(novaDB)
 	h.KlijentiRepo = sqlite.NoviKlijentRepo(novaDB)
 	h.ServisRepo = sqlite.NoviServisRepo(novaDB)
+	h.ServisniDeloviRepo = sqlite.NoviServisniDeloviRepo(novaDB)
+	h.MagacinskePromeneRepo = sqlite.NoviMagacinskePromeneRepo(novaDB)
 	h.ProdajaRepo = sqlite.NoviProdajaRepo(novaDB)
 	h.KorisniciRepo = sqlite.NoviKorisniciRepo(novaDB)
 	h.SesijeRepo = sqlite.NoviSesijeRepo(novaDB)

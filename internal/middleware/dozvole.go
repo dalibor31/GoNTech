@@ -1,15 +1,15 @@
 package middleware
 
 // sve poznate akcije u sistemu
+// Napomena: pregled magacina i podsetnici su namerno javni (bez dozvole) i nisu ovde.
+// Upravljanje korisnicima ide preko uloge (RequireAdmin middleware), ne preko dozvole.
 var sveAkcije = []string{
-	"artikal.pregled",
 	"artikal.dodaj",
 	"artikal.izmeni",
 	"artikal.obrisi",
 	"artikal.premesti",
 	"kategorija.pregled",
 	"kategorija.dodaj",
-	"kategorija.izmeni",
 	"kategorija.obrisi",
 	"nabavka.pregled",
 	"nabavka.dodaj",
@@ -25,30 +25,19 @@ var sveAkcije = []string{
 	"prodaja.pregled",
 	"prodaja.dodaj",
 	"prodaja.obrisi",
+	"prodaja.storno",
 	"klijent.pregled",
 	"klijent.dodaj",
 	"klijent.izmeni",
 	"klijent.obrisi",
-	"podsetnik.pregled",
-	"podsetnik.dodaj",
-	"podsetnik.izmeni",
-	"podsetnik.obrisi",
 	"izvestaj.pregled",
 	"podesavanja.pregled",
 	"podesavanja.izmeni",
-	"korisnik.pregled",
-	"korisnik.dodaj",
-	"korisnik.izmeni",
-	"korisnik.obrisi",
-	"korisnik.uloga",
+	"podesavanja.login_pozadina",
 	"backup.pregled",
 	"backup.pokreni",
-	"podesavanja.login_pozadina",
-	"podesavanja.app_pozadina",
-	"tema.globalno",
 	"tema.lokalno",
 	"dashboard.prihod",
-	"prodaja.storno",
 }
 
 // SveAkcije vraća listu svih poznatih akcija — koristi se pri inicijalizaciji baze i resetu
@@ -65,13 +54,12 @@ func ImaDozvolu(uloga, akcija string) bool {
 
 	case "admin":
 		switch akcija {
-		// artikal
-		case "artikal.pregled", "artikal.dodaj", "artikal.izmeni",
+		// artikal (pregled magacina je javan — nije dozvola)
+		case "artikal.dodaj", "artikal.izmeni",
 			"artikal.obrisi", "artikal.premesti":
 			return true
 		// kategorija
-		case "kategorija.pregled", "kategorija.dodaj",
-			"kategorija.izmeni", "kategorija.obrisi":
+		case "kategorija.pregled", "kategorija.dodaj", "kategorija.obrisi":
 			return true
 		// nabavka
 		case "nabavka.pregled", "nabavka.dodaj", "nabavka.obrisi":
@@ -91,26 +79,18 @@ func ImaDozvolu(uloga, akcija string) bool {
 		case "klijent.pregled", "klijent.dodaj",
 			"klijent.izmeni", "klijent.obrisi":
 			return true
-		// podsetnik
-		case "podsetnik.pregled", "podsetnik.dodaj",
-			"podsetnik.izmeni", "podsetnik.obrisi":
-			return true
 		// izveštaji i podešavanja
 		case "izvestaj.pregled",
 			"podesavanja.pregled", "podesavanja.izmeni":
 			return true
-		// korisnici (bez promene uloge)
-		case "korisnik.pregled", "korisnik.dodaj",
-			"korisnik.izmeni", "korisnik.obrisi":
-			return true
 		// backup
 		case "backup.pregled", "backup.pokreni":
 			return true
-		// pozadinske slike
-		case "podesavanja.login_pozadina", "podesavanja.app_pozadina":
+		// pozadina prijavne stranice
+		case "podesavanja.login_pozadina":
 			return true
-		// teme
-		case "tema.globalno", "tema.lokalno":
+		// lokalna tema
+		case "tema.lokalno":
 			return true
 		// dashboard — prihod samo admin+
 		case "dashboard.prihod":
@@ -120,9 +100,6 @@ func ImaDozvolu(uloga, akcija string) bool {
 
 	case "radnik":
 		switch akcija {
-		// artikal — samo pregled
-		case "artikal.pregled":
-			return true
 		// kategorija — samo pregled
 		case "kategorija.pregled":
 			return true
@@ -137,10 +114,6 @@ func ImaDozvolu(uloga, akcija string) bool {
 			return true
 		// klijent — bez brisanja
 		case "klijent.pregled", "klijent.dodaj", "klijent.izmeni":
-			return true
-		// podsetnik — sve
-		case "podsetnik.pregled", "podsetnik.dodaj",
-			"podsetnik.izmeni", "podsetnik.obrisi":
 			return true
 		// lokalna tema
 		case "tema.lokalno":

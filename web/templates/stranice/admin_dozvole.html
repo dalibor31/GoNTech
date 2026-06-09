@@ -40,14 +40,17 @@
                     </thead>
                     <tbody>
 
-                        <!-- Magacin -->
-                        <tr class="matrica-modul"><td {{if eq .KorisnikUloga "superadmin"}}colspan="3"{{else}}colspan="2"{{end}}>Magacin</td></tr>
+                        <!-- Dashboard -->
+                        <tr class="matrica-modul"><td {{if eq .KorisnikUloga "superadmin"}}colspan="3"{{else}}colspan="2"{{end}}>Dashboard</td></tr>
                         <tr style="border-bottom:0.5px solid var(--ivica);">
-                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Pregled artikala</td>
-                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__artikal.pregled" {{if index .DozvoleRadnik "artikal.pregled"}}checked{{end}}></td>
-                            {{if eq .KorisnikUloga "superadmin"}}<td class="matrica-checkbox"><input type="checkbox" name="admin__artikal.pregled" {{if index .DozvoleAdmin "artikal.pregled"}}checked{{end}}></td>{{end}}
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Prikaz prihoda</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__dashboard.prihod" {{if index .DozvoleRadnik "dashboard.prihod"}}checked{{end}}></td>
+                            {{if eq .KorisnikUloga "superadmin"}}<td class="matrica-checkbox"><input type="checkbox" name="admin__dashboard.prihod" {{if index .DozvoleAdmin "dashboard.prihod"}}checked{{end}}></td>{{end}}
 
                         </tr>
+
+                        <!-- Magacin -->
+                        <tr class="matrica-modul"><td {{if eq .KorisnikUloga "superadmin"}}colspan="3"{{else}}colspan="2"{{end}}>Magacin</td></tr>
                         <tr style="border-bottom:0.5px solid var(--ivica);">
                             <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Dodavanje artikala</td>
                             <td class="matrica-checkbox"><input type="checkbox" name="radnik__artikal.dodaj" {{if index .DozvoleRadnik "artikal.dodaj"}}checked{{end}}></td>
@@ -85,12 +88,6 @@
                             <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Dodavanje kategorija</td>
                             <td class="matrica-checkbox"><input type="checkbox" name="radnik__kategorija.dodaj" {{if index .DozvoleRadnik "kategorija.dodaj"}}checked{{end}}></td>
                             {{if eq .KorisnikUloga "superadmin"}}<td class="matrica-checkbox"><input type="checkbox" name="admin__kategorija.dodaj" {{if index .DozvoleAdmin "kategorija.dodaj"}}checked{{end}}></td>{{end}}
-
-                        </tr>
-                        <tr style="border-bottom:0.5px solid var(--ivica);">
-                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Izmena kategorija</td>
-                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__kategorija.izmeni" {{if index .DozvoleRadnik "kategorija.izmeni"}}checked{{end}}></td>
-                            {{if eq .KorisnikUloga "superadmin"}}<td class="matrica-checkbox"><input type="checkbox" name="admin__kategorija.izmeni" {{if index .DozvoleAdmin "kategorija.izmeni"}}checked{{end}}></td>{{end}}
 
                         </tr>
                         <tr style="border-bottom:0.5px solid var(--ivica);">
@@ -195,6 +192,12 @@
                             {{if eq .KorisnikUloga "superadmin"}}<td class="matrica-checkbox"><input type="checkbox" name="admin__prodaja.obrisi" {{if index .DozvoleAdmin "prodaja.obrisi"}}checked{{end}}></td>{{end}}
 
                         </tr>
+                        <tr style="border-bottom:0.5px solid var(--ivica);">
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Storniranje prodaje</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__prodaja.storno" {{if index .DozvoleRadnik "prodaja.storno"}}checked{{end}}></td>
+                            {{if eq .KorisnikUloga "superadmin"}}<td class="matrica-checkbox"><input type="checkbox" name="admin__prodaja.storno" {{if index .DozvoleAdmin "prodaja.storno"}}checked{{end}}></td>{{end}}
+
+                        </tr>
 
                         <!-- Klijenti -->
                         <tr class="matrica-modul"><td {{if eq .KorisnikUloga "superadmin"}}colspan="3"{{else}}colspan="2"{{end}}>Klijenti</td></tr>
@@ -223,33 +226,6 @@
 
                         </tr>
 
-                        <!-- Podsetnici -->
-                        <tr class="matrica-modul"><td {{if eq .KorisnikUloga "superadmin"}}colspan="3"{{else}}colspan="2"{{end}}>Podsetnici</td></tr>
-                        <tr style="border-bottom:0.5px solid var(--ivica);">
-                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Pregled podsetnika</td>
-                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__podsetnik.pregled" {{if index .DozvoleRadnik "podsetnik.pregled"}}checked{{end}}></td>
-                            {{if eq .KorisnikUloga "superadmin"}}<td class="matrica-checkbox"><input type="checkbox" name="admin__podsetnik.pregled" {{if index .DozvoleAdmin "podsetnik.pregled"}}checked{{end}}></td>{{end}}
-
-                        </tr>
-                        <tr style="border-bottom:0.5px solid var(--ivica);">
-                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Dodavanje podsetnika</td>
-                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__podsetnik.dodaj" {{if index .DozvoleRadnik "podsetnik.dodaj"}}checked{{end}}></td>
-                            {{if eq .KorisnikUloga "superadmin"}}<td class="matrica-checkbox"><input type="checkbox" name="admin__podsetnik.dodaj" {{if index .DozvoleAdmin "podsetnik.dodaj"}}checked{{end}}></td>{{end}}
-
-                        </tr>
-                        <tr style="border-bottom:0.5px solid var(--ivica);">
-                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Izmena podsetnika</td>
-                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__podsetnik.izmeni" {{if index .DozvoleRadnik "podsetnik.izmeni"}}checked{{end}}></td>
-                            {{if eq .KorisnikUloga "superadmin"}}<td class="matrica-checkbox"><input type="checkbox" name="admin__podsetnik.izmeni" {{if index .DozvoleAdmin "podsetnik.izmeni"}}checked{{end}}></td>{{end}}
-
-                        </tr>
-                        <tr style="border-bottom:0.5px solid var(--ivica);">
-                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Brisanje podsetnika</td>
-                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__podsetnik.obrisi" {{if index .DozvoleRadnik "podsetnik.obrisi"}}checked{{end}}></td>
-                            {{if eq .KorisnikUloga "superadmin"}}<td class="matrica-checkbox"><input type="checkbox" name="admin__podsetnik.obrisi" {{if index .DozvoleAdmin "podsetnik.obrisi"}}checked{{end}}></td>{{end}}
-
-                        </tr>
-
                         <!-- Izveštaji -->
                         <tr class="matrica-modul"><td {{if eq .KorisnikUloga "superadmin"}}colspan="3"{{else}}colspan="2"{{end}}>Izveštaji</td></tr>
                         <tr style="border-bottom:0.5px solid var(--ivica);">
@@ -273,37 +249,19 @@
                             {{if eq .KorisnikUloga "superadmin"}}<td class="matrica-checkbox"><input type="checkbox" name="admin__podesavanja.izmeni" {{if index .DozvoleAdmin "podesavanja.izmeni"}}checked{{end}}></td>{{end}}
 
                         </tr>
-
-                        <!-- Korisnici -->
-                        <tr class="matrica-modul"><td {{if eq .KorisnikUloga "superadmin"}}colspan="3"{{else}}colspan="2"{{end}}>Korisnici</td></tr>
                         <tr style="border-bottom:0.5px solid var(--ivica);">
-                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Pregled korisnika</td>
-                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__korisnik.pregled" {{if index .DozvoleRadnik "korisnik.pregled"}}checked{{end}}></td>
-                            {{if eq .KorisnikUloga "superadmin"}}<td class="matrica-checkbox"><input type="checkbox" name="admin__korisnik.pregled" {{if index .DozvoleAdmin "korisnik.pregled"}}checked{{end}}></td>{{end}}
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Izmena pozadine prijavne stranice</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__podesavanja.login_pozadina" {{if index .DozvoleRadnik "podesavanja.login_pozadina"}}checked{{end}}></td>
+                            {{if eq .KorisnikUloga "superadmin"}}<td class="matrica-checkbox"><input type="checkbox" name="admin__podesavanja.login_pozadina" {{if index .DozvoleAdmin "podesavanja.login_pozadina"}}checked{{end}}></td>{{end}}
 
                         </tr>
-                        <tr style="border-bottom:0.5px solid var(--ivica);">
-                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Dodavanje korisnika</td>
-                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__korisnik.dodaj" {{if index .DozvoleRadnik "korisnik.dodaj"}}checked{{end}}></td>
-                            {{if eq .KorisnikUloga "superadmin"}}<td class="matrica-checkbox"><input type="checkbox" name="admin__korisnik.dodaj" {{if index .DozvoleAdmin "korisnik.dodaj"}}checked{{end}}></td>{{end}}
 
-                        </tr>
+                        <!-- Tema -->
+                        <tr class="matrica-modul"><td {{if eq .KorisnikUloga "superadmin"}}colspan="3"{{else}}colspan="2"{{end}}>Tema</td></tr>
                         <tr style="border-bottom:0.5px solid var(--ivica);">
-                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Izmena korisnika</td>
-                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__korisnik.izmeni" {{if index .DozvoleRadnik "korisnik.izmeni"}}checked{{end}}></td>
-                            {{if eq .KorisnikUloga "superadmin"}}<td class="matrica-checkbox"><input type="checkbox" name="admin__korisnik.izmeni" {{if index .DozvoleAdmin "korisnik.izmeni"}}checked{{end}}></td>{{end}}
-
-                        </tr>
-                        <tr style="border-bottom:0.5px solid var(--ivica);">
-                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Brisanje korisnika</td>
-                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__korisnik.obrisi" {{if index .DozvoleRadnik "korisnik.obrisi"}}checked{{end}}></td>
-                            {{if eq .KorisnikUloga "superadmin"}}<td class="matrica-checkbox"><input type="checkbox" name="admin__korisnik.obrisi" {{if index .DozvoleAdmin "korisnik.obrisi"}}checked{{end}}></td>{{end}}
-
-                        </tr>
-                        <tr style="border-bottom:0.5px solid var(--ivica);">
-                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Promena uloge korisnika</td>
-                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__korisnik.uloga" {{if index .DozvoleRadnik "korisnik.uloga"}}checked{{end}}></td>
-                            {{if eq .KorisnikUloga "superadmin"}}<td class="matrica-checkbox"><input type="checkbox" name="admin__korisnik.uloga" {{if index .DozvoleAdmin "korisnik.uloga"}}checked{{end}}></td>{{end}}
+                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Lična tema naloga</td>
+                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__tema.lokalno" {{if index .DozvoleRadnik "tema.lokalno"}}checked{{end}}></td>
+                            {{if eq .KorisnikUloga "superadmin"}}<td class="matrica-checkbox"><input type="checkbox" name="admin__tema.lokalno" {{if index .DozvoleAdmin "tema.lokalno"}}checked{{end}}></td>{{end}}
 
                         </tr>
 

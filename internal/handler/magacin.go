@@ -21,6 +21,7 @@ type PodaciMagacina struct {
 	KategorijaIDStr string
 	Sacuvano        bool
 	Obrisan         bool
+	Premesten       bool
 }
 
 // Magacin renderuje listu artikala
@@ -68,9 +69,42 @@ func (h *Handler) Magacin(w http.ResponseWriter, r *http.Request) {
 		KategorijaIDStr: katIDStr,
 		Sacuvano:        r.URL.Query().Get("sacuvano") == "1",
 		Obrisan:         r.URL.Query().Get("obrisan") == "1",
+		Premesten:       r.URL.Query().Get("premesten") == "1",
 	}
 
 	h.renderujTemplate(w, "magacin", podaci)
+}
+
+// PremestiArtikal menja kategoriju artikla (premeštanje u drugu kategoriju).
+// Prazno polje kategorija_id znači premeštanje u "bez kategorije".
+func (h *Handler) PremestiArtikal(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "artikal.premesti") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Neispravan ID artikla", http.StatusBadRequest)
+		return
+	}
+
+	var kategorijaID *int64
+	if v := r.FormValue("kategorija_id"); v != "" {
+		kid, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			http.Error(w, "Neispravna kategorija", http.StatusBadRequest)
+			return
+		}
+		kategorijaID = &kid
+	}
+
+	if err := h.Artikli.PremestiKategoriju(r.Context(), id, kategorijaID); err != nil {
+		http.Error(w, "Greška pri premeštanju artikla", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/magacin?premesten=1", http.StatusSeeOther)
 }
 
 // ObrisiArtikal briše artikal po ID-u

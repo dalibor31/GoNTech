@@ -2,13 +2,16 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
 	"os"
+	"mime"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"time"
 
 	"ntech"
@@ -27,6 +30,8 @@ import (
 var Verzija = "dev"
 
 func main() {
+	mime.AddExtensionType(".js", "text/javascript")
+	mime.AddExtensionType(".css", "text/css")
 	godotenv.Load("ntech.env")
 	auth.InitAuthLog()
 
@@ -80,7 +85,24 @@ func main() {
 		log.Printf("Upozorenje: greška pri inicijalizaciji dozvola: %v", err)
 	}
 
-	napraviStartupBackup(putanjaBaze)
+	// ukloni zastarele dozvole (siročiće) koje više ne postoje u kodu
+	if br, err := sqlite.OcistiSirociceDoz(context.Background(), db, ntechmw.SveAkcije()); err != nil {
+		log.Printf("Upozorenje: greška pri čišćenju dozvola: %v", err)
+	} else if br > 0 {
+		log.Printf("Dozvole: uklonjeno %d zastarelih redova", br)
+	}
+
+	napraviBackup(db, putanjaBaze)
+
+	// periodični automatski backup — interval se čita iz podešavanja u svakom ciklusu,
+	// tako da izmena u podešavanjima stupa na snagu bez restarta (od sledećeg ciklusa)
+	go func() {
+		for {
+			sati := procitajIntPodesavanje(db, "backup_interval_sati", 24)
+			time.Sleep(time.Duration(sati) * time.Hour)
+			napraviBackup(db, putanjaBaze)
+		}
+	}()
 
 	// periodično brisanje isteklih sesija i starih pokušaja prijave
 	go func() {
@@ -164,41 +186,44 @@ func main() {
 		r.Get("/magacin/izmeni/{id}", h.IzmeniArtikal)
 		r.Post("/magacin/izmeni/{id}", h.SacuvajIzmenuArtikla)
 		r.Get("/magacin/obrisi/{id}", h.ObrisiArtikal)
+		r.Post("/magacin/premesti/{id}", h.PremestiArtikal)
 		r.Get("/magacin/kategorije", h.Kategorije)
 		r.Post("/magacin/kategorije/dodaj", h.DodajKategoriju)
 		r.Get("/magacin/kategorije/obrisi/{id}", h.ObrisiKategoriju)
-		r.Get("/nabavke", h.Nabavke)
-		r.Get("/nabavke/nova", h.NovaNabavka)
+		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "nabavka.pregled")).Get("/nabavke", h.Nabavke)
+		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "nabavka.pregled")).Get("/nabavke/nova", h.NovaNabavka)
 		r.Post("/nabavke/nova", h.SacuvajNabavku)
-		r.Get("/nabavke/{id}", h.DetaljiNabavke)
+		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "nabavka.pregled")).Get("/nabavke/{id}", h.DetaljiNabavke)
 		r.Post("/nabavke/obrisi/{id}", h.ObrisiNabavku)
-		r.Get("/dobavljaci", h.Dobavljaci)
+		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "dobavljac.pregled")).Get("/dobavljaci", h.Dobavljaci)
 		r.Get("/dobavljaci/novi", h.NoviDobavljac)
 		r.Post("/dobavljaci/novi", h.SacuvajDobavljaca)
 		r.Get("/dobavljaci/izmeni/{id}", h.IzmeniDobavljaca)
 		r.Post("/dobavljaci/izmeni/{id}", h.SacuvajIzmeneDobavljaca)
 		r.Post("/dobavljaci/obrisi/{id}", h.ObrisiDobavljaca)
-		r.Get("/klijenti", h.Klijenti)
+		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "klijent.pregled")).Get("/klijenti", h.Klijenti)
 		r.Get("/klijenti/novi", h.NoviKlijent)
 		r.Post("/klijenti/novi", h.SacuvajKlijenta)
 		r.Get("/klijenti/izmeni/{id}", h.IzmeniKlijenta)
 		r.Post("/klijenti/izmeni/{id}", h.SacuvajIzmenuKlijenta)
 		r.Post("/klijenti/obrisi/{id}", h.ObrisiKlijenta)
-		r.Get("/servis", h.Servis)
+		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "servis.pregled")).Get("/servis", h.Servis)
 		r.Get("/servis/novi", h.NoviNalog)
 		r.Post("/servis/novi", h.SacuvajNalog)
 		r.Get("/servis/izmeni/{id}", h.IzmeniNalog)
 		r.Post("/servis/izmeni/{id}", h.SacuvajIzmenaNaloga)
 		r.Post("/servis/obrisi/{id}", h.ObrisiNalog)
-		r.Get("/servis/{id}", h.DetaljiNaloga)
+		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "servis.pregled")).Get("/servis/{id}", h.DetaljiNaloga)
+		r.Post("/servis/{id}/delovi", h.DodajDeloNalogu)
+		r.Post("/servis/{id}/delovi/{deo_id}/obrisi", h.ObrisiDeloNaloga)
 		r.Get("/izvestaji", h.Izvestaji)
-		r.Get("/prodaja", h.Prodaja)
+		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "prodaja.pregled")).Get("/prodaja", h.Prodaja)
 		r.Get("/prodaja/nova", h.NovaProdaja)
 		r.Post("/prodaja/nova", h.SacuvajProdaju)
 		r.Post("/prodaja/obrisi/{id}", h.ObrisiProdaju)
 		r.Post("/prodaja/storno/{id}", h.StornoProdaje)
-		r.Get("/prodaja/{id}/stampa", h.StampaProdaje)
-		r.Get("/prodaja/{id}", h.DetaljiProdaje)
+		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "prodaja.pregled")).Get("/prodaja/{id}/stampa", h.StampaProdaje)
+		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "prodaja.pregled")).Get("/prodaja/{id}", h.DetaljiProdaje)
 
 		// podsetnici
 		r.Get("/podsetnici", h.Podsetnici)
@@ -248,8 +273,9 @@ func main() {
 	}
 }
 
-// napraviStartupBackup kreira kopiju baze pri pokretanju i čuva poslednjih 7
-func napraviStartupBackup(putanjaBaze string) {
+// napraviBackup kreira konzistentnu kopiju baze i briše najstarije preko zadatog broja kopija.
+// Koristi već otvorenu vezu ka bazi (VACUUM INTO je bezbedan na pooled konekciji).
+func napraviBackup(db *sql.DB, putanjaBaze string) {
 	if _, err := os.Stat(putanjaBaze); os.IsNotExist(err) {
 		return
 	}
@@ -263,20 +289,27 @@ func napraviStartupBackup(putanjaBaze string) {
 	ime := fmt.Sprintf("ntech_%s.db", time.Now().Format("20060102_150405"))
 	odrediste := filepath.Join(folder, ime)
 
-	db, err := sqlite.OtvoriDB(putanjaBaze)
-	if err != nil {
-		log.Printf("backup: ne mogu otvoriti bazu: %v", err)
-		return
-	}
-	defer db.Close()
-
 	if _, err := db.ExecContext(context.Background(), "VACUUM INTO ?", odrediste); err != nil {
 		log.Printf("backup: greška pri pravljenju backup-a: %v", err)
 		return
 	}
 
 	log.Printf("Backup kreiran: %s", odrediste)
-	ocistiStareBackupe(folder, 7)
+	ocistiStareBackupe(folder, procitajIntPodesavanje(db, "backup_broj_kopija", 7))
+}
+
+// procitajIntPodesavanje vraća celobrojnu vrednost podešavanja iz baze,
+// ili podrazumevanu ako ključ ne postoji ili nije validan pozitivan broj
+func procitajIntPodesavanje(db *sql.DB, kljuc string, podrazumevano int) int {
+	v, err := sqlite.DohvatiPodesavanje(context.Background(), db, kljuc)
+	if err != nil || v == "" {
+		return podrazumevano
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil || n < 1 {
+		return podrazumevano
+	}
+	return n
 }
 
 // ocistiStareBackupe briše najstarije backup fajlove ako ih ima više od max

@@ -13,6 +13,7 @@ type ArtikalRepository interface {
 	DohvatiID(ctx context.Context, id int64) (*model.Artikal, error)
 	Kreiraj(ctx context.Context, a *model.Artikal) (int64, error)
 	Izmeni(ctx context.Context, a *model.Artikal) error
+	PremestiKategoriju(ctx context.Context, id int64, kategorijaID *int64) error
 	Obrisi(ctx context.Context, id int64) error
 }
 
@@ -71,9 +72,22 @@ type ProdajaRepository interface {
 	Lista(ctx context.Context, pretraga string) ([]model.ProdajniNalogSaDetaljem, error)
 	DohvatiID(ctx context.Context, id int64) (*model.ProdajniNalog, error)
 	DohvatiStavke(ctx context.Context, nalogID int64) ([]model.StavkaProdajeSaArtiklom, error)
-	Kreiraj(ctx context.Context, n *model.ProdajniNalog, stavke []model.StavkaProdaje) (int64, error)
+	Kreiraj(ctx context.Context, n *model.ProdajniNalog, stavke []model.StavkaProdaje, korisnikID *int64) (int64, error)
+	Storno(ctx context.Context, id int64, razlog string, korisnikID *int64) error
 	Obrisi(ctx context.Context, id int64) error
 	SledeciBroj(ctx context.Context) (string, error)
+}
+
+// ServisniDeloviRepository definiše operacije nad ugrađenim delovima u servisu
+type ServisniDeloviRepository interface {
+	DohvatiZaNalog(ctx context.Context, nalogID int64) ([]model.ServisniDeoSaArtiklom, error)
+	Dodaj(ctx context.Context, nalogID, artikalID int64, kolicina int, cenaKomada float64, korisnikID *int64) (int64, error)
+	Obrisi(ctx context.Context, id int64, korisnikID *int64) error
+}
+
+// MagacinskePromeneRepository definiše operacije nad revizijskim tragom magacina
+type MagacinskePromeneRepository interface {
+	Lista(ctx context.Context, artikalID *int64, limit int) ([]model.MagacinskaPromenaSaDetaljem, error)
 }
 
 // KorisniciRepository definiše operacije nad korisnicima
