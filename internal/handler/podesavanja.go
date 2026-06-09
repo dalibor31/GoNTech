@@ -35,6 +35,8 @@ type PodaciPodesavanja struct {
 	LogoGreska      string
 	BackupVracen    bool
 	Backupi         []BackupInfo
+	BackupIntervalSati string
+	BackupBrojKopija   string
 	LoginPozadina                    string
 	LoginPozadinaOpacity             string
 	LoginPozadinaBlurPozadine        string
@@ -87,6 +89,8 @@ func (h *Handler) Podesavanja(w http.ResponseWriter, r *http.Request) {
 		LoginPozadinaBlurPozadine:       vrednostIliDefault(podesavanja, "login_pozadina_blur_pozadine", "0"),
 		LoginPozadinaBlurKartice:        vrednostIliDefault(podesavanja, "login_pozadina_blur_kartice", "12"),
 		LoginPozadinaZatamnjenjeKartice: vrednostIliDefault(podesavanja, "login_pozadina_zatamnjenje_kartice", "0"),
+		BackupIntervalSati:              vrednostIliDefault(podesavanja, "backup_interval_sati", "24"),
+		BackupBrojKopija:                vrednostIliDefault(podesavanja, "backup_broj_kopija", "7"),
 	}
 
 	h.renderujTemplate(w, "podesavanja", podaci)
@@ -248,6 +252,34 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 	if sledeci == "" || !strings.HasPrefix(sledeci, "/") {
 		sledeci = "/podesavanja"
 	}
+
+	// backup podešavanja — pri neispravnom unosu javljamo jasnu grešku
+	// umesto da ga tiho preskočimo a korisniku prikažemo "sačuvano"
+	if v := r.FormValue("backup_interval_sati"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 1 || n > 720 {
+			middleware.SetFlash(w, r, h.DB, "greska", "Razmak između backupa mora biti broj između 1 i 720 sati.")
+			http.Redirect(w, r, sledeci, http.StatusSeeOther)
+			return
+		}
+		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "backup_interval_sati", strconv.Itoa(n)); err != nil {
+			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
+			return
+		}
+	}
+	if v := r.FormValue("backup_broj_kopija"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 1 || n > 100 {
+			middleware.SetFlash(w, r, h.DB, "greska", "Broj kopija mora biti broj između 1 i 100.")
+			http.Redirect(w, r, sledeci, http.StatusSeeOther)
+			return
+		}
+		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "backup_broj_kopija", strconv.Itoa(n)); err != nil {
+			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
+			return
+		}
+	}
+
 	http.Redirect(w, r, sledeci+"?sacuvano=1", http.StatusSeeOther)
 }
 
@@ -591,6 +623,8 @@ func (h *Handler) napuniPodaciPodesavanja(r *http.Request, naslov string) (Podac
 		LoginPozadinaBlurPozadine:       vrednostIliDefault(podesavanja, "login_pozadina_blur_pozadine", "0"),
 		LoginPozadinaBlurKartice:        vrednostIliDefault(podesavanja, "login_pozadina_blur_kartice", "12"),
 		LoginPozadinaZatamnjenjeKartice: vrednostIliDefault(podesavanja, "login_pozadina_zatamnjenje_kartice", "0"),
+		BackupIntervalSati:              vrednostIliDefault(podesavanja, "backup_interval_sati", "24"),
+		BackupBrojKopija:                vrednostIliDefault(podesavanja, "backup_broj_kopija", "7"),
 	}, nil
 }
 
@@ -606,6 +640,7 @@ func (h *Handler) PodesavanjaOpste(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
 		return
 	}
+	podaci.Stranica = "podesavanja-opste"
 	h.renderujTemplate(w, "podesavanja_opste", podaci)
 }
 
@@ -621,6 +656,7 @@ func (h *Handler) PodesavanjaIzgled(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
 		return
 	}
+	podaci.Stranica = "podesavanja-izgled"
 	h.renderujTemplate(w, "podesavanja_izgled", podaci)
 }
 
@@ -636,6 +672,7 @@ func (h *Handler) PodesavanjaSistem(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
 		return
 	}
+	podaci.Stranica = "podesavanja-sistem"
 	h.renderujTemplate(w, "podesavanja_sistem", podaci)
 }
 

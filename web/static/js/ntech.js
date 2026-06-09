@@ -1,3 +1,51 @@
+// otvara/zatvara podmeni u sidebaru — radi i kad je sidebar skupljen i kad je proširen
+// (sidebar ostaje u zatečenom stanju). U isto vreme sme biti otvoren samo jedan podmeni.
+function ntechTogglePodmeni(btn) {
+    var podmeni = btn.nextElementSibling;
+    if (!podmeni) return;
+    var jeOtvoren = podmeni.classList.contains('otvoren');
+
+    // zatvori sve podmenije i vrati njihove strelice — međusobna isključivost
+    document.querySelectorAll('#sidebar .nav-podmeni').forEach(function(el) {
+        el.classList.remove('otvoren');
+        var dugme = el.previousElementSibling;
+        if (dugme) {
+            var s = dugme.querySelector('.nav-strelica svg');
+            if (s) s.style.transform = 'rotate(0deg)';
+        }
+    });
+
+    // ako kliknuti nije već bio otvoren — otvori ga
+    if (!jeOtvoren) {
+        podmeni.classList.add('otvoren');
+        var svg = btn.querySelector('.nav-strelica svg');
+        if (svg) svg.style.transform = 'rotate(180deg)';
+    }
+}
+
+// registruje klik listenere na podmeni dugmad — sidebar se nikad ne menja, poziva se jednom
+function ntechDodajPodmeniListenere() {
+    document.querySelectorAll('#sidebar [data-podmeni-dugme]').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            ntechTogglePodmeni(btn);
+        });
+    });
+}
+
+// sprečava CSS tranziciju na podmeniima koji su već otvoreni pri inicijalnom učitavanju
+// (bez ovoga, max-height animira od 0 do 300px pri svakom swap-u)
+function ntechInicijalizujPodmeni() {
+    document.querySelectorAll('.nav-podmeni.otvoren').forEach(function(el) {
+        el.classList.add('bez-tranzicije');
+        requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+                el.classList.remove('bez-tranzicije');
+            });
+        });
+    });
+}
+
 document.addEventListener('alpine:init', () => {
 
     // sidebar — podmeni "Moj profil"
@@ -82,7 +130,7 @@ document.addEventListener('alpine:init', () => {
 
     // forma za prodaju
     Alpine.data('prodajaForma', () => ({
-        stavke: [{artikal_id: '', kolicina: 1, cena: 0}],
+        stavke: [{artikal_id: '', kolicina: 1, cena: 0, pdv_stopa: 20}],
         artikliOpcije: [],
         isMobile: false,
         init() {
@@ -93,14 +141,17 @@ document.addEventListener('alpine:init', () => {
             })
         },
         dodajStavku() {
-            this.stavke.push({artikal_id: '', kolicina: 1, cena: 0})
+            this.stavke.push({artikal_id: '', kolicina: 1, cena: 0, pdv_stopa: 20})
         },
         ukloniStavku(i) {
             if (this.stavke.length > 1) this.stavke.splice(i, 1)
         },
         popuniCenu(stavka) {
             const a = this.artikliOpcije.find(x => x.id == stavka.artikal_id)
-            if (a) stavka.cena = a.cena
+            if (a) {
+                stavka.cena = a.cena
+                stavka.pdv_stopa = a.pdv_stopa !== undefined ? a.pdv_stopa : 20
+            }
         },
         dostupnaKolicina(i) {
             const stavka = this.stavke[i]
@@ -202,3 +253,34 @@ document.addEventListener('alpine:init', () => {
     }))
 
 })
+
+// za prvo učitavanje (defer script) — sprečava animaciju podmenia koji su inicijalno otvoreni
+ntechInicijalizujPodmeni()
+ntechDodajPodmeniListenere()
+
+// klizač (input[type=range].klizac): popunjava plavom deo pre glave u Chromium-u
+// preko CSS promenljive --popunjeno. Firefox to radi sam (::-moz-range-progress).
+function ntechAzurirajKlizac(el) {
+    var min = parseFloat(el.min) || 0
+    var max = parseFloat(el.max)
+    if (isNaN(max)) max = 100
+    var v = parseFloat(el.value) || 0
+    var procenat = max > min ? ((v - min) / (max - min)) * 100 : 0
+    el.style.setProperty('--popunjeno', procenat + '%')
+}
+function ntechInicijalizujKlizace() {
+    document.querySelectorAll('input[type="range"].klizac').forEach(ntechAzurirajKlizac)
+}
+(function() {
+    if (window._ntechKlizacDodato) return
+    window._ntechKlizacDodato = true
+    // delegirani listener — hvata i klizače ubačene kasnije (HTMX swap)
+    document.addEventListener('input', function(e) {
+        var t = e.target
+        if (t && t.classList && t.classList.contains('klizac')) ntechAzurirajKlizac(t)
+    })
+    // početno popunjavanje: posle učitavanja, posle HTMX swap-a i kad Alpine postavi vrednosti
+    document.addEventListener('DOMContentLoaded', ntechInicijalizujKlizace)
+    document.addEventListener('htmx:afterSettle', ntechInicijalizujKlizace)
+    document.addEventListener('alpine:initialized', ntechInicijalizujKlizace)
+})()

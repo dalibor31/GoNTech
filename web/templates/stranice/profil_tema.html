@@ -106,13 +106,15 @@
 
         <form method="POST" action="/profil/pozadina" enctype="multipart/form-data">
             <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
                 <input type="file" id="lok-bg-file" name="lokalna_pozadina" accept=".jpg,.jpeg,.png,.webp"
-                    style="display:none;">
+                    style="display:none;"
+                    onchange="var s=document.getElementById('lok-bg-ime');s.textContent=this.files[0]?this.files[0].name:'Nijedan fajl nije izabran'">
                 <label for="lok-bg-file"
-                    style="display:inline-flex;align-items:center;padding:8px 14px;background:var(--pozadina);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;color:var(--tekst-sporedni);cursor:pointer;user-select:none;">
-                    Odaberi sliku
+                    style="display:inline-flex;align-items:center;padding:8px 14px;background:var(--sb-akcent);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;user-select:none;font-weight:500;">
+                    Izaberi fajl
                 </label>
+                <span id="lok-bg-ime" style="font-size:13px;color:var(--tekst-sporedni);">Nijedan fajl nije izabran</span>
                 <button type="submit"
                     style="padding:8px 16px;background:var(--sb-akcent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;">
                     Otpremi sliku
@@ -156,7 +158,7 @@
                     <span style="font-size:13px;color:var(--tekst-glavni);font-weight:500;" x-text="blurPozadine + 'px'"></span>
                 </div>
                 <input type="range" x-model.number="blurPozadine" min="0" max="20" step="1"
-                    style="width:100%;accent-color:var(--sb-akcent);cursor:pointer;">
+                    class="klizac">
             </div>
             <div style="margin-top:12px;">
                 <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
@@ -164,7 +166,7 @@
                     <span style="font-size:13px;color:var(--tekst-glavni);font-weight:500;" x-text="blur + 'px'"></span>
                 </div>
                 <input type="range" x-model.number="blur" min="0" max="20" step="1"
-                    style="width:100%;accent-color:var(--sb-akcent);cursor:pointer;">
+                    class="klizac">
             </div>
             <div style="margin-top:12px;">
                 <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
@@ -172,7 +174,7 @@
                     <span style="font-size:13px;color:var(--tekst-glavni);font-weight:500;" x-text="opacity + '%'"></span>
                 </div>
                 <input type="range" x-model.number="opacity" min="0" max="80" step="1"
-                    style="width:100%;accent-color:var(--sb-akcent);cursor:pointer;">
+                    class="klizac">
             </div>
             <div style="margin-top:12px;">
                 <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
@@ -180,7 +182,7 @@
                     <span style="font-size:13px;color:var(--tekst-glavni);font-weight:500;" x-text="glassOpacity + '%'"></span>
                 </div>
                 <input type="range" x-model.number="glassOpacity" min="0" max="80" step="1"
-                    style="width:100%;accent-color:var(--sb-akcent);cursor:pointer;">
+                    class="klizac">
             </div>
             <form method="POST" action="/profil/pozadina/stilovi" style="margin-top:16px;">
                 <input type="hidden" name="_csrf" value="{{.CsrfToken}}">

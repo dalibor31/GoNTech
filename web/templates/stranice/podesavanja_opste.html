@@ -37,8 +37,14 @@
             </div>
             {{end}}
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-                <input type="file" name="logo" accept=".png,.jpg,.jpeg,.svg"
-                    style="flex:1;min-width:200px;font-size:13px;color:var(--tekst-sporedni);">
+                <input type="file" id="logo-file" name="logo" accept=".png,.jpg,.jpeg,.svg"
+                    style="display:none;"
+                    onchange="var s=document.getElementById('logo-ime');s.textContent=this.files[0]?this.files[0].name:'Nijedan fajl nije izabran'">
+                <label for="logo-file"
+                    style="padding:8px 16px;background:var(--sb-akcent);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap;font-weight:500;">
+                    Izaberi fajl
+                </label>
+                <span id="logo-ime" style="font-size:13px;color:var(--tekst-sporedni);">Nijedan fajl nije izabran</span>
                 <button type="submit"
                     style="padding:8px 16px;background:var(--sb-aktivan);color:var(--tekst-jak);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap;transition:opacity 0.2s;"
                     onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">

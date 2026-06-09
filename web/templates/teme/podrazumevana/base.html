@@ -22,9 +22,6 @@
     <!-- glavni stilovi -->
     <link rel="stylesheet" href="/static/css/main.css" />
 
-    <!-- tailwind -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
     {{block "dodatni-css" .}}{{end}}
 
     {{if .AppPozadina}}
@@ -57,8 +54,11 @@
       .sidebar .nav-stavka svg { color: rgba(255,255,255,0.95) !important; stroke: rgba(255,255,255,0.95) !important; }
       .sidebar .nav-oznaka { text-shadow: 0 1px 3px rgba(0,0,0,0.8); color: rgba(255,255,255,0.7) !important; }
       .topbar { background: rgba(0,0,0,{{if .AppPozadinaGlassOpacity}}{{.AppPozadinaGlassOpacity}}%{{else}}0.08{{end}}) !important; backdrop-filter: blur({{.AppPozadinaBlur}}px); -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px); border-bottom: 1px solid rgba(255,255,255,0.12) !important; }
-      .kartica { background: rgba(0,0,0,{{if .AppPozadinaGlassOpacity}}{{.AppPozadinaGlassOpacity}}%{{else}}0.08{{end}}) !important; backdrop-filter: blur({{.AppPozadinaBlur}}px); -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px); border: 1px solid rgba(255,255,255,0.12) !important; }
+      .kartica, .premesti-modal { background: rgba(0,0,0,{{if .AppPozadinaGlassOpacity}}{{.AppPozadinaGlassOpacity}}%{{else}}0.08{{end}}) !important; backdrop-filter: blur({{.AppPozadinaBlur}}px); -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px); border: 1px solid rgba(255,255,255,0.12) !important; }
       .kartica p, .kartica span, .kartica h1, .kartica h2, .kartica h3, .kartica h4, .kartica label, .kartica td, .kartica th, .kartica li, .kartica a { color: rgba(255,255,255,0.95) !important; text-shadow: 0 1px 3px rgba(0,0,0,0.7); }
+      /* modal nasleđuje glass izgled od kartica: providno staklo, beli tekst, lakše zatamnjenje da se slika nazire */
+      .premesti-modal h3, .premesti-modal .premesti-opcija, .premesti-modal .premesti-zatvori { color: rgba(255,255,255,0.95) !important; text-shadow: 0 1px 3px rgba(0,0,0,0.7); }
+      .premesti-modal[open]::backdrop { background: rgba(0,0,0,0.45) !important; }
       table, th, td { color: rgba(255,255,255,0.95) !important; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
       tr { background: rgba(0,0,0,0.2); }
       tr:hover { background: rgba(0,0,0,0.35); }
@@ -81,56 +81,61 @@
       <div class="sidebar-overlay" id="sidebar-overlay"></div>
       {{template "sidebar" .}}
 
-      <div class="glavni-sadrzaj">
+      <div class="glavni-sadrzaj" id="glavni-sadrzaj">
         {{template "topbar" .}}
 
-        <main class="sadrzaj">{{block "sadrzaj" .}}{{end}}</main>
+        <main class="sadrzaj" id="sadrzaj">
+          {{if .Flash}}
+          <div id="flash-toast" class="flash-toast flash-{{.Flash.Tip}}" role="alert">
+            <span class="flash-ikona">{{if eq .Flash.Tip "uspeh"}}✓{{else}}!{{end}}</span>
+            <span class="flash-tekst">{{.Flash.Poruka}}</span>
+            <button class="flash-zatvori" onclick="this.parentElement.remove()" aria-label="Zatvori">×</button>
+          </div>
+          <script>
+          (function() {
+            var t = document.getElementById('flash-toast');
+            if (!t) return;
+            setTimeout(function() {
+              t.classList.add('flash-izlaz');
+              setTimeout(function() { if (t.parentElement) t.remove(); }, 350);
+            }, 4000);
+          })();
+          </script>
+          {{end}}
+          {{block "sadrzaj" .}}{{end}}
+        </main>
       </div>
     </div>
-
-    <!-- flash poruka — prikazuje se kao toast u gornjem desnom uglu -->
-    {{if .Flash}}
-    <div id="flash-toast" class="flash-toast flash-{{.Flash.Tip}}" role="alert">
-      <span class="flash-ikona">{{if eq .Flash.Tip "uspeh"}}✓{{else}}!{{end}}</span>
-      <span class="flash-tekst">{{.Flash.Poruka}}</span>
-      <button class="flash-zatvori" onclick="this.parentElement.remove()" aria-label="Zatvori">×</button>
-    </div>
-    <script>
-    (function() {
-      var t = document.getElementById('flash-toast');
-      if (!t) return;
-      setTimeout(function() {
-        t.classList.add('flash-izlaz');
-        setTimeout(function() { if (t.parentElement) t.remove(); }, 350);
-      }, 4000);
-    })();
-    </script>
-    {{end}}
 
     <!-- alpine.js komponente (mora biti pre Alpine-a) -->
     <script src="/static/js/ntech.js" defer></script>
     <!-- alpine.js CSP build (lokalno, bez unsafe-eval) -->
     <script src="/static/js/alpine.csp.min.js" defer></script>
 
-    <!-- htmx za komunikaciju sa serverom -->
-    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.x.x/dist/htmx.min.js"></script>
+    <!-- htmx za komunikaciju sa serverom (lokalno) -->
+    <script src="/static/js/htmx.min.js"></script>
 
-    <!-- sidebar logika -->
+    <!-- sidebar logika — sidebar se NIKAD ne menja pri HTMX navigaciji, pa nema potrebe za swap logikom -->
     <script>
     (function() {
+      if (window._ntechSidebarDodato) return;
+      window._ntechSidebarDodato = true;
+
       function mobilni() { return window.innerWidth <= 768; }
 
-      function inicijalizujSidebar() {
-        var sidebar = document.getElementById("sidebar");
-        var hamburger = document.getElementById("hamburger");
-        var overlay = document.getElementById("sidebar-overlay");
-        if (!sidebar || !hamburger || !overlay) return;
+      var sidebar = document.getElementById("sidebar");
+      var hamburger = document.getElementById("hamburger");
+      var overlay = document.getElementById("sidebar-overlay");
 
-        if (!mobilni() && localStorage.getItem("sidebar-skupljen") === "true") {
-          sidebar.classList.add("skupljen");
-        }
-        document.documentElement.classList.remove('sidebar-init-skupljen');
+      // skupljeno stanje pri učitavanju stranice
+      if (sidebar && !mobilni() && localStorage.getItem("sidebar-skupljen") === "true") {
+        sidebar.classList.add("skupljen");
+      }
+      document.documentElement.classList.remove('sidebar-init-skupljen');
+      if (typeof ntechInicijalizujPodmeni === 'function') ntechInicijalizujPodmeni();
 
+      // hamburger — sidebar element živi ceo vek stranice, listener se dodaje jednom
+      if (hamburger && sidebar && overlay) {
         hamburger.addEventListener("click", function() {
           if (mobilni()) {
             sidebar.classList.toggle("otvoren");
@@ -140,27 +145,50 @@
             localStorage.setItem("sidebar-skupljen", sidebar.classList.contains("skupljen"));
           }
         });
-
         overlay.addEventListener("click", function() {
           sidebar.classList.remove("otvoren");
           overlay.classList.remove("aktivan");
         });
       }
 
-      // resize listener se dodaje samo jednom — ne sme da se gomila po swap-ovima
-      if (!window._ntechResizeDodato) {
-        window._ntechResizeDodato = true;
-        window.addEventListener("resize", function() {
-          var sidebar = document.getElementById("sidebar");
-          var overlay = document.getElementById("sidebar-overlay");
-          if (sidebar && overlay && !mobilni()) {
-            sidebar.classList.remove("otvoren");
-            overlay.classList.remove("aktivan");
+      window.addEventListener("resize", function() {
+        if (!mobilni() && sidebar && overlay) {
+          sidebar.classList.remove("otvoren");
+          overlay.classList.remove("aktivan");
+        }
+      });
+
+      // aktivna stavka — ažurira se pri svakoj HTMX navigaciji
+      function azurirajAktivne() {
+        var putanja = window.location.pathname;
+        document.querySelectorAll('#sidebar .nav-stavka').forEach(function(el) {
+          el.classList.remove('aktivan');
+        });
+        document.querySelectorAll('#sidebar .nav-podmeni').forEach(function(el) {
+          el.classList.remove('otvoren');
+          var strelica = el.previousElementSibling && el.previousElementSibling.querySelector('.nav-strelica svg');
+          if (strelica) strelica.style.transform = 'rotate(0deg)';
+        });
+        document.querySelectorAll('#sidebar a.nav-stavka').forEach(function(el) {
+          var href = el.getAttribute('href');
+          if (!href) return;
+          if (putanja === href || putanja.startsWith(href + '/')) {
+            el.classList.add('aktivan');
+            var podmeni = el.closest('.nav-podmeni');
+            if (podmeni) {
+              podmeni.classList.add('otvoren');
+              var roditelj = podmeni.previousElementSibling;
+              if (roditelj) {
+                roditelj.classList.add('aktivan');
+                var str = roditelj.querySelector('.nav-strelica svg');
+                if (str) str.style.transform = 'rotate(180deg)';
+              }
+            }
           }
         });
       }
 
-      inicijalizujSidebar();
+      document.addEventListener('htmx:afterSwap', azurirajAktivne);
     })();
     </script>
 

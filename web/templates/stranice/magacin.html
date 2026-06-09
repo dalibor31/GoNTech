@@ -19,6 +19,8 @@
     .magacin-kartica:nth-child(3) { animation-delay: 0.16s; }
     .magacin-kartica:nth-child(4) { animation-delay: 0.22s; }
     .magacin-kartica:nth-child(5) { animation-delay: 0.28s; }
+
+    /* CSS modala „premesti" je u main.css — mora preživeti HTMX swap (header se ne menja) */
 </style>
 {{end}}
 
@@ -30,6 +32,9 @@
     {{end}}
     {{if .Obrisan}}
     <div class="poruka-uspeh">Artikal je uspešno obrisan.</div>
+    {{end}}
+    {{if .Premesten}}
+    <div class="poruka-uspeh">Artikal je premešten u drugu kategoriju.</div>
     {{end}}
 
     <!-- dugmad -->
@@ -101,6 +106,9 @@
                                     Izmeni
                                 </a>
                                 {{end}}
+                                {{if index $.Dozvole "artikal.premesti"}}{{if $.Kategorije}}
+                                {{template "premestiMeni" (dict "ID" .ID "Kategorije" $.Kategorije)}}
+                                {{end}}{{end}}
                                 {{if index $.Dozvole "artikal.obrisi"}}
                                 <a href="/magacin/obrisi/{{.ID}}" class="btn-obrisi-malo"
                                     data-potvrda="Da li ste sigurni da želite da obrišete ovaj artikal?">
@@ -133,10 +141,13 @@
                     <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:2px;">{{.KategorijaNaziv}}</div>
                     {{end}}
                 </div>
-                <div style="display:flex;gap:8px;flex-shrink:0;">
+                <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">
                     {{if index $.Dozvole "artikal.izmeni"}}
                     <a href="/magacin/izmeni/{{.ID}}" class="btn-primarno-malo">Izmeni</a>
                     {{end}}
+                    {{if index $.Dozvole "artikal.premesti"}}{{if $.Kategorije}}
+                    {{template "premestiMeni" (dict "ID" .ID "Kategorije" $.Kategorije)}}
+                    {{end}}{{end}}
                     {{if index $.Dozvole "artikal.obrisi"}}
                     <a href="/magacin/obrisi/{{.ID}}" class="btn-obrisi-malo"
                         data-potvrda="Da li ste sigurni da želite da obrišete ovaj artikal?">
@@ -168,4 +179,24 @@
     </div>
 
 </div>
+{{end}}
+
+{{/* padajući meni za premeštanje artikla — prima dict {ID, Kategorije}; koristi se i u tabeli i u mobilnoj kartici */}}
+{{define "premestiMeni"}}
+<button type="button" class="btn-primarno-malo" style="cursor:pointer;align-self:center;"
+        onclick="document.getElementById('premesti-{{.ID}}').showModal()">Premesti</button>
+{{/* nativni modal — showModal() ga stavlja u „top layer", pa je uvek iznad svega bez obzira na z-index/overflow */}}
+<dialog id="premesti-{{.ID}}" class="premesti-modal" onclick="if(event.target===this)this.close()">
+    {{/* zaglavlje sa dugmetom za zatvaranje; method="dialog" zatvara modal bez slanja */}}
+    <form method="dialog" class="premesti-zaglavlje">
+        <h3>Premesti artikal</h3>
+        <button type="submit" class="premesti-zatvori" aria-label="Zatvori">&times;</button>
+    </form>
+    <form method="POST" action="/magacin/premesti/{{.ID}}" class="premesti-panel">
+        {{range .Kategorije}}
+        <button type="submit" name="kategorija_id" value="{{.ID}}" class="premesti-opcija">{{.Naziv}}</button>
+        {{end}}
+        <button type="submit" name="kategorija_id" value="" class="premesti-opcija premesti-opcija-prazno">Bez kategorije</button>
+    </form>
+</dialog>
 {{end}}

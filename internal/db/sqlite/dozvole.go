@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 )
 
 type sqliteDozvoleRepo struct {
@@ -25,6 +26,28 @@ func InicijalizujDozvole(ctx context.Context, db *sql.DB, defaultFn func(uloga, 
 		return nil
 	}
 	return popuniPodrazumevano(ctx, db, defaultFn, sveAkcije)
+}
+
+// OcistiSirociceDoz briše iz tabele dozvola redove čija akcija više ne postoji
+// u sveAkcije (npr. nakon uklanjanja zastarele dozvole iz koda). Vraća broj obrisanih.
+func OcistiSirociceDoz(ctx context.Context, db *sql.DB, sveAkcije []string) (int64, error) {
+	if len(sveAkcije) == 0 {
+		// sigurnosna brana — bez liste bismo obrisali sve, što ne želimo
+		return 0, nil
+	}
+	placeholders := strings.Repeat("?,", len(sveAkcije))
+	placeholders = strings.TrimSuffix(placeholders, ",")
+	args := make([]any, len(sveAkcije))
+	for i, a := range sveAkcije {
+		args[i] = a
+	}
+	rezultat, err := db.ExecContext(ctx,
+		`DELETE FROM dozvole WHERE akcija NOT IN (`+placeholders+`)`, args...)
+	if err != nil {
+		return 0, fmt.Errorf("ntech: dozvole.OcistiSirocice: %w", err)
+	}
+	br, _ := rezultat.RowsAffected()
+	return br, nil
 }
 
 // popuniPodrazumevano upisuje sve podrazumevane dozvole u bazu
