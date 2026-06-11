@@ -122,9 +122,7 @@ func (h *Handler) NoviNalog(w http.ResponseWriter, r *http.Request) {
 
 // SacuvajNalog prima POST formu i upisuje novi servisni nalog u bazu
 func (h *Handler) SacuvajNalog(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "servis.dodaj") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	if _, ok := h.zahtevajDozvolu(w, r, "servis.dodaj"); !ok {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -223,9 +221,7 @@ func (h *Handler) IzmeniNalog(w http.ResponseWriter, r *http.Request) {
 
 // SacuvajIzmenaNaloga prima POST formu i ažurira postojeći servisni nalog
 func (h *Handler) SacuvajIzmenaNaloga(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "servis.izmeni") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	if _, ok := h.zahtevajDozvolu(w, r, "servis.izmeni"); !ok {
 		return
 	}
 	id, err := parseID(chi.URLParam(r, "id"))
@@ -286,9 +282,7 @@ func (h *Handler) SacuvajIzmenaNaloga(w http.ResponseWriter, r *http.Request) {
 
 // ObrisiNalog prima POST zahtev i briše servisni nalog po ID-u
 func (h *Handler) ObrisiNalog(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "servis.obrisi") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	if _, ok := h.zahtevajDozvolu(w, r, "servis.obrisi"); !ok {
 		return
 	}
 	id, err := parseID(chi.URLParam(r, "id"))
@@ -370,9 +364,8 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 
 // DodajDeloNalogu prima POST formu i dodaje artikal kao deo servisnog naloga
 func (h *Handler) DodajDeloNalogu(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "servis.izmeni") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	k, ok := h.zahtevajDozvolu(w, r, "servis.izmeni")
+	if !ok {
 		return
 	}
 
@@ -421,9 +414,8 @@ func (h *Handler) DodajDeloNalogu(w http.ResponseWriter, r *http.Request) {
 
 // ObrisiDeloNaloga prima POST zahtev i uklanja deo iz servisnog naloga
 func (h *Handler) ObrisiDeloNaloga(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "servis.izmeni") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	k, ok := h.zahtevajDozvolu(w, r, "servis.izmeni")
+	if !ok {
 		return
 	}
 

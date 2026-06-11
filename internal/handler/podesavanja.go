@@ -56,9 +56,7 @@ var validnoImeBackupa = regexp.MustCompile(`^ntech_\d{8}_\d{6}\.db$`)
 
 // Podesavanja renderuje stranicu podešavanja
 func (h *Handler) Podesavanja(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "podesavanja.pregled") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	if _, ok := h.zahtevajDozvolu(w, r, "podesavanja.pregled"); !ok {
 		return
 	}
 	podesavanja, err := ntechsqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
@@ -134,9 +132,7 @@ func vrednostIliDefault(m map[string]string, kljuc, podrazumevano string) string
 
 // VratiBackup zamenjuje trenutnu bazu sa izabranim backup fajlom
 func (h *Handler) VratiBackup(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "backup.pokreni") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	if _, ok := h.zahtevajDozvolu(w, r, "backup.pokreni"); !ok {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -219,9 +215,7 @@ func kopiraFajl(izvor, odrediste string) error {
 
 // SacuvajPodesavanja prima POST i čuva podešavanja u bazu
 func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "podesavanja.izmeni") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	if _, ok := h.zahtevajDozvolu(w, r, "podesavanja.izmeni"); !ok {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -285,9 +279,7 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 
 // BackupBaze kreira konzistentnu kopiju baze i šalje je kao attachment
 func (h *Handler) BackupBaze(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "backup.pregled") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	if _, ok := h.zahtevajDozvolu(w, r, "backup.pregled"); !ok {
 		return
 	}
 	privremeni := fmt.Sprintf("%s/ntech_backup_%s.db", os.TempDir(), time.Now().Format("20060102_150405"))
@@ -306,9 +298,7 @@ func (h *Handler) BackupBaze(w http.ResponseWriter, r *http.Request) {
 
 // OtpremiLogo prima multipart upload slike loga i čuva je u web/static/uploads/
 func (h *Handler) OtpremiLogo(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "podesavanja.izmeni") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	if _, ok := h.zahtevajDozvolu(w, r, "podesavanja.izmeni"); !ok {
 		return
 	}
 	// ograničavamo telo zahteva na 2MB + malo za zaglavlja forme
@@ -404,9 +394,7 @@ func generisiImeUploada(ext string) (string, error) {
 
 // OtpremiLoginPozadinu prima multipart upload slike i čuva je kao pozadinsku sliku login stranice
 func (h *Handler) OtpremiLoginPozadinu(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "podesavanja.login_pozadina") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	if _, ok := h.zahtevajDozvolu(w, r, "podesavanja.login_pozadina"); !ok {
 		return
 	}
 
@@ -508,9 +496,7 @@ func (h *Handler) OtpremiLoginPozadinu(w http.ResponseWriter, r *http.Request) {
 
 // UkloniLoginPozadinu briše pozadinsku sliku login stranice sa diska i iz podešavanja
 func (h *Handler) UkloniLoginPozadinu(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "podesavanja.login_pozadina") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	if _, ok := h.zahtevajDozvolu(w, r, "podesavanja.login_pozadina"); !ok {
 		return
 	}
 
@@ -536,9 +522,7 @@ func (h *Handler) UkloniLoginPozadinu(w http.ResponseWriter, r *http.Request) {
 
 // SacuvajLoginPozadinaStilove čuva vrednosti zamućenja i prozirnosti pozadine login stranice
 func (h *Handler) SacuvajLoginPozadinaStilove(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "podesavanja.login_pozadina") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	if _, ok := h.zahtevajDozvolu(w, r, "podesavanja.login_pozadina"); !ok {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -630,9 +614,7 @@ func (h *Handler) napuniPodaciPodesavanja(r *http.Request, naslov string) (Podac
 
 // PodesavanjaOpste renderuje stranicu sa opštim podešavanjima (firma i logo)
 func (h *Handler) PodesavanjaOpste(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "podesavanja.pregled") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	if _, ok := h.zahtevajDozvolu(w, r, "podesavanja.pregled"); !ok {
 		return
 	}
 	podaci, err := h.napuniPodaciPodesavanja(r, "Podešavanja — Opšte")
@@ -646,9 +628,7 @@ func (h *Handler) PodesavanjaOpste(w http.ResponseWriter, r *http.Request) {
 
 // PodesavanjaIzgled renderuje stranicu sa podešavanjima izgleda (pozadine i tema)
 func (h *Handler) PodesavanjaIzgled(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "podesavanja.pregled") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	if _, ok := h.zahtevajDozvolu(w, r, "podesavanja.pregled"); !ok {
 		return
 	}
 	podaci, err := h.napuniPodaciPodesavanja(r, "Podešavanja — Izgled")
@@ -662,9 +642,7 @@ func (h *Handler) PodesavanjaIzgled(w http.ResponseWriter, r *http.Request) {
 
 // PodesavanjaSistem renderuje stranicu sa sistemskim podešavanjima (backup)
 func (h *Handler) PodesavanjaSistem(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "podesavanja.pregled") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	if _, ok := h.zahtevajDozvolu(w, r, "podesavanja.pregled"); !ok {
 		return
 	}
 	podaci, err := h.napuniPodaciPodesavanja(r, "Podešavanja — Sistem")

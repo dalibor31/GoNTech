@@ -47,22 +47,22 @@
     </div>
 
     <!-- desktop tabela -->
-    <div class="kartica klijenti-tabela animiraj" style="padding:0;overflow:hidden;">
-        <div style="overflow-x:auto;">
-            <table style="width:100%;border-collapse:collapse;">
+    <div class="kartica klijenti-tabela kartica-tabela animiraj">
+        <div class="tabela-skrol">
+            <table class="tabela">
                 <thead>
-                    <tr style="border-bottom:0.5px solid var(--ivica);">
-                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-jak);">Ime / Naziv firme</th>
-                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-jak);">Telefon</th>
-                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-jak);">E-pošta</th>
-                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-jak);">Datum unosa</th>
-                        <th style="padding:12px 16px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-jak);">Akcije</th>
+                    <tr>
+                        <th>Ime / Naziv firme</th>
+                        <th>Telefon</th>
+                        <th>E-pošta</th>
+                        <th>Datum unosa</th>
+                        <th class="centar">Akcije</th>
                     </tr>
                 </thead>
                 <tbody>
                     {{range .Klijenti}}
                     <tr class="animiraj red-tabele">
-                        <td style="padding:12px 16px;">
+                        <td>
                             {{if .NazivFirme}}
                             <div style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{.NazivFirme}}</div>
                             {{if or .Ime .Prezime}}
@@ -72,16 +72,16 @@
                             <div style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{.Ime}} {{.Prezime}}</div>
                             {{end}}
                         </td>
-                        <td style="padding:12px 16px;font-size:13px;color:var(--tekst-sporedni);">
+                        <td class="pomocni-tekst">
                             {{if .Telefon}}{{.Telefon}}{{else}}—{{end}}
                         </td>
-                        <td style="padding:12px 16px;font-size:13px;color:var(--tekst-sporedni);">
+                        <td class="pomocni-tekst">
                             {{if .Email}}{{.Email}}{{else}}—{{end}}
                         </td>
-                        <td style="padding:12px 16px;font-size:13px;color:var(--tekst-sporedni);">
+                        <td class="pomocni-tekst">
                             {{.DatumUnosa.Format "02.01.2006."}}
                         </td>
-                        <td style="padding:12px 16px;text-align:center;">
+                        <td class="centar">
                             <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
                                 <a href="/klijenti/izmeni/{{.ID}}" class="btn-primarno-malo">
                                     Izmeni
@@ -99,7 +99,7 @@
                     </tr>
                     {{else}}
                     <tr>
-                        <td colspan="5" style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
+                        <td colspan="5" class="prazno-stanje">
                             Nema klijenata. <a href="/klijenti/novi" style="color:var(--sb-akcent);">Dodaj prvog klijenta.</a>
                         </td>
                     </tr>
@@ -155,7 +155,7 @@
             </div>
         </div>
         {{else}}
-        <div style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
+        <div class="prazno-stanje">
             Nema klijenata. <a href="/klijenti/novi" style="color:var(--sb-akcent);">Dodaj prvog klijenta.</a>
         </div>
         {{end}}

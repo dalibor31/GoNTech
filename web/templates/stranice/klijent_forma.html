@@ -20,7 +20,7 @@
 {{end}}
 
 {{define "sadrzaj"}}
-<div style="width:100%;">
+<div>
 
     <a href="/klijenti" class="nazad-link">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
@@ -40,7 +40,7 @@
 
         <form method="POST" action="{{if .Izmena}}/klijenti/izmeni/{{.Klijent.ID}}{{else}}/klijenti/novi{{end}}">
             <input type="hidden" name="csrf_token" value="{{.CsrfToken}}">
-            <div style="display:flex;flex-direction:column;gap:18px;">
+            <div class="forma-kolona">
 
                 <!-- tip klijenta -->
                 <div>
@@ -64,42 +64,42 @@
                 <!-- sekcija fizičko lice -->
                 <div id="sec-fizicko" style="display:flex;flex-direction:column;gap:12px;">
                     <div class="sekcija-naslov">Ime i prezime</div>
-                    <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div class="forma-grid-2">
                         <div>
-                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">
-                                Ime <span id="ime-oznaka" style="color:#dc2626;">*</span>
+                            <label class="polje-labela">
+                                Ime <span id="ime-oznaka" class="obavezno">*</span>
                             </label>
                             <input type="text" name="ime" value="{{.Klijent.Ime}}"
-                                placeholder="npr. Marko" style="width:100%;">
+                                placeholder="npr. Marko">
                         </div>
                         <div>
-                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Prezime</label>
+                            <label class="polje-labela">Prezime</label>
                             <input type="text" name="prezime" value="{{.Klijent.Prezime}}"
-                                placeholder="npr. Petrović" style="width:100%;">
+                                placeholder="npr. Petrović">
                         </div>
                     </div>
                     <div style="max-width:260px;">
-                        <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">JMBG</label>
+                        <label class="polje-labela">JMBG</label>
                         <input type="text" name="jmbg" value="{{.Klijent.JMBG}}"
-                            placeholder="13 cifara" maxlength="13" style="width:100%;">
+                            placeholder="13 cifara" maxlength="13">
                     </div>
                 </div>
 
                 <!-- sekcija pravno lice -->
                 <div id="sec-pravno" style="display:none;flex-direction:column;gap:12px;">
                     <div class="sekcija-naslov">Firma</div>
-                    <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div class="forma-grid-2">
                         <div>
-                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">
-                                Naziv firme <span style="color:#dc2626;">*</span>
+                            <label class="polje-labela">
+                                Naziv firme <span class="obavezno">*</span>
                             </label>
                             <input type="text" name="naziv_firme" value="{{.Klijent.NazivFirme}}"
-                                placeholder="npr. TechSolutions d.o.o." style="width:100%;">
+                                placeholder="npr. TechSolutions d.o.o.">
                         </div>
                         <div>
-                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">PIB</label>
+                            <label class="polje-labela">PIB</label>
                             <input type="text" name="pib" value="{{.Klijent.PIB}}"
-                                placeholder="npr. 123456789" style="width:100%;">
+                                placeholder="npr. 123456789">
                         </div>
                     </div>
                 </div>
@@ -107,26 +107,25 @@
                 <!-- kontakt -->
                 <div>
                     <div class="sekcija-naslov">Kontakt</div>
-                    <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div class="forma-grid-2">
                         <div>
-                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Telefon</label>
+                            <label class="polje-labela">Telefon</label>
                             <input type="text" name="telefon" value="{{.Klijent.Telefon}}"
-                                placeholder="npr. 060 123 4567" style="width:100%;">
+                                placeholder="npr. 060 123 4567">
                         </div>
                         <div>
-                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">E-pošta</label>
+                            <label class="polje-labela">E-pošta</label>
                             <input type="text" name="email" value="{{.Klijent.Email}}"
-                                placeholder="npr. marko@example.com" style="width:100%;">
+                                placeholder="npr. marko@example.com">
                         </div>
                     </div>
                 </div>
 
                 <!-- napomena -->
                 <div>
-                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Napomena</label>
+                    <label class="polje-labela">Napomena</label>
                     <textarea name="napomena" rows="3"
-                        placeholder="Interna napomena o klijentu..."
-                        style="width:100%;resize:vertical;">{{.Klijent.Napomena}}</textarea>
+                        placeholder="Interna napomena o klijentu...">{{.Klijent.Napomena}}</textarea>
                 </div>
 
                 <!-- dugmad -->

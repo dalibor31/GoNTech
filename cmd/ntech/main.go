@@ -120,6 +120,9 @@ func main() {
 
 	h := handler.Novi(db)
 	h.Verzija = Verzija
+	// verzija statičkih fajlova za cache-busting — menja se pri svakom pokretanju,
+	// pa novi build/restart natera brauzer da povuče sveži CSS/JS (umesto starog iz keša)
+	h.AssetV = strconv.FormatInt(time.Now().Unix(), 36)
 	h.PutanjaBaze = putanjaBaze
 	// čuva odabrani FS (disk ili embed) za hot-reload u razvoju i za keš u produkciji
 	h.TemplatesFS = templFS
@@ -144,10 +147,17 @@ func main() {
 			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 			http.FileServer(http.Dir("web/static/uploads")).ServeHTTP(w, req)
 		})))
-	// ostali statični fajlovi: disk ako postoji web/static, inače embed
+	// ostali statični fajlovi: disk ako postoji web/static, inače embed.
+	// U produkciji dug immutable keš (URL nosi ?v=verzija za cache-busting pri novom buildu);
+	// u razvoju bez keša, da izmene CSS/JS odmah budu vidljive bez ručnog osvežavanja.
+	produkcija := os.Getenv("NTECH_ENV") == "production"
 	r.Handle("/static/*", http.StripPrefix("/static/",
 		http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			if produkcija {
+				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			} else {
+				w.Header().Set("Cache-Control", "no-cache")
+			}
 			http.FileServer(http.FS(staticFS)).ServeHTTP(w, req)
 		})))
 

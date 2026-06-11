@@ -42,6 +42,7 @@ type PodaciStranice struct {
 	KorisnikIme    string // korisničko ime prijavljenog korisnika
 	KorisnikUloga  string          // uloga: "superadmin", "admin", "radnik"
 	CsrfToken      string          // CSRF zaštitni token za forme
+	AssetV         string          // verzija statičkih fajlova (cache-busting za CSS/JS)
 	Dozvole        map[string]bool // mapa akcija → dozvoljeno/nije
 	Flash          *FlashPoruka    // jednokratna poruka nakon redirecta
 	// app pozadina — popunjava se iz podešavanja za sve stranice

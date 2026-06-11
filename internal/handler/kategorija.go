@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"ntech/internal/db/sqlite"
-	"ntech/internal/middleware"
 	"ntech/internal/model"
 
 	"github.com/go-chi/chi/v5"
@@ -48,9 +47,7 @@ func (h *Handler) Kategorije(w http.ResponseWriter, r *http.Request) {
 
 // DodajKategoriju prima POST i čuva novu kategoriju
 func (h *Handler) DodajKategoriju(w http.ResponseWriter, r *http.Request) {
-	kor := middleware.KorisnikIzKonteksta(r.Context())
-	if kor == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), kor.Uloga, "kategorija.dodaj") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	if _, ok := h.zahtevajDozvolu(w, r, "kategorija.dodaj"); !ok {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -79,9 +76,7 @@ func (h *Handler) DodajKategoriju(w http.ResponseWriter, r *http.Request) {
 
 // ObrisiKategoriju briše kategoriju po ID-u
 func (h *Handler) ObrisiKategoriju(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "kategorija.obrisi") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	if _, ok := h.zahtevajDozvolu(w, r, "kategorija.obrisi"); !ok {
 		return
 	}
 	idStr := chi.URLParam(r, "id")

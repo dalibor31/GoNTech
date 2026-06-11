@@ -602,6 +602,7 @@ input[type="number"],
 input[type="date"],
 select {
     height: 38px;
+    width: 100%;
     padding: 8px 12px;
     box-sizing: border-box;
     line-height: 1.5;
@@ -616,10 +617,12 @@ select {
 
 textarea {
     height: auto;
+    width: 100%;
     min-height: 80px;
     padding: 8px 12px;
     box-sizing: border-box;
     line-height: 1.5;
+    resize: vertical;
     background: var(--kartica) !important;
     color: var(--tekst-glavni) !important;
     border: 0.5px solid var(--ivica) !important;
@@ -664,6 +667,90 @@ select {
     margin-bottom: 20px;
     font-size: 14px;
     color: var(--greska);
+}
+
+/* ============================================================
+   Komponente forme i tabela — zamena za ponavljane inline stilove.
+   Cilj: čitljiviji template, jedno mesto istine za izgled.
+   ============================================================ */
+
+/* labela iznad polja forme */
+.polje-labela {
+    display: block;
+    font-size: 13px;
+    color: var(--tekst-sporedni);
+    margin-bottom: 6px;
+}
+
+/* oznaka obaveznog polja (zvezdica) */
+.obavezno {
+    color: var(--greska);
+}
+
+/* sitan pomoćni/sporedni tekst (objašnjenja, vrednosti u listama) */
+.pomocni-tekst {
+    font-size: 13px;
+    color: var(--tekst-sporedni);
+}
+
+/* vertikalni raspored polja unutar forme */
+.forma-kolona {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+/* grid raspored polja — osnovne (desktop) vrednosti;
+   responsivni override na uže ekrane je niže u media bloku */
+.forma-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+.forma-grid-4 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 12px;
+}
+
+/* === tabele === */
+.tabela {
+    width: 100%;
+    border-collapse: collapse;
+}
+.tabela thead tr {
+    border-bottom: 0.5px solid var(--ivica);
+}
+.tabela th {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--tekst-jak);
+}
+.tabela td {
+    padding: 12px 16px;
+}
+.tabela .centar {
+    text-align: center;
+}
+
+/* kartica koja sadrži tabelu — bez paddinga, zaobljeni uglovi sečeni */
+.kartica-tabela {
+    padding: 0;
+    overflow: hidden;
+}
+/* horizontalni skrol omotač oko tabele na uskim ekranima */
+.tabela-skrol {
+    overflow-x: auto;
+}
+
+/* prazno stanje (nema podataka) u tabeli ili listi kartica */
+.prazno-stanje {
+    padding: 32px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--tekst-sporedni);
 }
 
 /* overlay za mobilni — tamni sloj iza sidebara */
