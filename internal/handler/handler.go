@@ -32,6 +32,7 @@ type Handler struct {
 	LoginIstorijsaRepo db.LoginIstorijsaRepository
 	DozvoleRepo     db.DozvoleRepository
 	Verzija     string
+	AssetV      string // verzija statičkih fajlova za cache-busting (postavlja se pri pokretanju)
 	Templates   map[string]*template.Template
 	TemplatesFS fs.FS
 }
@@ -78,6 +79,17 @@ func (h *Handler) reinicijalizujRepozitorijume(novaDB *sql.DB) {
 	h.DozvoleRepo = sqlite.NoviDozvoleRepo(novaDB, middleware.ImaDozvolu, middleware.SveAkcije())
 }
 
+// zahtevajDozvolu vraća prijavljenog korisnika ako njegova uloga sme da izvrši akciju.
+// U suprotnom šalje 403 sa srpskom porukom i vraća ok=false (handler tada return-uje).
+func (h *Handler) zahtevajDozvolu(w http.ResponseWriter, r *http.Request, akcija string) (*model.Korisnik, bool) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, akcija) {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return nil, false
+	}
+	return k, true
+}
+
 // popuniPodaciStranice popunjava zajednička polja stranice uključujući prijavljenog korisnika
 func (h *Handler) popuniPodaciStranice(r *http.Request, podesavanja map[string]string) model.PodaciStranice {
 	// podrazumevana tema je tamna; korisnik može imati svoju lokalnu temu
@@ -104,6 +116,7 @@ func (h *Handler) popuniPodaciStranice(r *http.Request, podesavanja map[string]s
 		}
 	}
 	ps.CsrfToken = middleware.CsrfToken(r.Context())
+	ps.AssetV = h.AssetV
 	ps.Flash = middleware.GetFlash(r, h.DB)
 
 	// logika pozadine:

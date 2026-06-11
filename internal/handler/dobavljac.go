@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"ntech/internal/db/sqlite"
-	"ntech/internal/middleware"
 	"ntech/internal/model"
 
 	"github.com/go-chi/chi/v5"
@@ -77,9 +76,7 @@ func (h *Handler) NoviDobavljac(w http.ResponseWriter, r *http.Request) {
 
 // SacuvajDobavljaca prima POST formu i upisuje novog dobavljača u bazu
 func (h *Handler) SacuvajDobavljaca(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "dobavljac.dodaj") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	if _, ok := h.zahtevajDozvolu(w, r, "dobavljac.dodaj"); !ok {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -142,9 +139,7 @@ func (h *Handler) IzmeniDobavljaca(w http.ResponseWriter, r *http.Request) {
 
 // SacuvajIzmeneDobavljaca prima POST formu i ažurira postojećeg dobavljača u bazi
 func (h *Handler) SacuvajIzmeneDobavljaca(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "dobavljac.izmeni") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	if _, ok := h.zahtevajDozvolu(w, r, "dobavljac.izmeni"); !ok {
 		return
 	}
 	id, err := parseID(chi.URLParam(r, "id"))
@@ -185,9 +180,7 @@ func (h *Handler) SacuvajIzmeneDobavljaca(w http.ResponseWriter, r *http.Request
 
 // ObrisiDobavljaca prima POST zahtev i briše dobavljača po ID-u
 func (h *Handler) ObrisiDobavljaca(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "dobavljac.obrisi") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	if _, ok := h.zahtevajDozvolu(w, r, "dobavljac.obrisi"); !ok {
 		return
 	}
 	id, err := parseID(chi.URLParam(r, "id"))

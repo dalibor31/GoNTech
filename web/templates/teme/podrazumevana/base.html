@@ -17,10 +17,10 @@
     {{if .AppPozadina}}<link rel="preload" as="image" href="{{.AppPozadina}}">{{end}}
 
     <!-- tema — učitava se prva -->
-    <link rel="stylesheet" href="/static/css/teme/{{.Tema}}.css" />
+    <link rel="stylesheet" href="/static/css/teme/{{.Tema}}.css?v={{.AssetV}}" />
 
     <!-- glavni stilovi -->
-    <link rel="stylesheet" href="/static/css/main.css" />
+    <link rel="stylesheet" href="/static/css/main.css?v={{.AssetV}}" />
 
     {{block "dodatni-css" .}}{{end}}
 
@@ -108,7 +108,7 @@
     </div>
 
     <!-- alpine.js komponente (mora biti pre Alpine-a) -->
-    <script src="/static/js/ntech.js" defer></script>
+    <script src="/static/js/ntech.js?v={{.AssetV}}" defer></script>
     <!-- alpine.js CSP build (lokalno, bez unsafe-eval) -->
     <script src="/static/js/alpine.csp.min.js" defer></script>
 

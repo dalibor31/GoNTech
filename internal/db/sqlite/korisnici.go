@@ -11,6 +11,23 @@ import (
 
 type sqliteKorisniciRepo struct{ db *sql.DB }
 
+// dodeliOpcijeKorisnika popunjava bool i opciona polja korisnika iz skeniranih
+// NULL vrednosti — deljeno između skeniraiKorisnika (jedan red) i Lista (više redova)
+func dodeliOpcijeKorisnika(k *model.Korisnik, aktivan, koristiLokalnuTemu int,
+	lokalnaTema, lokalnaPozadina, lokalnaPozadinaOpacity, lokalnaPozadinaBlur,
+	lokalnaPozadinaBlurPozadine, lokalnaPozadinaGlassOpacity sql.NullString,
+	datumKreiranja time.Time) {
+	k.Aktivan = aktivan == 1
+	k.LokalnaTema = lokalnaTema.String
+	k.KoristiLokalnuTemu = koristiLokalnuTemu == 1
+	k.DatumKreiranja = datumKreiranja
+	k.LokalnaPozadina = lokalnaPozadina.String
+	k.LokalnaPozadinaOpacity = lokalnaPozadinaOpacity.String
+	k.LokalnaPozadinaBlur = lokalnaPozadinaBlur.String
+	k.LokalnaPozadinaBlurPozadine = lokalnaPozadinaBlurPozadine.String
+	k.LokalnaPozadinaGlassOpacity = lokalnaPozadinaGlassOpacity.String
+}
+
 // skeniraiKorisnika čita jedan red iz baze i popunjava model.Korisnik
 func skeniraiKorisnika(row interface{ Scan(...any) error }) (*model.Korisnik, error) {
 	k := &model.Korisnik{}
@@ -26,15 +43,9 @@ func skeniraiKorisnika(row interface{ Scan(...any) error }) (*model.Korisnik, er
 	); err != nil {
 		return nil, err
 	}
-	k.Aktivan = aktivan == 1
-	k.LokalnaTema = lokalnaTema.String
-	k.KoristiLokalnuTemu = koristiLokalnuTemu == 1
-	k.DatumKreiranja = datumKreiranja
-	k.LokalnaPozadina = lokalnaPozadina.String
-	k.LokalnaPozadinaOpacity = lokalnaPozadinaOpacity.String
-	k.LokalnaPozadinaBlur = lokalnaPozadinaBlur.String
-	k.LokalnaPozadinaBlurPozadine = lokalnaPozadinaBlurPozadine.String
-	k.LokalnaPozadinaGlassOpacity = lokalnaPozadinaGlassOpacity.String
+	dodeliOpcijeKorisnika(k, aktivan, koristiLokalnuTemu, lokalnaTema,
+		lokalnaPozadina, lokalnaPozadinaOpacity, lokalnaPozadinaBlur,
+		lokalnaPozadinaBlurPozadine, lokalnaPozadinaGlassOpacity, datumKreiranja)
 	return k, nil
 }
 
@@ -109,15 +120,9 @@ func (r *sqliteKorisniciRepo) Lista(ctx context.Context) ([]model.Korisnik, erro
 			&lokalnaPozadinaGlassOpacity); err != nil {
 			return nil, fmt.Errorf("ntech: korisnici.Lista: %w", err)
 		}
-		k.Aktivan = aktivan == 1
-		k.LokalnaTema = lokalnaTema.String
-		k.KoristiLokalnuTemu = koristiLokalnuTemu == 1
-		k.DatumKreiranja = datumKreiranja
-		k.LokalnaPozadina = lokalnaPozadina.String
-		k.LokalnaPozadinaOpacity = lokalnaPozadinaOpacity.String
-		k.LokalnaPozadinaBlur = lokalnaPozadinaBlur.String
-		k.LokalnaPozadinaBlurPozadine = lokalnaPozadinaBlurPozadine.String
-		k.LokalnaPozadinaGlassOpacity = lokalnaPozadinaGlassOpacity.String
+		dodeliOpcijeKorisnika(&k, aktivan, koristiLokalnuTemu, lokalnaTema,
+			lokalnaPozadina, lokalnaPozadinaOpacity, lokalnaPozadinaBlur,
+			lokalnaPozadinaBlurPozadine, lokalnaPozadinaGlassOpacity, datumKreiranja)
 		lista = append(lista, k)
 	}
 	return lista, nil

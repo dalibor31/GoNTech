@@ -43,9 +43,9 @@ func (r *ProdajaRepo) Lista(ctx context.Context, pretraga string) ([]model.Proda
 		SELECT
 			pn.id, pn.klijent_id, pn.broj_naloga, pn.napomena, pn.ukupno,
 			pn.nacin_placanja, pn.stornirano, pn.datum,
-			COALESCE(NULLIF(k.naziv_firme, ''), TRIM(COALESCE(k.ime, '') || ' ' || COALESCE(k.prezime, '')), '') AS klijent_naziv
+			COALESCE(kp.naziv, '') AS klijent_naziv
 		FROM prodajni_nalozi pn
-		LEFT JOIN klijenti k ON k.id = pn.klijent_id
+		LEFT JOIN klijent_prikaz kp ON kp.id = pn.klijent_id
 		WHERE 1=1`
 
 	args := []any{}

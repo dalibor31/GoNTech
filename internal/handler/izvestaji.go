@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"ntech/internal/db/sqlite"
-	"ntech/internal/middleware"
 	"ntech/internal/model"
 )
 
@@ -74,9 +73,7 @@ type TopKlijent struct {
 
 // Izvestaji renderuje stranicu sa izveštajima
 func (h *Handler) Izvestaji(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if k == nil || !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "izvestaj.pregled") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	if _, ok := h.zahtevajDozvolu(w, r, "izvestaj.pregled"); !ok {
 		return
 	}
 	ctx := r.Context()
@@ -165,9 +162,9 @@ func (h *Handler) Izvestaji(w http.ResponseWriter, r *http.Request) {
 	// --- stari otvoreni nalozi (>14 dana bez završetka) ---
 	stariRed, err := h.DB.QueryContext(ctx, `
 		SELECT sn.id, sn.broj_naloga, sn.uredjaj, sn.status, sn.datum_prijema,
-		       COALESCE(NULLIF(k.naziv_firme, ''), TRIM(COALESCE(k.ime, '') || ' ' || COALESCE(k.prezime, '')), '—') AS klijent_naziv
+		       COALESCE(NULLIF(kp.naziv, ''), '—') AS klijent_naziv
 		FROM servisni_nalozi sn
-		LEFT JOIN klijenti k ON k.id = sn.klijent_id
+		LEFT JOIN klijent_prikaz kp ON kp.id = sn.klijent_id
 		WHERE sn.datum_zavrsetka IS NULL
 		  AND substr(sn.datum_prijema, 1, 10) <= date('now', '-14 days')
 		ORDER BY sn.datum_prijema ASC`)
@@ -215,10 +212,11 @@ func (h *Handler) Izvestaji(w http.ResponseWriter, r *http.Request) {
 	// --- top 10 klijenata po ukupnoj vrednosti ---
 	klijRed, err := h.DB.QueryContext(ctx, `
 		SELECT
-		    COALESCE(NULLIF(k.naziv_firme, ''), TRIM(COALESCE(k.ime, '') || ' ' || COALESCE(k.prezime, ''))) AS naziv,
+		    kp.naziv AS naziv,
 		    COALESCE(p.ukupno_prodaja, 0) + COALESCE(s.ukupno_servis, 0) AS ukupno_vrednost,
 		    COALESCE(p.broj_prodaja, 0) + COALESCE(s.broj_servisa, 0) AS broj_naloga
 		FROM klijenti k
+		LEFT JOIN klijent_prikaz kp ON kp.id = k.id
 		LEFT JOIN (
 		    SELECT klijent_id, SUM(ukupno) AS ukupno_prodaja, COUNT(*) AS broj_prodaja
 		    FROM prodajni_nalozi GROUP BY klijent_id

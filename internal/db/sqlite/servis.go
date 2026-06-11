@@ -43,9 +43,9 @@ func (r *ServisRepo) Lista(ctx context.Context, pretraga, status string) ([]mode
 			sn.id, sn.klijent_id, sn.tehnicar_id, sn.broj_naloga, sn.uredjaj, sn.serijski_broj,
 			sn.opis_kvara, sn.status, sn.cena_od, sn.cena_do, sn.cena_konacna,
 			sn.avans, sn.napomena, sn.garancija_do, sn.datum_prijema, sn.datum_zavrsetka,
-			COALESCE(NULLIF(k.naziv_firme, ''), TRIM(COALESCE(k.ime, '') || ' ' || COALESCE(k.prezime, '')), '') AS klijent_naziv
+			COALESCE(kp.naziv, '') AS klijent_naziv
 		FROM servisni_nalozi sn
-		LEFT JOIN klijenti k ON k.id = sn.klijent_id
+		LEFT JOIN klijent_prikaz kp ON kp.id = sn.klijent_id
 		WHERE 1=1`
 
 	args := []any{}

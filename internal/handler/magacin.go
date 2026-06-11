@@ -6,7 +6,6 @@ import (
 
 	"ntech/internal/db"
 	"ntech/internal/db/sqlite"
-	"ntech/internal/middleware"
 	"ntech/internal/model"
 
 	"github.com/go-chi/chi/v5"
@@ -78,9 +77,7 @@ func (h *Handler) Magacin(w http.ResponseWriter, r *http.Request) {
 // PremestiArtikal menja kategoriju artikla (premeštanje u drugu kategoriju).
 // Prazno polje kategorija_id znači premeštanje u "bez kategorije".
 func (h *Handler) PremestiArtikal(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "artikal.premesti") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	if _, ok := h.zahtevajDozvolu(w, r, "artikal.premesti"); !ok {
 		return
 	}
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
@@ -109,9 +106,7 @@ func (h *Handler) PremestiArtikal(w http.ResponseWriter, r *http.Request) {
 
 // ObrisiArtikal briše artikal po ID-u
 func (h *Handler) ObrisiArtikal(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "artikal.obrisi") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	if _, ok := h.zahtevajDozvolu(w, r, "artikal.obrisi"); !ok {
 		return
 	}
 	idStr := chi.URLParam(r, "id")

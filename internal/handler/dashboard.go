@@ -127,9 +127,9 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	prodajaRedovi, err := h.DB.QueryContext(ctx, `
 		SELECT
 			pn.broj_naloga, pn.ukupno, pn.datum,
-			COALESCE(NULLIF(k.naziv_firme, ''), TRIM(COALESCE(k.ime, '') || ' ' || COALESCE(k.prezime, '')), '') AS klijent_naziv
+			COALESCE(kp.naziv, '') AS klijent_naziv
 		FROM prodajni_nalozi pn
-		LEFT JOIN klijenti k ON k.id = pn.klijent_id
+		LEFT JOIN klijent_prikaz kp ON kp.id = pn.klijent_id
 		ORDER BY pn.datum DESC LIMIT 5`)
 	if err != nil {
 		log.Printf("dashboard: poslednje prodaje: %v", err)

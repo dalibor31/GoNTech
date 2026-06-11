@@ -137,9 +137,8 @@ func (h *Handler) NovaProdaja(w http.ResponseWriter, r *http.Request) {
 
 // SacuvajProdaju prima POST formu, parsira stavke i upisuje prodajni nalog u bazu
 func (h *Handler) SacuvajProdaju(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "prodaja.dodaj") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	k, ok := h.zahtevajDozvolu(w, r, "prodaja.dodaj")
+	if !ok {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -307,9 +306,7 @@ func (h *Handler) StampaProdaje(w http.ResponseWriter, r *http.Request) {
 
 // ObrisiProdaju prima POST zahtev, vraća stanje na magacin i briše nalog
 func (h *Handler) ObrisiProdaju(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "prodaja.obrisi") {
-		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+	if _, ok := h.zahtevajDozvolu(w, r, "prodaja.obrisi"); !ok {
 		return
 	}
 	id, err := parseID(chi.URLParam(r, "id"))

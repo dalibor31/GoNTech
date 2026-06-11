@@ -1,29 +1,20 @@
-# Binarne datoteke
+# Build — izlazni binarni fajlovi
 /ntech
 /ntech.exe
-
-# Baza podataka
-*.db
-*.db-shm
-*.db-wal
-
-# Promenljive okruženja
-ntech.env
+ntech-*
 
 # Privremeni fajlovi
 *.tmp
 *.log
 
-# Kate
-*.kate-swp
-.*.kate-swp
+# Promenljive okruženja
+ntech.env
+.env
 
-# VSCodium/VSCode
-.vscode/
-
-# IDE podešavanja
-.idea/
-*.swp
+# Baza podataka
+*.db
+*.db-shm
+*.db-wal
 
 # Backup fajlovi
 backups/
@@ -34,9 +25,13 @@ logs/
 # Upload fajlovi
 web/static/uploads/
 
-.env
+# Kate editor
+*.kate-swp
+.*.kate-swp
 
-# Buildovani binarni fajlovi
-ntech
-ntech-*
+# IDE podešavanja
+.vscode/
+.idea/
+*.swp
 
+ARHITEKTURA.md
