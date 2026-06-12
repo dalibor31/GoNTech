@@ -36,7 +36,7 @@
             <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);">
                 <span style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">Nova nabavka</span>
             </div>
-            <div style="display:flex;flex-direction:column;gap:14px;">
+            <div class="kolona" style="gap:14px;">
                 <div>
                     <label class="polje-labela">Dobavljač</label>
                     <select name="dobavljac_id" style="width:100%;">
@@ -142,7 +142,7 @@
                                 Ukloni
                             </button>
                         </div>
-                        <div style="display:flex;flex-direction:column;gap:10px;">
+                        <div class="kolona" style="gap:10px;">
                             <div>
                                 <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Artikal</label>
                                 <select :name="'artikal_id[]'" x-model="stavka.artikal_id"
@@ -201,7 +201,7 @@
 
             <div x-show="modalGreska" class="poruka-greska greska-animacija" x-text="modalGreska"></div>
 
-            <div style="display:flex;flex-direction:column;gap:14px;">
+            <div class="kolona" style="gap:14px;">
                 <div>
                     <label class="polje-labela">
                         Naziv <span style="color:#dc2626;">*</span>

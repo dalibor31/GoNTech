@@ -45,7 +45,7 @@
 {{end}}
 
 {{define "sadrzaj"}}
-<div style="display:flex;flex-direction:column;gap:16px;">
+<div class="kolona" style="gap:16px;">
 
     {{if .Sacuvano}}
     <div class="poruka-uspeh poruka-animacija">Nalog je uspešno sačuvan.</div>
@@ -55,7 +55,7 @@
     {{end}}
 
     <!-- gornja traka: pretraga + dugme nova, ispod toga dugme traži -->
-    <form method="GET" action="/servis" style="display:flex;flex-direction:column;gap:8px;">
+    <form method="GET" action="/servis" class="kolona" style="gap:8px;">
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
             <input type="text" name="pretraga" value="{{.Pretraga}}"
                 placeholder="Pretraži po broju naloga ili uređaju..."
@@ -138,7 +138,7 @@
     <div class="servis-kartice">
         {{range .Nalozi}}
         <div class="kartica servis-kartica animiraj">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;">
+            <div class="red-izmedju" style="align-items:flex-start;gap:12px;margin-bottom:10px;">
                 <div>
                     <a href="/servis/{{.ID}}"
                         style="font-size:15px;font-weight:500;color:var(--sb-akcent);text-decoration:none;font-family:monospace;">
