@@ -232,7 +232,7 @@
       <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
         <div style="flex:1;min-width:200px;">
           <div style="font-size:14px;font-weight:500;color:#f97316;margin-bottom:4px;">Storniranje naloga</div>
-          <div style="font-size:13px;color:var(--tekst-sporedni);">
+          <div class="pomocni-tekst">
             Storno vraća sve artikle na stanje u magacinu. Nalog ostaje u evidenciji sa oznakom storniran.
           </div>
         </div>
@@ -251,7 +251,7 @@
       <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;padding-top:14px;border-top:0.5px solid var(--ivica);">
         <div style="flex:1;min-width:200px;">
           <div style="font-size:14px;font-weight:500;color:#dc2626;margin-bottom:4px;">Brisanje naloga</div>
-          <div style="font-size:13px;color:var(--tekst-sporedni);">
+          <div class="pomocni-tekst">
             Brisanje je trajno.{{if not .Nalog.Stornirano}} Količine artikala biće vraćene na stanje u magacinu.{{end}}
           </div>
         </div>
