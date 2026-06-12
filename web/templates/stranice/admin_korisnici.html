@@ -117,17 +117,17 @@
         <form method="POST" action="/admin/korisnici/novi">
             <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:14px;margin-bottom:16px;">
                 <div>
-                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Korisničko ime</label>
+                    <label class="polje-labela">Korisničko ime</label>
                     <input type="text" name="korisnicko_ime" required minlength="3" autocomplete="off"
                         style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
                 </div>
                 <div>
-                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Lozinka</label>
+                    <label class="polje-labela">Lozinka</label>
                     <input type="password" name="lozinka" required minlength="8" autocomplete="new-password"
                         style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
                 </div>
                 <div>
-                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Uloga</label>
+                    <label class="polje-labela">Uloga</label>
                     <select name="uloga"
                         style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
                         <option value="radnik">Radnik</option>
