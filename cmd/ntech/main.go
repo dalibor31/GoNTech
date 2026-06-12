@@ -155,6 +155,9 @@ func main() {
 	r.Use(ntechmw.BezbednostHeaders())
 	r.Use(ntechmw.CsrfMiddleware)
 	r.Use(middleware.Compress(5))
+	// deljeno zaključavanje baze za vreme zahteva — obnova backupa (VratiBackup)
+	// čeka da svi zahtevi završe pre zamene konekcije (vidi handler.ZakljucajCitanje)
+	r.Use(h.ZakljucajCitanje)
 
 	// uploads su uvek na disku — korisnički fajlovi, ne ugrađuju se
 	r.Handle("/static/uploads/*", http.StripPrefix("/static/uploads/",
