@@ -30,7 +30,7 @@
         </div>
 
         <h1>Dvostepena verifikacija</h1>
-        <p class="opis">Unesite 6-cifreni kod iz vaše aplikacije za autentifikaciju.</p>
+        <p class="opis">Unesite 6-cifreni kod iz vaše aplikacije za autentifikaciju, ili jedan od rezervnih kodova (format XXXX-XXXX) ako nemate pristup aplikaciji.</p>
 
         {{if eq .Greska "1"}}
         <div class="greska">Neispravan kod. Pokušajte ponovo.</div>
@@ -41,8 +41,7 @@
             <div class="polje">
                 <label for="kod">Kod za verifikaciju</label>
                 <input type="text" id="kod" name="kod"
-                    inputmode="numeric" pattern="[0-9]{6}"
-                    maxlength="6" autocomplete="one-time-code" autofocus required>
+                    maxlength="12" autocomplete="one-time-code" autofocus required>
             </div>
             <button type="submit" class="dugme">Potvrdi</button>
         </form>

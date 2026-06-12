@@ -26,11 +26,13 @@ type podaciLoginIstorija struct {
 type podaciAdminProfil struct {
 	model.PodaciStranice
 	// Greska se koristi samo za inline prikaz greške pri TOTP aktivaciji (bez redirecta)
-	Greska    string
-	TotpURI   string
-	TotpTajna string
-	TotpQR    template.URL
+	Greska             string
+	TotpURI            string
+	TotpTajna          string
+	TotpQR             template.URL
 	TotpAktivan        bool
+	RezervniKodovi     []string // jednokratni prikaz novih kodova (posle aktivacije/regeneracije)
+	BrojRezervnih      int      // koliko neiskorišćenih rezervnih kodova je preostalo
 	LokalnaTema        string
 	KoristiLokalnuTemu bool
 }
@@ -297,14 +299,59 @@ func (h *Handler) AdminProfil(w http.ResponseWriter, r *http.Request) {
 	ps.Stranica = "profil"
 	ps.NaslovStranice = "Moj profil"
 
+	var brojRezervnih int
+	if svezi.TotpTajna != "" {
+		brojRezervnih, _ = h.RezervniKodoviRepo.BrojPreostalih(r.Context(), svezi.ID)
+	}
+
 	h.renderujTemplate(w, "admin_profil", podaciAdminProfil{
 		PodaciStranice:     ps,
 		TotpAktivan:        svezi.TotpTajna != "",
+		BrojRezervnih:      brojRezervnih,
 		LokalnaTema:        svezi.LokalnaTema,
 		KoristiLokalnuTemu: svezi.KoristiLokalnuTemu,
 	})
 }
 
+// generisiIPrikaziKodove generiše nove rezervne kodove, čuva njihove bcrypt hešove
+// (poništavajući stare) i renderuje profil sa kodovima prikazanim JEDNOM. Čist
+// tekst kodova se nigde ne čuva — korisnik mora da ih sačuva sada.
+func (h *Handler) generisiIPrikaziKodove(w http.ResponseWriter, r *http.Request, k *model.Korisnik, poruka string) {
+	kodovi, err := auth.GenerisiRezervneKodove(auth.BrojRezervnihKodova)
+	if err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri generisanju rezervnih kodova.")
+		http.Redirect(w, r, "/admin/profil", http.StatusSeeOther)
+		return
+	}
+	hashevi := make([]string, 0, len(kodovi))
+	for _, kod := range kodovi {
+		hash, err := auth.HashujLozinku(kod)
+		if err != nil {
+			middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju rezervnih kodova.")
+			http.Redirect(w, r, "/admin/profil", http.StatusSeeOther)
+			return
+		}
+		hashevi = append(hashevi, hash)
+	}
+	if err := h.RezervniKodoviRepo.Zameni(r.Context(), k.ID, hashevi); err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju rezervnih kodova.")
+		http.Redirect(w, r, "/admin/profil", http.StatusSeeOther)
+		return
+	}
+
+	podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "profil"
+	ps.NaslovStranice = "Moj profil"
+	ps.Flash = &model.FlashPoruka{Tip: "uspeh", Poruka: poruka}
+
+	h.renderujTemplate(w, "admin_profil", podaciAdminProfil{
+		PodaciStranice: ps,
+		TotpAktivan:    true,
+		RezervniKodovi: kodovi,
+		BrojRezervnih:  len(kodovi),
+	})
+}
 
 // AdminPromeniLozinku menja lozinku prijavljenog korisnika
 func (h *Handler) AdminPromeniLozinku(w http.ResponseWriter, r *http.Request) {
@@ -426,8 +473,25 @@ func (h *Handler) AdminTotpAktivacija(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	middleware.SetFlash(w, r, h.DB, "uspeh", "Dvostepena verifikacija je uspešno uključena.")
-	http.Redirect(w, r, "/admin/profil", http.StatusSeeOther)
+	// uključenjem 2FA generišemo i rezervne kodove i prikazujemo ih jednom
+	h.generisiIPrikaziKodove(w, r, k,
+		"Dvostepena verifikacija je uključena. Sačuvajte rezervne kodove — prikazuju se samo sada.")
+}
+
+// AdminTotpRegenerisiKodove generiše nove rezervne kodove i poništava stare
+func (h *Handler) AdminTotpRegenerisiKodove(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil {
+		http.Redirect(w, r, "/prijava", http.StatusSeeOther)
+		return
+	}
+	svezi, err := h.KorisniciRepo.DohvatiPoID(r.Context(), k.ID)
+	if err != nil || svezi.TotpTajna == "" {
+		middleware.SetFlash(w, r, h.DB, "greska", "Dvostepena verifikacija nije uključena.")
+		http.Redirect(w, r, "/admin/profil", http.StatusSeeOther)
+		return
+	}
+	h.generisiIPrikaziKodove(w, r, k, "Generisani su novi rezervni kodovi. Stari više ne važe.")
 }
 
 // AdminTotpDeaktivacija uklanja TOTP tajnu
@@ -443,6 +507,8 @@ func (h *Handler) AdminTotpDeaktivacija(w http.ResponseWriter, r *http.Request) 
 		http.Redirect(w, r, "/admin/profil", http.StatusSeeOther)
 		return
 	}
+	// isključenjem 2FA brišemo i rezervne kodove
+	_ = h.RezervniKodoviRepo.Obrisi(r.Context(), k.ID)
 
 	middleware.SetFlash(w, r, h.DB, "uspeh", "Dvostepena verifikacija je isključena.")
 	http.Redirect(w, r, "/admin/profil", http.StatusSeeOther)

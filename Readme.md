@@ -30,6 +30,7 @@ The goal is simple: everything the repair shop needs to track is located in one 
 - User interface — sidebar navigation, theme system (dark/light), dashboard with statistics
 - User login — server-side sessions, account locking
 - Two-factor authentication (TOTP) — activation with a QR code; secret encrypted at rest (AES-256-GCM, key kept outside the database)
+- Backup (one-time) codes for 2FA — generated on activation, stored as bcrypt hashes; a fallback to TOTP at login
 - Brute-force protection — IP locking after 5 failed attempts within 15 minutes
 - CSRF protection — double-submit cookie pattern, automatic token injection into all forms
 - Security HTTP headers (CSP, X-Frame-Options, Referrer-Policy, nosniff...)
@@ -57,7 +58,6 @@ The goal is simple: everything the repair shop needs to track is located in one 
 - Fiscalization and VAT calculation (specification in Project.md)
 - PostgreSQL support (for multi-user environments)
 - WebAuthn / Passkey login (database schema is already prepared)
-- Backup (one-time) codes for 2FA
 - Notifications (email / WhatsApp) — deferred to a later phase
 - Barcode scanning via camera — deferred to a later phase
 

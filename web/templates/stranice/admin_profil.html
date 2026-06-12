@@ -77,6 +77,23 @@
 				</form>
 			</div>
 
+			<!-- Rezervni (jednokratni) kodovi -->
+			<div style="margin-top: 18px; padding-top: 16px; border-top: 0.5px solid var(--ivica)">
+				{{ if .RezervniKodovi }}
+					<div class="poruka-uspeh" style="margin-bottom: 12px">Sačuvajte ove rezervne kodove na sigurno mesto — prikazuju se samo sada. Svaki se može upotrebiti jednom, umesto koda iz aplikacije.</div>
+					<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 14px; max-width: 360px">
+						{{ range .RezervniKodovi }}
+							<code style="font-size: 14px; background: var(--pozadina); padding: 8px 10px; border-radius: 6px; text-align: center; letter-spacing: 1px; color: var(--tekst-glavni)">{{ . }}</code>
+						{{ end }}
+					</div>
+				{{ else }}
+					<div style="font-size: 13px; color: var(--tekst-sporedni); margin-bottom: 10px">Rezervni kodovi: preostalo <strong>{{ .BrojRezervnih }}</strong>. Koriste se za prijavu kada nemate pristup aplikaciji sa kodovima.</div>
+				{{ end }}
+				<form method="POST" action="/admin/profil/totp/kodovi" onsubmit="return confirm('Generisati nove rezervne kodove? Stari kodovi više neće važiti.');">
+					<button type="submit" style="padding: 8px 16px; background: transparent; color: var(--sb-akcent); border: 1px solid var(--sb-akcent); border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer">Regeneriši rezervne kodove</button>
+				</form>
+			</div>
+
 		{{ else }}
 			<!-- 2FA nije uključena -->
 			<div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px">
