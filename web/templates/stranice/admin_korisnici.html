@@ -47,7 +47,7 @@
                         <td style="padding:10px 20px;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{.KorisnickoIme}}</td>
                         <td style="padding:10px 20px;">
                             {{if eq .Uloga "superadmin"}}
-                            <span style="font-size:13px;color:var(--tekst-sporedni);">Superadmin</span>
+                            <span class="pomocni-tekst">Superadmin</span>
                             {{else if eq $.KorisnikUloga "superadmin"}}
                             <form method="POST" action="/admin/korisnici/{{.ID}}/uloga" style="display:inline;">
                                 <select name="uloga" onchange="this.form.submit()"
@@ -57,7 +57,7 @@
                                 </select>
                             </form>
                             {{else}}
-                            <span style="font-size:13px;color:var(--tekst-sporedni);">
+                            <span class="pomocni-tekst">
                                 {{if eq .Uloga "admin"}}Admin{{else}}Radnik{{end}}
                             </span>
                             {{end}}

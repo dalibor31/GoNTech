@@ -157,15 +157,15 @@
                 </div>
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:10px;">
-                <div style="font-size:13px;color:var(--tekst-sporedni);">
+                <div class="pomocni-tekst">
                     <span style="color:var(--tekst-glavni);font-weight:500;">Količina:</span>
                     <span style="font-weight:500;color:{{if .KriticnaZaliha}}#dc2626{{else}}#16a34a{{end}};">{{.Kolicina}}</span>
                 </div>
-                <div style="font-size:13px;color:var(--tekst-sporedni);">
+                <div class="pomocni-tekst">
                     <span style="color:var(--tekst-glavni);font-weight:500;">Cena:</span> {{printf "%.0f" .ProdajnaCena}} din
                 </div>
                 {{if .Lokacija}}
-                <div style="font-size:13px;color:var(--tekst-sporedni);">
+                <div class="pomocni-tekst">
                     <span style="color:var(--tekst-glavni);font-weight:500;">Lokacija:</span> {{.Lokacija}}
                 </div>
                 {{end}}
