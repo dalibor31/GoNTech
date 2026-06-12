@@ -226,7 +226,7 @@
 
   <!-- storno i brisanje -->
   <div class="kartica detalji-kartica animiraj" style="border-color:#dc262633;">
-    <div style="display:flex;flex-direction:column;gap:16px;">
+    <div class="kolona" style="gap:16px;">
 
       {{if and (index $.Dozvole "prodaja.storno") (not .Nalog.Stornirano) }}
       <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">

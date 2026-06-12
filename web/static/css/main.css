@@ -737,6 +737,16 @@ select {
     gap: 18px;
 }
 
+/* layout utili — struktura bez razmaka; gap/margin se daju po instanci */
+.kolona {
+    display: flex;
+    flex-direction: column;
+}
+.red-izmedju {
+    display: flex;
+    justify-content: space-between;
+}
+
 /* grid raspored polja — osnovne (desktop) vrednosti;
    responsivni override na uže ekrane je niže u media bloku */
 .forma-grid-2 {
