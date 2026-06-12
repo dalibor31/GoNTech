@@ -32,7 +32,7 @@
 {{end}}
 
 {{define "sadrzaj"}}
-<div style="display:flex;flex-direction:column;gap:16px;">
+<div class="kolona" style="gap:16px;">
 
     {{if .Sacuvano}}
     <div class="poruka-uspeh poruka-animacija">Nalog je uspešno sačuvan.</div>
@@ -47,7 +47,7 @@
     <!-- zaglavlje naloga -->
     <div class="kartica detalji-kartica animiraj">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);">
-            <div style="display:flex;flex-direction:column;gap:8px;">
+            <div class="kolona" style="gap:8px;">
                 <span style="font-size:20px;font-weight:600;color:var(--tekst-glavni);font-family:monospace;">
                     {{.Nalog.BrojNaloga}}
                 </span>
@@ -94,7 +94,7 @@
         <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);">
             <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Uređaj</span>
         </div>
-        <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="kolona" style="gap:14px;">
             <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:16px;">
                 <div>
                     <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Naziv uređaja</div>

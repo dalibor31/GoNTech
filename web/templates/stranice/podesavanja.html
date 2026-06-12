@@ -73,7 +73,7 @@
                 <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Firma</span>
             </div>
 
-            <div style="display:flex;flex-direction:column;gap:14px;">
+            <div class="kolona" style="gap:14px;">
                 <div>
                     <label class="polje-labela">Naziv firme</label>
                     <input type="text" name="naziv_firme" value="{{.NazivFirme}}"
@@ -210,7 +210,7 @@
 
             <!-- slider: zamućenje pozadine -->
             <div style="margin-top:16px;">
-                <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <div class="red-izmedju" style="margin-bottom:6px;">
                     <span class="pomocni-tekst">Zamućenje pozadine</span>
                     <span style="font-size:13px;color:var(--tekst-glavni);font-weight:500;" x-text="blurPozadine + 'px'"></span>
                 </div>
@@ -220,7 +220,7 @@
 
             <!-- slider: zamućenje kartice -->
             <div style="margin-top:12px;">
-                <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <div class="red-izmedju" style="margin-bottom:6px;">
                     <span class="pomocni-tekst">Zamućenje kartice (glass)</span>
                     <span style="font-size:13px;color:var(--tekst-glavni);font-weight:500;" x-text="blurKartice + 'px'"></span>
                 </div>
@@ -230,7 +230,7 @@
 
             <!-- slider: zatamnjivanje pozadine -->
             <div style="margin-top:12px;">
-                <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <div class="red-izmedju" style="margin-bottom:6px;">
                     <span class="pomocni-tekst">Zatamnjivanje pozadine</span>
                     <span style="font-size:13px;color:var(--tekst-glavni);font-weight:500;" x-text="opacity + '%'"></span>
                 </div>
@@ -240,7 +240,7 @@
 
             <!-- slider: zatamnjivanje kartice NTech -->
             <div style="margin-top:12px;">
-                <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <div class="red-izmedju" style="margin-bottom:6px;">
                     <span class="pomocni-tekst">Zatamnjivanje kartice NTech</span>
                     <span style="font-size:13px;color:var(--tekst-glavni);font-weight:500;" x-text="zatamnjenjeKartice + '%'"></span>
                 </div>

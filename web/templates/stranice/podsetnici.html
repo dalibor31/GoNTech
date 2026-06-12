@@ -27,7 +27,7 @@
 {{end}}
 
 {{define "sadrzaj"}}
-<div style="display:flex;flex-direction:column;gap:16px;">
+<div class="kolona" style="gap:16px;">
 
     {{if .Sacuvano}}
     <div class="poruka-uspeh poruka-animacija">Podsetnik je uspešno sačuvan.</div>
@@ -115,7 +115,7 @@
     <div class="pod-kartice">
         {{range .Podsetnici}}
         <div class="kartica pod-kartica animiraj">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;">
+            <div class="red-izmedju" style="align-items:flex-start;gap:12px;margin-bottom:10px;">
                 <div>
                     <div style="font-size:15px;font-weight:500;color:{{if .JePrekoracen}}var(--greska){{else}}var(--tekst-glavni){{end}};">{{.Naslov}}</div>
                     {{if .Napomena}}
