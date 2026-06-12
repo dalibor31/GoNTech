@@ -455,6 +455,7 @@ body {
     padding: 4px 10px;
     font-size: 12px;
     font-weight: 500;
+    cursor: pointer;
     text-decoration: none;
     transition: opacity 0.2s;
 }
@@ -492,6 +493,42 @@ body {
     transition: opacity 0.2s;
 }
 .btn-obrisi-malo:hover { opacity: 0.8; }
+
+/* opasno dugme (Obriši/Deaktiviraj) — pun format, crveno */
+.btn-opasno {
+    display: inline-flex;
+    align-items: center;
+    background: #dc2626;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+}
+.btn-opasno:hover { opacity: 0.85; }
+
+/* upozoravajuće dugme (Storno) — pun format, narandžasto */
+.btn-upozorenje {
+    display: inline-flex;
+    align-items: center;
+    background: #f97316;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+}
+.btn-upozorenje:hover { opacity: 0.85; }
 
 /* nazad link na formama */
 .nazad-link {

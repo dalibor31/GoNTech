@@ -183,7 +183,7 @@
 
 {{/* padajući meni za premeštanje artikla — prima dict {ID, Kategorije}; koristi se i u tabeli i u mobilnoj kartici */}}
 {{define "premestiMeni"}}
-<button type="button" class="btn-primarno-malo" style="cursor:pointer;align-self:center;"
+<button type="button" class="btn-primarno-malo" style="align-self:center;"
         onclick="document.getElementById('premesti-{{.ID}}').showModal()">Premesti</button>
 {{/* nativni modal — showModal() ga stavlja u „top layer", pa je uvek iznad svega bez obzira na z-index/overflow */}}
 <dialog id="premesti-{{.ID}}" class="premesti-modal" onclick="if(event.target===this)this.close()">

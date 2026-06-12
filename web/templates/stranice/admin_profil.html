@@ -29,7 +29,7 @@
 					<input type="password" name="nova_lozinka_potvrda" required style="width: 100%" />
 				</div>
 				<div>
-					<button type="submit" style="padding: 9px 20px; background: var(--sb-akcent); color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer">Sačuvaj novu lozinku</button>
+					<button type="submit" class="btn-primarno">Sačuvaj novu lozinku</button>
 				</div>
 			</div>
 		</form>
@@ -62,7 +62,7 @@
 					<label style="font-size: 13px; color: var(--tekst-sporedni); display: block; margin-bottom: 6px">Verifikacioni kod</label>
 					<input type="text" name="kod" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autofocus style="width: 160px; font-size: 18px; text-align: center; letter-spacing: 4px" />
 				</div>
-				<button type="submit" style="padding: 9px 20px; background: var(--sb-akcent); color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer">Potvrdi i uključi 2FA</button>
+				<button type="submit" class="btn-primarno">Potvrdi i uključi 2FA</button>
 			</form>
 
 		{{ else if .TotpAktivan }}
@@ -73,7 +73,7 @@
 					<div style="font-size: 13px; color: var(--tekst-sporedni)">Prijava zahteva TOTP kod pored lozinke.</div>
 				</div>
 				<form method="POST" action="/admin/profil/totp/deaktiviraj" onsubmit="return confirm('Da li ste sigurni? Ovo će isključiti dvostepenu verifikaciju.');">
-					<button type="submit" style="padding: 9px 18px; background: #dc2626; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer">Deaktiviraj 2FA</button>
+					<button type="submit" class="btn-opasno">Deaktiviraj 2FA</button>
 				</form>
 			</div>
 
@@ -90,7 +90,7 @@
 					<div style="font-size: 13px; color: var(--tekst-sporedni); margin-bottom: 10px">Rezervni kodovi: preostalo <strong>{{ .BrojRezervnih }}</strong>. Koriste se za prijavu kada nemate pristup aplikaciji sa kodovima.</div>
 				{{ end }}
 				<form method="POST" action="/admin/profil/totp/kodovi" onsubmit="return confirm('Generisati nove rezervne kodove? Stari kodovi više neće važiti.');">
-					<button type="submit" style="padding: 8px 16px; background: transparent; color: var(--sb-akcent); border: 1px solid var(--sb-akcent); border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer">Regeneriši rezervne kodove</button>
+					<button type="submit" class="btn-sekundarno">Regeneriši rezervne kodove</button>
 				</form>
 			</div>
 
@@ -104,7 +104,7 @@
 					</div>
 					<div style="font-size: 13px; color: var(--tekst-sporedni)">Preporučujemo uključivanje dvostepene verifikacije.</div>
 				</div>
-				<a href="/admin/profil/totp/pokreni" style="padding: 9px 18px; background: var(--sb-akcent); color: #fff; border-radius: 8px; font-size: 14px; font-weight: 500; text-decoration: none">Podesi 2FA</a>
+				<a href="/admin/profil/totp/pokreni" class="btn-primarno">Podesi 2FA</a>
 			</div>
 		{{ end }}
 	</div>
