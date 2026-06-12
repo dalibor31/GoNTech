@@ -239,7 +239,7 @@
         <form method="POST" action="/prodaja/storno/{{.Nalog.ID}}" style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
           <input type="hidden" name="csrf_token" value="{{.CsrfToken}}">
           <input type="text" name="razlog" placeholder="Razlog storniranja (opciono)" style="width:240px;">
-          <button type="submit" class="btn-primarno" style="background:#f97316;"
+          <button type="submit" class="btn-upozorenje"
             data-potvrda="Stornirati nalog {{.Nalog.BrojNaloga}}?">
             Storniraj nalog
           </button>
@@ -257,7 +257,7 @@
         </div>
         <form method="POST" action="/prodaja/obrisi/{{.Nalog.ID}}">
           <input type="hidden" name="csrf_token" value="{{.CsrfToken}}">
-          <button type="submit" class="btn-primarno" style="background:#dc2626;"
+          <button type="submit" class="btn-opasno"
             data-potvrda="Da li ste sigurni da želite da obrišete nalog {{.Nalog.BrojNaloga}}?">
             Obriši nalog
           </button>
