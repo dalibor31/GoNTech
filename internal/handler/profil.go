@@ -3,7 +3,7 @@ package handler
 import (
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -132,7 +132,7 @@ func (h *Handler) ProfilOtpremiPozadinu(w http.ResponseWriter, r *http.Request) 
 	odrediste := filepath.Join("web/static/uploads", novoIme)
 	dst, err := os.Create(odrediste)
 	if err != nil {
-		log.Printf("ProfilOtpremiPozadinu: ne mogu kreirati fajl: %v", err)
+		slog.Error("ProfilOtpremiPozadinu: ne mogu kreirati fajl", "error", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju fajla.")
 		http.Redirect(w, r, "/profil/tema", http.StatusSeeOther)
 		return
@@ -140,7 +140,7 @@ func (h *Handler) ProfilOtpremiPozadinu(w http.ResponseWriter, r *http.Request) 
 	defer dst.Close()
 
 	if _, err := io.Copy(dst, fajl); err != nil {
-		log.Printf("ProfilOtpremiPozadinu: greška pri kopiranju: %v", err)
+		slog.Error("ProfilOtpremiPozadinu: greška pri kopiranju", "error", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju fajla.")
 		http.Redirect(w, r, "/profil/tema", http.StatusSeeOther)
 		return
@@ -168,7 +168,7 @@ func (h *Handler) ProfilOtpremiPozadinu(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if err := h.KorisniciRepo.SacuvajLokalnuPozadinu(r.Context(), k.ID, putanja, opacity, blur, blurPozadine, glassOpacity); err != nil {
-		log.Printf("ProfilOtpremiPozadinu: greška pri čuvanju: %v", err)
+		slog.Error("ProfilOtpremiPozadinu: greška pri čuvanju", "error", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju podešavanja.")
 		http.Redirect(w, r, "/profil/tema", http.StatusSeeOther)
 		return
@@ -193,7 +193,7 @@ func (h *Handler) ProfilUkloniPozadinu(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.KorisniciRepo.SacuvajLokalnuPozadinu(r.Context(), k.ID, "", "50", "12", "0", "10"); err != nil {
-		log.Printf("ProfilUkloniPozadinu: %v", err)
+		slog.Error("ProfilUkloniPozadinu", "error", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri uklanjanju slike.")
 		http.Redirect(w, r, "/profil/tema", http.StatusSeeOther)
 		return
@@ -241,7 +241,7 @@ func (h *Handler) ProfilSacuvajPozadinuStilove(w http.ResponseWriter, r *http.Re
 	}
 
 	if err := h.KorisniciRepo.SacuvajLokalnuPozadinu(r.Context(), k.ID, pozadina, opacity, blur, blurPozadineSt, glassOpacitySt); err != nil {
-		log.Printf("ProfilSacuvajPozadinuStilove: %v", err)
+		slog.Error("ProfilSacuvajPozadinuStilove", "error", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju podešavanja.")
 		http.Redirect(w, r, "/profil/tema", http.StatusSeeOther)
 		return

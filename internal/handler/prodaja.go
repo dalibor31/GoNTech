@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"html/template"
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -171,7 +171,7 @@ func (h *Handler) SacuvajProdaju(w http.ResponseWriter, r *http.Request) {
 
 	brojNaloga, err := h.ProdajaRepo.SledeciBroj(r.Context())
 	if err != nil {
-		log.Printf("greška pri generisanju broja naloga: %v", err)
+		slog.Error("greška pri generisanju broja naloga", "error", err)
 		renderujGresku("Greška pri generisanju broja naloga.")
 		return
 	}
@@ -191,7 +191,7 @@ func (h *Handler) SacuvajProdaju(w http.ResponseWriter, r *http.Request) {
 		if errors.As(err, &errStanje) {
 			renderujGresku(errStanje.Error())
 		} else {
-			log.Printf("greška pri čuvanju prodaje: %v", err)
+			slog.Error("greška pri čuvanju prodaje", "error", err)
 			renderujGresku("Greška pri čuvanju prodajnog naloga.")
 		}
 		return
@@ -403,7 +403,7 @@ func (h *Handler) StornoProdaje(w http.ResponseWriter, r *http.Request) {
 	}
 	razlog := strings.TrimSpace(r.FormValue("razlog"))
 	if err := h.ProdajaRepo.Storno(r.Context(), id, razlog, &k.ID); err != nil {
-		log.Printf("greška pri storniranju naloga: %v", err)
+		slog.Error("greška pri storniranju naloga", "error", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri storniranju. Možda je nalog već storniran.")
 		http.Redirect(w, r, "/prodaja/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
 		return

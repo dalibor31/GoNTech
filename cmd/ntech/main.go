@@ -7,7 +7,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/fs"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"mime"
@@ -31,10 +31,24 @@ import (
 // Verzija se postavlja pri produkcijskom buildu: go build -ldflags "-X main.Verzija=1.2.0"
 var Verzija = "dev"
 
+// podesiLog postavlja podrazumevani slog logger: JSON u produkciji (za mašinsku
+// obradu logova), tekst u razvoju (čitljivije). Nivo je Info.
+func podesiLog() {
+	opcije := &slog.HandlerOptions{Level: slog.LevelInfo}
+	var handler slog.Handler
+	if os.Getenv("NTECH_ENV") == "production" {
+		handler = slog.NewJSONHandler(os.Stdout, opcije)
+	} else {
+		handler = slog.NewTextHandler(os.Stdout, opcije)
+	}
+	slog.SetDefault(slog.New(handler))
+}
+
 func main() {
 	mime.AddExtensionType(".js", "text/javascript")
 	mime.AddExtensionType(".css", "text/css")
 	godotenv.Load("ntech.env")
+	podesiLog()
 	auth.InitAuthLog()
 
 	// disk-first logika: ako folder postoji pored binarnog fajla — koristi disk, inače embed.
@@ -73,38 +87,38 @@ func main() {
 
 	db, err := sqlite.OtvoriDB(putanjaBaze)
 	if err != nil {
-		log.Fatalf("Greška pri otvaranju baze: %v", err)
+		slog.Error("Greška pri otvaranju baze", "error", err); os.Exit(1)
 	}
 	defer db.Close()
 
 	if err := sqlite.PokreniMigracije(db, migrFS); err != nil {
-		log.Fatalf("Greška pri migracijama: %v", err)
+		slog.Error("Greška pri migracijama", "error", err); os.Exit(1)
 	}
-	log.Println("Migracije uspešno izvršene")
+	slog.Info("migracije uspešno izvršene")
 
 	// popuni tabelu dozvola podrazumevanim vrednostima ako je prazna
 	if err := sqlite.InicijalizujDozvole(context.Background(), db, ntechmw.ImaDozvolu, ntechmw.SveAkcije()); err != nil {
-		log.Printf("Upozorenje: greška pri inicijalizaciji dozvola: %v", err)
+		slog.Warn("greška pri inicijalizaciji dozvola", "error", err)
 	}
 
 	// ukloni zastarele dozvole (siročiće) koje više ne postoje u kodu
 	if br, err := sqlite.OcistiSirociceDoz(context.Background(), db, ntechmw.SveAkcije()); err != nil {
-		log.Printf("Upozorenje: greška pri čišćenju dozvola: %v", err)
+		slog.Warn("greška pri čišćenju dozvola", "error", err)
 	} else if br > 0 {
-		log.Printf("Dozvole: uklonjeno %d zastarelih redova", br)
+		slog.Info("uklonjene zastarele dozvole", "broj", br)
 	}
 
 	// ključ za šifrovanje TOTP tajni u mirovanju (AES-256-GCM)
 	totpKljuc, err := ucitajTotpKljuc()
 	if err != nil {
-		log.Fatalf("Greška pri učitavanju ključa za TOTP: %v", err)
+		slog.Error("Greška pri učitavanju ključa za TOTP", "error", err); os.Exit(1)
 	}
 
 	// jednokratno šifruj eventualne stare TOTP tajne koje su ostale kao čist tekst
 	if br, err := sqlite.ZasifrujPostojeceTotp(context.Background(), db, totpKljuc); err != nil {
-		log.Printf("Upozorenje: greška pri šifrovanju postojećih TOTP tajni: %v", err)
+		slog.Warn("greška pri šifrovanju postojećih TOTP tajni", "error", err)
 	} else if br > 0 {
-		log.Printf("TOTP: šifrovano %d postojećih tajni", br)
+		slog.Info("šifrovane postojeće TOTP tajne", "broj", br)
 	}
 
 	napraviBackup(db, putanjaBaze)
@@ -123,10 +137,10 @@ func main() {
 	if os.Getenv("NTECH_ENV") == "production" {
 		kes, err := handler.KreirajKes(templFS)
 		if err != nil {
-			log.Fatalf("Greška pri kreiranju keša šablona: %v", err)
+			slog.Error("Greška pri kreiranju keša šablona", "error", err); os.Exit(1)
 		}
 		h.Templates = kes
-		log.Printf("Keš šablona kreiran: %d šablona", len(kes))
+		slog.Info("keš šablona kreiran", "broj", len(kes))
 	}
 
 	// Pozadinske gorutine se pokreću posle kreiranja h i rade preko h.SaBazom,
@@ -309,10 +323,10 @@ func main() {
 		r.With(doz("tema.lokalno")).Post("/profil/pozadina/stilovi", h.ProfilSacuvajPozadinuStilove)
 	})
 
-	log.Printf("NTech pokrenut na portu %s", port)
+	slog.Info("NTech pokrenut", "port", port)
 	err = http.ListenAndServe(":"+port, r)
 	if err != nil {
-		log.Fatalf("Greška: port %s je zauzet ili nije dostupan", port)
+		slog.Error("port je zauzet ili nije dostupan", "port", port); os.Exit(1)
 	}
 }
 
@@ -350,7 +364,7 @@ func ucitajTotpKljuc() ([]byte, error) {
 		return nil, fmt.Errorf("upis ključa u ntech.env: %w", err)
 	}
 	os.Setenv("NTECH_TOTP_KEY", enkodiran)
-	log.Println("Generisan nov NTECH_TOTP_KEY i upisan u ntech.env")
+	slog.Info("generisan nov NTECH_TOTP_KEY i upisan u ntech.env")
 	return kljuc, nil
 }
 
@@ -363,7 +377,7 @@ func napraviBackup(db *sql.DB, putanjaBaze string) {
 
 	folder := "backups"
 	if err := os.MkdirAll(folder, 0755); err != nil {
-		log.Printf("backup: ne mogu kreirati folder: %v", err)
+		slog.Error("backup: ne mogu kreirati folder", "error", err)
 		return
 	}
 
@@ -371,11 +385,11 @@ func napraviBackup(db *sql.DB, putanjaBaze string) {
 	odrediste := filepath.Join(folder, ime)
 
 	if _, err := db.ExecContext(context.Background(), "VACUUM INTO ?", odrediste); err != nil {
-		log.Printf("backup: greška pri pravljenju backup-a: %v", err)
+		slog.Error("backup: greška pri pravljenju backup-a", "error", err)
 		return
 	}
 
-	log.Printf("Backup kreiran: %s", odrediste)
+	slog.Info("backup kreiran", "putanja", odrediste)
 	ocistiStareBackupe(folder, procitajIntPodesavanje(db, "backup_broj_kopija", 7))
 }
 

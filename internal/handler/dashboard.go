@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -39,14 +39,14 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	if err := h.DB.QueryRowContext(ctx,
 		"SELECT COUNT(*) FROM artikli",
 	).Scan(&brojArtikala); err != nil {
-		log.Printf("dashboard: broj artikala: %v", err)
+		slog.Error("dashboard: broj artikala", "error", err)
 	}
 
 	if err := h.DB.QueryRowContext(ctx, `
 		SELECT COUNT(*) FROM servisni_nalozi
 		WHERE status != 'Završeno'`,
 	).Scan(&aktivniServisi); err != nil {
-		log.Printf("dashboard: aktivni servisi: %v", err)
+		slog.Error("dashboard: aktivni servisi", "error", err)
 	}
 
 	// prihod se dohvata samo ako korisnik ima dozvolu dashboard.prihod
@@ -56,14 +56,14 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 			SELECT COALESCE(SUM(ukupno), 0) FROM prodajni_nalozi
 			WHERE substr(datum, 1, 7) = strftime('%Y-%m', 'now', 'localtime')`,
 		).Scan(&prihodOvogMeseca); err != nil {
-			log.Printf("dashboard: prihod ovog meseca: %v", err)
+			slog.Error("dashboard: prihod ovog meseca", "error", err)
 		}
 	}
 
 	if err := h.DB.QueryRowContext(ctx,
 		"SELECT COUNT(*) FROM artikli WHERE kolicina <= kolicina_min",
 	).Scan(&kriticnaZaliha); err != nil {
-		log.Printf("dashboard: kriticna zaliha: %v", err)
+		slog.Error("dashboard: kriticna zaliha", "error", err)
 	}
 
 	korisnikFilter := appdb.PodsetnikFilter{}
@@ -71,7 +71,7 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		korisnikFilter.KorisnikID = &korisnikDash.ID
 	}
 	if n, err := h.PodsetnikRepo.BrojAktivnih(ctx, korisnikFilter); err != nil {
-		log.Printf("dashboard: aktivni podsetnici: %v", err)
+		slog.Error("dashboard: aktivni podsetnici", "error", err)
 	} else {
 		aktivniPodsetnici = n
 	}
@@ -81,7 +81,7 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		SELECT uredjaj, status, datum_prijema FROM servisni_nalozi
 		ORDER BY datum_prijema DESC LIMIT 5`)
 	if err != nil {
-		log.Printf("dashboard: poslednji servisi: %v", err)
+		slog.Error("dashboard: poslednji servisi", "error", err)
 	}
 
 	var poslednjiServisi []model.StavkaServisa
@@ -104,7 +104,7 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		WHERE kolicina <= kolicina_min
 		ORDER BY kolicina ASC LIMIT 5`)
 	if err != nil {
-		log.Printf("dashboard: kriticne zalihe: %v", err)
+		slog.Error("dashboard: kriticne zalihe", "error", err)
 	}
 
 	var kriticneZalihe []model.StavkaZalihe
@@ -132,7 +132,7 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		LEFT JOIN klijent_prikaz kp ON kp.id = pn.klijent_id
 		ORDER BY pn.datum DESC LIMIT 5`)
 	if err != nil {
-		log.Printf("dashboard: poslednje prodaje: %v", err)
+		slog.Error("dashboard: poslednje prodaje", "error", err)
 	}
 
 	var poslednjeProdaje []model.StavkaProdajePregled
