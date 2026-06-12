@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -182,7 +183,15 @@ func (h *Handler) VerifikujTotp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	kod := r.FormValue("kod")
-	if !auth.VerifikujTotpKod(kod, korisnik.TotpTajna) {
+	validan := auth.VerifikujTotpKod(kod, korisnik.TotpTajna)
+	if !validan {
+		// fallback: pokušaj kao rezervni (jednokratni) kod
+		if ok, err := h.RezervniKodoviRepo.Iskoristi(r.Context(), korisnik.ID, auth.NormalizujRezervniKod(kod)); err == nil && ok {
+			validan = true
+			slog.Info("prijava rezervnim kodom", "korisnik_id", korisnik.ID)
+		}
+	}
+	if !validan {
 		http.Redirect(w, r, "/prijava/totp?greska=1", http.StatusSeeOther)
 		return
 	}
