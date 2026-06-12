@@ -165,32 +165,36 @@ func (h *Handler) VratiBackup(w http.ResponseWriter, r *http.Request) {
 		log.Printf("vrati backup: wal_checkpoint greška: %v", err)
 	}
 
-	// zatvori sve konekcije
-	if err := h.DB.Close(); err != nil {
-		log.Printf("vrati backup: greška pri zatvaranju baze: %v", err)
-	}
+	// Sama zamena baze (zatvaranje stare, kopiranje, otvaranje nove) radi se u
+	// zasebnoj gorutini pod EKSKLUZIVNIM zaključavanjem (h.mu.Lock). Razlog: ovaj
+	// zahtev još drži deljeno zaključavanje (ZakljucajCitanje middleware), pa bi
+	// uzimanje ekskluzivnog u istoj gorutini izazvalo deadlock. Ekskluzivno
+	// zaključavanje sačeka da svi tekući zahtevi (uključujući ovaj, čim vrati
+	// odgovor) završe, pa tek onda menja konekciju — bez data race-a i bez upita
+	// nad zatvorenom bazom. Sledeći zahtev (redirect na /podesavanja) prirodno
+	// sačeka da zamena završi jer čeka na deljeno zaključavanje.
+	go func() {
+		h.mu.Lock()
+		defer h.mu.Unlock()
 
-	// kopiraj backup fajl na mesto trenutne baze
-	if err := kopiraFajl(putanjaBackupa, h.PutanjaBaze); err != nil {
-		log.Printf("vrati backup: greška pri kopiranju: %v", err)
-		http.Redirect(w, r, "/podesavanja?backup_greska=Greška+pri+obnovi+baze", http.StatusSeeOther)
-		return
-	}
+		if err := h.DB.Close(); err != nil {
+			log.Printf("vrati backup: greška pri zatvaranju baze: %v", err)
+		}
+		if err := kopiraFajl(putanjaBackupa, h.PutanjaBaze); err != nil {
+			log.Printf("vrati backup: greška pri kopiranju (baza je zatvorena, potreban restart): %v", err)
+			return
+		}
+		os.Remove(h.PutanjaBaze + "-wal")
+		os.Remove(h.PutanjaBaze + "-shm")
 
-	// ukloni WAL i SHM fajlove stare baze
-	os.Remove(h.PutanjaBaze + "-wal")
-	os.Remove(h.PutanjaBaze + "-shm")
-
-	// otvori novu konekciju
-	novaDB, err := ntechsqlite.OtvoriDB(h.PutanjaBaze)
-	if err != nil {
-		log.Printf("vrati backup: greška pri otvaranju nove baze: %v", err)
-		http.Redirect(w, r, "/podesavanja?backup_greska=Baza+obnovljena+ali+je+potreban+restart", http.StatusSeeOther)
-		return
-	}
-
-	h.reinicijalizujRepozitorijume(novaDB)
-	log.Printf("Baza uspešno obnovljena iz: %s", ime)
+		novaDB, err := ntechsqlite.OtvoriDB(h.PutanjaBaze)
+		if err != nil {
+			log.Printf("vrati backup: greška pri otvaranju nove baze (potreban restart): %v", err)
+			return
+		}
+		h.reinicijalizujRepozitorijume(novaDB)
+		log.Printf("Baza uspešno obnovljena iz: %s", ime)
+	}()
 
 	http.Redirect(w, r, "/podesavanja?sacuvano=vraceno", http.StatusSeeOther)
 }

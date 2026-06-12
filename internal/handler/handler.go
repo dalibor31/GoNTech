@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"io/fs"
 	"net/http"
+	"sync"
 
 	"ntech/internal/db"
 	"ntech/internal/db/sqlite"
@@ -36,6 +37,24 @@ type Handler struct {
 	Templates   map[string]*template.Template
 	TemplatesFS fs.FS
 	totpKljuc   []byte // ključ za šifrovanje TOTP tajni (prosleđuje se KorisniciRepo)
+
+	// mu štiti DB i sve repozitorijume od zamene u letu (obnova backupa).
+	// Zahtevi drže deljeno (read) zaključavanje preko ZakljucajCitanje, a obnova
+	// uzima ekskluzivno (write) zaključavanje pre zamene konekcije.
+	mu sync.RWMutex
+}
+
+// ZakljucajCitanje je middleware koji za vreme obrade zahteva drži deljeno
+// zaključavanje baze. Više zahteva se izvršava paralelno (RLock ne blokira druge
+// čitaoce), ali obnova baze (VratiBackup), koja traži ekskluzivno zaključavanje,
+// sačeka da svi tekući zahtevi završe pre zamene konekcije. Time se sprečava
+// data race nad Handler.DB / repozitorijumima i upit nad zatvorenom konekcijom.
+func (h *Handler) ZakljucajCitanje(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h.mu.RLock()
+		defer h.mu.RUnlock()
+		next.ServeHTTP(w, r)
+	})
 }
 
 // Novi kreira novi Handler sa datom bazom.
@@ -62,7 +81,9 @@ func Novi(baza *sql.DB, totpKljuc []byte) *Handler {
 	}
 }
 
-// reinicijalizujRepozitorijume zamenjuje sve repozitorijume posle obnove baze
+// reinicijalizujRepozitorijume zamenjuje sve repozitorijume posle obnove baze.
+// MORA se pozivati dok je h.mu ekskluzivno zaključan (vidi VratiBackup), inače
+// nastaje data race sa zahtevima koji čitaju repozitorijume.
 func (h *Handler) reinicijalizujRepozitorijume(novaDB *sql.DB) {
 	h.DB = novaDB
 	h.Artikli = sqlite.NoviArtikalRepo(novaDB)
