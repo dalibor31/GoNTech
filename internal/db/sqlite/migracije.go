@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"io/fs"
-	"log"
+	"log/slog"
 	"path"
 	"sort"
 	"strings"
@@ -87,7 +87,7 @@ func PokreniMigracije(db *sql.DB, fsys fs.FS) error {
 			// "duplicate column name" znači da kolona već postoji — željeno stanje je ispunjeno,
 			// pa nastavljamo i beležimo migraciju kao izvršenu
 			if strings.Contains(err.Error(), "duplicate column name") {
-				log.Printf("Upozorenje: migration %s: kolona već postoji, preskačemo", naziv)
+				slog.Warn("migracija: kolona već postoji, preskačemo", "migracija", naziv)
 			} else {
 				return fmt.Errorf("ntech: PokreniMigracije: izvršavanje %s: %w", naziv, err)
 			}

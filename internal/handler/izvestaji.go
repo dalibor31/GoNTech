@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -92,7 +92,7 @@ func (h *Handler) Izvestaji(w http.ResponseWriter, r *http.Request) {
 		WHERE substr(datum, 1, 10) >= date('now', '-11 months', 'start of month')
 		GROUP BY substr(datum, 1, 7)`)
 	if err != nil {
-		log.Printf("izvestaji: prihod prodaja: %v", err)
+		slog.Error("izvestaji: prihod prodaja", "error", err)
 	} else {
 		defer prodajaRed.Close()
 		for prodajaRed.Next() {
@@ -113,7 +113,7 @@ func (h *Handler) Izvestaji(w http.ResponseWriter, r *http.Request) {
 		  AND substr(datum_zavrsetka, 1, 10) >= date('now', '-11 months', 'start of month')
 		GROUP BY substr(datum_zavrsetka, 1, 7)`)
 	if err != nil {
-		log.Printf("izvestaji: prihod servis: %v", err)
+		slog.Error("izvestaji: prihod servis", "error", err)
 	} else {
 		defer servisRed.Close()
 		for servisRed.Next() {
@@ -171,7 +171,7 @@ func (h *Handler) Izvestaji(w http.ResponseWriter, r *http.Request) {
 
 	var stariNalozi []StariNalog
 	if err != nil {
-		log.Printf("izvestaji: stari nalozi: %v", err)
+		slog.Error("izvestaji: stari nalozi", "error", err)
 	} else {
 		defer stariRed.Close()
 		for stariRed.Next() {
@@ -197,7 +197,7 @@ func (h *Handler) Izvestaji(w http.ResponseWriter, r *http.Request) {
 
 	var topArtikli []TopArtikal
 	if err != nil {
-		log.Printf("izvestaji: top artikli: %v", err)
+		slog.Error("izvestaji: top artikli", "error", err)
 	} else {
 		defer artRed.Close()
 		for artRed.Next() {
@@ -231,7 +231,7 @@ func (h *Handler) Izvestaji(w http.ResponseWriter, r *http.Request) {
 
 	var topKlijenti []TopKlijent
 	if err != nil {
-		log.Printf("izvestaji: top klijenti: %v", err)
+		slog.Error("izvestaji: top klijenti", "error", err)
 	} else {
 		defer klijRed.Close()
 		for klijRed.Next() {

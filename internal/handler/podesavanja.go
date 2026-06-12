@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -155,14 +155,14 @@ func (h *Handler) VratiBackup(w http.ResponseWriter, r *http.Request) {
 	// pre obnove, sačuvaj trenutno stanje baze
 	sigurnosni := filepath.Join("backups", fmt.Sprintf("ntech_%s_pred_vracanjem.db", time.Now().Format("20060102_150405")))
 	if _, err := h.DB.ExecContext(r.Context(), "VACUUM INTO ?", sigurnosni); err != nil {
-		log.Printf("vrati backup: greška pri kreiranju sigurnosne kopije: %v", err)
+		slog.Error("vrati backup: greška pri kreiranju sigurnosne kopije", "error", err)
 		http.Redirect(w, r, "/podesavanja?backup_greska=Greška+pri+kreiranju+sigurnosne+kopije", http.StatusSeeOther)
 		return
 	}
 
 	// isprazni WAL u glavni fajl
 	if _, err := h.DB.ExecContext(r.Context(), "PRAGMA wal_checkpoint(TRUNCATE)"); err != nil {
-		log.Printf("vrati backup: wal_checkpoint greška: %v", err)
+		slog.Error("vrati backup: wal_checkpoint greška", "error", err)
 	}
 
 	// Sama zamena baze (zatvaranje stare, kopiranje, otvaranje nove) radi se u
@@ -178,10 +178,10 @@ func (h *Handler) VratiBackup(w http.ResponseWriter, r *http.Request) {
 		defer h.mu.Unlock()
 
 		if err := h.DB.Close(); err != nil {
-			log.Printf("vrati backup: greška pri zatvaranju baze: %v", err)
+			slog.Error("vrati backup: greška pri zatvaranju baze", "error", err)
 		}
 		if err := kopiraFajl(putanjaBackupa, h.PutanjaBaze); err != nil {
-			log.Printf("vrati backup: greška pri kopiranju (baza je zatvorena, potreban restart): %v", err)
+			slog.Error("vrati backup: greška pri kopiranju (baza je zatvorena, potreban restart)", "error", err)
 			return
 		}
 		os.Remove(h.PutanjaBaze + "-wal")
@@ -189,11 +189,11 @@ func (h *Handler) VratiBackup(w http.ResponseWriter, r *http.Request) {
 
 		novaDB, err := ntechsqlite.OtvoriDB(h.PutanjaBaze)
 		if err != nil {
-			log.Printf("vrati backup: greška pri otvaranju nove baze (potreban restart): %v", err)
+			slog.Error("vrati backup: greška pri otvaranju nove baze (potreban restart)", "error", err)
 			return
 		}
 		h.reinicijalizujRepozitorijume(novaDB)
-		log.Printf("Baza uspešno obnovljena iz: %s", ime)
+		slog.Info("baza uspešno obnovljena", "izvor", ime)
 	}()
 
 	http.Redirect(w, r, "/podesavanja?sacuvano=vraceno", http.StatusSeeOther)
@@ -364,14 +364,14 @@ func (h *Handler) OtpremiLogo(w http.ResponseWriter, r *http.Request) {
 	odrediste := "web/static/uploads/logo" + ext
 	dst, err := os.Create(odrediste)
 	if err != nil {
-		log.Printf("upload loga: ne mogu kreirati fajl: %v", err)
+		slog.Error("upload loga: ne mogu kreirati fajl", "error", err)
 		http.Redirect(w, r, "/podesavanja?logo_greska=Greška+pri+čuvanju+fajla", http.StatusSeeOther)
 		return
 	}
 	defer dst.Close()
 
 	if _, err := io.Copy(dst, fajl); err != nil {
-		log.Printf("upload loga: greška pri kopiranju: %v", err)
+		slog.Error("upload loga: greška pri kopiranju", "error", err)
 		http.Redirect(w, r, "/podesavanja?logo_greska=Greška+pri+čuvanju+fajla", http.StatusSeeOther)
 		return
 	}
@@ -379,7 +379,7 @@ func (h *Handler) OtpremiLogo(w http.ResponseWriter, r *http.Request) {
 	// timestamp u URL-u sprečava browser da koristi staru keširanu sliku
 	putanja := fmt.Sprintf("/static/uploads/logo%s?v=%d", ext, time.Now().Unix())
 	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "logo_putanja", putanja); err != nil {
-		log.Printf("upload loga: greška pri čuvanju putanje: %v", err)
+		slog.Error("upload loga: greška pri čuvanju putanje", "error", err)
 		http.Redirect(w, r, "/podesavanja?logo_greska=Greška+pri+čuvanju+podešavanja", http.StatusSeeOther)
 		return
 	}
@@ -463,7 +463,7 @@ func (h *Handler) OtpremiLoginPozadinu(w http.ResponseWriter, r *http.Request) {
 
 	novoIme, err := generisiImeUploada(ext)
 	if err != nil {
-		log.Printf("upload login pozadine: greška pri generisanju imena: %v", err)
+		slog.Error("upload login pozadine: greška pri generisanju imena", "error", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju fajla.")
 		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
@@ -472,7 +472,7 @@ func (h *Handler) OtpremiLoginPozadinu(w http.ResponseWriter, r *http.Request) {
 	odrediste := filepath.Join("web/static/uploads", novoIme)
 	dst, err := os.Create(odrediste)
 	if err != nil {
-		log.Printf("upload login pozadine: ne mogu kreirati fajl: %v", err)
+		slog.Error("upload login pozadine: ne mogu kreirati fajl", "error", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju fajla.")
 		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
@@ -480,7 +480,7 @@ func (h *Handler) OtpremiLoginPozadinu(w http.ResponseWriter, r *http.Request) {
 	defer dst.Close()
 
 	if _, err := io.Copy(dst, fajl); err != nil {
-		log.Printf("upload login pozadine: greška pri kopiranju: %v", err)
+		slog.Error("upload login pozadine: greška pri kopiranju", "error", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju fajla.")
 		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
@@ -488,7 +488,7 @@ func (h *Handler) OtpremiLoginPozadinu(w http.ResponseWriter, r *http.Request) {
 
 	putanja := fmt.Sprintf("/static/uploads/%s?v=%d", novoIme, time.Now().Unix())
 	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "login_pozadina", putanja); err != nil {
-		log.Printf("upload login pozadine: greška pri čuvanju putanje: %v", err)
+		slog.Error("upload login pozadine: greška pri čuvanju putanje", "error", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju podešavanja.")
 		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
@@ -514,7 +514,7 @@ func (h *Handler) UkloniLoginPozadinu(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "login_pozadina", ""); err != nil {
-		log.Printf("ukloni login pozadinu: greška pri čuvanju: %v", err)
+		slog.Error("ukloni login pozadinu: greška pri čuvanju", "error", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri uklanjanju slike.")
 		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 		return
@@ -572,7 +572,7 @@ func (h *Handler) SacuvajLoginPozadinaStilove(w http.ResponseWriter, r *http.Req
 		"login_pozadina_zatamnjenje_kartice":  zatamnjenjeKarticeStr,
 	} {
 		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, kljuc, vrednost); err != nil {
-			log.Printf("stilovi login pozadine: greška pri čuvanju %s: %v", kljuc, err)
+			slog.Error("greška pri čuvanju stila login pozadine", "kljuc", kljuc, "error", err)
 			middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju podešavanja.")
 			http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
 			return

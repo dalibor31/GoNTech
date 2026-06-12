@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"io/fs"
-	"log"
+	"log/slog"
 	"net/http"
 )
 
@@ -90,7 +90,7 @@ func (h *Handler) renderujTemplate(w http.ResponseWriter, ime string, podaci any
 	if h.Templates != nil {
 		t, ok := h.Templates[ime]
 		if !ok {
-			log.Printf("kes: šablon '%s' nije pronađen", ime)
+			slog.Error("šablon nije pronađen", "ime", ime)
 			http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
 			return
 		}
@@ -101,14 +101,14 @@ func (h *Handler) renderujTemplate(w http.ResponseWriter, ime string, podaci any
 		fajlovi = append(fajlovi, "web/templates/stranice/"+ime+".html")
 		var err error
 		if tmpl, err = template.New(ime).Funcs(sablonskeFunkcije).ParseFS(h.TemplatesFS, fajlovi...); err != nil {
-			log.Printf("greška pri parsiranju šablona %s: %v", ime, err)
+			slog.Error("greška pri parsiranju šablona", "ime", ime, "error", err)
 			http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
 			return
 		}
 	}
 
 	if err := tmpl.ExecuteTemplate(w, "base", podaci); err != nil {
-		log.Printf("greška pri renderovanju šablona %s: %v", ime, err)
+		slog.Error("greška pri renderovanju šablona", "ime", ime, "error", err)
 		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
 	}
 }
@@ -120,7 +120,7 @@ func (h *Handler) renderujStandalone(w http.ResponseWriter, ime string, podaci a
 	if h.Templates != nil {
 		t, ok := h.Templates[ime]
 		if !ok {
-			log.Printf("kes: standalone šablon '%s' nije pronađen", ime)
+			slog.Error("standalone šablon nije pronađen", "ime", ime)
 			http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
 			return
 		}
@@ -128,14 +128,14 @@ func (h *Handler) renderujStandalone(w http.ResponseWriter, ime string, podaci a
 	} else {
 		var err error
 		if tmpl, err = template.ParseFS(h.TemplatesFS, "web/templates/stranice/"+ime+".html"); err != nil {
-			log.Printf("greška pri parsiranju šablona %s: %v", ime, err)
+			slog.Error("greška pri parsiranju šablona", "ime", ime, "error", err)
 			http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
 			return
 		}
 	}
 
 	if err := tmpl.Execute(w, podaci); err != nil {
-		log.Printf("greška pri renderovanju šablona %s: %v", ime, err)
+		slog.Error("greška pri renderovanju šablona", "ime", ime, "error", err)
 		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
 	}
 }
