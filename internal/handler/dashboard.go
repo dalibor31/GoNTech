@@ -3,7 +3,6 @@ package handler
 import (
 	"log/slog"
 	"net/http"
-	"time"
 
 	appdb "ntech/internal/db"
 	"ntech/internal/db/sqlite"
@@ -36,34 +35,32 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	var brojArtikala, aktivniServisi, kriticnaZaliha, aktivniPodsetnici int
 	var prihodOvogMeseca float64
 
-	if err := h.DB.QueryRowContext(ctx,
-		"SELECT COUNT(*) FROM artikli",
-	).Scan(&brojArtikala); err != nil {
+	if n, err := h.IzvestajRepo.BrojArtikala(ctx); err != nil {
 		slog.Error("dashboard: broj artikala", "error", err)
+	} else {
+		brojArtikala = n
 	}
 
-	if err := h.DB.QueryRowContext(ctx, `
-		SELECT COUNT(*) FROM servisni_nalozi
-		WHERE status != 'Završeno'`,
-	).Scan(&aktivniServisi); err != nil {
+	if n, err := h.IzvestajRepo.BrojAktivnihServisa(ctx); err != nil {
 		slog.Error("dashboard: aktivni servisi", "error", err)
+	} else {
+		aktivniServisi = n
 	}
 
 	// prihod se dohvata samo ako korisnik ima dozvolu dashboard.prihod
 	korisnikDash := middleware.KorisnikIzKonteksta(ctx)
 	if h.DozvoleRepo.ImaDozvolu(ctx, korisnikDash.Uloga, "dashboard.prihod") {
-		if err := h.DB.QueryRowContext(ctx, `
-			SELECT COALESCE(SUM(ukupno), 0) FROM prodajni_nalozi
-			WHERE substr(datum, 1, 7) = strftime('%Y-%m', 'now', 'localtime')`,
-		).Scan(&prihodOvogMeseca); err != nil {
+		if v, err := h.IzvestajRepo.PrihodTekuciMesec(ctx); err != nil {
 			slog.Error("dashboard: prihod ovog meseca", "error", err)
+		} else {
+			prihodOvogMeseca = v
 		}
 	}
 
-	if err := h.DB.QueryRowContext(ctx,
-		"SELECT COUNT(*) FROM artikli WHERE kolicina <= kolicina_min",
-	).Scan(&kriticnaZaliha); err != nil {
+	if n, err := h.IzvestajRepo.BrojKriticnihZaliha(ctx); err != nil {
 		slog.Error("dashboard: kriticna zaliha", "error", err)
+	} else {
+		kriticnaZaliha = n
 	}
 
 	korisnikFilter := appdb.PodsetnikFilter{}
@@ -76,75 +73,51 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		aktivniPodsetnici = n
 	}
 
-	// poslednjih 5 servisnih naloga sa datumom prijema
-	servisRedovi, err := h.DB.QueryContext(ctx, `
-		SELECT uredjaj, status, datum_prijema FROM servisni_nalozi
-		ORDER BY datum_prijema DESC LIMIT 5`)
-	if err != nil {
-		slog.Error("dashboard: poslednji servisi", "error", err)
-	}
-
+	// poslednjih 5 servisnih naloga — repo vraća sirove redove, ovde formatiramo
 	var poslednjiServisi []model.StavkaServisa
-	if servisRedovi != nil {
-		defer servisRedovi.Close()
-		for servisRedovi.Next() {
-			var s model.StavkaServisa
-			var datum time.Time
-			if err := servisRedovi.Scan(&s.Uredjaj, &s.Status, &datum); err == nil {
-				s.BojaTacke = bojaTackeServisa(s.Status)
-				s.DatumPrijema = datum.Format("02.01.")
-				poslednjiServisi = append(poslednjiServisi, s)
-			}
+	if redovi, err := h.IzvestajRepo.PoslednjiServisi(ctx, 5); err != nil {
+		slog.Error("dashboard: poslednji servisi", "error", err)
+	} else {
+		for _, s := range redovi {
+			poslednjiServisi = append(poslednjiServisi, model.StavkaServisa{
+				Uredjaj:      s.Uredjaj,
+				Status:       s.Status,
+				BojaTacke:    bojaTackeServisa(s.Status),
+				DatumPrijema: s.DatumPrijema.Format("02.01."),
+			})
 		}
 	}
 
-	// artikli sa kritičnom zalihom, sortirani po količini rastuće
-	zaliheRedovi, err := h.DB.QueryContext(ctx, `
-		SELECT naziv, kolicina FROM artikli
-		WHERE kolicina <= kolicina_min
-		ORDER BY kolicina ASC LIMIT 5`)
-	if err != nil {
-		slog.Error("dashboard: kriticne zalihe", "error", err)
-	}
-
+	// artikli sa kritičnom zalihom
 	var kriticneZalihe []model.StavkaZalihe
-	if zaliheRedovi != nil {
-		defer zaliheRedovi.Close()
-		for zaliheRedovi.Next() {
-			var z model.StavkaZalihe
-			if err := zaliheRedovi.Scan(&z.Naziv, &z.Kolicina); err == nil {
-				if z.Kolicina == 0 {
-					z.BojaTacke = "#dc2626"
-				} else {
-					z.BojaTacke = "#f97316"
-				}
-				kriticneZalihe = append(kriticneZalihe, z)
+	if redovi, err := h.IzvestajRepo.KriticneZalihe(ctx, 5); err != nil {
+		slog.Error("dashboard: kriticne zalihe", "error", err)
+	} else {
+		for _, z := range redovi {
+			boja := "#f97316"
+			if z.Kolicina == 0 {
+				boja = "#dc2626"
 			}
+			kriticneZalihe = append(kriticneZalihe, model.StavkaZalihe{
+				Naziv:     z.Naziv,
+				Kolicina:  z.Kolicina,
+				BojaTacke: boja,
+			})
 		}
 	}
 
-	// poslednjih 5 prodajnih naloga sa nazivom klijenta
-	prodajaRedovi, err := h.DB.QueryContext(ctx, `
-		SELECT
-			pn.broj_naloga, pn.ukupno, pn.datum,
-			COALESCE(kp.naziv, '') AS klijent_naziv
-		FROM prodajni_nalozi pn
-		LEFT JOIN klijent_prikaz kp ON kp.id = pn.klijent_id
-		ORDER BY pn.datum DESC LIMIT 5`)
-	if err != nil {
-		slog.Error("dashboard: poslednje prodaje", "error", err)
-	}
-
+	// poslednjih 5 prodajnih naloga
 	var poslednjeProdaje []model.StavkaProdajePregled
-	if prodajaRedovi != nil {
-		defer prodajaRedovi.Close()
-		for prodajaRedovi.Next() {
-			var p model.StavkaProdajePregled
-			var datum time.Time
-			if err := prodajaRedovi.Scan(&p.BrojNaloga, &p.Ukupno, &datum, &p.KlijentNaziv); err == nil {
-				p.Datum = datum.Format("02.01.")
-				poslednjeProdaje = append(poslednjeProdaje, p)
-			}
+	if redovi, err := h.IzvestajRepo.PoslednjeProdaje(ctx, 5); err != nil {
+		slog.Error("dashboard: poslednje prodaje", "error", err)
+	} else {
+		for _, p := range redovi {
+			poslednjeProdaje = append(poslednjeProdaje, model.StavkaProdajePregled{
+				BrojNaloga:   p.BrojNaloga,
+				Ukupno:       p.Ukupno,
+				Datum:        p.Datum.Format("02.01."),
+				KlijentNaziv: p.KlijentNaziv,
+			})
 		}
 	}
 
