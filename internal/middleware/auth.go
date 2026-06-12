@@ -128,6 +128,24 @@ func RequireDozvola(proveri func(ctx context.Context, uloga, akcija string) bool
 	}
 }
 
+// RequireDozvolaMut je kao RequireDozvola, ali namenjen mutirajućim rutama
+// (POST i akcije brisanja). Na odbijanje vraća 403 sa srpskom porukom umesto
+// redirecta — isto kao handler.zahtevajDozvolu, pa ne kvari AJAX/fetch pozive.
+// Postavljanjem ove provere na ruteru, zaštita mutacije više ne zavisi od toga
+// da li je programer dodao proveru u samom handleru.
+func RequireDozvolaMut(proveri func(ctx context.Context, uloga, akcija string) bool, akcija string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			k := KorisnikIzKonteksta(r.Context())
+			if k == nil || !proveri(r.Context(), k.Uloga, akcija) {
+				http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // postaviFlashGresku upisuje jednokratnu poruku o grešci u kolačić
 func postaviFlashGresku(w http.ResponseWriter, poruka string) {
 	http.SetCookie(w, &http.Cookie{
