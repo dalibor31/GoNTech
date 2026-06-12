@@ -16,10 +16,11 @@ type kontekstKljuc string
 // KljucKorisnika je ključ za korisnika u request contextu
 const KljucKorisnika kontekstKljuc = "korisnik"
 
-// RequireAuth je chi middleware koji proverava sesiju i injektuje korisnika u context
-func RequireAuth(db *sql.DB) func(http.Handler) http.Handler {
+// RequireAuth je chi middleware koji proverava sesiju i injektuje korisnika u context.
+// totpKljuc je ključ za dešifrovanje TOTP tajne (korisRepo ga koristi pri čitanju).
+func RequireAuth(db *sql.DB, totpKljuc []byte) func(http.Handler) http.Handler {
 	sesijeRepo := sqlite.NoviSesijeRepo(db)
-	korisRepo := sqlite.NoviKorisniciRepo(db)
+	korisRepo := sqlite.NoviKorisniciRepo(db, totpKljuc)
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
