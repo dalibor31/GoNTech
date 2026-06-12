@@ -57,6 +57,17 @@ func (h *Handler) ZakljucajCitanje(next http.Handler) http.Handler {
 	})
 }
 
+// SaBazom izvršava fn sa TRENUTNOM konekcijom baze, pod deljenim zaključavanjem.
+// Namenjeno pozadinskim gorutinama (auto-backup, čišćenje): posle obnove backupa
+// h.DB se menja, pa gorutine moraju da čitaju aktuelni handle, a ne zatvoreni.
+// Zaključavanje se drži samo za vreme fn — ne pozivaj iz njega operacije koje
+// dugo blokiraju (npr. time.Sleep), da ne bi nepotrebno odlagao obnovu.
+func (h *Handler) SaBazom(fn func(*sql.DB)) {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	fn(h.DB)
+}
+
 // Novi kreira novi Handler sa datom bazom.
 // totpKljuc je 32-bajtni ključ za šifrovanje TOTP tajni u mirovanju.
 func Novi(baza *sql.DB, totpKljuc []byte) *Handler {
