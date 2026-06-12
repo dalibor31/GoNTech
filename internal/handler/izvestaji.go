@@ -86,42 +86,21 @@ func (h *Handler) Izvestaji(w http.ResponseWriter, r *http.Request) {
 
 	// --- mesečni prihod: prodaja ---
 	prodajaPoMesecu := map[string]float64{}
-	prodajaRed, err := h.DB.QueryContext(ctx, `
-		SELECT substr(datum, 1, 7), SUM(ukupno)
-		FROM prodajni_nalozi
-		WHERE substr(datum, 1, 10) >= date('now', '-11 months', 'start of month')
-		GROUP BY substr(datum, 1, 7)`)
-	if err != nil {
+	if redovi, err := h.IzvestajRepo.MesecniPrihodProdaja(ctx); err != nil {
 		slog.Error("izvestaji: prihod prodaja", "error", err)
 	} else {
-		defer prodajaRed.Close()
-		for prodajaRed.Next() {
-			var mesec string
-			var iznos float64
-			if err := prodajaRed.Scan(&mesec, &iznos); err == nil {
-				prodajaPoMesecu[mesec] = iznos
-			}
+		for _, m := range redovi {
+			prodajaPoMesecu[m.Mesec] = m.Iznos
 		}
 	}
 
 	// --- mesečni prihod: servis ---
 	servisPoMesecu := map[string]float64{}
-	servisRed, err := h.DB.QueryContext(ctx, `
-		SELECT substr(datum_zavrsetka, 1, 7), SUM(cena_konacna)
-		FROM servisni_nalozi
-		WHERE datum_zavrsetka IS NOT NULL
-		  AND substr(datum_zavrsetka, 1, 10) >= date('now', '-11 months', 'start of month')
-		GROUP BY substr(datum_zavrsetka, 1, 7)`)
-	if err != nil {
+	if redovi, err := h.IzvestajRepo.MesecniPrihodServis(ctx); err != nil {
 		slog.Error("izvestaji: prihod servis", "error", err)
 	} else {
-		defer servisRed.Close()
-		for servisRed.Next() {
-			var mesec string
-			var iznos float64
-			if err := servisRed.Scan(&mesec, &iznos); err == nil {
-				servisPoMesecu[mesec] = iznos
-			}
+		for _, m := range redovi {
+			servisPoMesecu[m.Mesec] = m.Iznos
 		}
 	}
 
@@ -160,86 +139,51 @@ func (h *Handler) Izvestaji(w http.ResponseWriter, r *http.Request) {
 	})
 
 	// --- stari otvoreni nalozi (>14 dana bez završetka) ---
-	stariRed, err := h.DB.QueryContext(ctx, `
-		SELECT sn.id, sn.broj_naloga, sn.uredjaj, sn.status, sn.datum_prijema,
-		       COALESCE(NULLIF(kp.naziv, ''), '—') AS klijent_naziv
-		FROM servisni_nalozi sn
-		LEFT JOIN klijent_prikaz kp ON kp.id = sn.klijent_id
-		WHERE sn.datum_zavrsetka IS NULL
-		  AND substr(sn.datum_prijema, 1, 10) <= date('now', '-14 days')
-		ORDER BY sn.datum_prijema ASC`)
-
 	var stariNalozi []StariNalog
-	if err != nil {
+	if redovi, err := h.IzvestajRepo.StariOtvoreniNalozi(ctx); err != nil {
 		slog.Error("izvestaji: stari nalozi", "error", err)
 	} else {
-		defer stariRed.Close()
-		for stariRed.Next() {
-			var sn StariNalog
-			var datumVreme time.Time
-			if err := stariRed.Scan(&sn.ID, &sn.BrojNaloga, &sn.Uredjaj, &sn.Status, &datumVreme, &sn.KlijentNaziv); err == nil {
-				sn.DatumPrijema = datumVreme.Format("02.01.2006.")
-				sn.DanaProslo = int(time.Since(datumVreme).Hours() / 24)
-				stariNalozi = append(stariNalozi, sn)
-			}
+		for _, sn := range redovi {
+			stariNalozi = append(stariNalozi, StariNalog{
+				ID:           sn.ID,
+				BrojNaloga:   sn.BrojNaloga,
+				Uredjaj:      sn.Uredjaj,
+				KlijentNaziv: sn.KlijentNaziv,
+				Status:       sn.Status,
+				DatumPrijema: sn.DatumPrijema.Format("02.01.2006."),
+				DanaProslo:   int(time.Since(sn.DatumPrijema).Hours() / 24),
+			})
 		}
 	}
 
 	// --- top 10 najprodavanijih artikala ---
-	artRed, err := h.DB.QueryContext(ctx, `
-		SELECT a.naziv, COALESCE(k.naziv, '—'), SUM(sp.kolicina), SUM(sp.ukupno)
-		FROM stavke_prodaje sp
-		JOIN artikli a ON a.id = sp.artikal_id
-		LEFT JOIN kategorije k ON k.id = a.kategorija_id
-		GROUP BY sp.artikal_id
-		ORDER BY SUM(sp.kolicina) DESC
-		LIMIT 10`)
-
 	var topArtikli []TopArtikal
-	if err != nil {
+	if redovi, err := h.IzvestajRepo.TopArtikli(ctx, 10); err != nil {
 		slog.Error("izvestaji: top artikli", "error", err)
 	} else {
-		defer artRed.Close()
-		for artRed.Next() {
-			var a TopArtikal
-			if err := artRed.Scan(&a.Naziv, &a.Kategorija, &a.UkupnoKolicina, &a.UkupnoPrihod); err == nil {
-				a.Rang = len(topArtikli) + 1
-				topArtikli = append(topArtikli, a)
-			}
+		for i, a := range redovi {
+			topArtikli = append(topArtikli, TopArtikal{
+				Rang:           i + 1,
+				Naziv:          a.Naziv,
+				Kategorija:     a.Kategorija,
+				UkupnoKolicina: a.UkupnoKolicina,
+				UkupnoPrihod:   a.UkupnoPrihod,
+			})
 		}
 	}
 
 	// --- top 10 klijenata po ukupnoj vrednosti ---
-	klijRed, err := h.DB.QueryContext(ctx, `
-		SELECT
-		    kp.naziv AS naziv,
-		    COALESCE(p.ukupno_prodaja, 0) + COALESCE(s.ukupno_servis, 0) AS ukupno_vrednost,
-		    COALESCE(p.broj_prodaja, 0) + COALESCE(s.broj_servisa, 0) AS broj_naloga
-		FROM klijenti k
-		LEFT JOIN klijent_prikaz kp ON kp.id = k.id
-		LEFT JOIN (
-		    SELECT klijent_id, SUM(ukupno) AS ukupno_prodaja, COUNT(*) AS broj_prodaja
-		    FROM prodajni_nalozi GROUP BY klijent_id
-		) p ON p.klijent_id = k.id
-		LEFT JOIN (
-		    SELECT klijent_id, SUM(cena_konacna) AS ukupno_servis, COUNT(*) AS broj_servisa
-		    FROM servisni_nalozi WHERE cena_konacna IS NOT NULL GROUP BY klijent_id
-		) s ON s.klijent_id = k.id
-		WHERE COALESCE(p.ukupno_prodaja, 0) + COALESCE(s.ukupno_servis, 0) > 0
-		ORDER BY ukupno_vrednost DESC
-		LIMIT 10`)
-
 	var topKlijenti []TopKlijent
-	if err != nil {
+	if redovi, err := h.IzvestajRepo.TopKlijenti(ctx, 10); err != nil {
 		slog.Error("izvestaji: top klijenti", "error", err)
 	} else {
-		defer klijRed.Close()
-		for klijRed.Next() {
-			var k TopKlijent
-			if err := klijRed.Scan(&k.Naziv, &k.UkupnoVrednost, &k.BrojNaloga); err == nil {
-				k.Rang = len(topKlijenti) + 1
-				topKlijenti = append(topKlijenti, k)
-			}
+		for i, k := range redovi {
+			topKlijenti = append(topKlijenti, TopKlijent{
+				Rang:           i + 1,
+				Naziv:          k.Naziv,
+				BrojNaloga:     k.BrojNaloga,
+				UkupnoVrednost: k.UkupnoVrednost,
+			})
 		}
 	}
 
