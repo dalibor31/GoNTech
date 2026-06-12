@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -116,7 +116,7 @@ func (h *Handler) SacuvajPodsetnik(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := h.PodsetnikRepo.Kreiraj(r.Context(), &podsetnik); err != nil {
-		log.Printf("greška pri čuvanju podsetnika: %v", err)
+		slog.Error("greška pri čuvanju podsetnika", "error", err)
 		h.prikaziGreskuPodsetnika(w, r, k, podsetnik, "Došlo je do greške pri čuvanju. Pokušajte ponovo.", false)
 		return
 	}
@@ -187,7 +187,7 @@ func (h *Handler) SacuvajIzmenePodsetnika(w http.ResponseWriter, r *http.Request
 	}
 
 	if err := h.PodsetnikRepo.Izmeni(r.Context(), &podsetnik); err != nil {
-		log.Printf("greška pri čuvanju izmene podsetnika: %v", err)
+		slog.Error("greška pri čuvanju izmene podsetnika", "error", err)
 		h.prikaziGreskuPodsetnika(w, r, k, podsetnik, "Došlo je do greške pri čuvanju. Pokušajte ponovo.", true)
 		return
 	}

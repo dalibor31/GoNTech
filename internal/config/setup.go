@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -48,7 +49,7 @@ func nadjiLokalneAdrese() []string {
 func PokreniSetup(fsys fs.FS) {
 	port := NadjiSlobodanPort()
 	if port == 0 {
-		log.Fatal("ntech: setup: nije pronađen nijedan slobodan port")
+		slog.Error("setup: nije pronađen nijedan slobodan port"); os.Exit(1)
 	}
 
 	gotov := make(chan struct{})
@@ -102,7 +103,7 @@ func PokreniSetup(fsys fs.FS) {
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("ntech: setup server: %v", err)
+			slog.Error("setup server", "error", err); os.Exit(1)
 		}
 	}()
 

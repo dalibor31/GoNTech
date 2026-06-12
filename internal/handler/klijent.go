@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -101,7 +101,7 @@ func (h *Handler) SacuvajKlijenta(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := h.KlijentiRepo.Kreiraj(r.Context(), &klijent); err != nil {
-		log.Printf("greška pri čuvanju klijenta: %v", err)
+		slog.Error("greška pri čuvanju klijenta", "error", err)
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		ps := h.popuniPodaciStranice(r, podesavanja)
 		ps.Stranica = "klijenti"
@@ -182,7 +182,7 @@ func (h *Handler) SacuvajIzmenuKlijenta(w http.ResponseWriter, r *http.Request) 
 
 	klijent.ID = id
 	if err := h.KlijentiRepo.Izmeni(r.Context(), &klijent); err != nil {
-		log.Printf("greška pri čuvanju izmene klijenta: %v", err)
+		slog.Error("greška pri čuvanju izmene klijenta", "error", err)
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		ps := h.popuniPodaciStranice(r, podesavanja)
 		ps.Stranica = "klijenti"

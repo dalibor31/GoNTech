@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -152,7 +152,7 @@ func (h *Handler) SacuvajNalog(w http.ResponseWriter, r *http.Request) {
 
 	id, err := h.ServisRepo.Kreiraj(r.Context(), &nalog)
 	if err != nil {
-		log.Printf("greška pri čuvanju naloga: %v", err)
+		slog.Error("greška pri čuvanju naloga", "error", err)
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		klijenti, _ := h.KlijentiRepo.Lista(r.Context(), "")
 		tehnicari, _ := h.KorisniciRepo.Lista(r.Context())
@@ -258,7 +258,7 @@ func (h *Handler) SacuvajIzmenaNaloga(w http.ResponseWriter, r *http.Request) {
 
 	nalog.ID = id
 	if err := h.ServisRepo.Izmeni(r.Context(), &nalog); err != nil {
-		log.Printf("greška pri čuvanju izmene naloga: %v", err)
+		slog.Error("greška pri čuvanju izmene naloga", "error", err)
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		klijenti, _ := h.KlijentiRepo.Lista(r.Context(), "")
 		tehnicari, _ := h.KorisniciRepo.Lista(r.Context())
@@ -337,13 +337,13 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 
 	delovi, err := h.ServisniDeloviRepo.DohvatiZaNalog(r.Context(), id)
 	if err != nil {
-		log.Printf("greška pri učitavanju delova: %v", err)
+		slog.Error("greška pri učitavanju delova", "error", err)
 	}
 
 	appdb := appdbPkg.ArtikalFilter{}
 	artikli, err := h.Artikli.Lista(r.Context(), appdb)
 	if err != nil {
-		log.Printf("greška pri učitavanju artikala: %v", err)
+		slog.Error("greška pri učitavanju artikala", "error", err)
 	}
 
 	ps := h.popuniPodaciStranice(r, podesavanja)
@@ -402,7 +402,7 @@ func (h *Handler) DodajDeloNalogu(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := h.ServisniDeloviRepo.Dodaj(r.Context(), nalogID, artikalID, kolicina, cena, &k.ID); err != nil {
-		log.Printf("greška pri dodavanju dela: %v", err)
+		slog.Error("greška pri dodavanju dela", "error", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri dodavanju dela. Proverite stanje na magacinu.")
 		http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
 		return
@@ -432,7 +432,7 @@ func (h *Handler) ObrisiDeloNaloga(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.ServisniDeloviRepo.Obrisi(r.Context(), deoID, &k.ID); err != nil {
-		log.Printf("greška pri brisanju dela: %v", err)
+		slog.Error("greška pri brisanju dela", "error", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri uklanjanju dela.")
 	} else {
 		middleware.SetFlash(w, r, h.DB, "uspeh", "Deo je uklonjen.")
