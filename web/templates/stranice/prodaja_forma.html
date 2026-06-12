@@ -51,7 +51,7 @@
       <div style="display: flex; flex-direction: column; gap: 14px">
         <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
           <div>
-            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Klijent</label>
+            <label class="polje-labela">Klijent</label>
             <select name="klijent_id" style="width: 100%">
               <option value="">— bez klijenta —</option>
               {{range .Klijenti}}
@@ -60,7 +60,7 @@
             </select>
           </div>
           <div>
-            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Način plaćanja</label>
+            <label class="polje-labela">Način plaćanja</label>
             <select name="nacin_placanja" style="width:100%;">
               <option value="gotovina">Gotovina</option>
               <option value="kartica">Platna kartica</option>
@@ -69,7 +69,7 @@
           </div>
         </div>
         <div>
-          <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Napomena</label>
+          <label class="polje-labela">Napomena</label>
           <textarea name="napomena" rows="2"
             placeholder="Interna napomena o prodaji..."
             style="width: 100%; resize: vertical"></textarea>

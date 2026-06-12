@@ -33,7 +33,7 @@
 
                 <!-- naziv -->
                 <div>
-                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">
+                    <label class="polje-labela">
                         Naziv <span style="color:#dc2626;">*</span>
                     </label>
                     <input type="text" name="naziv" value="{{.Dobavljac.Naziv}}"
@@ -44,13 +44,13 @@
                 <!-- kontakt osoba i telefon -->
                 <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                     <div>
-                        <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Kontakt osoba</label>
+                        <label class="polje-labela">Kontakt osoba</label>
                         <input type="text" name="kontakt_osoba" value="{{.Dobavljac.KontaktOsoba}}"
                             placeholder="npr. Marko Petrović"
                             style="width:100%;">
                     </div>
                     <div>
-                        <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Telefon</label>
+                        <label class="polje-labela">Telefon</label>
                         <input type="text" name="telefon" value="{{.Dobavljac.Telefon}}"
                             placeholder="npr. 011 123 4567"
                             style="width:100%;">
@@ -59,7 +59,7 @@
 
                 <!-- e-pošta -->
                 <div>
-                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">E-pošta</label>
+                    <label class="polje-labela">E-pošta</label>
                     <input type="text" name="email" value="{{.Dobavljac.Email}}"
                         placeholder="npr. nabavka@techdistrib.rs"
                         style="width:100%;">
@@ -67,7 +67,7 @@
 
                 <!-- napomena -->
                 <div>
-                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Napomena</label>
+                    <label class="polje-labela">Napomena</label>
                     <textarea name="napomena" rows="3"
                         placeholder="Interna napomena o dobavljaču..."
                         style="width:100%;resize:vertical;">{{.Dobavljac.Napomena}}</textarea>
