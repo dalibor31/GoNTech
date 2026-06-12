@@ -29,7 +29,7 @@ Cilj je jednostavan: sve što servis treba da prati nalazi se na jednom mestu, b
 - Sistem migracija baze podataka
 - Korisnički interfejs — sidebar navigacija, sistem tema (tamna/svetla), dashboard sa statistikama
 - Prijava korisnika — sesije na serveru, zaključavanje naloga
-- Dvofaktorska autentifikacija (TOTP) — aktivacija sa QR kodom, rezervni kodovi
+- Dvofaktorska autentifikacija (TOTP) — aktivacija sa QR kodom; tajna šifrovana u bazi (AES-256-GCM, ključ van baze)
 - Bruteforce zaštita — IP zaključavanje nakon 5 neuspelih pokušaja u 15 minuta
 - CSRF zaštita — double-submit cookie pattern, automatska injekcija tokena u sve forme
 - Bezbednosni HTTP headeri (CSP, X-Frame-Options, Referrer-Policy, nosniff...)
@@ -45,16 +45,19 @@ Cilj je jednostavan: sve što servis treba da prati nalazi se na jednom mestu, b
 - Podešavanja — naziv, adresa, PIB, logo firme; promena teme
 - Pozadinske slike — login stranica i aplikacija, sa zamućenjem, providnošću i glass efektom
 - Lična tema i pozadina — svaki korisnik može svoju temu i pozadinsku sliku
-- Matrica dozvola (RBAC) — admin panel za podešavanje dozvola po ulogama
+- Matrica dozvola (RBAC) — admin panel za dozvole po ulogama; provera se sprovodi na nivou ruta (i mutirajućih i pregleda) i u handlerima
 - Flash poruke — jednokratne povratne informacije nakon akcije
-- Automatski backup SQLite baze — sa podešavanjem broja čuvanih kopija
+- Automatski backup SQLite baze — sa podešavanjem broja čuvanih kopija; vraćanje baze iz kopije (bezbedno, bez prekida rada)
 - Grafikoni — mesečni prihod na izveštajima (Chart.js)
+- Strukturisano logovanje — `log/slog` (JSON u produkciji, tekst u razvoju); zaseban auth log u fail2ban formatu
+- Automatski testovi — jedinični i integracioni nad SQLite bazom (kripto, RBAC, tokovi prijave, validatori forme, izveštaji)
 
 ### Planirano
 
 - Fiskalizacija i PDV obračun (specifikacija u Project.md)
 - Podrška za PostgreSQL (za višekorisničko okruženje)
 - WebAuthn / Passkey prijava (šema baze je pripremljena)
+- Rezervni (jednokratni) kodovi za 2FA
 - Obaveštenja (e-pošta / WhatsApp) — odloženo za kasniju fazu
 - Skeniranje barkodova putem kamere — odloženo za kasniju fazu
 
