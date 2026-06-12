@@ -28,7 +28,7 @@
     <div class="kartica detalji-kartica animiraj">
         <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
             <span style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">Detalji nabavke</span>
-            <span style="font-size:13px;color:var(--tekst-sporedni);">{{.Nabavka.Datum.Format "02.01.2006. u 15:04"}}</span>
+            <span class="pomocni-tekst">{{.Nabavka.Datum.Format "02.01.2006. u 15:04"}}</span>
         </div>
 
         <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:16px;">
@@ -131,7 +131,7 @@
         <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
             <div style="flex:1;min-width:200px;">
                 <div style="font-size:14px;font-weight:500;color:#dc2626;margin-bottom:4px;">Brisanje nabavke</div>
-                <div style="font-size:13px;color:var(--tekst-sporedni);">
+                <div class="pomocni-tekst">
                     Brisanje je trajno i ne vraća količine artikala u magacin.
                 </div>
             </div>

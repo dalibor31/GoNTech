@@ -48,7 +48,7 @@
                     style="padding:8px 16px;background:var(--sb-akcent);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap;flex-shrink:0;font-weight:500;">
                     Izaberi fajl
                 </label>
-                <span id="login-pozadina-ime" style="font-size:13px;color:var(--tekst-sporedni);">Nijedan fajl nije izabran</span>
+                <span id="login-pozadina-ime" class="pomocni-tekst">Nijedan fajl nije izabran</span>
                 <button type="submit"
                     style="padding:8px 16px;background:var(--sb-aktivan);color:var(--tekst-jak);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap;transition:opacity 0.2s;flex-shrink:0;"
                     onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
@@ -81,7 +81,7 @@
 
             <div style="margin-top:16px;">
                 <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-                    <span style="font-size:13px;color:var(--tekst-sporedni);">Zamućenje pozadine</span>
+                    <span class="pomocni-tekst">Zamućenje pozadine</span>
                     <span style="font-size:13px;color:var(--tekst-glavni);font-weight:500;" x-text="blurPozadine + 'px'"></span>
                 </div>
                 <input type="range" x-model.number="blurPozadine" min="0" max="20" step="1"
@@ -89,7 +89,7 @@
             </div>
             <div style="margin-top:12px;">
                 <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-                    <span style="font-size:13px;color:var(--tekst-sporedni);">Zamućenje kartice (glass)</span>
+                    <span class="pomocni-tekst">Zamućenje kartice (glass)</span>
                     <span style="font-size:13px;color:var(--tekst-glavni);font-weight:500;" x-text="blurKartice + 'px'"></span>
                 </div>
                 <input type="range" x-model.number="blurKartice" min="0" max="20" step="1"
@@ -97,7 +97,7 @@
             </div>
             <div style="margin-top:12px;">
                 <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-                    <span style="font-size:13px;color:var(--tekst-sporedni);">Zatamnjivanje pozadine</span>
+                    <span class="pomocni-tekst">Zatamnjivanje pozadine</span>
                     <span style="font-size:13px;color:var(--tekst-glavni);font-weight:500;" x-text="opacity + '%'"></span>
                 </div>
                 <input type="range" x-model.number="opacity" min="0" max="80" step="1"
@@ -105,7 +105,7 @@
             </div>
             <div style="margin-top:12px;">
                 <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-                    <span style="font-size:13px;color:var(--tekst-sporedni);">Zatamnjivanje kartice NTech</span>
+                    <span class="pomocni-tekst">Zatamnjivanje kartice NTech</span>
                     <span style="font-size:13px;color:var(--tekst-glavni);font-weight:500;" x-text="zatamnjenjeKartice + '%'"></span>
                 </div>
                 <input type="range" x-model.number="zatamnjenjeKartice" min="0" max="80" step="1"
