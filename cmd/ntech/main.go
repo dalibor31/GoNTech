@@ -316,6 +316,7 @@ func main() {
 		r.Get("/admin/profil/totp/pokreni", h.AdminTotpPokreni)
 		r.Post("/admin/profil/totp/aktiviraj", h.AdminTotpAktivacija)
 		r.Post("/admin/profil/totp/deaktiviraj", h.AdminTotpDeaktivacija)
+		r.Post("/admin/profil/totp/kodovi", h.AdminTotpRegenerisiKodove)
 		r.With(doz("tema.lokalno")).Post("/profil/tema", h.SacuvajLokalnuTemu)
 		r.Get("/profil/tema", h.ProfilTema)
 		r.With(doz("tema.lokalno")).Post("/profil/pozadina", h.ProfilOtpremiPozadinu)

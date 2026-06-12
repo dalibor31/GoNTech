@@ -220,6 +220,49 @@ func TestTotpTok(t *testing.T) {
 	}
 }
 
+func TestPrijavaRezervnimKodom(t *testing.T) {
+	h := testHandler(t)
+	ctx := context.Background()
+	id := seedKorisnik(t, h, "pera", "tajna123", "radnik")
+	_ = h.KorisniciRepo.SacuvajTotpTajnu(ctx, id, "JBSWY3DPEHPK3PXP")
+
+	// generiši i sačuvaj rezervne kodove
+	kodovi, err := auth.GenerisiRezervneKodove(5)
+	if err != nil {
+		t.Fatalf("GenerisiRezervneKodove: %v", err)
+	}
+	var hashevi []string
+	for _, kod := range kodovi {
+		hash, _ := auth.HashujLozinku(kod)
+		hashevi = append(hashevi, hash)
+	}
+	if err := h.RezervniKodoviRepo.Zameni(ctx, id, hashevi); err != nil {
+		t.Fatalf("Zameni: %v", err)
+	}
+
+	// prijava lozinkom → pred-sesija
+	w := httptest.NewRecorder()
+	h.Prijava(w, postPrijava("pera", "tajna123"))
+	token := sesijskiKolacic(w.Result())
+
+	// umesto TOTP-a unesi REZERVNI kod
+	form := url.Values{}
+	form.Set("kod", kodovi[0])
+	r := httptest.NewRequest("POST", "/prijava/totp", strings.NewReader(form.Encode()))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	r.AddCookie(&http.Cookie{Name: imeKolacica, Value: token})
+	w2 := httptest.NewRecorder()
+	h.VerifikujTotp(w2, r)
+
+	if loc := w2.Result().Header.Get("Location"); loc != "/dashboard" {
+		t.Fatalf("rezervnim kodom Location = %q, očekivano /dashboard", loc)
+	}
+	// kod je potrošen (jednokratni) — preostalo 4
+	if n, _ := h.RezervniKodoviRepo.BrojPreostalih(ctx, id); n != 4 {
+		t.Fatalf("posle upotrebe preostalo %d kodova, očekivano 4", n)
+	}
+}
+
 func TestTotpPogresanKod(t *testing.T) {
 	h := testHandler(t)
 	ctx := context.Background()

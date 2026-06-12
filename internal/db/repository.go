@@ -143,6 +143,15 @@ type DozvoleRepository interface {
 	Reset(ctx context.Context) error
 }
 
+// RezervniKodoviRepository definiše operacije nad rezervnim (jednokratnim) 2FA kodovima.
+// Kodovi se čuvaju kao bcrypt heš; Iskoristi prima čist kod i poredi ga sa hešovima.
+type RezervniKodoviRepository interface {
+	Zameni(ctx context.Context, korisnikID int64, hashevi []string) error
+	Iskoristi(ctx context.Context, korisnikID int64, kod string) (bool, error)
+	BrojPreostalih(ctx context.Context, korisnikID int64) (int, error)
+	Obrisi(ctx context.Context, korisnikID int64) error
+}
+
 // IzvestajRepository definiše read-only upite za dashboard i stranicu izveštaja.
 // Vraća sirove podatke; prezentaciju (datumi, boje, rang) radi handler.
 type IzvestajRepository interface {
