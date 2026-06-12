@@ -6,10 +6,16 @@ import (
 	"fmt"
 	"time"
 
+	"ntech/internal/auth"
 	"ntech/internal/model"
 )
 
-type sqliteKorisniciRepo struct{ db *sql.DB }
+// sqliteKorisniciRepo drži ključ za šifrovanje TOTP tajni (AES-256-GCM) jer se
+// tajna šifruje pri upisu (SacuvajTotpTajnu) i dešifruje pri čitanju.
+type sqliteKorisniciRepo struct {
+	db    *sql.DB
+	kljuc []byte
+}
 
 // dodeliOpcijeKorisnika popunjava bool i opciona polja korisnika iz skeniranih
 // NULL vrednosti — deljeno između skeniraiKorisnika (jedan red) i Lista (više redova)
@@ -49,9 +55,23 @@ func skeniraiKorisnika(row interface{ Scan(...any) error }) (*model.Korisnik, er
 	return k, nil
 }
 
-// NoviKorisniciRepo kreira SQLite implementaciju KorisniciRepository
-func NoviKorisniciRepo(db *sql.DB) *sqliteKorisniciRepo {
-	return &sqliteKorisniciRepo{db: db}
+// NoviKorisniciRepo kreira SQLite implementaciju KorisniciRepository.
+// kljuc je 32-bajtni ključ za šifrovanje TOTP tajni u mirovanju.
+func NoviKorisniciRepo(db *sql.DB, kljuc []byte) *sqliteKorisniciRepo {
+	return &sqliteKorisniciRepo{db: db, kljuc: kljuc}
+}
+
+// desifrujTotpTajnu pretvara šifrovanu TOTP tajnu (kako stoji u bazi) u čist
+// tekst u memoriji. Tolerantno je na stare nešifrovane tajne: ako dešifrovanje
+// ne uspe (greška GCM provere), vrednost se ostavlja kakva jeste — to je plain
+// text iz verzija pre uvođenja enkripcije.
+func (r *sqliteKorisniciRepo) desifrujTotpTajnu(k *model.Korisnik) {
+	if k.TotpTajna == "" {
+		return
+	}
+	if cisto, err := auth.Desifruj(k.TotpTajna, r.kljuc); err == nil {
+		k.TotpTajna = cisto
+	}
 }
 
 func (r *sqliteKorisniciRepo) Kreiraj(ctx context.Context, korisnickoIme, lozinkaHash, uloga string) (*model.Korisnik, error) {
@@ -77,6 +97,7 @@ func (r *sqliteKorisniciRepo) DohvatiPoImenu(ctx context.Context, korisnickoIme 
 	if err != nil {
 		return nil, fmt.Errorf("ntech: korisnici.DohvatiPoImenu: %w", err)
 	}
+	r.desifrujTotpTajnu(k)
 	return k, nil
 }
 
@@ -92,6 +113,7 @@ func (r *sqliteKorisniciRepo) DohvatiPoID(ctx context.Context, id int64) (*model
 	if err != nil {
 		return nil, fmt.Errorf("ntech: korisnici.DohvatiPoID: %w", err)
 	}
+	r.desifrujTotpTajnu(k)
 	return k, nil
 }
 
@@ -123,6 +145,7 @@ func (r *sqliteKorisniciRepo) Lista(ctx context.Context) ([]model.Korisnik, erro
 		dodeliOpcijeKorisnika(&k, aktivan, koristiLokalnuTemu, lokalnaTema,
 			lokalnaPozadina, lokalnaPozadinaOpacity, lokalnaPozadinaBlur,
 			lokalnaPozadinaBlurPozadine, lokalnaPozadinaGlassOpacity, datumKreiranja)
+		r.desifrujTotpTajnu(&k)
 		lista = append(lista, k)
 	}
 	return lista, nil
@@ -191,12 +214,66 @@ func (r *sqliteKorisniciRepo) SacuvajTotpTajnu(ctx context.Context, id int64, ta
 	if tajna == "" {
 		_, err = r.db.ExecContext(ctx, `UPDATE korisnici SET totp_tajna = NULL WHERE id = ?`, id)
 	} else {
-		_, err = r.db.ExecContext(ctx, `UPDATE korisnici SET totp_tajna = ? WHERE id = ?`, tajna, id)
+		// tajna se čuva šifrovana (AES-256-GCM) — nikad kao čist tekst
+		sifrovana, errSifra := auth.Sifruj(tajna, r.kljuc)
+		if errSifra != nil {
+			return fmt.Errorf("ntech: korisnici.SacuvajTotpTajnu: %w", errSifra)
+		}
+		_, err = r.db.ExecContext(ctx, `UPDATE korisnici SET totp_tajna = ? WHERE id = ?`, sifrovana, id)
 	}
 	if err != nil {
 		return fmt.Errorf("ntech: korisnici.SacuvajTotpTajnu: %w", err)
 	}
 	return nil
+}
+
+// ZasifrujPostojeceTotp jednokratno šifruje sve TOTP tajne koje su u bazi ostale
+// kao čist tekst (iz verzija pre uvođenja enkripcije). Idempotentno je: tajne koje
+// se već dešifruju datim ključem preskače. Vraća broj ažuriranih redova. Poziva se
+// pri pokretanju programa, posle migracija.
+func ZasifrujPostojeceTotp(ctx context.Context, db *sql.DB, kljuc []byte) (int, error) {
+	rows, err := db.QueryContext(ctx,
+		`SELECT id, totp_tajna FROM korisnici WHERE totp_tajna IS NOT NULL AND totp_tajna != ''`)
+	if err != nil {
+		return 0, fmt.Errorf("ntech: korisnici.ZasifrujPostojeceTotp: %w", err)
+	}
+	// prvo skupljamo redove, pa tek onda upisujemo — da ne čitamo i pišemo
+	// istovremeno preko iste konekcije
+	type red struct {
+		id    int64
+		tajna string
+	}
+	var zaSifrovanje []red
+	for rows.Next() {
+		var rd red
+		if err := rows.Scan(&rd.id, &rd.tajna); err != nil {
+			rows.Close()
+			return 0, fmt.Errorf("ntech: korisnici.ZasifrujPostojeceTotp: %w", err)
+		}
+		// ako se već dešifruje, znači da je šifrovana — preskoči je
+		if _, err := auth.Desifruj(rd.tajna, kljuc); err == nil {
+			continue
+		}
+		zaSifrovanje = append(zaSifrovanje, rd)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return 0, fmt.Errorf("ntech: korisnici.ZasifrujPostojeceTotp: %w", err)
+	}
+	rows.Close()
+
+	br := 0
+	for _, rd := range zaSifrovanje {
+		sifrovana, err := auth.Sifruj(rd.tajna, kljuc)
+		if err != nil {
+			return br, fmt.Errorf("ntech: korisnici.ZasifrujPostojeceTotp: %w", err)
+		}
+		if _, err := db.ExecContext(ctx, `UPDATE korisnici SET totp_tajna = ? WHERE id = ?`, sifrovana, rd.id); err != nil {
+			return br, fmt.Errorf("ntech: korisnici.ZasifrujPostojeceTotp: %w", err)
+		}
+		br++
+	}
+	return br, nil
 }
 
 func (r *sqliteKorisniciRepo) Obrisi(ctx context.Context, id int64) error {

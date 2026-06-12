@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"io/fs"
 	"log"
@@ -92,6 +94,19 @@ func main() {
 		log.Printf("Dozvole: uklonjeno %d zastarelih redova", br)
 	}
 
+	// ključ za šifrovanje TOTP tajni u mirovanju (AES-256-GCM)
+	totpKljuc, err := ucitajTotpKljuc()
+	if err != nil {
+		log.Fatalf("Greška pri učitavanju ključa za TOTP: %v", err)
+	}
+
+	// jednokratno šifruj eventualne stare TOTP tajne koje su ostale kao čist tekst
+	if br, err := sqlite.ZasifrujPostojeceTotp(context.Background(), db, totpKljuc); err != nil {
+		log.Printf("Upozorenje: greška pri šifrovanju postojećih TOTP tajni: %v", err)
+	} else if br > 0 {
+		log.Printf("TOTP: šifrovano %d postojećih tajni", br)
+	}
+
 	napraviBackup(db, putanjaBaze)
 
 	// periodični automatski backup — interval se čita iz podešavanja u svakom ciklusu,
@@ -118,7 +133,7 @@ func main() {
 
 	os.MkdirAll("web/static/uploads", 0755)
 
-	h := handler.Novi(db)
+	h := handler.Novi(db, totpKljuc)
 	h.Verzija = Verzija
 	// verzija statičkih fajlova za cache-busting — menja se pri svakom pokretanju,
 	// pa novi build/restart natera brauzer da povuče sveži CSS/JS (umesto starog iz keša)
@@ -172,7 +187,7 @@ func main() {
 
 	// zaštićene rute — zahtevaju prijavljenog korisnika
 	r.Group(func(r chi.Router) {
-		r.Use(ntechmw.RequireAuth(db))
+		r.Use(ntechmw.RequireAuth(db, totpKljuc))
 
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/dashboard", http.StatusFound)
@@ -281,6 +296,44 @@ func main() {
 	if err != nil {
 		log.Fatalf("Greška: port %s je zauzet ili nije dostupan", port)
 	}
+}
+
+// ucitajTotpKljuc vraća 32-bajtni ključ za šifrovanje TOTP tajni. Čita ga iz
+// NTECH_TOTP_KEY (base64). Ako env nije postavljen, generiše nov nasumičan ključ
+// i dopisuje ga u ntech.env (perm 0600), tako da postojeće instalacije dobiju
+// ključ automatski pri prvom pokretanju nove verzije.
+//
+// VAŽNO: ako se ovaj ključ izgubi ili promeni, postojeće šifrovane TOTP tajne se
+// više ne mogu dešifrovati (korisnici moraju ponovo aktivirati 2FA).
+func ucitajTotpKljuc() ([]byte, error) {
+	if v := os.Getenv("NTECH_TOTP_KEY"); v != "" {
+		kljuc, err := base64.StdEncoding.DecodeString(v)
+		if err != nil {
+			return nil, fmt.Errorf("NTECH_TOTP_KEY nije ispravan base64: %w", err)
+		}
+		if len(kljuc) != auth.DuzinaTotpKljuca {
+			return nil, fmt.Errorf("NTECH_TOTP_KEY mora imati %d bajta (trenutno %d)", auth.DuzinaTotpKljuca, len(kljuc))
+		}
+		return kljuc, nil
+	}
+
+	// nema ključa — generiši nov i upiši ga u ntech.env
+	kljuc := make([]byte, auth.DuzinaTotpKljuca)
+	if _, err := rand.Read(kljuc); err != nil {
+		return nil, fmt.Errorf("generisanje ključa: %w", err)
+	}
+	enkodiran := base64.StdEncoding.EncodeToString(kljuc)
+	f, err := os.OpenFile("ntech.env", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+	if err != nil {
+		return nil, fmt.Errorf("otvaranje ntech.env: %w", err)
+	}
+	defer f.Close()
+	if _, err := f.WriteString("\nNTECH_TOTP_KEY=" + enkodiran + "\n"); err != nil {
+		return nil, fmt.Errorf("upis ključa u ntech.env: %w", err)
+	}
+	os.Setenv("NTECH_TOTP_KEY", enkodiran)
+	log.Println("Generisan nov NTECH_TOTP_KEY i upisan u ntech.env")
+	return kljuc, nil
 }
 
 // napraviBackup kreira konzistentnu kopiju baze i briše najstarije preko zadatog broja kopija.
