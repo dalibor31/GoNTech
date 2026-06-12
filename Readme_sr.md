@@ -30,6 +30,7 @@ Cilj je jednostavan: sve što servis treba da prati nalazi se na jednom mestu, b
 - Korisnički interfejs — sidebar navigacija, sistem tema (tamna/svetla), dashboard sa statistikama
 - Prijava korisnika — sesije na serveru, zaključavanje naloga
 - Dvofaktorska autentifikacija (TOTP) — aktivacija sa QR kodom; tajna šifrovana u bazi (AES-256-GCM, ključ van baze)
+- Rezervni (jednokratni) kodovi za 2FA — generišu se pri aktivaciji, čuvaju kao bcrypt heš; alternativa TOTP-u pri prijavi
 - Bruteforce zaštita — IP zaključavanje nakon 5 neuspelih pokušaja u 15 minuta
 - CSRF zaštita — double-submit cookie pattern, automatska injekcija tokena u sve forme
 - Bezbednosni HTTP headeri (CSP, X-Frame-Options, Referrer-Policy, nosniff...)
@@ -57,7 +58,6 @@ Cilj je jednostavan: sve što servis treba da prati nalazi se na jednom mestu, b
 - Fiskalizacija i PDV obračun (specifikacija u Project.md)
 - Podrška za PostgreSQL (za višekorisničko okruženje)
 - WebAuthn / Passkey prijava (šema baze je pripremljena)
-- Rezervni (jednokratni) kodovi za 2FA
 - Obaveštenja (e-pošta / WhatsApp) — odloženo za kasniju fazu
 - Skeniranje barkodova putem kamere — odloženo za kasniju fazu
 

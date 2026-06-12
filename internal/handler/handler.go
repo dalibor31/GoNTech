@@ -15,29 +15,30 @@ import (
 
 // Handler drži zavisnosti koje su potrebne svim handlerima
 type Handler struct {
-	DB          *sql.DB
-	PutanjaBaze string
-	Artikli         db.ArtikalRepository
-	KategorijeRepo  db.KategorijaRepository
-	DobavljaciRepo  db.DobavljacRepository
-	NabavkeRepo     db.NabavkaRepository
-	KlijentiRepo    db.KlijentRepository
-	ServisRepo          db.ServisRepository
-	ServisniDeloviRepo  db.ServisniDeloviRepository
+	DB                    *sql.DB
+	PutanjaBaze           string
+	Artikli               db.ArtikalRepository
+	KategorijeRepo        db.KategorijaRepository
+	DobavljaciRepo        db.DobavljacRepository
+	NabavkeRepo           db.NabavkaRepository
+	KlijentiRepo          db.KlijentRepository
+	ServisRepo            db.ServisRepository
+	ServisniDeloviRepo    db.ServisniDeloviRepository
 	MagacinskePromeneRepo db.MagacinskePromeneRepository
-	ProdajaRepo     db.ProdajaRepository
-	KorisniciRepo   db.KorisniciRepository
-	SesijeRepo      db.SesijeRepository
-	PodsetnikRepo db.PodsetnikRepository
-	IzvestajRepo  db.IzvestajRepository
-	PokusajiRepo       db.PokusajiPrijaveRepository
-	LoginIstorijsaRepo db.LoginIstorijsaRepository
-	DozvoleRepo     db.DozvoleRepository
-	Verzija     string
-	AssetV      string // verzija statičkih fajlova za cache-busting (postavlja se pri pokretanju)
-	Templates   map[string]*template.Template
-	TemplatesFS fs.FS
-	totpKljuc   []byte // ključ za šifrovanje TOTP tajni (prosleđuje se KorisniciRepo)
+	ProdajaRepo           db.ProdajaRepository
+	KorisniciRepo         db.KorisniciRepository
+	SesijeRepo            db.SesijeRepository
+	PodsetnikRepo         db.PodsetnikRepository
+	IzvestajRepo          db.IzvestajRepository
+	RezervniKodoviRepo    db.RezervniKodoviRepository
+	PokusajiRepo          db.PokusajiPrijaveRepository
+	LoginIstorijsaRepo    db.LoginIstorijsaRepository
+	DozvoleRepo           db.DozvoleRepository
+	Verzija               string
+	AssetV                string // verzija statičkih fajlova za cache-busting (postavlja se pri pokretanju)
+	Templates             map[string]*template.Template
+	TemplatesFS           fs.FS
+	totpKljuc             []byte // ključ za šifrovanje TOTP tajni (prosleđuje se KorisniciRepo)
 
 	// mu štiti DB i sve repozitorijume od zamene u letu (obnova backupa).
 	// Zahtevi drže deljeno (read) zaključavanje preko ZakljucajCitanje, a obnova
@@ -73,24 +74,25 @@ func (h *Handler) SaBazom(fn func(*sql.DB)) {
 // totpKljuc je 32-bajtni ključ za šifrovanje TOTP tajni u mirovanju.
 func Novi(baza *sql.DB, totpKljuc []byte) *Handler {
 	return &Handler{
-		DB:             baza,
-		totpKljuc:      totpKljuc,
-		Artikli:        sqlite.NoviArtikalRepo(baza),
-		KategorijeRepo: sqlite.NovaKategorijaRepo(baza),
-		DobavljaciRepo: sqlite.NoviDobavljacRepo(baza),
-		NabavkeRepo:    sqlite.NoviNabavkaRepo(baza),
-		KlijentiRepo:   sqlite.NoviKlijentRepo(baza),
+		DB:                    baza,
+		totpKljuc:             totpKljuc,
+		Artikli:               sqlite.NoviArtikalRepo(baza),
+		KategorijeRepo:        sqlite.NovaKategorijaRepo(baza),
+		DobavljaciRepo:        sqlite.NoviDobavljacRepo(baza),
+		NabavkeRepo:           sqlite.NoviNabavkaRepo(baza),
+		KlijentiRepo:          sqlite.NoviKlijentRepo(baza),
 		ServisRepo:            sqlite.NoviServisRepo(baza),
 		ServisniDeloviRepo:    sqlite.NoviServisniDeloviRepo(baza),
 		MagacinskePromeneRepo: sqlite.NoviMagacinskePromeneRepo(baza),
 		ProdajaRepo:           sqlite.NoviProdajaRepo(baza),
-		KorisniciRepo:   sqlite.NoviKorisniciRepo(baza, totpKljuc),
-		SesijeRepo:      sqlite.NoviSesijeRepo(baza),
-		PodsetnikRepo: sqlite.NoviPodsetnikRepo(baza),
-		IzvestajRepo:  sqlite.NoviIzvestajRepo(baza),
-		PokusajiRepo:       sqlite.NoviPokusajiPrijaveRepo(baza),
-		LoginIstorijsaRepo: sqlite.NoviLoginIstorijsaRepo(baza),
-		DozvoleRepo:     sqlite.NoviDozvoleRepo(baza, middleware.ImaDozvolu, middleware.SveAkcije()),
+		KorisniciRepo:         sqlite.NoviKorisniciRepo(baza, totpKljuc),
+		SesijeRepo:            sqlite.NoviSesijeRepo(baza),
+		PodsetnikRepo:         sqlite.NoviPodsetnikRepo(baza),
+		IzvestajRepo:          sqlite.NoviIzvestajRepo(baza),
+		RezervniKodoviRepo:    sqlite.NoviRezervniKodoviRepo(baza),
+		PokusajiRepo:          sqlite.NoviPokusajiPrijaveRepo(baza),
+		LoginIstorijsaRepo:    sqlite.NoviLoginIstorijsaRepo(baza),
+		DozvoleRepo:           sqlite.NoviDozvoleRepo(baza, middleware.ImaDozvolu, middleware.SveAkcije()),
 	}
 }
 
@@ -112,6 +114,7 @@ func (h *Handler) reinicijalizujRepozitorijume(novaDB *sql.DB) {
 	h.SesijeRepo = sqlite.NoviSesijeRepo(novaDB)
 	h.PodsetnikRepo = sqlite.NoviPodsetnikRepo(novaDB)
 	h.IzvestajRepo = sqlite.NoviIzvestajRepo(novaDB)
+	h.RezervniKodoviRepo = sqlite.NoviRezervniKodoviRepo(novaDB)
 	h.PokusajiRepo = sqlite.NoviPokusajiPrijaveRepo(novaDB)
 	h.LoginIstorijsaRepo = sqlite.NoviLoginIstorijsaRepo(novaDB)
 	h.DozvoleRepo = sqlite.NoviDozvoleRepo(novaDB, middleware.ImaDozvolu, middleware.SveAkcije())
