@@ -143,6 +143,26 @@ type DozvoleRepository interface {
 	Reset(ctx context.Context) error
 }
 
+// IzvestajRepository definiše read-only upite za dashboard i stranicu izveštaja.
+// Vraća sirove podatke; prezentaciju (datumi, boje, rang) radi handler.
+type IzvestajRepository interface {
+	// dashboard — brojači
+	BrojArtikala(ctx context.Context) (int, error)
+	BrojAktivnihServisa(ctx context.Context) (int, error)
+	PrihodTekuciMesec(ctx context.Context) (float64, error)
+	BrojKriticnihZaliha(ctx context.Context) (int, error)
+	// dashboard — liste
+	PoslednjiServisi(ctx context.Context, limit int) ([]model.ServisRedDashboard, error)
+	KriticneZalihe(ctx context.Context, limit int) ([]model.ZalihaRed, error)
+	PoslednjeProdaje(ctx context.Context, limit int) ([]model.ProdajaRedDashboard, error)
+	// izveštaji
+	MesecniPrihodProdaja(ctx context.Context) ([]model.MesecniIznos, error)
+	MesecniPrihodServis(ctx context.Context) ([]model.MesecniIznos, error)
+	StariOtvoreniNalozi(ctx context.Context) ([]model.StariNalogRed, error)
+	TopArtikli(ctx context.Context, limit int) ([]model.TopArtikalRed, error)
+	TopKlijenti(ctx context.Context, limit int) ([]model.TopKlijentRed, error)
+}
+
 // PodsetnikRepository definiše operacije nad podsetnicima
 type PodsetnikRepository interface {
 	Lista(ctx context.Context, filter PodsetnikFilter) ([]model.Podsetnik, error)
