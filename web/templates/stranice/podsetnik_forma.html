@@ -31,7 +31,7 @@
             <div style="display:flex;flex-direction:column;gap:16px;">
 
                 <div>
-                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">
+                    <label class="polje-labela">
                         Naslov <span style="color:var(--greska);">*</span>
                     </label>
                     <input type="text" name="naslov" value="{{.Podsetnik.Naslov}}"
@@ -40,7 +40,7 @@
                 </div>
 
                 <div>
-                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">
+                    <label class="polje-labela">
                         Datum podsećanja <span style="color:var(--greska);">*</span>
                     </label>
                     <input type="date" name="datum_podsecanja"
@@ -49,7 +49,7 @@
                 </div>
 
                 <div>
-                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Napomena</label>
+                    <label class="polje-labela">Napomena</label>
                     <textarea name="napomena" rows="4"
                         placeholder="Detalji ili beleška vezana za ovaj podsetnik..."
                         style="width:100%;resize:vertical;">{{.Podsetnik.Napomena}}</textarea>
@@ -57,7 +57,7 @@
 
                 {{if .Korisnici}}
                 <div>
-                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">
+                    <label class="polje-labela">
                         Dodeli korisniku
                     </label>
                     <select name="korisnik_id" style="width:100%;">

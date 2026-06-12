@@ -17,15 +17,15 @@
 		<form method="POST" action="/admin/profil/lozinka">
 			<div style="display: flex; flex-direction: column; gap: 12px">
 				<div>
-					<label style="font-size: 13px; color: var(--tekst-sporedni); display: block; margin-bottom: 6px">Trenutna lozinka</label>
+					<label class="polje-labela">Trenutna lozinka</label>
 					<input type="password" name="stara_lozinka" required style="width: 100%" />
 				</div>
 				<div>
-					<label style="font-size: 13px; color: var(--tekst-sporedni); display: block; margin-bottom: 6px">Nova lozinka</label>
+					<label class="polje-labela">Nova lozinka</label>
 					<input type="password" name="nova_lozinka" required minlength="8" style="width: 100%" />
 				</div>
 				<div>
-					<label style="font-size: 13px; color: var(--tekst-sporedni); display: block; margin-bottom: 6px">Potvrda nove lozinke</label>
+					<label class="polje-labela">Potvrda nove lozinke</label>
 					<input type="password" name="nova_lozinka_potvrda" required style="width: 100%" />
 				</div>
 				<div>
@@ -59,7 +59,7 @@
 			<form method="POST" action="/admin/profil/totp/aktiviraj">
 				<input type="hidden" name="totp_tajna" value="{{ .TotpTajna }}" />
 				<div style="margin-bottom: 12px">
-					<label style="font-size: 13px; color: var(--tekst-sporedni); display: block; margin-bottom: 6px">Verifikacioni kod</label>
+					<label class="polje-labela">Verifikacioni kod</label>
 					<input type="text" name="kod" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autofocus style="width: 160px; font-size: 18px; text-align: center; letter-spacing: 4px" />
 				</div>
 				<button type="submit" class="btn-primarno">Potvrdi i uključi 2FA</button>
