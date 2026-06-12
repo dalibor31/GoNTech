@@ -25,7 +25,7 @@
 {{end}}
 
 {{define "sadrzaj"}}
-<div style="display:flex;flex-direction:column;gap:16px;">
+<div class="kolona" style="gap:16px;">
 
     {{if .Sacuvano}}
     <div class="poruka-uspeh">Artikal je uspešno sačuvan.</div>
@@ -48,7 +48,7 @@
     </div>
 
     <!-- pretraga i filteri -->
-    <form method="GET" action="/magacin" style="display:flex;flex-direction:column;gap:10px;">
+    <form method="GET" action="/magacin" class="kolona" style="gap:10px;">
         <input type="text" name="pretraga" value="{{.Filter.Pretraga}}"
             placeholder="Pretraži artikle..."
             style="width:100%;">
@@ -134,7 +134,7 @@
     <div class="magacin-kartice">
         {{range .Artikli}}
         <div class="kartica magacin-kartica animiraj">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;">
+            <div class="red-izmedju" style="align-items:flex-start;gap:12px;margin-bottom:10px;">
                 <div>
                     <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">{{.Naziv}}</div>
                     {{if .KategorijaNaziv}}

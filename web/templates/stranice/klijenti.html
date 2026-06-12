@@ -24,7 +24,7 @@
 {{end}}
 
 {{define "sadrzaj"}}
-<div style="display:flex;flex-direction:column;gap:16px;">
+<div class="kolona" style="gap:16px;">
 
     {{if .Sacuvano}}
     <div class="poruka-uspeh poruka-animacija">Klijent je uspešno sačuvan.</div>
@@ -113,7 +113,7 @@
     <div class="klijenti-kartice">
         {{range .Klijenti}}
         <div class="kartica klijent-kartica animiraj">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;">
+            <div class="red-izmedju" style="align-items:flex-start;gap:12px;margin-bottom:10px;">
                 <div>
                     {{if .NazivFirme}}
                     <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">{{.NazivFirme}}</div>
@@ -138,7 +138,7 @@
                     {{end}}
                 </div>
             </div>
-            <div style="display:flex;flex-direction:column;gap:6px;">
+            <div class="kolona" style="gap:6px;">
                 {{if .Telefon}}
                 <div class="pomocni-tekst">
                     <span style="color:var(--tekst-glavni);font-weight:500;">Telefon:</span> {{.Telefon}}

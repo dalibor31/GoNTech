@@ -37,12 +37,12 @@
             <!-- broj naloga ide kao hidden — server ga je generisao, vraćamo ga pri POST-u -->
             <input type="hidden" name="broj_naloga" value="{{.Nalog.BrojNaloga}}">
 
-            <div style="display:flex;flex-direction:column;gap:20px;">
+            <div class="kolona" style="gap:20px;">
 
                 <!-- uređaj -->
                 <div>
                     <div class="sekcija-naslov">Uređaj</div>
-                    <div style="display:flex;flex-direction:column;gap:12px;">
+                    <div class="kolona" style="gap:12px;">
                         <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                             <div>
                                 <label class="polje-labela">

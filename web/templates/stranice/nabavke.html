@@ -24,7 +24,7 @@
 {{end}}
 
 {{define "sadrzaj"}}
-<div style="display:flex;flex-direction:column;gap:16px;">
+<div class="kolona" style="gap:16px;">
 
     {{if .Sacuvano}}
     <div class="poruka-uspeh poruka-animacija">Nabavka je uspešno sačuvana.</div>
@@ -98,7 +98,7 @@
     <div class="nabavke-kartice">
         {{range .Nabavke}}
         <div class="kartica nabavka-kartica animiraj">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;">
+            <div class="red-izmedju" style="align-items:flex-start;gap:12px;margin-bottom:10px;">
                 <div>
                     <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">
                         {{if .DobavljacNaziv}}{{.DobavljacNaziv}}{{else}}Bez dobavljača{{end}}
