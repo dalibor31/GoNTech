@@ -45,7 +45,7 @@
                     <div style="display:flex;flex-direction:column;gap:12px;">
                         <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                             <div>
-                                <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">
+                                <label class="polje-labela">
                                     Uređaj <span style="color:#dc2626;">*</span>
                                 </label>
                                 <input type="text" name="uredjaj" value="{{.Nalog.Uredjaj}}"
@@ -53,14 +53,14 @@
                                     style="width:100%;">
                             </div>
                             <div>
-                                <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Serijski broj</label>
+                                <label class="polje-labela">Serijski broj</label>
                                 <input type="text" name="serijski_broj" value="{{.Nalog.SerijskiBroj}}"
                                     placeholder="npr. 5CD1234XYZ"
                                     style="width:100%;">
                             </div>
                         </div>
                         <div>
-                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">
+                            <label class="polje-labela">
                                 Opis kvara <span style="color:#dc2626;">*</span>
                             </label>
                             <textarea name="opis_kvara" rows="3"
@@ -75,7 +75,7 @@
                     <div class="sekcija-naslov">Klijent i tehničar</div>
                     <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                         <div>
-                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Klijent</label>
+                            <label class="polje-labela">Klijent</label>
                             <select name="klijent_id" style="width:100%;">
                                 <option value="">— bez klijenta —</option>
                                 {{range .Klijenti}}
@@ -87,7 +87,7 @@
                             </select>
                         </div>
                         <div>
-                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Tehničar</label>
+                            <label class="polje-labela">Tehničar</label>
                             <select name="tehnicar_id" style="width:100%;">
                                 <option value="">— nedodeljen —</option>
                                 {{range .Tehnicari}}
@@ -106,7 +106,7 @@
                     <div class="sekcija-naslov">Status i datumi</div>
                     <div class="forma-grid-4" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;">
                         <div style="grid-column:span 2;">
-                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Status naloga</label>
+                            <label class="polje-labela">Status naloga</label>
                             <select name="status" style="width:100%;">
                                 {{range .SviStatusi}}
                                 <option value="{{.}}" {{if eq . $.Nalog.Status}}selected{{end}}>{{.}}</option>
@@ -114,13 +114,13 @@
                             </select>
                         </div>
                         <div>
-                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Datum završetka</label>
+                            <label class="polje-labela">Datum završetka</label>
                             <input type="date" name="datum_zavrsetka"
                                 value="{{if .Nalog.DatumZavrsetka}}{{.Nalog.DatumZavrsetka.Format "2006-01-02"}}{{end}}"
                                 style="width:100%;">
                         </div>
                         <div>
-                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Garancija do</label>
+                            <label class="polje-labela">Garancija do</label>
                             <input type="date" name="garancija_do"
                                 value="{{if .Nalog.GarancijaDo}}{{.Nalog.GarancijaDo.Format "2006-01-02"}}{{end}}"
                                 style="width:100%;">
@@ -133,25 +133,25 @@
                     <div class="sekcija-naslov">Cene (din)</div>
                     <div class="forma-grid-4" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;">
                         <div>
-                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Procena od</label>
+                            <label class="polje-labela">Procena od</label>
                             <input type="number" name="cena_od" min="0" step="0.01"
                                 value="{{if .Nalog.CenaOd}}{{.Nalog.CenaOd}}{{end}}"
                                 placeholder="0" style="width:100%;">
                         </div>
                         <div>
-                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Procena do</label>
+                            <label class="polje-labela">Procena do</label>
                             <input type="number" name="cena_do" min="0" step="0.01"
                                 value="{{if .Nalog.CenaDo}}{{.Nalog.CenaDo}}{{end}}"
                                 placeholder="0" style="width:100%;">
                         </div>
                         <div>
-                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Konačna cena</label>
+                            <label class="polje-labela">Konačna cena</label>
                             <input type="number" name="cena_konacna" min="0" step="0.01"
                                 value="{{if .Nalog.CenaKonacna}}{{.Nalog.CenaKonacna}}{{end}}"
                                 placeholder="0" style="width:100%;">
                         </div>
                         <div>
-                            <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Avans</label>
+                            <label class="polje-labela">Avans</label>
                             <input type="number" name="avans" min="0" step="0.01"
                                 value="{{if .Nalog.Avans}}{{.Nalog.Avans}}{{end}}"
                                 placeholder="0" style="width:100%;">
@@ -161,7 +161,7 @@
 
                 <!-- napomena -->
                 <div>
-                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:6px;">Napomena</label>
+                    <label class="polje-labela">Napomena</label>
                     <textarea name="napomena" rows="2"
                         placeholder="Interna napomena o nalogu..."
                         style="width:100%;resize:vertical;">{{.Nalog.Napomena}}</textarea>
