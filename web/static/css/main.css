@@ -994,6 +994,15 @@ select {
 .tabela tbody tr:nth-child(9)  { animation-delay: 0.36s; }
 .tabela tbody tr:nth-child(10) { animation-delay: 0.40s; }
 
+/* Stagger mobilnih lista-kartica (parnjak gornjeg za tabele). Pogađa kartice
+   unutar bilo kog .X-kartice kontejnera; ostali tipovi kartica (detalji/forma/
+   dashboard) imaju svoj stagger po strani. Menjaš na JEDNOM mestu. */
+[class*="-kartice"] > .animiraj:nth-child(1) { animation-delay: 0.04s; }
+[class*="-kartice"] > .animiraj:nth-child(2) { animation-delay: 0.10s; }
+[class*="-kartice"] > .animiraj:nth-child(3) { animation-delay: 0.16s; }
+[class*="-kartice"] > .animiraj:nth-child(4) { animation-delay: 0.22s; }
+[class*="-kartice"] > .animiraj:nth-child(5) { animation-delay: 0.28s; }
+
 /* responsive prikaz — tabela/kartice za sve liste (mora biti u main.css jer HTMX ne učitava head ponovo) */
 .nabavke-kartice  { display: none; flex-direction: column; gap: 12px; }
 .dobavljaci-kartice { display: none; flex-direction: column; gap: 12px; }
