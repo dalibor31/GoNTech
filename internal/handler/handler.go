@@ -35,12 +35,15 @@ type Handler struct {
 	AssetV      string // verzija statičkih fajlova za cache-busting (postavlja se pri pokretanju)
 	Templates   map[string]*template.Template
 	TemplatesFS fs.FS
+	totpKljuc   []byte // ključ za šifrovanje TOTP tajni (prosleđuje se KorisniciRepo)
 }
 
-// Novi kreira novi Handler sa datom bazom
-func Novi(baza *sql.DB) *Handler {
+// Novi kreira novi Handler sa datom bazom.
+// totpKljuc je 32-bajtni ključ za šifrovanje TOTP tajni u mirovanju.
+func Novi(baza *sql.DB, totpKljuc []byte) *Handler {
 	return &Handler{
 		DB:             baza,
+		totpKljuc:      totpKljuc,
 		Artikli:        sqlite.NoviArtikalRepo(baza),
 		KategorijeRepo: sqlite.NovaKategorijaRepo(baza),
 		DobavljaciRepo: sqlite.NoviDobavljacRepo(baza),
@@ -50,7 +53,7 @@ func Novi(baza *sql.DB) *Handler {
 		ServisniDeloviRepo:    sqlite.NoviServisniDeloviRepo(baza),
 		MagacinskePromeneRepo: sqlite.NoviMagacinskePromeneRepo(baza),
 		ProdajaRepo:           sqlite.NoviProdajaRepo(baza),
-		KorisniciRepo:   sqlite.NoviKorisniciRepo(baza),
+		KorisniciRepo:   sqlite.NoviKorisniciRepo(baza, totpKljuc),
 		SesijeRepo:      sqlite.NoviSesijeRepo(baza),
 		PodsetnikRepo: sqlite.NoviPodsetnikRepo(baza),
 		PokusajiRepo:       sqlite.NoviPokusajiPrijaveRepo(baza),
@@ -71,7 +74,7 @@ func (h *Handler) reinicijalizujRepozitorijume(novaDB *sql.DB) {
 	h.ServisniDeloviRepo = sqlite.NoviServisniDeloviRepo(novaDB)
 	h.MagacinskePromeneRepo = sqlite.NoviMagacinskePromeneRepo(novaDB)
 	h.ProdajaRepo = sqlite.NoviProdajaRepo(novaDB)
-	h.KorisniciRepo = sqlite.NoviKorisniciRepo(novaDB)
+	h.KorisniciRepo = sqlite.NoviKorisniciRepo(novaDB, h.totpKljuc)
 	h.SesijeRepo = sqlite.NoviSesijeRepo(novaDB)
 	h.PodsetnikRepo = sqlite.NoviPodsetnikRepo(novaDB)
 	h.PokusajiRepo = sqlite.NoviPokusajiPrijaveRepo(novaDB)
