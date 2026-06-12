@@ -109,28 +109,6 @@ func main() {
 
 	napraviBackup(db, putanjaBaze)
 
-	// periodični automatski backup — interval se čita iz podešavanja u svakom ciklusu,
-	// tako da izmena u podešavanjima stupa na snagu bez restarta (od sledećeg ciklusa)
-	go func() {
-		for {
-			sati := procitajIntPodesavanje(db, "backup_interval_sati", 24)
-			time.Sleep(time.Duration(sati) * time.Hour)
-			napraviBackup(db, putanjaBaze)
-		}
-	}()
-
-	// periodično brisanje isteklih sesija i starih pokušaja prijave
-	go func() {
-		ticker := time.NewTicker(time.Hour)
-		defer ticker.Stop()
-		sesijeRepo := sqlite.NoviSesijeRepo(db)
-		pokusajiRepo := sqlite.NoviPokusajiPrijaveRepo(db)
-		for range ticker.C {
-			_ = sesijeRepo.ObrisiIstekle(context.Background())
-			_ = pokusajiRepo.ObrisiStare(context.Background(), time.Now().Add(-24*time.Hour))
-		}
-	}()
-
 	os.MkdirAll("web/static/uploads", 0755)
 
 	h := handler.Novi(db, totpKljuc)
@@ -150,6 +128,36 @@ func main() {
 		h.Templates = kes
 		log.Printf("Keš šablona kreiran: %d šablona", len(kes))
 	}
+
+	// Pozadinske gorutine se pokreću posle kreiranja h i rade preko h.SaBazom,
+	// pa uvek koriste TRENUTNU konekciju baze (posle obnove backupa h.DB se menja).
+
+	// periodični automatski backup — interval se čita iz podešavanja u svakom
+	// ciklusu, pa izmena stupa na snagu bez restarta (od sledećeg ciklusa)
+	go func() {
+		for {
+			sati := 24
+			h.SaBazom(func(db *sql.DB) {
+				sati = procitajIntPodesavanje(db, "backup_interval_sati", 24)
+			})
+			time.Sleep(time.Duration(sati) * time.Hour)
+			h.SaBazom(func(db *sql.DB) {
+				napraviBackup(db, putanjaBaze)
+			})
+		}
+	}()
+
+	// periodično brisanje isteklih sesija i starih pokušaja prijave
+	go func() {
+		ticker := time.NewTicker(time.Hour)
+		defer ticker.Stop()
+		for range ticker.C {
+			h.SaBazom(func(db *sql.DB) {
+				_ = sqlite.NoviSesijeRepo(db).ObrisiIstekle(context.Background())
+				_ = sqlite.NoviPokusajiPrijaveRepo(db).ObrisiStare(context.Background(), time.Now().Add(-24*time.Hour))
+			})
+		}
+	}()
 
 	r := chi.NewRouter()
 	r.Use(ntechmw.BezbednostHeaders())
