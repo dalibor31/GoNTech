@@ -494,6 +494,23 @@ body {
 }
 .btn-obrisi-malo:hover { opacity: 0.8; }
 
+/* ghost dugme za brisanje — providna pozadina, crvena ivica i tekst */
+.btn-obrisi-ghost {
+    display: inline-flex;
+    align-items: center;
+    background: transparent;
+    color: #dc2626;
+    border: 0.5px solid #fca5a5;
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.2s;
+}
+.btn-obrisi-ghost:hover { background: rgba(220, 38, 38, 0.08); }
+
 /* opasno dugme (Obriši/Deaktiviraj) — pun format, crveno */
 .btn-opasno {
     display: inline-flex;
