@@ -23,6 +23,57 @@ type PdvKir struct {
 	DatumUnosa        time.Time
 }
 
+// OslobodenUkupno vraća zbir oslobođenog prometa (sa i bez prava na odbitak).
+func (k PdvKir) OslobodenUkupno() float64 {
+	return k.OslobodenSaPravom + k.OslobodenBezPrava
+}
+
+// OznakaPoreskogBroja vraća „JMBG" ako uneti broj ima 13 cifara (fizičko lice),
+// inače „PIB" (pravno lice / preduzetnik — PIB ima 9 cifara).
+func (k PdvKir) OznakaPoreskogBroja() string {
+	cifre := 0
+	for _, r := range k.KupacPib {
+		if r >= '0' && r <= '9' {
+			cifre++
+		}
+	}
+	if cifre == 13 {
+		return "JMBG"
+	}
+	return "PIB"
+}
+
+// PdvKirSume su zbirovi kolona KIR-a (za red „ukupno" u pregledu knjige).
+type PdvKirSume struct {
+	OsnovicaOpsta     float64
+	PdvOpsta          float64
+	OsnovicaPosebna   float64
+	PdvPosebna        float64
+	OslobodenSaPravom float64
+	OslobodenBezPrava float64
+	Ukupno            float64
+}
+
+// OslobodenUkupno vraća zbir oslobođenog prometa (sa i bez prava na odbitak).
+func (s PdvKirSume) OslobodenUkupno() float64 {
+	return s.OslobodenSaPravom + s.OslobodenBezPrava
+}
+
+// SumirajKir sabira sve kolone iz liste KIR zapisa.
+func SumirajKir(zapisi []PdvKir) PdvKirSume {
+	var s PdvKirSume
+	for _, z := range zapisi {
+		s.OsnovicaOpsta += z.OsnovicaOpsta
+		s.PdvOpsta += z.PdvOpsta
+		s.OsnovicaPosebna += z.OsnovicaPosebna
+		s.PdvPosebna += z.PdvPosebna
+		s.OslobodenSaPravom += z.OslobodenSaPravom
+		s.OslobodenBezPrava += z.OslobodenBezPrava
+		s.Ukupno += z.Ukupno
+	}
+	return s
+}
+
 // PdvKpr je jedan zapis u knjizi primljenih računa (ulazni PDV).
 type PdvKpr struct {
 	ID               int64

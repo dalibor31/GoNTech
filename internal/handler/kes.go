@@ -26,6 +26,7 @@ var saSidebar = []string{
 	"nabavke", "nabavka_forma", "nabavka_detalji",
 	"podesavanja", "podesavanja_opste", "podesavanja_izgled", "podesavanja_sistem",
 	"pdv_stope",
+	"pdv_kir", "pdv_kir_forma",
 	"podsetnici", "podsetnik_forma",
 	"profil_tema",
 	"prodaja", "prodaja_detalji", "prodaja_forma",
