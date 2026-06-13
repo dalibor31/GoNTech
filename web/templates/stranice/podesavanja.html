@@ -4,10 +4,6 @@
 
 {{define "dodatni-css"}}
 <style>
-    .animiraj:nth-child(1) { animation-delay: 0.10s; }
-    .animiraj:nth-child(2) { animation-delay: 0.16s; }
-    .animiraj:nth-child(3) { animation-delay: 0.22s; }
-    .animiraj:nth-child(4) { animation-delay: 0.28s; }
     .custom-file-label { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--pozadina); border: 0.5px solid var(--ivica); border-radius: 8px; font-size: 13px; color: var(--tekst-sporedni); cursor: pointer; transition: border-color 0.2s; min-width: 0; overflow: hidden; }
     .custom-file-label:hover { border-color: var(--sb-akcent); color: var(--tekst-glavni); }
     .custom-file-label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -15,7 +11,7 @@
 {{end}}
 
 {{define "sadrzaj"}}
-<div style="width:100%;max-width:100%;">
+<div class="stranica-stack" style="width:100%;max-width:100%;">
 
     {{if .Sacuvano}}
     <div class="poruka-uspeh">Podešavanja su uspešno sačuvana.</div>

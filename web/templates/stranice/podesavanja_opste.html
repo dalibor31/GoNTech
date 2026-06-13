@@ -2,15 +2,8 @@
 
 {{define "naslov"}}Podešavanja — Opšte — NTech{{end}}
 
-{{define "dodatni-css"}}
-<style>
-    .animiraj:nth-child(1) { animation-delay: 0.10s; }
-    .animiraj:nth-child(2) { animation-delay: 0.16s; }
-</style>
-{{end}}
-
 {{define "sadrzaj"}}
-<div style="width:100%;max-width:100%;">
+<div class="stranica-stack" style="width:100%;max-width:100%;">
 
     {{if .Sacuvano}}
     <div class="poruka-uspeh">Podešavanja su uspešno sačuvana.</div>
