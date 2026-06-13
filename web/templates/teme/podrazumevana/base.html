@@ -54,8 +54,11 @@
       .sidebar .nav-stavka svg { color: rgba(255,255,255,0.95) !important; stroke: rgba(255,255,255,0.95) !important; }
       .sidebar .nav-oznaka { text-shadow: 0 1px 3px rgba(0,0,0,0.8); color: rgba(255,255,255,0.7) !important; }
       .topbar { background: rgba(0,0,0,{{if .AppPozadinaGlassOpacity}}{{.AppPozadinaGlassOpacity}}%{{else}}0.08{{end}}) !important; backdrop-filter: blur({{.AppPozadinaBlur}}px); -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px); border-bottom: 1px solid rgba(255,255,255,0.12) !important; }
+      .topbar-naslov { color: rgba(255,255,255,0.95) !important; text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.55); }
       .kartica, .premesti-modal { background: rgba(0,0,0,{{if .AppPozadinaGlassOpacity}}{{.AppPozadinaGlassOpacity}}%{{else}}0.08{{end}}) !important; backdrop-filter: blur({{.AppPozadinaBlur}}px); -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px); border: 1px solid rgba(255,255,255,0.12) !important; }
       .kartica p, .kartica span, .kartica h1, .kartica h2, .kartica h3, .kartica h4, .kartica label, .kartica td, .kartica th, .kartica li, .kartica a { color: rgba(255,255,255,0.95) !important; text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.55); }
+      /* naslovi kartica i labele su goli <div> (boju im NE diramo, da namerno obojeni — crveni/akcenat — ostanu) — samo senka da se vide */
+      .kartica div { text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.55); }
       /* modal nasleđuje glass izgled od kartica: providno staklo, beli tekst, lakše zatamnjenje da se slika nazire */
       .premesti-modal h3, .premesti-modal .premesti-opcija, .premesti-modal .premesti-zatvori { color: rgba(255,255,255,0.95) !important; text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.55); }
       .premesti-modal[open]::backdrop { background: rgba(0,0,0,0.45) !important; }
