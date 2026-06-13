@@ -108,10 +108,16 @@ document.addEventListener('alpine:init', () => {
         glassOpacity: 10,
         init() {
             this.pozadina = this.$el.dataset.pozadina || ''
-            this.blur = parseInt(this.$el.dataset.blur) || 12
-            this.opacity = parseInt(this.$el.dataset.opacity) || 50
-            this.blurPozadine = parseInt(this.$el.dataset.blurPozadine) || 0
-            this.glassOpacity = parseInt(this.$el.dataset.glassOpacity) || 10
+            // ne koristimo „|| podrazumevano" jer je 0 validna vrednost a falsy — pala bi na podrazumevano
+            this.blur = this.broj(this.$el.dataset.blur, 12)
+            this.opacity = this.broj(this.$el.dataset.opacity, 50)
+            this.blurPozadine = this.broj(this.$el.dataset.blurPozadine, 0)
+            this.glassOpacity = this.broj(this.$el.dataset.glassOpacity, 10)
+        },
+        // vraća ceo broj iz vrednosti; ako nije broj, vraća podrazumevano (0 ostaje 0)
+        broj(vrednost, podrazumevano) {
+            const n = parseInt(vrednost, 10)
+            return Number.isNaN(n) ? podrazumevano : n
         },
         stilPozadine() {
             const bgCss = this.pozadina ? "background:url('" + this.pozadina + "') center/cover;" : 'background:#1a2033;'
