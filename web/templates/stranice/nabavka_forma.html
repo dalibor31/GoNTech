@@ -128,8 +128,9 @@
                 </table>
             </div>
 
-            <!-- mobilne kartice stavki -->
-            <div class="stavke-kartice" style="display:none;flex-direction:column;gap:10px;">
+            <!-- mobilne kartice stavki (display kontroliše .stavke-kartice: none na desktopu,
+                 flex na mobilnom @media — inline display:none bi pobedio @media, zato ga NEMA) -->
+            <div class="stavke-kartice">
                 <template x-for="(stavka, i) in stavke" :key="i">
                     <div style="border:0.5px solid var(--ivica);border-radius:8px;padding:12px;">
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
