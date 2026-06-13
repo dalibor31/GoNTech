@@ -85,6 +85,10 @@ func KreirajKes(fsys fs.FS) (map[string]*template.Template, error) {
 // renderujTemplate renderuje šablon sa base layoutom
 // U produkciji koristi keš; u razvoju parsuje svaki put (hot reload)
 func (h *Handler) renderujTemplate(w http.ResponseWriter, ime string, podaci any) {
+	// HTML se ne kešira: browser uvek revalidira pa posle nove verzije (npr. Docker
+	// deploy) dobije svežu stranicu sa novim AssetV tokenom, koji onda povlači svež
+	// CSS/JS. Statika ostaje immutable (URL nosi ?v=verzija).
+	w.Header().Set("Cache-Control", "no-cache")
 	var tmpl *template.Template
 
 	if h.Templates != nil {
@@ -115,6 +119,8 @@ func (h *Handler) renderujTemplate(w http.ResponseWriter, ime string, podaci any
 
 // renderujStandalone renderuje šablon bez base layouta (prijava, setup, itd.)
 func (h *Handler) renderujStandalone(w http.ResponseWriter, ime string, podaci any) {
+	// vidi renderujTemplate: HTML se ne kešira da nova verzija odmah stigne do korisnika
+	w.Header().Set("Cache-Control", "no-cache")
 	var tmpl *template.Template
 
 	if h.Templates != nil {
