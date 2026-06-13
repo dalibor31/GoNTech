@@ -64,6 +64,19 @@
       tr:hover { background: rgba(0,0,0,0.35); }
       thead th { background: rgba(0,0,0,0.4) !important; }
       div:has(> canvas) { background: rgba(0,0,0,0.3); border-radius: 8px; padding: 8px; }
+      /* elementi van kartica (i preskočeni tagovi) koje glass override gore ne dohvata —
+         dobijaju sopstvenu staklenu podlogu da se vide bez obzira na sliku ispod */
+      .nazad-link, .btn-sekundarno, .btn-obrisi-ghost, .cek-filter {
+        background: rgba(0,0,0,0.28) !important;
+        backdrop-filter: blur({{.AppPozadinaBlur}}px); -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px);
+        border: 1px solid rgba(255,255,255,0.18) !important;
+        color: rgba(255,255,255,0.95) !important; text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+      }
+      /* .nazad-link i checkbox-traka nemaju sopstveni padding — dajemo „pill" oblik */
+      .nazad-link, .cek-filter { padding: 6px 12px; border-radius: 8px; }
+      .nazad-link svg, .btn-sekundarno svg, .cek-filter svg { color: rgba(255,255,255,0.95) !important; stroke: rgba(255,255,255,0.95) !important; }
+      /* sitne napomene (npr. „maksimum 5 MB") — svetli tekst + halo, bez podloge */
+      .pomocni-tekst { color: rgba(255,255,255,0.9) !important; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
     </style>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
