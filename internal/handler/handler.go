@@ -35,6 +35,7 @@ type Handler struct {
 	PokusajiRepo          db.PokusajiPrijaveRepository
 	LoginIstorijsaRepo    db.LoginIstorijsaRepository
 	DozvoleRepo           db.DozvoleRepository
+	PdvStopeRepo          db.PdvStopaRepository
 	Verzija               string
 	AssetV                string // verzija statičkih fajlova za cache-busting (postavlja se pri pokretanju)
 	Templates             map[string]*template.Template
@@ -94,6 +95,7 @@ func Novi(baza *sql.DB, totpKljuc []byte) *Handler {
 		PokusajiRepo:          sqlite.NoviPokusajiPrijaveRepo(baza),
 		LoginIstorijsaRepo:    sqlite.NoviLoginIstorijsaRepo(baza),
 		DozvoleRepo:           sqlite.NoviDozvoleRepo(baza, middleware.ImaDozvolu, middleware.SveAkcije()),
+		PdvStopeRepo:          sqlite.NoviPdvStopaRepo(baza),
 	}
 }
 
@@ -119,6 +121,7 @@ func (h *Handler) reinicijalizujRepozitorijume(novaDB *sql.DB) {
 	h.PokusajiRepo = sqlite.NoviPokusajiPrijaveRepo(novaDB)
 	h.LoginIstorijsaRepo = sqlite.NoviLoginIstorijsaRepo(novaDB)
 	h.DozvoleRepo = sqlite.NoviDozvoleRepo(novaDB, middleware.ImaDozvolu, middleware.SveAkcije())
+	h.PdvStopeRepo = sqlite.NoviPdvStopaRepo(novaDB)
 }
 
 // zahtevajDozvolu vraća prijavljenog korisnika ako njegova uloga sme da izvrši akciju.

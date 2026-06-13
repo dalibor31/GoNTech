@@ -23,6 +23,15 @@ type KategorijaRepository interface {
 	Kreiraj(ctx context.Context, k *model.Kategorija) (int64, error)
 }
 
+// PdvStopaRepository definiše operacije nad šifarnikom PDV stopa
+type PdvStopaRepository interface {
+	Lista(ctx context.Context, samoAktivne bool) ([]model.PdvStopa, error)
+	DohvatiID(ctx context.Context, id int64) (*model.PdvStopa, error)
+	Kreiraj(ctx context.Context, s *model.PdvStopa) (int64, error)
+	Izmeni(ctx context.Context, s *model.PdvStopa) error
+	PostaviAktivnu(ctx context.Context, id int64, aktivna bool) error
+}
+
 // ArtikalFilter definiše parametre za filtriranje liste artikala
 type ArtikalFilter struct {
 	Pretraga     string
@@ -117,8 +126,8 @@ type SesijeRepository interface {
 
 // PodsetnikFilter definiše parametre za filtriranje liste podsetnika
 type PodsetnikFilter struct {
-	SamoAktivni bool    // true = samo nezavršeni; false = svi
-	KorisnikID  *int64  // ako nije nil — samo podsetnici tog korisnika
+	SamoAktivni bool   // true = samo nezavršeni; false = svi
+	KorisnikID  *int64 // ako nije nil — samo podsetnici tog korisnika
 }
 
 // PokusajiPrijaveRepository definiše operacije nad evidencijom pokušaja prijave
