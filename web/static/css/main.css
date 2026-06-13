@@ -1003,6 +1003,16 @@ select {
 [class*="-kartice"] > .animiraj:nth-child(4) { animation-delay: 0.22s; }
 [class*="-kartice"] > .animiraj:nth-child(5) { animation-delay: 0.28s; }
 
+/* Stagger naslaganih .kartica.animiraj na stranicama podešavanja/profila — JEDNO mesto.
+   Descendant selektor (razmak, ne >): nth-child se računa po neposrednom roditelju kao i
+   ranije, a .stranica-stack na wrapperu sprečava da pravilo curi na liste/forme drugih
+   strana. Mora u main.css jer HTMX navigacija odbacuje <head>. Menjaš na JEDNOM mestu. */
+.stranica-stack .animiraj:nth-child(1) { animation-delay: 0.10s; }
+.stranica-stack .animiraj:nth-child(2) { animation-delay: 0.16s; }
+.stranica-stack .animiraj:nth-child(3) { animation-delay: 0.22s; }
+.stranica-stack .animiraj:nth-child(4) { animation-delay: 0.28s; }
+.stranica-stack .animiraj:nth-child(5) { animation-delay: 0.34s; }
+
 /* Bedž statusa servisnog naloga — JEDNO mesto za izgled i boje statusa (lista i detalji).
    Mora biti u main.css: HTMX navigacija odbacuje <head>, pa page <style> ne bi važio. */
 .status-badge       { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; white-space: nowrap; }
