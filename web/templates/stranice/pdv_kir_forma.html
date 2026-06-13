@@ -1,0 +1,97 @@
+{{template "base" .}}
+
+{{define "naslov"}}Novi izlazni račun (KIR) — NTech{{end}}
+
+{{define "sadrzaj"}}
+<div class="stranica-stack" style="width:100%;max-width:760px;">
+
+    <a href="/pdv/kir" class="nazad-link">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Nazad na KIR
+    </a>
+
+    <form method="POST" action="/pdv/kir/nova">
+        <!-- dokument -->
+        <div class="kartica animiraj" style="margin-bottom:16px;">
+            <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">Dokument</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                <div>
+                    <label class="polje-labela">Datum prometa</label>
+                    <input type="date" name="datum_prometa" value="{{.Danas}}" required style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div>
+                    <label class="polje-labela">Datum knjiženja</label>
+                    <input type="date" name="datum_knjizenja" value="{{.Danas}}" required style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div style="grid-column:1 / -1;">
+                    <label class="polje-labela">Broj dokumenta</label>
+                    <input type="text" name="broj_dokumenta" required style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;" placeholder="npr. R-2026/001">
+                </div>
+            </div>
+        </div>
+
+        <!-- kupac -->
+        <div class="kartica animiraj" style="margin-bottom:16px;">
+            <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">Kupac</div>
+            <div class="kolona" style="gap:14px;">
+                <div>
+                    <label class="polje-labela">Naziv kupca</label>
+                    <input type="text" name="kupac_naziv" required style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                    <div>
+                        <label class="polje-labela">PIB / JMBG</label>
+                        <input type="text" name="kupac_pib" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                    </div>
+                    <div>
+                        <label class="polje-labela">Mesto</label>
+                        <input type="text" name="kupac_mesto" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- iznosi po stopama -->
+        <div class="kartica animiraj" style="margin-bottom:16px;">
+            <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);margin-bottom:6px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">Iznosi po stopama</div>
+            <div class="pomocni-tekst" style="font-size:12px;margin-bottom:14px;">Ostavite 0 gde nema prometa. „Ukupno" se računa automatski kao zbir osnovica, PDV-a i oslobođenog prometa.</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                <div>
+                    <label class="polje-labela">Osnovica opšta (20%)</label>
+                    <input type="number" step="0.01" min="0" name="osnovica_opsta" value="0" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div>
+                    <label class="polje-labela">PDV opšta (20%)</label>
+                    <input type="number" step="0.01" min="0" name="pdv_opsta" value="0" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div>
+                    <label class="polje-labela">Osnovica posebna (10%)</label>
+                    <input type="number" step="0.01" min="0" name="osnovica_posebna" value="0" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div>
+                    <label class="polje-labela">PDV posebna (10%)</label>
+                    <input type="number" step="0.01" min="0" name="pdv_posebna" value="0" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div>
+                    <label class="polje-labela">Oslobođeno sa pravom na odbitak</label>
+                    <input type="number" step="0.01" min="0" name="osloboden_sa_pravom" value="0" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div>
+                    <label class="polje-labela">Oslobođeno bez prava na odbitak</label>
+                    <input type="number" step="0.01" min="0" name="osloboden_bez_prava" value="0" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+            </div>
+            <div style="margin-top:14px;">
+                <label class="polje-labela">Napomena</label>
+                <input type="text" name="napomena" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;">
+                <a href="/pdv/kir" class="btn-sekundarno" style="font-size:14px;padding:10px 20px;">Odustani</a>
+                <button type="submit" style="background:var(--sb-akcent);color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;">Sačuvaj</button>
+            </div>
+        </div>
+    </form>
+
+</div>
+{{end}}

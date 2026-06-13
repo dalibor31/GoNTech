@@ -225,6 +225,20 @@ func main() {
 			return ntechmw.RequireDozvolaMut(h.DozvoleRepo.ImaDozvolu, akcija)
 		}
 
+		// modul vraća middleware koji propušta zahtev samo ako je zakonski modul
+		// uključen za firmu (profil firme). Sloj IZNAD RBAC-a — zahtev mora proći
+		// i „modul uključen" (ovo) i „korisnik sme" (doz/zahtevajDozvolu).
+		proveriModul := func(ctx context.Context, m string) bool {
+			pod, err := sqlite.DohvatiSvaPodesavanja(ctx, h.DB)
+			if err != nil {
+				return false
+			}
+			return config.ModulUkljucen(pod, m)
+		}
+		modul := func(m string) func(http.Handler) http.Handler {
+			return ntechmw.RequireModul(proveriModul, m)
+		}
+
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/dashboard", http.StatusFound)
 		})
@@ -245,6 +259,13 @@ func main() {
 
 		r.Get("/podesavanja/backup", h.BackupBaze)
 		r.With(doz("backup.pokreni")).Post("/podesavanja/backup/vrati", h.VratiBackup)
+
+		// PDV evidencija — KIR (knjiga izdatih računa). Dostupno samo kada je modul
+		// „pdv" uključen za firmu (RequireModul), uz RBAC dozvolu pdv.*.
+		r.With(modul("pdv")).Get("/pdv/kir", h.PdvKir)
+		r.With(modul("pdv")).Get("/pdv/kir/nova", h.NoviPdvKir)
+		r.With(modul("pdv"), doz("pdv.dodaj")).Post("/pdv/kir/nova", h.SacuvajPdvKir)
+		r.With(modul("pdv"), doz("pdv.obrisi")).Post("/pdv/kir/obrisi/{id}", h.ObrisiPdvKir)
 		r.Get("/magacin", h.Magacin)
 		r.Get("/magacin/novi", h.NoviArtikal)
 		r.With(doz("artikal.dodaj")).Post("/magacin/novi", h.SacuvajArtikal)
