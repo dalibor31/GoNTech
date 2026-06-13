@@ -85,6 +85,15 @@
       .naslov-traka { color: rgba(255,255,255,0.95) !important; text-shadow: 0 1px 2px rgba(0,0,0,0.95), 0 0 8px rgba(0,0,0,0.5), 0 2px 16px rgba(0,0,0,0.25); }
       /* info-banner u kartici: tekst je goli <div> koji glass override ne dohvata — ciljano mu damo svetli tekst + senku */
       .info-banner div { color: rgba(255,255,255,0.95) !important; text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.55); }
+      /* Mobilni: backdrop-filter blur preko fiksne pozadinske slike često NE radi na
+         telefonima (iOS/Android), pa glass topbar propušta svetlu sliku i beli naslov se
+         gubi. Zato ne računamo na blur — dajemo čvrstu poluprovidnu podlogu i jaču senku. */
+      @media (max-width: 768px) {
+        .topbar { background: rgba(0,0,0,0.5) !important; }
+        .topbar-naslov { text-shadow: 0 1px 3px rgba(0,0,0,1), 0 0 8px rgba(0,0,0,0.85); }
+        .naslov-traka { text-shadow: 0 1px 3px rgba(0,0,0,1), 0 0 8px rgba(0,0,0,0.9), 0 2px 16px rgba(0,0,0,0.4); }
+        .pomocni-tekst { text-shadow: 0 1px 3px rgba(0,0,0,1), 0 0 6px rgba(0,0,0,0.85); }
+      }
     </style>
     <script>
     document.addEventListener('DOMContentLoaded', function() {

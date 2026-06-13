@@ -85,7 +85,7 @@
                                 </a>
                                 {{end}}
                                 {{if index $.Dozvole "artikal.premesti"}}{{if $.Kategorije}}
-                                {{template "premestiMeni" (dict "ID" .ID "Kategorije" $.Kategorije)}}
+                                {{template "premestiMeni" (dict "ID" .ID "Kategorije" $.Kategorije "Prefiks" "tab")}}
                                 {{end}}{{end}}
                                 {{if index $.Dozvole "artikal.obrisi"}}
                                 <a href="/magacin/obrisi/{{.ID}}" class="btn-obrisi-malo"
@@ -124,7 +124,7 @@
                     <a href="/magacin/izmeni/{{.ID}}" class="btn-primarno-malo">Izmeni</a>
                     {{end}}
                     {{if index $.Dozvole "artikal.premesti"}}{{if $.Kategorije}}
-                    {{template "premestiMeni" (dict "ID" .ID "Kategorije" $.Kategorije)}}
+                    {{template "premestiMeni" (dict "ID" .ID "Kategorije" $.Kategorije "Prefiks" "kart")}}
                     {{end}}{{end}}
                     {{if index $.Dozvole "artikal.obrisi"}}
                     <a href="/magacin/obrisi/{{.ID}}" class="btn-obrisi-malo"
@@ -162,9 +162,10 @@
 {{/* padajući meni za premeštanje artikla — prima dict {ID, Kategorije}; koristi se i u tabeli i u mobilnoj kartici */}}
 {{define "premestiMeni"}}
 <button type="button" class="btn-primarno-malo" style="align-self:center;"
-        onclick="document.getElementById('premesti-{{.ID}}').showModal()">Premesti</button>
-{{/* nativni modal — showModal() ga stavlja u „top layer", pa je uvek iznad svega bez obzira na z-index/overflow */}}
-<dialog id="premesti-{{.ID}}" class="premesti-modal" onclick="if(event.target===this)this.close()">
+        onclick="document.getElementById('premesti-{{.Prefiks}}-{{.ID}}').showModal()">Premesti</button>
+{{/* nativni modal — showModal() ga stavlja u „top layer", pa je uvek iznad svega bez obzira na z-index/overflow.
+     Prefiks (tab/kart) čini id jedinstvenim — isti artikal se renderuje i u tabeli i u mobilnoj kartici. */}}
+<dialog id="premesti-{{.Prefiks}}-{{.ID}}" class="premesti-modal" onclick="if(event.target===this)this.close()">
     {{/* zaglavlje sa dugmetom za zatvaranje; method="dialog" zatvara modal bez slanja */}}
     <form method="dialog" class="premesti-zaglavlje">
         <h3>Premesti artikal</h3>
