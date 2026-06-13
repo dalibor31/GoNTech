@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"io/fs"
 	"log/slog"
+	"mime"
 	"net/http"
 	"os"
-	"mime"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -87,12 +87,14 @@ func main() {
 
 	db, err := sqlite.OtvoriDB(putanjaBaze)
 	if err != nil {
-		slog.Error("Greška pri otvaranju baze", "error", err); os.Exit(1)
+		slog.Error("Greška pri otvaranju baze", "error", err)
+		os.Exit(1)
 	}
 	defer db.Close()
 
 	if err := sqlite.PokreniMigracije(db, migrFS); err != nil {
-		slog.Error("Greška pri migracijama", "error", err); os.Exit(1)
+		slog.Error("Greška pri migracijama", "error", err)
+		os.Exit(1)
 	}
 	slog.Info("migracije uspešno izvršene")
 
@@ -111,7 +113,8 @@ func main() {
 	// ključ za šifrovanje TOTP tajni u mirovanju (AES-256-GCM)
 	totpKljuc, err := ucitajTotpKljuc()
 	if err != nil {
-		slog.Error("Greška pri učitavanju ključa za TOTP", "error", err); os.Exit(1)
+		slog.Error("Greška pri učitavanju ključa za TOTP", "error", err)
+		os.Exit(1)
 	}
 
 	// jednokratno šifruj eventualne stare TOTP tajne koje su ostale kao čist tekst
@@ -137,7 +140,8 @@ func main() {
 	if os.Getenv("NTECH_ENV") == "production" {
 		kes, err := handler.KreirajKes(templFS)
 		if err != nil {
-			slog.Error("Greška pri kreiranju keša šablona", "error", err); os.Exit(1)
+			slog.Error("Greška pri kreiranju keša šablona", "error", err)
+			os.Exit(1)
 		}
 		h.Templates = kes
 		slog.Info("keš šablona kreiran", "broj", len(kes))
@@ -229,6 +233,10 @@ func main() {
 		r.Get("/admin/podesavanja/opste", h.PodesavanjaOpste)
 		r.Get("/admin/podesavanja/izgled", h.PodesavanjaIzgled)
 		r.Get("/admin/podesavanja/sistem", h.PodesavanjaSistem)
+		r.Get("/admin/podesavanja/pdv-stope", h.PdvStope)
+		r.With(doz("podesavanja.izmeni")).Post("/podesavanja/pdv-stope/dodaj", h.DodajPdvStopu)
+		r.With(doz("podesavanja.izmeni")).Post("/podesavanja/pdv-stope/{id}/izmeni", h.IzmeniPdvStopu)
+		r.With(doz("podesavanja.izmeni")).Post("/podesavanja/pdv-stope/{id}/aktivnost", h.PromeniAktivnostPdvStope)
 		r.With(doz("podesavanja.izmeni")).Post("/podesavanja/sacuvaj", h.SacuvajPodesavanja)
 		r.With(doz("podesavanja.izmeni")).Post("/podesavanja/logo", h.OtpremiLogo)
 		r.With(doz("podesavanja.login_pozadina")).Post("/podesavanja/login-pozadina", h.OtpremiLoginPozadinu)
@@ -327,7 +335,8 @@ func main() {
 	slog.Info("NTech pokrenut", "port", port)
 	err = http.ListenAndServe(":"+port, r)
 	if err != nil {
-		slog.Error("port je zauzet ili nije dostupan", "port", port); os.Exit(1)
+		slog.Error("port je zauzet ili nije dostupan", "port", port)
+		os.Exit(1)
 	}
 }
 
@@ -419,4 +428,3 @@ func ocistiStareBackupe(folder string, max int) {
 		_ = os.Remove(f)
 	}
 }
-
