@@ -974,8 +974,10 @@ select {
 .poruka-animacija { animation: slideDown 0.3s ease forwards; }
 .greska-animacija { animation: shake 0.4s ease; }
 
+/* backwards (ne both): drži početni frame tokom stagger-delay-a da nema treperenja,
+   ali NE zaključava krajnji transform — pa .kartica:hover lift radi i na .animiraj karticama */
 .animiraj {
-    animation: fadeInUp 0.2s ease both;
+    animation: fadeInUp 0.2s ease backwards;
 }
 
 /* Stepenasta (stagger) animacija redova u svim listama — JEDNO mesto za sve tabele.
