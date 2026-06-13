@@ -1,12 +1,5 @@
-{{template "base" .}} {{define "naslov"}}Istorija prijava — NTech{{end}} {{define "dodatni-css"}}
-<style>
-  .animiraj:nth-child(1) { animation-delay: 0.1s; }
-  .animiraj:nth-child(2) { animation-delay: 0.16s; }
-  .animiraj:nth-child(3) { animation-delay: 0.22s; }
-  .animiraj:nth-child(4) { animation-delay: 0.28s; }
-</style>
-{{end}} {{define "sadrzaj"}}
-<div style="display: flex; flex-direction: column; gap: 16px">
+{{template "base" .}} {{define "naslov"}}Istorija prijava — NTech{{end}} {{define "sadrzaj"}}
+<div class="stranica-stack" style="display: flex; flex-direction: column; gap: 16px">
   <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
     <a href="/admin/korisnici" class="btn-sekundarno">← Nazad</a>
     <span style="font-size: 15px; font-weight: 500; color: var(--tekst-glavni)">Istorija prijava — {{.PrikazKorisnik.KorisnickoIme}}</span>
