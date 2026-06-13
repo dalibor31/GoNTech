@@ -4,9 +4,10 @@
 
 {{define "dodatni-css"}}
 <style>
-    .detalji-kartica:nth-child(1) { animation-delay: 0.04s; }
-    .detalji-kartica:nth-child(2) { animation-delay: 0.12s; }
-    .detalji-kartica:nth-child(3) { animation-delay: 0.20s; }
+    /* prvi child .kolone je „Nazad" link, pa su kartice na pozicijama 2–4 */
+    .detalji-kartica:nth-child(2) { animation-delay: 0.04s; }
+    .detalji-kartica:nth-child(3) { animation-delay: 0.12s; }
+    .detalji-kartica:nth-child(4) { animation-delay: 0.20s; }
 </style>
 {{end}}
 
@@ -49,7 +50,7 @@
     </div>
 
     <!-- stavke -->
-    <div class="kartica detalji-kartica" style="padding:0;overflow:hidden;">
+    <div class="kartica detalji-kartica animiraj" style="padding:0;overflow:hidden;">
         <div style="padding:14px 16px;border-bottom:0.5px solid var(--ivica);">
             <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Stavke nabavke</span>
         </div>
@@ -122,7 +123,7 @@
     </div>
 
     <!-- zona za brisanje -->
-    <div class="kartica detalji-kartica" style="border-color:#dc262633;">
+    <div class="kartica detalji-kartica animiraj" style="border-color:#dc262633;">
         <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
             <div style="flex:1;min-width:200px;">
                 <div style="font-size:14px;font-weight:500;color:#dc2626;margin-bottom:4px;">Brisanje nabavke</div>
