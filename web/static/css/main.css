@@ -1003,6 +1003,16 @@ select {
 [class*="-kartice"] > .animiraj:nth-child(4) { animation-delay: 0.22s; }
 [class*="-kartice"] > .animiraj:nth-child(5) { animation-delay: 0.28s; }
 
+/* Bedž statusa servisnog naloga — JEDNO mesto za izgled i boje statusa (lista i detalji).
+   Mora biti u main.css: HTMX navigacija odbacuje <head>, pa page <style> ne bi važio. */
+.status-badge       { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.status-primljeno   { background: rgba(148,163,184,0.15); color: #94a3b8; }
+.status-dijagnostika { background: rgba(59,130,246,0.15); color: #3b82f6; }
+.status-ceka        { background: rgba(249,115,22,0.15);  color: #f97316; }
+.status-popravka    { background: rgba(234,179,8,0.15);   color: #ca8a04; }
+.status-zavrseno    { background: rgba(34,197,94,0.15);   color: #16a34a; }
+.status-preuzeto    { background: rgba(21,128,61,0.15);   color: #15803d; }
+
 /* responsive prikaz — tabela/kartice za sve liste (mora biti u main.css jer HTMX ne učitava head ponovo) */
 .nabavke-kartice  { display: none; flex-direction: column; gap: 12px; }
 .dobavljaci-kartice { display: none; flex-direction: column; gap: 12px; }
