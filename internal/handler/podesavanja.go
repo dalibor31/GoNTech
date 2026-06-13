@@ -23,25 +23,30 @@ import (
 // PodaciPodesavanja su podaci za stranicu podešavanja
 type PodaciPodesavanja struct {
 	model.PodaciStranice
-	NazivFirme      string
-	Podnazlov       string
-	Adresa          string
-	Telefon         string
-	PIB             string
-	LogoTip         string
-	LogoPutanja     string
-	Sacuvano        bool
-	Verzija         string
-	LogoGreska      string
-	BackupVracen    bool
-	Backupi         []BackupInfo
-	BackupIntervalSati string
-	BackupBrojKopija   string
-	LoginPozadina                    string
-	LoginPozadinaOpacity             string
-	LoginPozadinaBlurPozadine        string
-	LoginPozadinaBlurKartice         string
-	LoginPozadinaZatamnjenjeKartice  string
+	NazivFirme  string
+	Podnazlov   string
+	Adresa      string
+	Telefon     string
+	PIB         string
+	LogoTip     string
+	LogoPutanja string
+	// profil firme — pravni/poreski status (Faza 0); određuje koji se zakonski moduli pale
+	FirmaPravniOblik                string
+	FirmaPdvObveznik                string
+	FirmaFiskalizacija              string
+	FirmaRezim                      string
+	Sacuvano                        bool
+	Verzija                         string
+	LogoGreska                      string
+	BackupVracen                    bool
+	Backupi                         []BackupInfo
+	BackupIntervalSati              string
+	BackupBrojKopija                string
+	LoginPozadina                   string
+	LoginPozadinaOpacity            string
+	LoginPozadinaBlurPozadine       string
+	LoginPozadinaBlurKartice        string
+	LoginPozadinaZatamnjenjeKartice string
 }
 
 // BackupInfo opisuje jedan backup fajl
@@ -69,19 +74,19 @@ func (h *Handler) Podesavanja(w http.ResponseWriter, r *http.Request) {
 	ps.Stranica = "podesavanja"
 	ps.NaslovStranice = "Podešavanja"
 	podaci := PodaciPodesavanja{
-		PodaciStranice: ps,
-		NazivFirme:     podesavanja["naziv_firme"],
-		Podnazlov:      podesavanja["podnazlov"],
-		Adresa:         podesavanja["adresa"],
-		Telefon:        podesavanja["telefon"],
-		PIB:            podesavanja["pib"],
-		LogoTip:        podesavanja["logo_tip"],
-		LogoPutanja:    podesavanja["logo_putanja"],
-		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
-		BackupVracen:   r.URL.Query().Get("sacuvano") == "vraceno",
-		Verzija:        h.Verzija,
-		LogoGreska:     r.URL.Query().Get("logo_greska"),
-		Backupi:        ucitajListuBackupa(),
+		PodaciStranice:                  ps,
+		NazivFirme:                      podesavanja["naziv_firme"],
+		Podnazlov:                       podesavanja["podnazlov"],
+		Adresa:                          podesavanja["adresa"],
+		Telefon:                         podesavanja["telefon"],
+		PIB:                             podesavanja["pib"],
+		LogoTip:                         podesavanja["logo_tip"],
+		LogoPutanja:                     podesavanja["logo_putanja"],
+		Sacuvano:                        r.URL.Query().Get("sacuvano") == "1",
+		BackupVracen:                    r.URL.Query().Get("sacuvano") == "vraceno",
+		Verzija:                         h.Verzija,
+		LogoGreska:                      r.URL.Query().Get("logo_greska"),
+		Backupi:                         ucitajListuBackupa(),
 		LoginPozadina:                   podesavanja["login_pozadina"],
 		LoginPozadinaOpacity:            vrednostIliDefault(podesavanja, "login_pozadina_opacity", "50"),
 		LoginPozadinaBlurPozadine:       vrednostIliDefault(podesavanja, "login_pozadina_blur_pozadine", "0"),
@@ -234,6 +239,11 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 		"telefon":     r.FormValue("telefon"),
 		"pib":         r.FormValue("pib"),
 		"logo_tip":    r.FormValue("logo_tip"),
+		// profil firme (Faza 0) — radio dugmad uvek šalju vrednost, pa se uredno čuvaju
+		"firma_pravni_oblik":  r.FormValue("firma_pravni_oblik"),
+		"firma_pdv_obveznik":  r.FormValue("firma_pdv_obveznik"),
+		"firma_fiskalizacija": r.FormValue("firma_fiskalizacija"),
+		"firma_rezim":         r.FormValue("firma_rezim"),
 	}
 
 	for kljuc, vrednost := range polja {
@@ -566,10 +576,10 @@ func (h *Handler) SacuvajLoginPozadinaStilove(w http.ResponseWriter, r *http.Req
 	}
 
 	for kljuc, vrednost := range map[string]string{
-		"login_pozadina_blur_pozadine":        blurPozadineStr,
-		"login_pozadina_blur_kartice":         blurKarticeStr,
-		"login_pozadina_opacity":              opacityStr,
-		"login_pozadina_zatamnjenje_kartice":  zatamnjenjeKarticeStr,
+		"login_pozadina_blur_pozadine":       blurPozadineStr,
+		"login_pozadina_blur_kartice":        blurKarticeStr,
+		"login_pozadina_opacity":             opacityStr,
+		"login_pozadina_zatamnjenje_kartice": zatamnjenjeKarticeStr,
 	} {
 		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, kljuc, vrednost); err != nil {
 			slog.Error("greška pri čuvanju stila login pozadine", "kljuc", kljuc, "error", err)
@@ -593,19 +603,23 @@ func (h *Handler) napuniPodaciPodesavanja(r *http.Request, naslov string) (Podac
 	ps.Stranica = "podesavanja"
 	ps.NaslovStranice = naslov
 	return PodaciPodesavanja{
-		PodaciStranice: ps,
-		NazivFirme:     podesavanja["naziv_firme"],
-		Podnazlov:      podesavanja["podnazlov"],
-		Adresa:         podesavanja["adresa"],
-		Telefon:        podesavanja["telefon"],
-		PIB:            podesavanja["pib"],
-		LogoTip:        podesavanja["logo_tip"],
-		LogoPutanja:    podesavanja["logo_putanja"],
-		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
-		BackupVracen:   r.URL.Query().Get("sacuvano") == "vraceno",
-		Verzija:        h.Verzija,
-		LogoGreska:     r.URL.Query().Get("logo_greska"),
-		Backupi:        ucitajListuBackupa(),
+		PodaciStranice:                  ps,
+		NazivFirme:                      podesavanja["naziv_firme"],
+		Podnazlov:                       podesavanja["podnazlov"],
+		Adresa:                          podesavanja["adresa"],
+		Telefon:                         podesavanja["telefon"],
+		PIB:                             podesavanja["pib"],
+		LogoTip:                         podesavanja["logo_tip"],
+		LogoPutanja:                     podesavanja["logo_putanja"],
+		FirmaPravniOblik:                vrednostIliDefault(podesavanja, "firma_pravni_oblik", "pausalac"),
+		FirmaPdvObveznik:                vrednostIliDefault(podesavanja, "firma_pdv_obveznik", "ne"),
+		FirmaFiskalizacija:              vrednostIliDefault(podesavanja, "firma_fiskalizacija", "ne"),
+		FirmaRezim:                      vrednostIliDefault(podesavanja, "firma_rezim", "samo_evidencija"),
+		Sacuvano:                        r.URL.Query().Get("sacuvano") == "1",
+		BackupVracen:                    r.URL.Query().Get("sacuvano") == "vraceno",
+		Verzija:                         h.Verzija,
+		LogoGreska:                      r.URL.Query().Get("logo_greska"),
+		Backupi:                         ucitajListuBackupa(),
 		LoginPozadina:                   podesavanja["login_pozadina"],
 		LoginPozadinaOpacity:            vrednostIliDefault(podesavanja, "login_pozadina_opacity", "50"),
 		LoginPozadinaBlurPozadine:       vrednostIliDefault(podesavanja, "login_pozadina_blur_pozadine", "0"),
@@ -657,4 +671,3 @@ func (h *Handler) PodesavanjaSistem(w http.ResponseWriter, r *http.Request) {
 	podaci.Stranica = "podesavanja-sistem"
 	h.renderujTemplate(w, "podesavanja_sistem", podaci)
 }
-
