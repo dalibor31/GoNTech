@@ -550,6 +550,8 @@ body {
 /* nazad link na formama */
 .nazad-link {
     display: inline-flex;
+    /* u .kolona (flex-column) bi se zbog stretch-a rastegao na punu širinu — ostaje kompaktan */
+    align-self: flex-start;
     align-items: center;
     gap: 6px;
     font-size: 13px;
