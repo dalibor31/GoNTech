@@ -28,7 +28,7 @@
 			</svg>
 		</div>
 		<div style="font-size:22px;font-weight:500;color:var(--tekst-glavni);">{{ .BrojArtikala }}</div>
-		<div style="font-size:14px;color:var(--tekst-sporedni);margin-top:4px;font-weight:600;">Artikala na stanju</div>
+		<div style="font-size:14px;color:var(--tekst-glavni);margin-top:4px;font-weight:500;">Artikala na stanju</div>
 	</div>
 
 	<div class="kartica dash-stat animiraj">
@@ -38,7 +38,7 @@
 			</svg>
 		</div>
 		<div style="font-size:22px;font-weight:500;color:var(--tekst-glavni);">{{ .AktivniServisi }}</div>
-		<div style="font-size:14px;color:var(--tekst-sporedni);margin-top:4px;font-weight:600;">Aktivnih servisa</div>
+		<div style="font-size:14px;color:var(--tekst-glavni);margin-top:4px;font-weight:500;">Aktivnih servisa</div>
 	</div>
 
 	{{ if index .Dozvole "dashboard.prihod" }}
@@ -51,7 +51,7 @@
 				</svg>
 			</div>
 			<div style="font-size:22px;font-weight:500;color:var(--tekst-glavni);">{{ printf "%.0f" .PrihodOvogMeseca }} din</div>
-			<div style="font-size:14px;color:var(--tekst-sporedni);margin-top:4px;font-weight:600;">Prihod ovog meseca</div>
+			<div style="font-size:14px;color:var(--tekst-glavni);margin-top:4px;font-weight:500;">Prihod ovog meseca</div>
 		</div>
 	{{ end }}
 
@@ -64,7 +64,7 @@
 			</svg>
 		</div>
 		<div style="font-size:22px;font-weight:500;color:var(--tekst-glavni);">{{ .KriticnaZaliha }}</div>
-		<div style="font-size:14px;color:var(--tekst-sporedni);margin-top:4px;font-weight:600;">Kritično niska zaliha</div>
+		<div style="font-size:14px;color:var(--tekst-glavni);margin-top:4px;font-weight:500;">Kritično niska zaliha</div>
 	</div>
 
 	<a href="/podsetnici" class="kartica dash-stat animiraj" style="text-decoration:none;display:block;">
@@ -75,7 +75,7 @@
 			</svg>
 		</div>
 		<div style="font-size:22px;font-weight:500;color:var(--tekst-glavni);">{{ .AktivniPodsetnici }}</div>
-		<div style="font-size:14px;color:var(--tekst-sporedni);margin-top:4px;font-weight:600;">Aktivnih podsetnika</div>
+		<div style="font-size:14px;color:var(--tekst-glavni);margin-top:4px;font-weight:500;">Aktivnih podsetnika</div>
 	</a>
 </div>
 
