@@ -34,6 +34,18 @@
         <div class="kartica animiraj" style="margin-bottom:16px;">
             <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">Kupac</div>
             <div class="kolona" style="gap:14px;">
+                {{if .Klijenti}}
+                <div>
+                    <label class="polje-labela">Izaberi iz klijenata (opciono)</label>
+                    <select onchange="popuniKupca(this)" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                        <option value="">— ručni unos —</option>
+                        {{range .Klijenti}}
+                        <option data-naziv="{{.PunoIme}}" data-pib="{{if eq .Tip "pravno"}}{{.PIB}}{{else}}{{.JMBG}}{{end}}" data-mesto="{{.Mesto}}">{{.PunoIme}}{{if .Mesto}} — {{.Mesto}}{{end}}</option>
+                        {{end}}
+                    </select>
+                    <div class="pomocni-tekst" style="font-size:12px;margin-top:4px;">Izbor popunjava naziv i PIB/JMBG; možeš ih i ručno izmeniti.</div>
+                </div>
+                {{end}}
                 <div>
                     <label class="polje-labela">Naziv kupca</label>
                     <input type="text" name="kupac_naziv" required style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
@@ -94,4 +106,18 @@
     </form>
 
 </div>
+
+<script>
+// Izbor klijenta iz padajuće liste popunjava polja kupca (naziv, PIB/JMBG, mesto).
+// KIR i dalje čuva kupca kao tekst — klijent samo popuni polja, koja se mogu i ručno menjati.
+function popuniKupca(sel) {
+    var o = sel.options[sel.selectedIndex];
+    var naziv = o.getAttribute('data-naziv');
+    if (!naziv) return; // „— ručni unos —"
+    var f = sel.closest('form');
+    f.querySelector('input[name="kupac_naziv"]').value = naziv;
+    f.querySelector('input[name="kupac_pib"]').value = o.getAttribute('data-pib') || '';
+    f.querySelector('input[name="kupac_mesto"]').value = o.getAttribute('data-mesto') || '';
+}
+</script>
 {{end}}
