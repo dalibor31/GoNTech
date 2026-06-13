@@ -24,7 +24,7 @@
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
         <a href="/podsetnici/novi" class="btn-primarno">+ Novi podsetnik</a>
         <form method="GET" action="/podsetnici" style="display:flex;gap:8px;align-items:center;flex:1;min-width:200px;flex-wrap:wrap;">
-            <label style="display:flex;align-items:center;gap:6px;font-size:14px;color:var(--tekst-sporedni);cursor:pointer;white-space:nowrap;">
+            <label class="cek-filter" style="display:flex;align-items:center;gap:6px;font-size:14px;color:var(--tekst-sporedni);cursor:pointer;white-space:nowrap;">
                 <input type="checkbox" name="samo_aktivni" value="1" {{if .SamoAktivni}}checked{{end}}
                     onchange="this.form.submit()"
                     style="width:auto;padding:0;border:none !important;background:none !important;">
