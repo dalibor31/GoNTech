@@ -25,8 +25,9 @@ type PodaciPdvKir struct {
 // PodaciPdvKirForma su podaci za formu unosa zapisa KIR
 type PodaciPdvKirForma struct {
 	model.PodaciStranice
-	Greska string
-	Danas  string // podrazumevani datum u formi
+	Greska   string
+	Danas    string          // podrazumevani datum u formi
+	Klijenti []model.Klijent // za izbor kupca iz postojećih klijenata
 }
 
 // parsiraDatumOpcionalno vraća datum iz YYYY-MM-DD; prazan string daje nulti datum (bez filtera)
@@ -88,12 +89,16 @@ func (h *Handler) NoviPdvKir(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
 		return
 	}
+	// klijenti za izbor kupca; greška se ne prekida (forma radi i sa ručnim unosom)
+	klijenti, _ := h.KlijentiRepo.Lista(r.Context(), "")
+
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "pdv-kir"
 	ps.NaslovStranice = "Novi izlazni račun (KIR)"
 	h.renderujTemplate(w, "pdv_kir_forma", PodaciPdvKirForma{
 		PodaciStranice: ps,
 		Danas:          time.Now().Format("2006-01-02"),
+		Klijenti:       klijenti,
 	})
 }
 
