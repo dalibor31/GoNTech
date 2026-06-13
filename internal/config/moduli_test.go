@@ -66,3 +66,31 @@ func TestModulUkljucen(t *testing.T) {
 		})
 	}
 }
+
+func TestSviModuli(t *testing.T) {
+	// pun režim, doo, PDV obveznik, fiskalizacija → pdv, fiskalizacija, dvojno uključeni; kpo ne
+	pod := map[string]string{
+		KljucRezim:         "pun",
+		KljucPdvObveznik:   "da",
+		KljucFiskalizacija: "da",
+		KljucPravniOblik:   "doo",
+	}
+	m := SviModuli(pod)
+	if len(m) != 4 {
+		t.Fatalf("SviModuli vraća %d modula, očekivano 4", len(m))
+	}
+	ocek := map[string]bool{ModulPdv: true, ModulFiskalizacija: true, ModulKpo: false, ModulDvojno: true}
+	for modul, want := range ocek {
+		if m[modul] != want {
+			t.Errorf("SviModuli[%q] = %v, očekivano %v", modul, m[modul], want)
+		}
+	}
+
+	// samo evidencija → svi ugašeni
+	prazna := SviModuli(map[string]string{KljucRezim: "samo_evidencija"})
+	for modul, ukljucen := range prazna {
+		if ukljucen {
+			t.Errorf("u režimu samo_evidencija modul %q ne sme biti uključen", modul)
+		}
+	}
+}

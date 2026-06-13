@@ -54,3 +54,14 @@ func ModulUkljucen(podesavanja map[string]string, modul string) bool {
 		return false
 	}
 }
+
+// SviModuli vraća mapu svih poznatih modula → da li su uključeni za dati profil firme.
+// Koristi se da šabloni uslovno prikazuju stavke menija (analogno mapi Dozvole).
+func SviModuli(podesavanja map[string]string) map[string]bool {
+	moduli := []string{ModulPdv, ModulFiskalizacija, ModulKpo, ModulDvojno}
+	m := make(map[string]bool, len(moduli))
+	for _, modul := range moduli {
+		m[modul] = ModulUkljucen(podesavanja, modul)
+	}
+	return m
+}

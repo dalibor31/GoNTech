@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"sync"
 
+	"ntech/internal/config"
 	"ntech/internal/db"
 	"ntech/internal/db/sqlite"
 	"ntech/internal/middleware"
@@ -159,6 +160,8 @@ func (h *Handler) popuniPodaciStranice(r *http.Request, podesavanja map[string]s
 	ps.CsrfToken = middleware.CsrfToken(r.Context())
 	ps.AssetV = h.AssetV
 	ps.Flash = middleware.GetFlash(r, h.DB)
+	// uključeni zakonski moduli prema profilu firme — šabloni ih koriste za uslovni meni
+	ps.Moduli = config.SviModuli(podesavanja)
 
 	// logika pozadine:
 	// - lična pozadina → uvek se prikazuje i forsira tamnu temu, bez obzira na KoristiLokalnuTemu
