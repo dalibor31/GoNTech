@@ -32,6 +32,22 @@ type PdvStopaRepository interface {
 	PostaviAktivnu(ctx context.Context, id int64, aktivna bool) error
 }
 
+// PdvKirRepository definiše operacije nad knjigom izdatih računa (KIR)
+type PdvKirRepository interface {
+	Lista(ctx context.Context, od, do time.Time) ([]model.PdvKir, error)
+	DohvatiID(ctx context.Context, id int64) (*model.PdvKir, error)
+	Kreiraj(ctx context.Context, k *model.PdvKir) (int64, error)
+	Obrisi(ctx context.Context, id int64) error
+}
+
+// PdvKprRepository definiše operacije nad knjigom primljenih računa (KPR)
+type PdvKprRepository interface {
+	Lista(ctx context.Context, od, do time.Time) ([]model.PdvKpr, error)
+	DohvatiID(ctx context.Context, id int64) (*model.PdvKpr, error)
+	Kreiraj(ctx context.Context, k *model.PdvKpr) (int64, error)
+	Obrisi(ctx context.Context, id int64) error
+}
+
 // ArtikalFilter definiše parametre za filtriranje liste artikala
 type ArtikalFilter struct {
 	Pretraga     string
