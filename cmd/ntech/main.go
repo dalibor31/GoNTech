@@ -278,6 +278,8 @@ func main() {
 		r.With(doz("artikal.izmeni")).Post("/magacin/izmeni/{id}", h.SacuvajIzmenuArtikla)
 		r.With(doz("artikal.obrisi")).Get("/magacin/obrisi/{id}", h.ObrisiArtikal)
 		r.With(doz("artikal.premesti")).Post("/magacin/premesti/{id}", h.PremestiArtikal)
+		r.With(doz("artikal.izmeni")).Post("/magacin/promeni-cenu/{id}", h.PromeniCenuArtikla)
+		r.With(doz("artikal.izmeni")).Get("/nivelacije", h.Nivelacije)
 		r.Get("/magacin/kategorije", h.Kategorije)
 		r.With(doz("kategorija.dodaj")).Post("/magacin/kategorije/dodaj", h.DodajKategoriju)
 		r.With(doz("kategorija.obrisi")).Get("/magacin/kategorije/obrisi/{id}", h.ObrisiKategoriju)
