@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"html/template"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -26,7 +27,7 @@ type PodaciNabavki struct {
 type PodaciFormeNabavke struct {
 	model.PodaciStranice
 	Artikli     []model.ArtikalSaKategorijom
-	ArtikliJSON template.JS        // JSON niz artikala za Alpine.js — bezbedan za umetanje u <script>
+	ArtikliJSON template.JS // JSON niz artikala za Alpine.js — bezbedan za umetanje u <script>
 	Dobavljaci  []model.Dobavljac
 	Kategorije  []model.Kategorija // za dropdown u modalu novog artikla
 	Greska      string
@@ -155,6 +156,32 @@ func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// automatski zavedi u KPR ako je firma PDV obveznik; PDV se izvodi iz stope artikla
+	if h.modulUkljucen(r.Context(), "pdv") {
+		var stavkePdv []model.NabavkaStavkaPdv
+		for _, s := range stavke {
+			var stopa float64
+			if a, e := h.Artikli.DohvatiID(r.Context(), s.ArtikalID); e == nil {
+				stopa = a.PdvStopa
+			}
+			stavkePdv = append(stavkePdv, model.NabavkaStavkaPdv{
+				Osnovica: float64(s.Kolicina) * s.CenaPoKomadu,
+				PdvStopa: stopa,
+			})
+		}
+		naziv, pib, mesto := "Nepoznat dobavljač", "", ""
+		if nabavka.DobavljacID != nil {
+			if d, e := h.DobavljaciRepo.DohvatiID(r.Context(), *nabavka.DobavljacID); e == nil {
+				naziv, pib, mesto = d.Naziv, d.PIB, d.Mesto
+			}
+		}
+		nabavka.ID = id
+		kpr := model.KprIzNabavke(nabavka, naziv, pib, mesto, stavkePdv)
+		if _, e := h.PdvKprRepo.Kreiraj(r.Context(), &kpr); e != nil {
+			slog.Error("auto-upis u KPR nije uspeo", "nabavka_id", id, "error", e)
+		}
+	}
+
 	http.Redirect(w, r, "/nabavke/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)
 }
 
@@ -220,6 +247,10 @@ func (h *Handler) ObrisiNabavku(w http.ResponseWriter, r *http.Request) {
 	if err := h.NabavkeRepo.Obrisi(r.Context(), id); err != nil {
 		http.Error(w, "Greška pri brisanju nabavke", http.StatusInternalServerError)
 		return
+	}
+	// ukloni vezani auto-KPR zapis (ako ga je ova nabavka kreirala)
+	if err := h.PdvKprRepo.ObrisiPoIzvoru(r.Context(), "nabavka", id); err != nil {
+		slog.Error("brisanje vezanog KPR zapisa nije uspelo", "nabavka_id", id, "error", err)
 	}
 
 	http.Redirect(w, r, "/nabavke?obrisan=1", http.StatusSeeOther)

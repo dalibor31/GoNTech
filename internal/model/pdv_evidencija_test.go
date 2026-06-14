@@ -40,3 +40,33 @@ func TestKirIzProdaje(t *testing.T) {
 		t.Errorf("ukupno=%v, očekivano 400 (240+110+50)", k.Ukupno)
 	}
 }
+
+func TestKprIzNabavke(t *testing.T) {
+	nabavka := Nabavka{ID: 3, Napomena: "test", Datum: time.Date(2026, 6, 2, 0, 0, 0, 0, time.UTC)}
+	stavke := []NabavkaStavkaPdv{
+		{Osnovica: 200, PdvStopa: 20}, // PDV 40
+		{Osnovica: 100, PdvStopa: 10}, // PDV 10
+		{Osnovica: 50, PdvStopa: 0},   // oslobođena nabavka
+	}
+
+	k := KprIzNabavke(nabavka, "Dobavljač doo", "987654321", "Beograd", stavke)
+
+	if k.Izvor != "nabavka" || k.IzvorID == nil || *k.IzvorID != 3 {
+		t.Errorf("izvor=%q izvor_id=%v, očekivano nabavka/3", k.Izvor, k.IzvorID)
+	}
+	if k.BrojDokumenta != "NAB-3" || k.DobavljacNaziv != "Dobavljač doo" || k.DobavljacPib != "987654321" {
+		t.Errorf("zaglavlje ne odgovara: %+v", k)
+	}
+	if !blizu(k.OsnovicaOpsta, 200) || !blizu(k.PdvOpsta, 40) {
+		t.Errorf("opšta: osnovica=%v pdv=%v, očekivano 200/40", k.OsnovicaOpsta, k.PdvOpsta)
+	}
+	if !blizu(k.OsnovicaPosebna, 100) || !blizu(k.PdvPosebna, 10) {
+		t.Errorf("posebna: osnovica=%v pdv=%v, očekivano 100/10", k.OsnovicaPosebna, k.PdvPosebna)
+	}
+	if !blizu(k.OslobodenNabavka, 50) {
+		t.Errorf("oslobođena nabavka=%v, očekivano 50", k.OslobodenNabavka)
+	}
+	if !blizu(k.Ukupno, 400) {
+		t.Errorf("ukupno=%v, očekivano 400 (240+110+50)", k.Ukupno)
+	}
+}
