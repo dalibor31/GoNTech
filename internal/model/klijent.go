@@ -16,6 +16,7 @@ type Klijent struct {
 	PIB        string
 	Telefon    string
 	Email      string
+	Mesto      string
 	Napomena   string
 	DatumUnosa time.Time
 }

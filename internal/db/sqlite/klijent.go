@@ -21,7 +21,7 @@ func NoviKlijentRepo(db *sql.DB) *KlijentRepo {
 // Lista vraća listu klijenata sa opcionom pretragom po imenu, prezimenu ili nazivu firme
 func (r *KlijentRepo) Lista(ctx context.Context, pretraga string) ([]model.Klijent, error) {
 	upit := `
-		SELECT id, tip, ime, prezime, jmbg, naziv_firme, pib, telefon, email, napomena, datum_unosa
+		SELECT id, tip, ime, prezime, jmbg, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
 		FROM klijenti
 		WHERE 1=1`
 
@@ -44,9 +44,9 @@ func (r *KlijentRepo) Lista(ctx context.Context, pretraga string) ([]model.Klije
 	var rezultat []model.Klijent
 	for redovi.Next() {
 		var k model.Klijent
-		var ime, prezime, jmbg, nazivFirme, pib, telefon, email, napomena sql.NullString
+		var ime, prezime, jmbg, nazivFirme, pib, telefon, email, mesto, napomena sql.NullString
 		err := redovi.Scan(
-			&k.ID, &k.Tip, &ime, &prezime, &jmbg, &nazivFirme, &pib, &telefon, &email, &napomena, &k.DatumUnosa,
+			&k.ID, &k.Tip, &ime, &prezime, &jmbg, &nazivFirme, &pib, &telefon, &email, &mesto, &napomena, &k.DatumUnosa,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("ntech: KlijentRepo.Lista: scan: %w", err)
@@ -58,6 +58,7 @@ func (r *KlijentRepo) Lista(ctx context.Context, pretraga string) ([]model.Klije
 		k.PIB = pib.String
 		k.Telefon = telefon.String
 		k.Email = email.String
+		k.Mesto = mesto.String
 		k.Napomena = napomena.String
 		rezultat = append(rezultat, k)
 	}
@@ -68,12 +69,12 @@ func (r *KlijentRepo) Lista(ctx context.Context, pretraga string) ([]model.Klije
 // DohvatiID vraća jednog klijenta po ID-u
 func (r *KlijentRepo) DohvatiID(ctx context.Context, id int64) (*model.Klijent, error) {
 	var k model.Klijent
-	var ime, prezime, jmbg, nazivFirme, pib, telefon, email, napomena sql.NullString
+	var ime, prezime, jmbg, nazivFirme, pib, telefon, email, mesto, napomena sql.NullString
 
 	err := r.db.QueryRowContext(ctx, `
-		SELECT id, tip, ime, prezime, jmbg, naziv_firme, pib, telefon, email, napomena, datum_unosa
+		SELECT id, tip, ime, prezime, jmbg, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
 		FROM klijenti WHERE id = ?`, id).Scan(
-		&k.ID, &k.Tip, &ime, &prezime, &jmbg, &nazivFirme, &pib, &telefon, &email, &napomena, &k.DatumUnosa,
+		&k.ID, &k.Tip, &ime, &prezime, &jmbg, &nazivFirme, &pib, &telefon, &email, &mesto, &napomena, &k.DatumUnosa,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: KlijentRepo.DohvatiID: %w", err)
@@ -86,6 +87,7 @@ func (r *KlijentRepo) DohvatiID(ctx context.Context, id int64) (*model.Klijent, 
 	k.PIB = pib.String
 	k.Telefon = telefon.String
 	k.Email = email.String
+	k.Mesto = mesto.String
 	k.Napomena = napomena.String
 
 	return &k, nil
@@ -97,11 +99,11 @@ func (r *KlijentRepo) Kreiraj(ctx context.Context, k *model.Klijent) (int64, err
 		k.Tip = "fizicko"
 	}
 	rezultat, err := r.db.ExecContext(ctx, `
-		INSERT INTO klijenti (tip, ime, prezime, jmbg, naziv_firme, pib, telefon, email, napomena)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		INSERT INTO klijenti (tip, ime, prezime, jmbg, naziv_firme, pib, telefon, email, mesto, napomena)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		k.Tip, nullString(k.Ime), nullString(k.Prezime), nullString(k.JMBG),
 		nullString(k.NazivFirme), nullString(k.PIB), nullString(k.Telefon),
-		nullString(k.Email), nullString(k.Napomena),
+		nullString(k.Email), nullString(k.Mesto), nullString(k.Napomena),
 	)
 	if err != nil {
 		return 0, fmt.Errorf("ntech: KlijentRepo.Kreiraj: %w", err)
@@ -123,11 +125,11 @@ func (r *KlijentRepo) Izmeni(ctx context.Context, k *model.Klijent) error {
 	_, err := r.db.ExecContext(ctx, `
 		UPDATE klijenti SET
 			tip = ?, ime = ?, prezime = ?, jmbg = ?, naziv_firme = ?,
-			pib = ?, telefon = ?, email = ?, napomena = ?
+			pib = ?, telefon = ?, email = ?, mesto = ?, napomena = ?
 		WHERE id = ?`,
 		k.Tip, nullString(k.Ime), nullString(k.Prezime), nullString(k.JMBG),
 		nullString(k.NazivFirme), nullString(k.PIB), nullString(k.Telefon),
-		nullString(k.Email), nullString(k.Napomena), k.ID,
+		nullString(k.Email), nullString(k.Mesto), nullString(k.Napomena), k.ID,
 	)
 	if err != nil {
 		return fmt.Errorf("ntech: KlijentRepo.Izmeni: %w", err)

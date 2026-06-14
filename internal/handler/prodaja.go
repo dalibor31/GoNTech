@@ -197,6 +197,22 @@ func (h *Handler) SacuvajProdaju(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// automatski zavedi u KIR ako je firma PDV obveznik i prodaja je na klijenta (B2B faktura).
+	// Maloprodaja građanima (bez klijenta) ide zbirno preko fiskalizacije (Faza 3) — preskače se.
+	if nalog.KlijentID != nil && h.modulUkljucen(r.Context(), "pdv") {
+		if klijent, e := h.KlijentiRepo.DohvatiID(r.Context(), *nalog.KlijentID); e == nil {
+			nalog.ID = id
+			pib := klijent.PIB
+			if klijent.Tip != "pravno" {
+				pib = klijent.JMBG
+			}
+			kir := model.KirIzProdaje(nalog, stavke, klijent.PunoIme(), pib, klijent.Mesto)
+			if _, e := h.PdvKirRepo.Kreiraj(r.Context(), &kir); e != nil {
+				slog.Error("auto-upis u KIR nije uspeo", "prodaja_id", id, "error", e)
+			}
+		}
+	}
+
 	http.Redirect(w, r, "/prodaja/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)
 }
 
@@ -319,6 +335,10 @@ func (h *Handler) ObrisiProdaju(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Greška pri brisanju naloga", http.StatusInternalServerError)
 		return
 	}
+	// ukloni vezani auto-KIR zapis (ako ga je ova prodaja kreirala)
+	if err := h.PdvKirRepo.ObrisiPoIzvoru(r.Context(), "prodaja", id); err != nil {
+		slog.Error("brisanje vezanog KIR zapisa nije uspelo", "prodaja_id", id, "error", err)
+	}
 
 	http.Redirect(w, r, "/prodaja?obrisan=1", http.StatusSeeOther)
 }
@@ -407,6 +427,10 @@ func (h *Handler) StornoProdaje(w http.ResponseWriter, r *http.Request) {
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri storniranju. Možda je nalog već storniran.")
 		http.Redirect(w, r, "/prodaja/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
 		return
+	}
+	// stornirana prodaja ne ulazi u PDV — ukloni vezani auto-KIR zapis
+	if err := h.PdvKirRepo.ObrisiPoIzvoru(r.Context(), "prodaja", id); err != nil {
+		slog.Error("brisanje vezanog KIR zapisa nije uspelo", "prodaja_id", id, "error", err)
 	}
 	middleware.SetFlash(w, r, h.DB, "uspeh", "Prodajni nalog je storniran.")
 	http.Redirect(w, r, "/prodaja/"+strconv.FormatInt(id, 10), http.StatusSeeOther)

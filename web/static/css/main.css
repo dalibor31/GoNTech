@@ -327,7 +327,7 @@ body {
 }
 
 .kartica:hover {
-    transform: translateY(-4px);
+    transform: scale(1.02);
     box-shadow: var(--senka);
 }
 

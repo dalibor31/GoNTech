@@ -1,0 +1,115 @@
+{{template "base" .}}
+
+{{define "naslov"}}Podešavanja — Kalkulacija i PDV — NTech{{end}}
+
+{{define "sadrzaj"}}
+<div class="stranica-stack" style="width:100%;max-width:100%;">
+
+    <!-- kalkulacija: podrazumevana marža za formiranje prodajne cene pri nabavci -->
+    <div class="kartica animiraj" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sb-akcent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Kalkulacija</span>
+        </div>
+        <form method="POST" action="/podesavanja/sacuvaj">
+            <input type="hidden" name="_next" value="/admin/podesavanja/kalkulacija-pdv">
+            <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;">
+                <div>
+                    <label for="kalkulacija_marza" class="polje-labela">Podrazumevana marža (%)</label>
+                    <input type="number" id="kalkulacija_marza" name="kalkulacija_marza" min="0" max="1000" step="0.01" value="{{.KalkulacijaMarza}}"
+                        style="width:140px;padding:8px 12px;background:var(--pozadina);border:0.5px solid var(--ivica);border-radius:8px;color:var(--tekst-glavni);font-size:14px;">
+                </div>
+                <button type="submit"
+                    style="padding:9px 18px;background:var(--sb-akcent);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:500;cursor:pointer;">
+                    Sačuvaj
+                </button>
+            </div>
+            <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:8px;">
+                Početna marža za formiranje prodajne cene pri nabavci. Po stavci je možeš promeniti.
+            </div>
+        </form>
+    </div>
+
+    <!-- postojeće stope: svaki red je forma za izmenu + zasebna forma za arhiviranje -->
+    <div class="kartica animiraj" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sb-akcent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Šifarnik PDV stopa</span>
+        </div>
+
+        <div class="pomocni-tekst" style="font-size:12px;margin-bottom:14px;">
+            Stope se koriste u kalkulaciji cena i PDV evidenciji. Stopa koja je negde upotrebljena se ne briše — arhivira se (nestaje iz padajućih lista, a postojeći zapisi ostaju ispravni).
+        </div>
+
+        {{if not .Stope}}
+        <div class="pomocni-tekst">Nema unetih PDV stopa.</div>
+        {{end}}
+
+        {{range .Stope}}
+        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;padding:10px 0;border-bottom:0.5px solid var(--ivica);{{if not .Aktivna}}opacity:0.5;{{end}}">
+            <form method="POST" action="/podesavanja/pdv-stope/{{.ID}}/izmeni" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;flex:1;">
+                <div style="flex:2;min-width:140px;">
+                    <label class="polje-labela">Naziv</label>
+                    <input type="text" name="naziv" value="{{.Naziv}}" style="width:100%;padding:7px 10px;border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div style="width:80px;">
+                    <label class="polje-labela">Stopa %</label>
+                    <input type="text" name="stopa" value="{{printf "%g" .Stopa}}" style="width:100%;padding:7px 10px;border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div style="width:150px;">
+                    <label class="polje-labela">Vrsta</label>
+                    <select name="oznaka" style="width:100%;padding:7px 10px;border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                        <option value="opsta" {{if eq .Oznaka "opsta"}}selected{{end}}>Opšta</option>
+                        <option value="posebna" {{if eq .Oznaka "posebna"}}selected{{end}}>Posebna</option>
+                        <option value="oslobodjeno" {{if eq .Oznaka "oslobodjeno"}}selected{{end}}>Oslobođeno</option>
+                    </select>
+                </div>
+                <div style="width:80px;">
+                    <label class="polje-labela">Redosled</label>
+                    <input type="text" name="redosled" value="{{.Redosled}}" style="width:100%;padding:7px 10px;border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <button type="submit" style="padding:7px 14px;background:var(--sb-akcent);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap;">Sačuvaj</button>
+            </form>
+            <form method="POST" action="/podesavanja/pdv-stope/{{.ID}}/aktivnost">
+                <button type="submit" style="padding:7px 14px;background:var(--sb-aktivan);color:var(--tekst-jak);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap;">{{if .Aktivna}}Arhiviraj{{else}}Vrati{{end}}</button>
+            </form>
+        </div>
+        {{end}}
+    </div>
+
+    <!-- dodavanje nove stope -->
+    <form method="POST" action="/podesavanja/pdv-stope/dodaj">
+        <div class="kartica animiraj" style="margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sb-akcent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Nova stopa</span>
+            </div>
+
+            <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+                <div style="flex:2;min-width:140px;">
+                    <label class="polje-labela">Naziv</label>
+                    <input type="text" name="naziv" placeholder="npr. Opšta stopa" style="width:100%;padding:7px 10px;border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div style="width:80px;">
+                    <label class="polje-labela">Stopa %</label>
+                    <input type="text" name="stopa" placeholder="20" style="width:100%;padding:7px 10px;border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div style="width:150px;">
+                    <label class="polje-labela">Vrsta</label>
+                    <select name="oznaka" style="width:100%;padding:7px 10px;border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                        <option value="opsta">Opšta</option>
+                        <option value="posebna">Posebna</option>
+                        <option value="oslobodjeno">Oslobođeno</option>
+                    </select>
+                </div>
+                <div style="width:80px;">
+                    <label class="polje-labela">Redosled</label>
+                    <input type="text" name="redosled" placeholder="0" style="width:100%;padding:7px 10px;border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <button type="submit" style="padding:7px 16px;background:var(--sb-akcent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;">Dodaj</button>
+            </div>
+        </div>
+    </form>
+
+</div>
+{{end}}

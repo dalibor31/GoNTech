@@ -117,6 +117,94 @@
         </div>
     </form>
 
+    <!-- profil firme: pravni/poreski status (Faza 0) — određuje koji se zakonski moduli pale -->
+    <form method="POST" action="/podesavanja/sacuvaj">
+        <input type="hidden" name="_next" value="/admin/podesavanja/opste">
+        <div class="kartica animiraj" style="margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sb-akcent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Pravni i poreski status</span>
+            </div>
+
+            <div class="kolona" style="gap:18px;">
+
+                <!-- pravni oblik -->
+                <div>
+                    <label class="polje-labela">Pravni oblik</label>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                        <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;cursor:pointer;flex:1;{{if eq .FirmaPravniOblik "pausalac"}}border-color:var(--sb-akcent);background:var(--pozadina);{{end}}">
+                            <input type="radio" name="firma_pravni_oblik" value="pausalac" {{if eq .FirmaPravniOblik "pausalac"}}checked{{end}} style="accent-color:var(--sb-akcent);">
+                            <span style="font-size:13px;color:var(--tekst-glavni);">Paušalac</span>
+                        </label>
+                        <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;cursor:pointer;flex:1;{{if eq .FirmaPravniOblik "preduzetnik_knjige"}}border-color:var(--sb-akcent);background:var(--pozadina);{{end}}">
+                            <input type="radio" name="firma_pravni_oblik" value="preduzetnik_knjige" {{if eq .FirmaPravniOblik "preduzetnik_knjige"}}checked{{end}} style="accent-color:var(--sb-akcent);">
+                            <span style="font-size:13px;color:var(--tekst-glavni);">Preduzetnik (knjige)</span>
+                        </label>
+                        <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;cursor:pointer;flex:1;{{if eq .FirmaPravniOblik "doo"}}border-color:var(--sb-akcent);background:var(--pozadina);{{end}}">
+                            <input type="radio" name="firma_pravni_oblik" value="doo" {{if eq .FirmaPravniOblik "doo"}}checked{{end}} style="accent-color:var(--sb-akcent);">
+                            <span style="font-size:13px;color:var(--tekst-glavni);">DOO</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- režim rada -->
+                <div>
+                    <label class="polje-labela">Režim rada</label>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                        <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;cursor:pointer;flex:1;{{if eq .FirmaRezim "pun"}}border-color:var(--sb-akcent);background:var(--pozadina);{{end}}">
+                            <input type="radio" name="firma_rezim" value="pun" {{if eq .FirmaRezim "pun"}}checked{{end}} style="accent-color:var(--sb-akcent);">
+                            <span style="font-size:13px;color:var(--tekst-glavni);">Pun (vodi poslovne knjige)</span>
+                        </label>
+                        <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;cursor:pointer;flex:1;{{if eq .FirmaRezim "samo_evidencija"}}border-color:var(--sb-akcent);background:var(--pozadina);{{end}}">
+                            <input type="radio" name="firma_rezim" value="samo_evidencija" {{if eq .FirmaRezim "samo_evidencija"}}checked{{end}} style="accent-color:var(--sb-akcent);">
+                            <span style="font-size:13px;color:var(--tekst-glavni);">Samo evidencija</span>
+                        </label>
+                    </div>
+                    <div class="pomocni-tekst" style="font-size:12px;margin-top:6px;">„Samo evidencija" gasi ceo zakonski sloj — program vodi servis i zalihe, ali ne izdaje fiskalne ni poreske dokumente.</div>
+                </div>
+
+                <!-- PDV obveznik -->
+                <div>
+                    <label class="polje-labela">U sistemu PDV-a</label>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                        <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;cursor:pointer;flex:1;{{if eq .FirmaPdvObveznik "da"}}border-color:var(--sb-akcent);background:var(--pozadina);{{end}}">
+                            <input type="radio" name="firma_pdv_obveznik" value="da" {{if eq .FirmaPdvObveznik "da"}}checked{{end}} style="accent-color:var(--sb-akcent);">
+                            <span style="font-size:13px;color:var(--tekst-glavni);">Da</span>
+                        </label>
+                        <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;cursor:pointer;flex:1;{{if eq .FirmaPdvObveznik "ne"}}border-color:var(--sb-akcent);background:var(--pozadina);{{end}}">
+                            <input type="radio" name="firma_pdv_obveznik" value="ne" {{if eq .FirmaPdvObveznik "ne"}}checked{{end}} style="accent-color:var(--sb-akcent);">
+                            <span style="font-size:13px;color:var(--tekst-glavni);">Ne</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- fiskalizacija — zasivljena i forsirana na „Ne" kad je režim „samo evidencija" (vidi skriptu na dnu) -->
+                <div id="fiskalizacija-grupa">
+                    <label class="polje-labela">Izdaje fiskalne račune (promet građanima)</label>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                        <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;cursor:pointer;flex:1;{{if eq .FirmaFiskalizacija "da"}}border-color:var(--sb-akcent);background:var(--pozadina);{{end}}">
+                            <input type="radio" name="firma_fiskalizacija" value="da" {{if eq .FirmaFiskalizacija "da"}}checked{{end}} style="accent-color:var(--sb-akcent);">
+                            <span style="font-size:13px;color:var(--tekst-glavni);">Da</span>
+                        </label>
+                        <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;cursor:pointer;flex:1;{{if eq .FirmaFiskalizacija "ne"}}border-color:var(--sb-akcent);background:var(--pozadina);{{end}}">
+                            <input type="radio" name="firma_fiskalizacija" value="ne" {{if eq .FirmaFiskalizacija "ne"}}checked{{end}} style="accent-color:var(--sb-akcent);">
+                            <span style="font-size:13px;color:var(--tekst-glavni);">Ne</span>
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;margin-top:20px;">
+                <button type="submit"
+                    style="background:var(--sb-akcent);color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:opacity 0.2s;"
+                    onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                    Sačuvaj status
+                </button>
+            </div>
+        </div>
+    </form>
+
 </div>
 
 {{if .LogoGreska}}
@@ -135,4 +223,37 @@
 })();
 </script>
 {{end}}
+
+<script>
+// Fiskalizacija ima smisla samo u punom režimu. Kad je „samo evidencija", grupa se
+// zasivi i forsira na „Ne". Ne koristimo disabled (jer disabled polje se ne šalje u
+// POST pa bi stara vrednost ostala u bazi) — umesto toga pointer-events:none, a radio
+// „Ne" ostaje aktivan i čekiran, pa se uredno sačuva „ne".
+(function() {
+    var rezim = document.querySelectorAll('input[name="firma_rezim"]');
+    var grupa = document.getElementById('fiskalizacija-grupa');
+    var fisk = document.querySelectorAll('input[name="firma_fiskalizacija"]');
+    if (!grupa || !rezim.length) return;
+
+    function azuriraj() {
+        var izabran = document.querySelector('input[name="firma_rezim"]:checked');
+        var samoEvidencija = izabran && izabran.value === 'samo_evidencija';
+        grupa.style.opacity = samoEvidencija ? '0.45' : '';
+        grupa.style.pointerEvents = samoEvidencija ? 'none' : '';
+        if (samoEvidencija) {
+            fisk.forEach(function(r) {
+                r.checked = (r.value === 'ne');
+                var lab = r.closest('label');
+                if (lab) {
+                    lab.style.borderColor = r.checked ? 'var(--sb-akcent)' : 'var(--ivica)';
+                    lab.style.background = r.checked ? 'var(--pozadina)' : 'transparent';
+                }
+            });
+        }
+    }
+
+    rezim.forEach(function(r) { r.addEventListener('change', azuriraj); });
+    azuriraj();
+})();
+</script>
 {{end}}

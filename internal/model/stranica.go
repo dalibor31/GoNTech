@@ -39,11 +39,12 @@ type PodaciStranice struct {
 	LogoTip        string // "sa_nazivom", "bez_naziva", "slika"
 	LogoPutanja    string // putanja do slike, koristi se samo kada je LogoTip "slika"
 	Korisnik       string
-	KorisnikIme    string // korisničko ime prijavljenog korisnika
+	KorisnikIme    string          // korisničko ime prijavljenog korisnika
 	KorisnikUloga  string          // uloga: "superadmin", "admin", "radnik"
 	CsrfToken      string          // CSRF zaštitni token za forme
 	AssetV         string          // verzija statičkih fajlova (cache-busting za CSS/JS)
 	Dozvole        map[string]bool // mapa akcija → dozvoljeno/nije
+	Moduli         map[string]bool // mapa zakonskih modula → uključen za firmu (profil firme)
 	Flash          *FlashPoruka    // jednokratna poruka nakon redirecta
 	// app pozadina — popunjava se iz podešavanja za sve stranice
 	AppPozadina             string

@@ -249,6 +249,7 @@ func parseFormuKlijenta(r *http.Request) (model.Klijent, string) {
 		PIB:        strings.TrimSpace(r.FormValue("pib")),
 		Telefon:    strings.TrimSpace(r.FormValue("telefon")),
 		Email:      email,
+		Mesto:      strings.TrimSpace(r.FormValue("mesto")),
 		Napomena:   strings.TrimSpace(r.FormValue("napomena")),
 	}, ""
 }

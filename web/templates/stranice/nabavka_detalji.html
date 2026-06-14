@@ -122,6 +122,30 @@
         </div>
     </div>
 
+    <!-- zavisni troškovi -->
+    {{if .Troskovi}}
+    <div class="kartica detalji-kartica animiraj" style="padding:0;overflow:hidden;">
+        <div style="padding:14px 16px;border-bottom:0.5px solid var(--ivica);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Zavisni troškovi</span>
+            <span class="pomocni-tekst">
+                Raspodela: {{if eq .Nabavka.MetodRaspodele "kolicina"}}po količini{{else}}po vrednosti stavke{{end}}
+            </span>
+        </div>
+        <div style="padding:8px 16px;">
+            {{range .Troskovi}}
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--ivica);">
+                <span style="font-size:14px;color:var(--tekst-glavni);">{{.Naziv}}</span>
+                <span style="font-size:14px;color:var(--tekst-sporedni);">{{printf "%.2f" .Iznos}} din</span>
+            </div>
+            {{end}}
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;">
+                <span style="font-size:13px;font-weight:500;color:var(--tekst-sporedni);">Ukupno troškovi:</span>
+                <span style="font-size:15px;font-weight:600;color:var(--tekst-glavni);">{{printf "%.2f" .UkupanTrosak}} din</span>
+            </div>
+        </div>
+    </div>
+    {{end}}
+
     <!-- zona za brisanje -->
     <div class="kartica detalji-kartica animiraj" style="border-color:#dc262633;">
         <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
