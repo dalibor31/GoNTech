@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -85,7 +86,15 @@ func (h *Handler) SacuvajDobavljaca(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dobavljac, greska := parseFormuDobavljaca(r)
+	jeAjax := r.Header.Get("X-Requested-With") == "fetch"
 	if greska != "" {
+		// fetch zahtev (iz modala u nabavci) dobija JSON grešku
+		if jeAjax {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, `{"greska":%q}`, greska)
+			return
+		}
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		ps := h.popuniPodaciStranice(r, podesavanja)
 		ps.Stranica = "dobavljaci"
@@ -99,8 +108,16 @@ func (h *Handler) SacuvajDobavljaca(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := h.DobavljaciRepo.Kreiraj(r.Context(), &dobavljac); err != nil {
+	id, err := h.DobavljaciRepo.Kreiraj(r.Context(), &dobavljac)
+	if err != nil {
 		http.Error(w, "Greška pri čuvanju dobavljača", http.StatusInternalServerError)
+		return
+	}
+
+	// fetch zahtev (iz modala) dobija JSON sa ID-em i nazivom novog dobavljača
+	if jeAjax {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `{"id":%d,"naziv":%q}`, id, dobavljac.Naziv)
 		return
 	}
 
