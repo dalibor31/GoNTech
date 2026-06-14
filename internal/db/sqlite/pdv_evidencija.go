@@ -171,7 +171,7 @@ func (r *PdvKprRepo) Lista(ctx context.Context, od, do time.Time) ([]model.PdvKp
 		       dobavljac_naziv, COALESCE(dobavljac_pib, ''), COALESCE(dobavljac_mesto, ''),
 		       osnovica_opsta, pdv_opsta, osnovica_posebna, pdv_posebna,
 		       pdv_bez_odbitka, osloboden_nabavka, ukupno,
-		       COALESCE(napomena, ''), izvor, izvor_id, datum_unosa
+		       COALESCE(napomena, ''), izvor, izvor_id, uvoz, datum_unosa
 		FROM pdv_kpr WHERE 1=1`
 	args := []any{}
 	if !od.IsZero() {
@@ -211,7 +211,7 @@ func (r *PdvKprRepo) DohvatiID(ctx context.Context, id int64) (*model.PdvKpr, er
 		       dobavljac_naziv, COALESCE(dobavljac_pib, ''), COALESCE(dobavljac_mesto, ''),
 		       osnovica_opsta, pdv_opsta, osnovica_posebna, pdv_posebna,
 		       pdv_bez_odbitka, osloboden_nabavka, ukupno,
-		       COALESCE(napomena, ''), izvor, izvor_id, datum_unosa
+		       COALESCE(napomena, ''), izvor, izvor_id, uvoz, datum_unosa
 		FROM pdv_kpr WHERE id = ?`, id)
 	k, err := skenirajKpr(red.Scan)
 	if err != nil {
@@ -225,12 +225,13 @@ func skenirajKpr(scan func(...any) error) (model.PdvKpr, error) {
 	var k model.PdvKpr
 	var datumPlacanja sql.NullTime
 	var izvorID sql.NullInt64
+	var uvoz int64
 	if err := scan(
 		&k.ID, &k.DatumPrometa, &k.DatumKnjizenja, &datumPlacanja, &k.BrojDokumenta,
 		&k.DobavljacNaziv, &k.DobavljacPib, &k.DobavljacMesto,
 		&k.OsnovicaOpsta, &k.PdvOpsta, &k.OsnovicaPosebna, &k.PdvPosebna,
 		&k.PdvBezOdbitka, &k.OslobodenNabavka, &k.Ukupno,
-		&k.Napomena, &k.Izvor, &izvorID, &k.DatumUnosa,
+		&k.Napomena, &k.Izvor, &izvorID, &uvoz, &k.DatumUnosa,
 	); err != nil {
 		return model.PdvKpr{}, err
 	}
@@ -240,6 +241,7 @@ func skenirajKpr(scan func(...any) error) (model.PdvKpr, error) {
 	if izvorID.Valid {
 		k.IzvorID = &izvorID.Int64
 	}
+	k.Uvoz = uvoz != 0
 	return k, nil
 }
 
@@ -249,18 +251,22 @@ func (r *PdvKprRepo) Kreiraj(ctx context.Context, k *model.PdvKpr) (int64, error
 	if k.DatumPlacanja != nil {
 		datumPlacanja = *k.DatumPlacanja
 	}
+	uvoz := 0
+	if k.Uvoz {
+		uvoz = 1
+	}
 	rez, err := r.db.ExecContext(ctx, `
 		INSERT INTO pdv_kpr (
 			datum_prometa, datum_knjizenja, datum_placanja, broj_dokumenta,
 			dobavljac_naziv, dobavljac_pib, dobavljac_mesto,
 			osnovica_opsta, pdv_opsta, osnovica_posebna, pdv_posebna,
-			pdv_bez_odbitka, osloboden_nabavka, ukupno, napomena, izvor, izvor_id
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			pdv_bez_odbitka, osloboden_nabavka, ukupno, napomena, izvor, izvor_id, uvoz
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		k.DatumPrometa, k.DatumKnjizenja, datumPlacanja, k.BrojDokumenta,
 		k.DobavljacNaziv, k.DobavljacPib, k.DobavljacMesto,
 		k.OsnovicaOpsta, k.PdvOpsta, k.OsnovicaPosebna, k.PdvPosebna,
 		k.PdvBezOdbitka, k.OslobodenNabavka, k.Ukupno, k.Napomena,
-		izvorIliRucno(k.Izvor), izvorIDArg(k.IzvorID))
+		izvorIliRucno(k.Izvor), izvorIDArg(k.IzvorID), uvoz)
 	if err != nil {
 		return 0, fmt.Errorf("ntech: PdvKprRepo.Kreiraj: %w", err)
 	}

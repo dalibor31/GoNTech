@@ -138,6 +138,7 @@ type PdvKpr struct {
 	Napomena         string
 	Izvor            string // "rucno" | "prodaja" | "nabavka"
 	IzvorID          *int64 // id izvorne nabavke (nil za ručni unos)
+	Uvoz             bool   // true = uvoz (JCI) → PPPDV 006/106; false = domaća nabavka → 008/108
 	DatumUnosa       time.Time
 }
 
@@ -287,9 +288,10 @@ func (p PPPDV) Polje110Apsolutno() int64 {
 }
 
 // MapirajPPPDV preslikava zbirove KIR i KPR na polja obrasca PPPDV (cele dinare).
-// ⚠ Uvoz (006/106) i PDV nadoknada poljoprivredniku (007/107) se ne prate zasebno
-// pa ostaju 0 — sav odbitni PDV iz KPR pada u polje 008/108.
-func MapirajPPPDV(kir PdvKirSume, kpr PdvKprSume) PPPDV {
+// KPR je razdvojen: uvoz (JCI) ide u polja 006/106 (prethodni porez pri uvozu),
+// domaća nabavka u 008/108 (ostali prethodni porez).
+// ⚠ PDV nadoknada poljoprivredniku (007/107) se i dalje ne prati zasebno (ostaje 0).
+func MapirajPPPDV(kir PdvKirSume, kprDomace, kprUvoz PdvKprSume) PPPDV {
 	uDinare := func(v float64) int64 { return int64(math.Round(v)) }
 	p := PPPDV{
 		Polje001: uDinare(kir.OslobodenSaPravom),
@@ -298,8 +300,10 @@ func MapirajPPPDV(kir PdvKirSume, kpr PdvKprSume) PPPDV {
 		Polje103: uDinare(kir.PdvOpsta),
 		Polje004: uDinare(kir.OsnovicaPosebna),
 		Polje104: uDinare(kir.PdvPosebna),
-		Polje008: uDinare(kpr.OsnovicaOpsta + kpr.OsnovicaPosebna),
-		Polje108: uDinare(kpr.PdvOpsta + kpr.PdvPosebna),
+		Polje006: uDinare(kprUvoz.OsnovicaOpsta + kprUvoz.OsnovicaPosebna),
+		Polje106: uDinare(kprUvoz.PdvOpsta + kprUvoz.PdvPosebna),
+		Polje008: uDinare(kprDomace.OsnovicaOpsta + kprDomace.OsnovicaPosebna),
+		Polje108: uDinare(kprDomace.PdvOpsta + kprDomace.PdvPosebna),
 	}
 	// zbirovi se računaju iz zaokruženih polja da kolone na obrascu uvek zbiraju
 	p.Polje005 = p.Polje001 + p.Polje002 + p.Polje003 + p.Polje004

@@ -59,6 +59,19 @@ func (h *Handler) PdvObracunStranica(w http.ResponseWriter, r *http.Request) {
 	kirSume := model.SumirajKir(kirZapisi)
 	kprSume := model.SumirajKpr(kprZapisi)
 
+	// razdvajamo KPR na domaće i uvozne — uvoz se u PPPDV mapira u polja 006/106,
+	// domaća nabavka u 008/108; obračun obaveze ostaje na ukupnom KPR-u (uvozni PDV je odbitni)
+	var kprDomaci, kprUvozni []model.PdvKpr
+	for _, z := range kprZapisi {
+		if z.Uvoz {
+			kprUvozni = append(kprUvozni, z)
+		} else {
+			kprDomaci = append(kprDomaci, z)
+		}
+	}
+	kprDomaceSume := model.SumirajKpr(kprDomaci)
+	kprUvozSume := model.SumirajKpr(kprUvozni)
+
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "pdv-obracun"
 	ps.NaslovStranice = "PDV obračun"
@@ -69,6 +82,6 @@ func (h *Handler) PdvObracunStranica(w http.ResponseWriter, r *http.Request) {
 		KirSume:        kirSume,
 		KprSume:        kprSume,
 		Obracun:        model.ObracunajPdv(kirSume, kprSume),
-		PPPDV:          model.MapirajPPPDV(kirSume, kprSume),
+		PPPDV:          model.MapirajPPPDV(kirSume, kprDomaceSume, kprUvozSume),
 	})
 }

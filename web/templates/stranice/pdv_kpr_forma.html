@@ -102,6 +102,16 @@
                 <input type="text" name="napomena" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
             </div>
 
+            <div style="margin-top:14px;">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;color:var(--tekst-glavni);">
+                    <input type="checkbox" name="uvoz" value="1" style="width:16px;height:16px;cursor:pointer;">
+                    Uvoz (JCI)
+                </label>
+                <div class="pomocni-tekst" style="margin-top:4px;">
+                    Označi ako je račun uvoz po carinskom dokumentu (JCI) — PDV ide u polja 006/106 obrasca PPPDV.
+                </div>
+            </div>
+
             <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;">
                 <a href="/pdv/kpr" class="btn-sekundarno" style="font-size:14px;padding:10px 20px;">Odustani</a>
                 <button type="submit" style="background:var(--sb-akcent);color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;">Sačuvaj</button>
