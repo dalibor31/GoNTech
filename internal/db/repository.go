@@ -13,6 +13,8 @@ type ArtikalRepository interface {
 	DohvatiID(ctx context.Context, id int64) (*model.Artikal, error)
 	Kreiraj(ctx context.Context, a *model.Artikal) (int64, error)
 	Izmeni(ctx context.Context, a *model.Artikal) error
+	// AzurirajCene menja samo nabavnu i prodajnu cenu (kalkulacija pri nabavci)
+	AzurirajCene(ctx context.Context, id int64, nabavna, prodajna float64) error
 	PremestiKategoriju(ctx context.Context, id int64, kategorijaID *int64) error
 	Obrisi(ctx context.Context, id int64) error
 }

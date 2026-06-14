@@ -186,8 +186,9 @@ document.addEventListener('alpine:init', () => {
 
     // forma za nabavku
     Alpine.data('nabavkaForma', () => ({
-        stavke: [{artikal_id: '', kolicina: 1, cena: 0}],
+        stavke: [{artikal_id: '', kolicina: 1, cena: 0, marza: 0, prodajna: 0}],
         artikliOpcije: [],
+        marzaDefault: 0,
         isMobile: false,
         modal: false,
         modalUcitavanje: false,
@@ -212,13 +213,27 @@ document.addEventListener('alpine:init', () => {
         modalDobNapomena: '',
         init() {
             this.artikliOpcije = window._ntechArtikli || []
+            this.marzaDefault = parseFloat(window._ntechMarza) || 0
+            this.stavke.forEach(s => { s.marza = this.marzaDefault })
             this.isMobile = window.matchMedia('(max-width: 768px)').matches
             window.matchMedia('(max-width: 768px)').addEventListener('change', e => {
                 this.isMobile = e.matches
             })
         },
         dodajStavku() {
-            this.stavke.push({artikal_id: '', kolicina: 1, cena: 0})
+            this.stavke.push({artikal_id: '', kolicina: 1, cena: 0, marza: this.marzaDefault, prodajna: 0})
+        },
+        // PDV stopa izabranog artikla (iz JSON liste) — za obračun prodajne cene
+        pdvStopa(artikalId) {
+            const a = this.artikliOpcije.find(x => String(x.id) === String(artikalId))
+            return a ? (parseFloat(a.pdv_stopa) || 0) : 0
+        },
+        // prodajna (sa PDV) = nabavna × (1 + marža/100) × (1 + pdvStopa/100), zaokruženo na 2 decimale
+        izracunajProdajnu(s) {
+            const cena = parseFloat(s.cena) || 0
+            const marza = parseFloat(s.marza) || 0
+            const pdv = this.pdvStopa(s.artikal_id)
+            s.prodajna = Math.round(cena * (1 + marza / 100) * (1 + pdv / 100) * 100) / 100
         },
         ukloniStavku(i) {
             if (this.stavke.length > 1) this.stavke.splice(i, 1)

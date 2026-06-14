@@ -30,6 +30,7 @@ type PodaciFormeNabavke struct {
 	ArtikliJSON template.JS // JSON niz artikala za Alpine.js — bezbedan za umetanje u <script>
 	Dobavljaci  []model.Dobavljac
 	Kategorije  []model.Kategorija // za dropdown u modalu novog artikla
+	Marza       string             // podrazumevana marža (%) za kalkulaciju
 	Greska      string
 }
 
@@ -44,12 +45,13 @@ type PodaciDetaljiNabavke struct {
 // artikalUJSON pretvara listu artikala u template.JS vrednost bezbednu za umetanje u <script> tag
 func artikalUJSON(artikli []model.ArtikalSaKategorijom) template.JS {
 	type stavka struct {
-		ID    int64  `json:"id"`
-		Naziv string `json:"naziv"`
+		ID       int64   `json:"id"`
+		Naziv    string  `json:"naziv"`
+		PdvStopa float64 `json:"pdv_stopa"`
 	}
 	lista := make([]stavka, 0, len(artikli))
 	for _, a := range artikli {
-		lista = append(lista, stavka{ID: a.ID, Naziv: a.Naziv})
+		lista = append(lista, stavka{ID: a.ID, Naziv: a.Naziv, PdvStopa: a.PdvStopa})
 	}
 	b, _ := json.Marshal(lista)
 	return template.JS(b)
@@ -117,12 +119,14 @@ func (h *Handler) NovaNabavka(w http.ResponseWriter, r *http.Request) {
 		ArtikliJSON:    artikalUJSON(artikli),
 		Dobavljaci:     dobavljaci,
 		Kategorije:     kategorije,
+		Marza:          vrednostIliDefault(podesavanja, "kalkulacija_marza", "20"),
 	})
 }
 
 // SacuvajNabavku prima POST formu, parsira stavke i upisuje nabavku u bazu
 func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.zahtevajDozvolu(w, r, "nabavka.dodaj"); !ok {
+	k, ok := h.zahtevajDozvolu(w, r, "nabavka.dodaj")
+	if !ok {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -145,6 +149,7 @@ func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
 			ArtikliJSON:    artikalUJSON(artikli),
 			Dobavljaci:     dobavljaci,
 			Kategorije:     kategorije,
+			Marza:          vrednostIliDefault(podesavanja, "kalkulacija_marza", "20"),
 			Greska:         greska,
 		})
 		return
@@ -179,6 +184,43 @@ func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
 		kpr := model.KprIzNabavke(nabavka, naziv, pib, mesto, stavkePdv)
 		if _, e := h.PdvKprRepo.Kreiraj(r.Context(), &kpr); e != nil {
 			slog.Error("auto-upis u KPR nije uspeo", "nabavka_id", id, "error", e)
+		}
+	}
+
+	// kalkulacija: ažuriraj nabavnu i prodajnu cenu artikla iz forme + nivelacioni trag.
+	// prodajna[] je paralelni niz uz stavke (isti redosled kao artikal_id[]).
+	prodajne := r.Form["prodajna[]"]
+	var korisnikID *int64
+	if k != nil {
+		korisnikID = &k.ID
+	}
+	for i, s := range stavke {
+		if i >= len(prodajne) {
+			break
+		}
+		prodajna, e := strconv.ParseFloat(strings.TrimSpace(prodajne[i]), 64)
+		if e != nil || prodajna <= 0 {
+			continue // prazno/nula ne sme da pregazi postojeću cenu
+		}
+		// stara prodajna cena — za nivelacioni zapis
+		var staraProdajna float64
+		if a, e := h.Artikli.DohvatiID(r.Context(), s.ArtikalID); e == nil {
+			staraProdajna = a.ProdajnaCena
+		}
+		if e := h.Artikli.AzurirajCene(r.Context(), s.ArtikalID, s.CenaPoKomadu, prodajna); e != nil {
+			slog.Error("kalkulacija: ažuriranje cena nije uspelo", "artikal_id", s.ArtikalID, "error", e)
+			continue
+		}
+		if razlika := prodajna - staraProdajna; razlika > 0.005 || razlika < -0.005 {
+			if _, e := h.NivelacijaRepo.Kreiraj(r.Context(), &model.Nivelacija{
+				ArtikalID:  s.ArtikalID,
+				StaraCena:  staraProdajna,
+				NovaCena:   prodajna,
+				Izvor:      "kalkulacija",
+				KorisnikID: korisnikID,
+			}); e != nil {
+				slog.Error("kalkulacija: nivelacija nije upisana", "artikal_id", s.ArtikalID, "error", e)
+			}
 		}
 	}
 
