@@ -1,0 +1,104 @@
+{{template "base" .}}
+
+{{define "naslov"}}PDV obračun — NTech{{end}}
+
+{{define "sadrzaj"}}
+<div class="stranica-stack" style="width:100%;max-width:100%;">
+
+    <!-- izbor perioda -->
+    <div class="kartica animiraj" style="margin-bottom:16px;">
+        <form method="GET" action="/pdv/obracun" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+            <div>
+                <label class="polje-labela">Od datuma</label>
+                <input type="date" name="od" value="{{.Od}}" style="padding:8px 10px;border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+            </div>
+            <div>
+                <label class="polje-labela">Do datuma</label>
+                <input type="date" name="do" value="{{.Do}}" style="padding:8px 10px;border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+            </div>
+            <button type="submit" style="padding:8px 16px;background:var(--sb-aktivan);color:var(--tekst-jak);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;cursor:pointer;">Prikaži</button>
+        </form>
+    </div>
+
+    <!-- obračun po stopama -->
+    <div class="kartica animiraj" style="padding:0;overflow:hidden;margin-bottom:16px;">
+        <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:560px;">
+                <thead>
+                    <tr style="text-align:left;color:var(--tekst-sporedni);border-bottom:0.5px solid var(--ivica);">
+                        <th style="padding:10px 12px;"></th>
+                        <th style="padding:10px 12px;text-align:right;">Osnovica</th>
+                        <th style="padding:10px 12px;text-align:right;">PDV</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- izlazni (dugovani) PDV — iz KIR -->
+                    <tr style="border-bottom:0.5px solid var(--ivica);">
+                        <td style="padding:10px 12px;font-weight:500;" colspan="3">Izlazni (dugovani) PDV — KIR</td>
+                    </tr>
+                    <tr style="border-bottom:0.5px solid var(--ivica);">
+                        <td style="padding:10px 12px;padding-left:24px;">Opšta stopa (20%)</td>
+                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .KirSume.OsnovicaOpsta}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .Obracun.IzlazniPdvOpsta}}</td>
+                    </tr>
+                    <tr style="border-bottom:0.5px solid var(--ivica);">
+                        <td style="padding:10px 12px;padding-left:24px;">Posebna stopa (10%)</td>
+                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .KirSume.OsnovicaPosebna}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .Obracun.IzlazniPdvPosebna}}</td>
+                    </tr>
+                    <tr style="border-bottom:0.5px solid var(--ivica);">
+                        <td style="padding:10px 12px;padding-left:24px;color:var(--tekst-sporedni);">Oslobođen promet</td>
+                        <td style="padding:10px 12px;text-align:right;color:var(--tekst-sporedni);">{{printf "%.2f" .KirSume.OslobodenUkupno}}</td>
+                        <td style="padding:10px 12px;text-align:right;color:var(--tekst-sporedni);">—</td>
+                    </tr>
+                    <tr style="border-bottom:0.5px solid var(--ivica);font-weight:500;background:var(--pozadina);">
+                        <td style="padding:10px 12px;">Ukupno izlazni PDV</td>
+                        <td style="padding:10px 12px;"></td>
+                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .Obracun.IzlazniPdvUkupno}}</td>
+                    </tr>
+
+                    <!-- odbitni (prethodni) PDV — iz KPR -->
+                    <tr style="border-bottom:0.5px solid var(--ivica);">
+                        <td style="padding:10px 12px;font-weight:500;padding-top:18px;" colspan="3">Odbitni (prethodni) PDV — KPR</td>
+                    </tr>
+                    <tr style="border-bottom:0.5px solid var(--ivica);">
+                        <td style="padding:10px 12px;padding-left:24px;">Opšta stopa (20%)</td>
+                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .KprSume.OsnovicaOpsta}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .Obracun.OdbitniPdvOpsta}}</td>
+                    </tr>
+                    <tr style="border-bottom:0.5px solid var(--ivica);">
+                        <td style="padding:10px 12px;padding-left:24px;">Posebna stopa (10%)</td>
+                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .KprSume.OsnovicaPosebna}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .Obracun.OdbitniPdvPosebna}}</td>
+                    </tr>
+                    <tr style="border-bottom:0.5px solid var(--ivica);">
+                        <td style="padding:10px 12px;padding-left:24px;color:var(--tekst-sporedni);">PDV bez prava na odbitak</td>
+                        <td style="padding:10px 12px;text-align:right;color:var(--tekst-sporedni);">—</td>
+                        <td style="padding:10px 12px;text-align:right;color:var(--tekst-sporedni);">{{printf "%.2f" .KprSume.PdvBezOdbitka}}</td>
+                    </tr>
+                    <tr style="font-weight:500;background:var(--pozadina);">
+                        <td style="padding:10px 12px;">Ukupno odbitni PDV</td>
+                        <td style="padding:10px 12px;"></td>
+                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .Obracun.OdbitniPdvUkupno}}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- rezultat: obaveza za uplatu / povraćaj -->
+    <div class="kartica animiraj" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
+        border-left:4px solid {{if .Obracun.ZaUplatu}}var(--greska){{else}}var(--uspeh){{end}};">
+        <div>
+            <div style="font-size:13px;color:var(--tekst-sporedni);">
+                {{if .Obracun.ZaUplatu}}PDV obaveza za uplatu{{else}}PDV za povraćaj / prenos u naredni period{{end}}
+            </div>
+            <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:2px;">izlazni − odbitni PDV</div>
+        </div>
+        <div style="font-size:24px;font-weight:600;color:{{if .Obracun.ZaUplatu}}var(--greska){{else}}var(--uspeh){{end}};white-space:nowrap;">
+            {{printf "%.2f" .Obracun.ObavezaApsolutna}} RSD
+        </div>
+    </div>
+
+</div>
+{{end}}
