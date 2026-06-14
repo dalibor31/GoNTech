@@ -147,6 +147,16 @@ func (r *ArtikalRepo) Izmeni(ctx context.Context, a *model.Artikal) error {
 	return nil
 }
 
+// AzurirajCene menja samo nabavnu i prodajnu cenu artikla (kalkulacija pri prijemu robe).
+func (r *ArtikalRepo) AzurirajCene(ctx context.Context, id int64, nabavna, prodajna float64) error {
+	_, err := r.db.ExecContext(ctx,
+		"UPDATE artikli SET nabavna_cena = ?, prodajna_cena = ? WHERE id = ?", nabavna, prodajna, id)
+	if err != nil {
+		return fmt.Errorf("ntech: ArtikalRepo.AzurirajCene: %w", err)
+	}
+	return nil
+}
+
 // PremestiKategoriju menja samo kategoriju artikla (premeštanje u drugu kategoriju).
 // kategorijaID može biti nil — tada artikal ostaje bez kategorije.
 func (r *ArtikalRepo) PremestiKategoriju(ctx context.Context, id int64, kategorijaID *int64) error {
