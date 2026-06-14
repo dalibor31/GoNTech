@@ -8,6 +8,8 @@
     .forma-kartica:nth-child(1) { animation-delay: 0.04s; }
     .forma-kartica:nth-child(2) { animation-delay: 0.12s; }
     .modal-sadrzaj { animation: modalIn 0.25s ease forwards; }
+    /* centriranje preko klase (ne inline) — x-show menja inline display, pa bi obrisao flex i modal bi pao u ćošak */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
 </style>
 {{end}}
 
@@ -37,8 +39,15 @@
             </div>
             <div class="kolona" style="gap:14px;">
                 <div>
-                    <label class="polje-labela">Dobavljač</label>
-                    <select name="dobavljac_id" style="width:100%;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <label class="polje-labela">Dobavljač</label>
+                        <button type="button" @click="otvoriModalDobavljac()"
+                            style="padding:6px 14px;background:var(--kartica);color:var(--tekst-sporedni);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;cursor:pointer;margin-bottom:6px;transition:background 0.2s;"
+                            onmouseover="this.style.background='var(--pozadina)'" onmouseout="this.style.background='var(--kartica)'">
+                            + Novi dobavljač
+                        </button>
+                    </div>
+                    <select name="dobavljac_id" x-ref="selDobavljac" style="width:100%;">
                         <option value="">— bez dobavljača —</option>
                         {{range .Dobavljaci}}
                         <option value="{{.ID}}">{{.Naziv}}</option>
@@ -187,10 +196,10 @@
         x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
         x-transition:leave="transition ease-in duration-150"
         x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-        style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:50;display:flex;align-items:center;justify-content:center;padding:16px;"
+        class="modal-overlay"
         @click.self="zatvoriModal()" @keydown.escape.window="zatvoriModal()">
 
-        <div class="kartica modal-sadrzaj" style="width:100%;max-width:440px;padding:24px;">
+        <div class="kartica modal-sadrzaj" style="width:100%;max-width:480px;padding:24px;max-height:90vh;overflow-y:auto;">
 
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);">
                 <span style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">Novi artikal</span>
@@ -222,10 +231,42 @@
                 </div>
 
                 <div>
+                    <label class="polje-labela">Opis</label>
+                    <textarea x-model="modalOpis" rows="2"
+                        placeholder="Kratak opis artikla..."
+                        style="width:100%;resize:vertical;"></textarea>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div>
+                        <label class="polje-labela">Količina na stanju</label>
+                        <input type="number" x-model="modalKolicina" min="0" placeholder="0" style="width:100%;">
+                    </div>
+                    <div>
+                        <label class="polje-labela">Minimalna količina</label>
+                        <input type="number" x-model="modalKolicinaMin" min="0" placeholder="0" style="width:100%;">
+                    </div>
+                </div>
+
+                <div>
                     <label class="polje-labela">Prodajna cena (din)</label>
                     <input type="number" x-model="modalCena" min="0" step="0.01"
                         placeholder="0"
                         style="width:100%;">
+                </div>
+
+                <div>
+                    <label class="polje-labela">Lokacija u magacinu</label>
+                    <input type="text" x-model="modalLokacija"
+                        placeholder="npr. Regal A3, polica 2"
+                        style="width:100%;">
+                </div>
+
+                <div>
+                    <label class="polje-labela">Napomena</label>
+                    <textarea x-model="modalNapomena" rows="2"
+                        placeholder="Interna napomena o artiklu..."
+                        style="width:100%;resize:vertical;"></textarea>
                 </div>
             </div>
 
@@ -237,6 +278,77 @@
                 </button>
             </div>
 
+        </div>
+    </div>
+
+    <!-- modal: novi dobavljač -->
+    <div x-show="modalDob" x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+        class="modal-overlay"
+        @click.self="zatvoriModalDobavljac()" @keydown.escape.window="zatvoriModalDobavljac()">
+
+        <div class="kartica modal-sadrzaj" style="width:100%;max-width:480px;padding:24px;max-height:90vh;overflow-y:auto;">
+
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);">
+                <span style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">Novi dobavljač</span>
+                <button type="button" @click="zatvoriModalDobavljac()" aria-label="Zatvori"
+                    style="background:none;border:none;cursor:pointer;color:var(--tekst-sporedni);font-size:20px;line-height:1;padding:2px 6px;border-radius:4px;transition:background 0.15s;">×</button>
+            </div>
+
+            <div x-show="modalDobGreska" class="poruka-greska greska-animacija" x-text="modalDobGreska"></div>
+
+            <div class="kolona" style="gap:14px;">
+                <div>
+                    <label class="polje-labela">Naziv <span style="color:#dc2626;">*</span></label>
+                    <input type="text" x-model="modalDobNaziv" x-ref="modalDobNazivInput"
+                        placeholder="npr. TechDistrib d.o.o." style="width:100%;"
+                        @keydown.enter.prevent="sacuvajDobavljaca()">
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div>
+                        <label class="polje-labela">Kontakt osoba</label>
+                        <input type="text" x-model="modalDobKontakt" placeholder="npr. Marko Petrović" style="width:100%;">
+                    </div>
+                    <div>
+                        <label class="polje-labela">Telefon</label>
+                        <input type="text" x-model="modalDobTelefon" placeholder="npr. 011 123 4567" style="width:100%;">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="polje-labela">E-pošta</label>
+                    <input type="text" x-model="modalDobEmail" placeholder="npr. nabavka@techdistrib.rs" style="width:100%;">
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div>
+                        <label class="polje-labela">PIB</label>
+                        <input type="text" x-model="modalDobPib" placeholder="npr. 123456789" style="width:100%;">
+                    </div>
+                    <div>
+                        <label class="polje-labela">Mesto / grad</label>
+                        <input type="text" x-model="modalDobMesto" placeholder="npr. Beograd" style="width:100%;">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="polje-labela">Napomena</label>
+                    <textarea x-model="modalDobNapomena" rows="2"
+                        placeholder="Interna napomena o dobavljaču..."
+                        style="width:100%;resize:vertical;"></textarea>
+                </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:14px;border-top:0.5px solid var(--ivica);">
+                <button type="button" @click="zatvoriModalDobavljac()" class="btn-sekundarno">Odustani</button>
+                <button type="button" @click="sacuvajDobavljaca()" :disabled="modalDobUcitavanje" class="btn-primarno"
+                    :style="modalDobUcitavanje ? 'opacity:0.6;cursor:not-allowed' : ''">
+                    <span x-text="modalDobUcitavanje ? 'Čuvanje...' : 'Dodaj dobavljača'"></span>
+                </button>
+            </div>
         </div>
     </div>
 
