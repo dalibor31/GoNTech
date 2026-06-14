@@ -25,8 +25,8 @@ func (r *ArtikalRepo) Lista(ctx context.Context, filter db.ArtikalFilter) ([]mod
 		SELECT
 			a.id, a.kategorija_id, a.naziv, a.opis,
 			a.kolicina, a.kolicina_min, a.lokacija,
-			a.nabavna_cena, a.prodajna_cena, a.pdv_stopa, a.napomena, a.datum_unosa,
-			COALESCE(k.naziv, '') as kategorija_naziv
+			a.nabavna_cena, a.prodajna_cena, a.pdv_stopa, a.marza, a.napomena, a.datum_unosa,
+			COALESCE(k.naziv, '') as kategorija_naziv, k.marza as kategorija_marza
 		FROM artikli a
 		LEFT JOIN kategorije k ON a.kategorija_id = k.id
 		WHERE 1=1`
@@ -59,12 +59,13 @@ func (r *ArtikalRepo) Lista(ctx context.Context, filter db.ArtikalFilter) ([]mod
 	for redovi.Next() {
 		var a model.ArtikalSaKategorijom
 		var kategorijaID sql.NullInt64
+		var marza, katMarza sql.NullFloat64
 
 		err := redovi.Scan(
 			&a.ID, &kategorijaID, &a.Naziv, &a.Opis,
 			&a.Kolicina, &a.KolicinMin, &a.Lokacija,
-			&a.NabavnaCena, &a.ProdajnaCena, &a.PdvStopa, &a.Napomena, &a.DatumUnosa,
-			&a.KategorijaNaziv,
+			&a.NabavnaCena, &a.ProdajnaCena, &a.PdvStopa, &marza, &a.Napomena, &a.DatumUnosa,
+			&a.KategorijaNaziv, &katMarza,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("ntech: ArtikalRepo.Lista: scan: %w", err)
@@ -72,6 +73,12 @@ func (r *ArtikalRepo) Lista(ctx context.Context, filter db.ArtikalFilter) ([]mod
 
 		if kategorijaID.Valid {
 			a.KategorijaID = &kategorijaID.Int64
+		}
+		if marza.Valid {
+			a.Marza = &marza.Float64
+		}
+		if katMarza.Valid {
+			a.KategorijaMarza = &katMarza.Float64
 		}
 
 		a.KriticnaZaliha = a.Kolicina <= a.KolicinMin
@@ -86,14 +93,15 @@ func (r *ArtikalRepo) Lista(ctx context.Context, filter db.ArtikalFilter) ([]mod
 func (r *ArtikalRepo) DohvatiID(ctx context.Context, id int64) (*model.Artikal, error) {
 	var a model.Artikal
 	var kategorijaID sql.NullInt64
+	var marza sql.NullFloat64
 
 	err := r.db.QueryRowContext(ctx, `
 		SELECT id, kategorija_id, naziv, opis, kolicina, kolicina_min,
-		       lokacija, nabavna_cena, prodajna_cena, pdv_stopa, napomena, datum_unosa
+		       lokacija, nabavna_cena, prodajna_cena, pdv_stopa, marza, napomena, datum_unosa
 		FROM artikli WHERE id = ?`, id).Scan(
 		&a.ID, &kategorijaID, &a.Naziv, &a.Opis,
 		&a.Kolicina, &a.KolicinMin, &a.Lokacija,
-		&a.NabavnaCena, &a.ProdajnaCena, &a.PdvStopa, &a.Napomena, &a.DatumUnosa,
+		&a.NabavnaCena, &a.ProdajnaCena, &a.PdvStopa, &marza, &a.Napomena, &a.DatumUnosa,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: ArtikalRepo.DohvatiID: %w", err)
@@ -101,6 +109,9 @@ func (r *ArtikalRepo) DohvatiID(ctx context.Context, id int64) (*model.Artikal, 
 
 	if kategorijaID.Valid {
 		a.KategorijaID = &kategorijaID.Int64
+	}
+	if marza.Valid {
+		a.Marza = &marza.Float64
 	}
 
 	return &a, nil
@@ -111,10 +122,10 @@ func (r *ArtikalRepo) Kreiraj(ctx context.Context, a *model.Artikal) (int64, err
 	rezultat, err := r.db.ExecContext(ctx, `
 		INSERT INTO artikli
 			(kategorija_id, naziv, opis, kolicina, kolicina_min, lokacija,
-			 nabavna_cena, prodajna_cena, pdv_stopa, napomena)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			 nabavna_cena, prodajna_cena, pdv_stopa, marza, napomena)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		a.KategorijaID, a.Naziv, a.Opis, a.Kolicina, a.KolicinMin,
-		a.Lokacija, a.NabavnaCena, a.ProdajnaCena, a.PdvStopa, a.Napomena,
+		a.Lokacija, a.NabavnaCena, a.ProdajnaCena, a.PdvStopa, a.Marza, a.Napomena,
 	)
 	if err != nil {
 		return 0, fmt.Errorf("ntech: ArtikalRepo.Kreiraj: %w", err)
@@ -134,11 +145,11 @@ func (r *ArtikalRepo) Izmeni(ctx context.Context, a *model.Artikal) error {
 		UPDATE artikli SET
 			kategorija_id = ?, naziv = ?, opis = ?, kolicina = ?,
 			kolicina_min = ?, lokacija = ?,
-			nabavna_cena = ?, prodajna_cena = ?, pdv_stopa = ?, napomena = ?
+			nabavna_cena = ?, prodajna_cena = ?, pdv_stopa = ?, marza = ?, napomena = ?
 		WHERE id = ?`,
 		a.KategorijaID, a.Naziv, a.Opis, a.Kolicina,
 		a.KolicinMin, a.Lokacija,
-		a.NabavnaCena, a.ProdajnaCena, a.PdvStopa, a.Napomena, a.ID,
+		a.NabavnaCena, a.ProdajnaCena, a.PdvStopa, a.Marza, a.Napomena, a.ID,
 	)
 	if err != nil {
 		return fmt.Errorf("ntech: ArtikalRepo.Izmeni: %w", err)

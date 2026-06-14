@@ -98,7 +98,7 @@
                             <tr style="border-bottom:0.5px solid var(--ivica);">
                                 <td style="padding:8px 10px;">
                                     <select :name="'artikal_id[]'" x-model="stavka.artikal_id"
-                                        @change="izracunajProdajnu(stavka)" :disabled="isMobile" style="width:100%;">
+                                        @change="izaberiArtikal(stavka)" :disabled="isMobile" style="width:100%;">
                                         <option value="">— odaberi artikal —</option>
                                         <template x-for="a in artikliOpcije" :key="a.id">
                                             <option :value="a.id" x-text="a.naziv"></option>
@@ -107,11 +107,12 @@
                                 </td>
                                 <td style="padding:8px 10px;">
                                     <input type="number" :name="'kolicina[]'" x-model="stavka.kolicina"
+                                        @input="preracunajSve()"
                                         min="1" :disabled="isMobile" style="width:100%;text-align:center;">
                                 </td>
                                 <td style="padding:8px 10px;">
                                     <input type="number" :name="'cena_po_komadu[]'" x-model="stavka.cena"
-                                        @input="izracunajProdajnu(stavka)"
+                                        @input="preracunajSve()"
                                         min="0" step="0.01" :disabled="isMobile" style="width:100%;text-align:right;">
                                 </td>
                                 <td style="padding:8px 10px;">
@@ -166,7 +167,7 @@
                             <div>
                                 <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Artikal</label>
                                 <select :name="'artikal_id[]'" x-model="stavka.artikal_id"
-                                    @change="izracunajProdajnu(stavka)" :disabled="!isMobile" style="width:100%;">
+                                    @change="izaberiArtikal(stavka)" :disabled="!isMobile" style="width:100%;">
                                     <option value="">— odaberi artikal —</option>
                                     <template x-for="a in artikliOpcije" :key="a.id">
                                         <option :value="a.id" x-text="a.naziv"></option>
@@ -176,11 +177,11 @@
                             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                                 <div>
                                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Količina</label>
-                                    <input type="number" :name="'kolicina[]'" x-model="stavka.kolicina" min="1" :disabled="!isMobile" style="width:100%;">
+                                    <input type="number" :name="'kolicina[]'" x-model="stavka.kolicina" @input="preracunajSve()" min="1" :disabled="!isMobile" style="width:100%;">
                                 </div>
                                 <div>
                                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Cena/kom (din)</label>
-                                    <input type="number" :name="'cena_po_komadu[]'" x-model="stavka.cena" @input="izracunajProdajnu(stavka)" min="0" step="0.01" :disabled="!isMobile" style="width:100%;">
+                                    <input type="number" :name="'cena_po_komadu[]'" x-model="stavka.cena" @input="preracunajSve()" min="0" step="0.01" :disabled="!isMobile" style="width:100%;">
                                 </div>
                             </div>
                             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -203,6 +204,50 @@
                     Ukupno: <span x-text="ukupnoSvega() + ' din'"></span>
                 </div>
             </div>
+        </div>
+
+        <!-- zavisni troškovi -->
+        <div class="kartica forma-kartica animiraj" style="margin-bottom:16px;">
+            <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                <span style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">Zavisni troškovi</span>
+                <button type="button" @click="dodajTrosak()" class="btn-primarno" style="font-size:13px;padding:6px 14px;">
+                    + Dodaj trošak
+                </button>
+            </div>
+
+            <template x-if="troskovi.length > 0">
+                <div class="kolona" style="gap:10px;">
+                    <!-- metod raspodele -->
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                        <label class="polje-labela" style="margin:0;">Raspodela na stavke:</label>
+                        <select name="metod_raspodele" x-model="metodRaspodele" @change="preracunajSve()" style="max-width:240px;">
+                            <option value="vrednost">po vrednosti stavke</option>
+                            <option value="kolicina">po količini</option>
+                        </select>
+                    </div>
+                    <!-- redovi troškova -->
+                    <template x-for="(t, i) in troskovi" :key="i">
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <input type="text" :name="'trosak_naziv[]'" x-model="t.naziv"
+                                placeholder="npr. Prevoz, Carina, Špedicija" style="flex:1;">
+                            <input type="number" :name="'trosak_iznos[]'" x-model="t.iznos"
+                                @input="preracunajSve()" min="0" step="0.01"
+                                placeholder="iznos (din)" style="width:140px;text-align:right;">
+                            <button type="button" @click="ukloniTrosak(i)"
+                                style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:18px;line-height:1;padding:2px 6px;border-radius:4px;"
+                                title="Ukloni trošak">×</button>
+                        </div>
+                    </template>
+                    <div style="text-align:right;font-size:13px;color:var(--tekst-sporedni);">
+                        Ukupno troškovi: <strong x-text="ukupanTrosak().toFixed(2) + ' din'"></strong>
+                    </div>
+                </div>
+            </template>
+            <template x-if="troskovi.length === 0">
+                <div style="font-size:13px;color:var(--tekst-sporedni);">
+                    Nema zavisnih troškova. Dodaj trošak (prevoz, carina…) — raspodeliće se na stavke i ući u kalkulativnu nabavnu cenu.
+                </div>
+            </template>
         </div>
 
         <!-- dugmad forme -->

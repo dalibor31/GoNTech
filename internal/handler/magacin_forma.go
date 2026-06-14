@@ -249,6 +249,15 @@ func parseFormuArtikla(r *http.Request) (model.Artikal, string) {
 		artikal.ProdajnaCena = v
 	}
 
+	// marža (%) je opciona; prazno polje ostaje NULL (artikal nasleđuje maržu kategorije/globalnu)
+	if m := r.FormValue("marza"); m != "" {
+		v, err := strconv.ParseFloat(m, 64)
+		if err != nil || v < 0 {
+			return artikal, "Marža mora biti pozitivan broj."
+		}
+		artikal.Marza = &v
+	}
+
 	if katID := r.FormValue("kategorija_id"); katID != "" {
 		id, err := strconv.ParseInt(katID, 10, 64)
 		if err == nil {

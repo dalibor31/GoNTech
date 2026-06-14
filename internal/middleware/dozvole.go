@@ -10,6 +10,7 @@ var sveAkcije = []string{
 	"artikal.premesti",
 	"kategorija.pregled",
 	"kategorija.dodaj",
+	"kategorija.izmeni",
 	"kategorija.obrisi",
 	"nabavka.pregled",
 	"nabavka.dodaj",
@@ -62,7 +63,7 @@ func ImaDozvolu(uloga, akcija string) bool {
 			"artikal.obrisi", "artikal.premesti":
 			return true
 		// kategorija
-		case "kategorija.pregled", "kategorija.dodaj", "kategorija.obrisi":
+		case "kategorija.pregled", "kategorija.dodaj", "kategorija.izmeni", "kategorija.obrisi":
 			return true
 		// nabavka
 		case "nabavka.pregled", "nabavka.dodaj", "nabavka.obrisi":
