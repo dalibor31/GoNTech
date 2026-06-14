@@ -108,7 +108,7 @@ func TestMapirajPPPDV(t *testing.T) {
 		PdvBezOdbitka: 25, // ne sme da uđe nigde u PPPDV
 	}
 
-	p := MapirajPPPDV(kir, kpr)
+	p := MapirajPPPDV(kir, kpr, PdvKprSume{})
 
 	if p.Polje001 != 300 || p.Polje002 != 101 || p.Polje003 != 1000 || p.Polje103 != 200 {
 		t.Errorf("I deo (001/002/003/103) = %d/%d/%d/%d", p.Polje001, p.Polje002, p.Polje003, p.Polje103)
@@ -120,7 +120,7 @@ func TestMapirajPPPDV(t *testing.T) {
 	if p.Polje005 != 1902 || p.Polje105 != 250 {
 		t.Errorf("zbir 005/105 = %d/%d, očekivano 1902/250", p.Polje005, p.Polje105)
 	}
-	// uvoz i poljoprivrednik se ne prate
+	// u ovom scenariju nema uvoza (prazan kprUvoz) ni poljoprivrednika → 006/106/007/107 = 0
 	if p.Polje006 != 0 || p.Polje106 != 0 || p.Polje007 != 0 || p.Polje107 != 0 {
 		t.Errorf("006/106/007/107 moraju biti 0")
 	}
@@ -137,8 +137,25 @@ func TestMapirajPPPDV(t *testing.T) {
 	}
 
 	// scenario povraćaja: izlazni < odbitni → 110 negativan, Povracaj=true
-	p2 := MapirajPPPDV(PdvKirSume{PdvOpsta: 30}, PdvKprSume{PdvOpsta: 90})
+	p2 := MapirajPPPDV(PdvKirSume{PdvOpsta: 30}, PdvKprSume{PdvOpsta: 90}, PdvKprSume{})
 	if p2.Polje110 != -60 || !p2.Povracaj || p2.Polje110Apsolutno() != 60 {
 		t.Errorf("povraćaj: 110=%d Povracaj=%v abs=%d, očekivano -60/true/60", p2.Polje110, p2.Povracaj, p2.Polje110Apsolutno())
+	}
+
+	// scenario uvoza: uvozni KPR ide u 006/106, domaći u 008/108
+	p3 := MapirajPPPDV(
+		PdvKirSume{},
+		PdvKprSume{OsnovicaOpsta: 1000, PdvOpsta: 200},                                    // domaće → 008/108
+		PdvKprSume{OsnovicaOpsta: 500, PdvOpsta: 100, OsnovicaPosebna: 50, PdvPosebna: 5}, // uvoz → 006/106
+	)
+	if p3.Polje006 != 550 || p3.Polje106 != 105 {
+		t.Errorf("uvoz 006/106 = %d/%d, očekivano 550/105", p3.Polje006, p3.Polje106)
+	}
+	if p3.Polje008 != 1000 || p3.Polje108 != 200 {
+		t.Errorf("domaće 008/108 = %d/%d, očekivano 1000/200", p3.Polje008, p3.Polje108)
+	}
+	// 009 = 006+007+008 = 550+0+1000 = 1550; 109 = 106+107+108 = 105+0+200 = 305
+	if p3.Polje009 != 1550 || p3.Polje109 != 305 {
+		t.Errorf("zbir prethodnog 009/109 = %d/%d, očekivano 1550/305", p3.Polje009, p3.Polje109)
 	}
 }
