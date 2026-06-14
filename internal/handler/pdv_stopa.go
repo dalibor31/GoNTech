@@ -19,13 +19,15 @@ var validneOznakeStope = map[string]bool{
 	"oslobodjeno": true,
 }
 
-// PodaciPdvStope su podaci za stranicu šifarnika PDV stopa
+// PodaciPdvStope su podaci za stranicu „Kalkulacija i PDV" (marža + šifarnik PDV stopa)
 type PodaciPdvStope struct {
 	model.PodaciStranice
-	Stope []model.PdvStopa
+	Stope            []model.PdvStopa
+	KalkulacijaMarza string // podrazumevana marža (%) za kalkulaciju
 }
 
-// PdvStope renderuje šifarnik PDV stopa (sve stope, uključujući arhivirane)
+// PdvStope renderuje stranicu „Kalkulacija i PDV": podešavanje podrazumevane marže
+// i šifarnik PDV stopa (sve stope, uključujući arhivirane)
 func (h *Handler) PdvStope(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.zahtevajDozvolu(w, r, "podesavanja.pregled"); !ok {
 		return
@@ -42,9 +44,13 @@ func (h *Handler) PdvStope(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ps := h.popuniPodaciStranice(r, podesavanja)
-	ps.Stranica = "podesavanja-pdv-stope"
-	ps.NaslovStranice = "PDV stope"
-	h.renderujTemplate(w, "pdv_stope", PodaciPdvStope{PodaciStranice: ps, Stope: stope})
+	ps.Stranica = "podesavanja-kalkulacija-pdv"
+	ps.NaslovStranice = "Kalkulacija i PDV"
+	h.renderujTemplate(w, "pdv_stope", PodaciPdvStope{
+		PodaciStranice:   ps,
+		Stope:            stope,
+		KalkulacijaMarza: vrednostIliDefault(podesavanja, "kalkulacija_marza", "20"),
+	})
 }
 
 // parsePdvStopuForma čita i proverava polja forme; vraća popunjenu stopu i poruku o grešci
@@ -86,7 +92,7 @@ func (h *Handler) DodajPdvStopu(w http.ResponseWriter, r *http.Request) {
 	stopa, greska := parsePdvStopuForma(r)
 	if greska != "" {
 		middleware.SetFlash(w, r, h.DB, "greska", greska)
-		http.Redirect(w, r, "/admin/podesavanja/pdv-stope", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/kalkulacija-pdv", http.StatusSeeOther)
 		return
 	}
 	if _, err := h.PdvStopeRepo.Kreiraj(r.Context(), &stopa); err != nil {
@@ -94,7 +100,7 @@ func (h *Handler) DodajPdvStopu(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	middleware.SetFlash(w, r, h.DB, "uspeh", "PDV stopa je dodata.")
-	http.Redirect(w, r, "/admin/podesavanja/pdv-stope", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/podesavanja/kalkulacija-pdv", http.StatusSeeOther)
 }
 
 // IzmeniPdvStopu prima POST i menja postojeću stopu
@@ -114,7 +120,7 @@ func (h *Handler) IzmeniPdvStopu(w http.ResponseWriter, r *http.Request) {
 	stopa, greska := parsePdvStopuForma(r)
 	if greska != "" {
 		middleware.SetFlash(w, r, h.DB, "greska", greska)
-		http.Redirect(w, r, "/admin/podesavanja/pdv-stope", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/kalkulacija-pdv", http.StatusSeeOther)
 		return
 	}
 	stopa.ID = id
@@ -123,7 +129,7 @@ func (h *Handler) IzmeniPdvStopu(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	middleware.SetFlash(w, r, h.DB, "uspeh", "PDV stopa je izmenjena.")
-	http.Redirect(w, r, "/admin/podesavanja/pdv-stope", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/podesavanja/kalkulacija-pdv", http.StatusSeeOther)
 }
 
 // PromeniAktivnostPdvStope arhivira ili vraća stopu u upotrebu (toggle, bez brisanja)
@@ -150,5 +156,5 @@ func (h *Handler) PromeniAktivnostPdvStope(w http.ResponseWriter, r *http.Reques
 		poruka = "PDV stopa je vraćena u upotrebu."
 	}
 	middleware.SetFlash(w, r, h.DB, "uspeh", poruka)
-	http.Redirect(w, r, "/admin/podesavanja/pdv-stope", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/podesavanja/kalkulacija-pdv", http.StatusSeeOther)
 }
