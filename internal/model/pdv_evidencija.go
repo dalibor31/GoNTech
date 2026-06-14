@@ -20,6 +20,8 @@ type PdvKir struct {
 	OslobodenBezPrava float64
 	Ukupno            float64
 	Napomena          string
+	Izvor             string // "rucno" | "prodaja" | "nabavka"
+	IzvorID           *int64 // id izvornog naloga (nil za ručni unos)
 	DatumUnosa        time.Time
 }
 
@@ -92,6 +94,8 @@ type PdvKpr struct {
 	OslobodenNabavka float64
 	Ukupno           float64
 	Napomena         string
+	Izvor            string // "rucno" | "prodaja" | "nabavka"
+	IzvorID          *int64 // id izvorne nabavke (nil za ručni unos)
 	DatumUnosa       time.Time
 }
 

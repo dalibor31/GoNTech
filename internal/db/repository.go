@@ -38,6 +38,8 @@ type PdvKirRepository interface {
 	DohvatiID(ctx context.Context, id int64) (*model.PdvKir, error)
 	Kreiraj(ctx context.Context, k *model.PdvKir) (int64, error)
 	Obrisi(ctx context.Context, id int64) error
+	// ObrisiPoIzvoru briše zapise vezane za dati izvor (npr. pri stornu prodaje)
+	ObrisiPoIzvoru(ctx context.Context, izvor string, izvorID int64) error
 }
 
 // PdvKprRepository definiše operacije nad knjigom primljenih računa (KPR)
@@ -46,6 +48,8 @@ type PdvKprRepository interface {
 	DohvatiID(ctx context.Context, id int64) (*model.PdvKpr, error)
 	Kreiraj(ctx context.Context, k *model.PdvKpr) (int64, error)
 	Obrisi(ctx context.Context, id int64) error
+	// ObrisiPoIzvoru briše zapise vezane za dati izvor (npr. pri brisanju nabavke)
+	ObrisiPoIzvoru(ctx context.Context, izvor string, izvorID int64) error
 }
 
 // ArtikalFilter definiše parametre za filtriranje liste artikala
