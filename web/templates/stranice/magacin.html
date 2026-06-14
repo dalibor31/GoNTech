@@ -83,6 +83,7 @@
                                 <a href="/magacin/izmeni/{{.ID}}" class="btn-primarno-malo">
                                     Izmeni
                                 </a>
+                                {{template "promeniCenuMeni" (dict "ID" .ID "Cena" .ProdajnaCena)}}
                                 {{end}}
                                 {{if index $.Dozvole "artikal.premesti"}}{{if $.Kategorije}}
                                 {{template "premestiMeni" (dict "ID" .ID "Kategorije" $.Kategorije)}}
@@ -112,7 +113,7 @@
     <div class="magacin-kartice">
         {{range .Artikli}}
         <div class="kartica magacin-kartica animiraj">
-            <div class="red-izmedju" style="align-items:flex-start;gap:12px;margin-bottom:10px;">
+            <div class="red-izmedju" style="align-items:flex-start;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
                 <div>
                     <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">{{.Naziv}}</div>
                     {{if .KategorijaNaziv}}
@@ -122,6 +123,7 @@
                 <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">
                     {{if index $.Dozvole "artikal.izmeni"}}
                     <a href="/magacin/izmeni/{{.ID}}" class="btn-primarno-malo">Izmeni</a>
+                    {{template "promeniCenuMeni" (dict "ID" .ID "Cena" .ProdajnaCena)}}
                     {{end}}
                     {{if index $.Dozvole "artikal.premesti"}}{{if $.Kategorije}}
                     {{template "premestiMeni" (dict "ID" .ID "Kategorije" $.Kategorije)}}
@@ -162,7 +164,7 @@
 {{/* padajući meni za premeštanje artikla — prima dict {ID, Kategorije}; koristi se i u tabeli i u mobilnoj kartici */}}
 {{define "premestiMeni"}}
 <button type="button" class="btn-primarno-malo" style="align-self:center;"
-        onclick="document.getElementById('premesti-{{.ID}}').showModal()">Premesti</button>
+        onclick="this.nextElementSibling.showModal()">Premesti</button>
 {{/* nativni modal — showModal() ga stavlja u „top layer", pa je uvek iznad svega bez obzira na z-index/overflow */}}
 <dialog id="premesti-{{.ID}}" class="premesti-modal" onclick="if(event.target===this)this.close()">
     {{/* zaglavlje sa dugmetom za zatvaranje; method="dialog" zatvara modal bez slanja */}}
@@ -175,6 +177,32 @@
         <button type="submit" name="kategorija_id" value="{{.ID}}" class="premesti-opcija">{{.Naziv}}</button>
         {{end}}
         <button type="submit" name="kategorija_id" value="" class="premesti-opcija premesti-opcija-prazno">Bez kategorije</button>
+    </form>
+</dialog>
+{{end}}
+
+{{define "promeniCenuMeni"}}
+<button type="button" class="btn-primarno-malo" style="align-self:center;"
+        onclick="this.nextElementSibling.showModal()">Promeni cenu</button>
+{{/* nativni modal — isti obrazac kao premesti (top layer, centriran) */}}
+<dialog id="cena-{{.ID}}" class="premesti-modal" onclick="if(event.target===this)this.close()">
+    <form method="dialog" class="premesti-zaglavlje">
+        <h3>Promeni prodajnu cenu</h3>
+        <button type="submit" class="premesti-zatvori" aria-label="Zatvori">&times;</button>
+    </form>
+    <form method="POST" action="/magacin/promeni-cenu/{{.ID}}" style="display:flex;flex-direction:column;gap:12px;padding:16px;">
+        <div style="font-size:13px;color:var(--tekst-sporedni);">Trenutna cena: <strong>{{printf "%.0f" .Cena}} din</strong></div>
+        <div>
+            <label class="polje-labela">Nova cena (din)</label>
+            <input type="number" name="nova_cena" min="0" step="0.01" value="{{printf "%.2f" .Cena}}" required
+                style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+        </div>
+        <div>
+            <label class="polje-labela">Razlog (opciono)</label>
+            <input type="text" name="razlog" placeholder="npr. promena nabavne cene"
+                style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+        </div>
+        <button type="submit" class="btn-primarno" style="align-self:flex-end;">Sačuvaj cenu</button>
     </form>
 </dialog>
 {{end}}

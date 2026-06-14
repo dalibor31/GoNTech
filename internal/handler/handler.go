@@ -39,6 +39,7 @@ type Handler struct {
 	PdvStopeRepo          db.PdvStopaRepository
 	PdvKirRepo            db.PdvKirRepository
 	PdvKprRepo            db.PdvKprRepository
+	NivelacijaRepo        db.NivelacijaRepository
 	Verzija               string
 	AssetV                string // verzija statičkih fajlova za cache-busting (postavlja se pri pokretanju)
 	Templates             map[string]*template.Template
@@ -101,6 +102,7 @@ func Novi(baza *sql.DB, totpKljuc []byte) *Handler {
 		PdvStopeRepo:          sqlite.NoviPdvStopaRepo(baza),
 		PdvKirRepo:            sqlite.NoviPdvKirRepo(baza),
 		PdvKprRepo:            sqlite.NoviPdvKprRepo(baza),
+		NivelacijaRepo:        sqlite.NoviNivelacijaRepo(baza),
 	}
 }
 
@@ -129,6 +131,7 @@ func (h *Handler) reinicijalizujRepozitorijume(novaDB *sql.DB) {
 	h.PdvStopeRepo = sqlite.NoviPdvStopaRepo(novaDB)
 	h.PdvKirRepo = sqlite.NoviPdvKirRepo(novaDB)
 	h.PdvKprRepo = sqlite.NoviPdvKprRepo(novaDB)
+	h.NivelacijaRepo = sqlite.NoviNivelacijaRepo(novaDB)
 }
 
 // modulUkljucen vraća da li je zakonski modul (npr. „pdv") uključen za firmu prema profilu.

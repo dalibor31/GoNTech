@@ -29,6 +29,7 @@ var saSidebar = []string{
 	"pdv_kir", "pdv_kir_forma",
 	"pdv_kpr", "pdv_kpr_forma",
 	"pdv_obracun",
+	"nivelacije",
 	"podsetnici", "podsetnik_forma",
 	"profil_tema",
 	"prodaja", "prodaja_detalji", "prodaja_forma",
