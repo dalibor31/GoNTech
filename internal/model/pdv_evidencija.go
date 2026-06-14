@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"math"
 	"time"
 )
 
@@ -247,6 +248,67 @@ func (o PdvObracun) ObavezaApsolutna() float64 {
 		return -o.Obaveza
 	}
 	return o.Obaveza
+}
+
+// PPPDV su vrednosti polja zvaničnog obrasca poreske prijave PDV (PPPDV).
+// Iznosi su u celim dinarima (obrazac ne dozvoljava decimale). Brojevi polja
+// odgovaraju obrascu: 001–005/103–105 (promet i izlazni PDV), 006–009/106–109
+// (prethodni/odbitni porez), 110 (obaveza = 105 − 109), Povracaj (polje 11).
+type PPPDV struct {
+	// I. promet dobara i usluga
+	Polje001 int64 // oslobođen sa pravom na odbitak (naknada)
+	Polje002 int64 // oslobođen bez prava na odbitak (naknada)
+	Polje003 int64 // opšta stopa — naknada bez PDV
+	Polje103 int64 // opšta stopa — obračunati PDV
+	Polje004 int64 // posebna stopa — naknada bez PDV
+	Polje104 int64 // posebna stopa — obračunati PDV
+	Polje005 int64 // zbir naknada (1+2+3+4)
+	Polje105 int64 // zbir izlaznog PDV (103+104)
+	// II. prethodni porez
+	Polje006 int64 // prethodni porez pri uvozu — naknada (ne prati se → 0)
+	Polje106 int64 // prethodni porez pri uvozu — PDV (ne prati se → 0)
+	Polje007 int64 // PDV nadoknada poljoprivredniku — naknada (ne prati se → 0)
+	Polje107 int64 // PDV nadoknada poljoprivredniku — PDV (ne prati se → 0)
+	Polje008 int64 // ostali prethodni porez — naknada
+	Polje108 int64 // ostali prethodni porez — PDV (odbitni)
+	Polje009 int64 // zbir naknada (6+7+8)
+	Polje109 int64 // zbir prethodnog poreza (106+107+108)
+	// III. poreska obaveza
+	Polje110 int64 // iznos PDV u periodu (105 − 109); >0 za uplatu, <0 za povraćaj
+	Povracaj bool  // polje 11: true kada je 110 negativan (iznos za povraćaj)
+}
+
+// Polje110Apsolutno vraća iznos polja 110 bez predznaka (za prikaz povraćaja).
+func (p PPPDV) Polje110Apsolutno() int64 {
+	if p.Polje110 < 0 {
+		return -p.Polje110
+	}
+	return p.Polje110
+}
+
+// MapirajPPPDV preslikava zbirove KIR i KPR na polja obrasca PPPDV (cele dinare).
+// ⚠ Uvoz (006/106) i PDV nadoknada poljoprivredniku (007/107) se ne prate zasebno
+// pa ostaju 0 — sav odbitni PDV iz KPR pada u polje 008/108.
+func MapirajPPPDV(kir PdvKirSume, kpr PdvKprSume) PPPDV {
+	uDinare := func(v float64) int64 { return int64(math.Round(v)) }
+	p := PPPDV{
+		Polje001: uDinare(kir.OslobodenSaPravom),
+		Polje002: uDinare(kir.OslobodenBezPrava),
+		Polje003: uDinare(kir.OsnovicaOpsta),
+		Polje103: uDinare(kir.PdvOpsta),
+		Polje004: uDinare(kir.OsnovicaPosebna),
+		Polje104: uDinare(kir.PdvPosebna),
+		Polje008: uDinare(kpr.OsnovicaOpsta + kpr.OsnovicaPosebna),
+		Polje108: uDinare(kpr.PdvOpsta + kpr.PdvPosebna),
+	}
+	// zbirovi se računaju iz zaokruženih polja da kolone na obrascu uvek zbiraju
+	p.Polje005 = p.Polje001 + p.Polje002 + p.Polje003 + p.Polje004
+	p.Polje105 = p.Polje103 + p.Polje104
+	p.Polje009 = p.Polje006 + p.Polje007 + p.Polje008
+	p.Polje109 = p.Polje106 + p.Polje107 + p.Polje108
+	p.Polje110 = p.Polje105 - p.Polje109
+	p.Povracaj = p.Polje110 < 0
+	return p
 }
 
 // ObracunajPdv računa obavezu PDV iz zbirova KIR i KPR za isti period.
