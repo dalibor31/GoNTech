@@ -31,6 +31,7 @@ type PodaciFormeNabavke struct {
 	Dobavljaci  []model.Dobavljac
 	Kategorije  []model.Kategorija // za dropdown u modalu novog artikla
 	Marza       string             // podrazumevana marža (%) za kalkulaciju
+	PdvObveznik bool               // da li firma obračunava PDV (utiče na prodajnu cenu u kalkulaciji)
 	Greska      string
 }
 
@@ -127,6 +128,7 @@ func (h *Handler) NovaNabavka(w http.ResponseWriter, r *http.Request) {
 		Dobavljaci:     dobavljaci,
 		Kategorije:     kategorije,
 		Marza:          vrednostIliDefault(podesavanja, "kalkulacija_marza", "20"),
+		PdvObveznik:    h.modulUkljucen(r.Context(), "pdv"),
 	})
 }
 
@@ -157,6 +159,7 @@ func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
 			Dobavljaci:     dobavljaci,
 			Kategorije:     kategorije,
 			Marza:          vrednostIliDefault(podesavanja, "kalkulacija_marza", "20"),
+			PdvObveznik:    h.modulUkljucen(r.Context(), "pdv"),
 			Greska:         greska,
 		})
 		return
