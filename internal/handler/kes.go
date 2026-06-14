@@ -27,6 +27,7 @@ var saSidebar = []string{
 	"podesavanja", "podesavanja_opste", "podesavanja_izgled", "podesavanja_sistem",
 	"pdv_stope",
 	"pdv_kir", "pdv_kir_forma",
+	"pdv_kpr", "pdv_kpr_forma",
 	"podsetnici", "podsetnik_forma",
 	"profil_tema",
 	"prodaja", "prodaja_detalji", "prodaja_forma",

@@ -94,3 +94,43 @@ type PdvKpr struct {
 	Napomena         string
 	DatumUnosa       time.Time
 }
+
+// OznakaPoreskogBroja vraća „JMBG" za 13-cifreni broj, inače „PIB" (dobavljači su obično firme).
+func (k PdvKpr) OznakaPoreskogBroja() string {
+	cifre := 0
+	for _, r := range k.DobavljacPib {
+		if r >= '0' && r <= '9' {
+			cifre++
+		}
+	}
+	if cifre == 13 {
+		return "JMBG"
+	}
+	return "PIB"
+}
+
+// PdvKprSume su zbirovi kolona KPR-a (za red „ukupno" u pregledu knjige).
+type PdvKprSume struct {
+	OsnovicaOpsta    float64
+	PdvOpsta         float64
+	OsnovicaPosebna  float64
+	PdvPosebna       float64
+	PdvBezOdbitka    float64
+	OslobodenNabavka float64
+	Ukupno           float64
+}
+
+// SumirajKpr sabira sve kolone iz liste KPR zapisa.
+func SumirajKpr(zapisi []PdvKpr) PdvKprSume {
+	var s PdvKprSume
+	for _, z := range zapisi {
+		s.OsnovicaOpsta += z.OsnovicaOpsta
+		s.PdvOpsta += z.PdvOpsta
+		s.OsnovicaPosebna += z.OsnovicaPosebna
+		s.PdvPosebna += z.PdvPosebna
+		s.PdvBezOdbitka += z.PdvBezOdbitka
+		s.OslobodenNabavka += z.OslobodenNabavka
+		s.Ukupno += z.Ukupno
+	}
+	return s
+}
