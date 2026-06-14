@@ -191,6 +191,7 @@ document.addEventListener('alpine:init', () => {
         marzaDefault: 0,
         troskovi: [],            // zavisni troškovi {naziv, iznos}
         metodRaspodele: 'vrednost', // 'vrednost' ili 'kolicina'
+        pdvObveznik: true,       // da li firma obračunava PDV (utiče na prodajnu cenu)
         isMobile: false,
         modal: false,
         modalUcitavanje: false,
@@ -216,6 +217,7 @@ document.addEventListener('alpine:init', () => {
         init() {
             this.artikliOpcije = window._ntechArtikli || []
             this.marzaDefault = parseFloat(window._ntechMarza) || 0
+            this.pdvObveznik = window._ntechPdvObveznik === true
             this.stavke.forEach(s => { s.marza = this.marzaDefault })
             this.isMobile = window.matchMedia('(max-width: 768px)').matches
             window.matchMedia('(max-width: 768px)').addEventListener('change', e => {
@@ -226,8 +228,10 @@ document.addEventListener('alpine:init', () => {
             this.stavke.push({artikal_id: '', kolicina: 1, cena: 0, marza: this.marzaDefault, prodajna: 0})
             this.preracunajSve()
         },
-        // PDV stopa izabranog artikla (iz JSON liste) — za obračun prodajne cene
+        // PDV stopa izabranog artikla (iz JSON liste) — za obračun prodajne cene.
+        // Ako firma nije PDV obveznik, PDV se ne dodaje na prodajnu cenu (stopa = 0).
         pdvStopa(artikalId) {
+            if (!this.pdvObveznik) return 0
             const a = this.artikliOpcije.find(x => String(x.id) === String(artikalId))
             return a ? (parseFloat(a.pdv_stopa) || 0) : 0
         },
@@ -269,6 +273,16 @@ document.addEventListener('alpine:init', () => {
             const marza = parseFloat(s.marza) || 0
             const pdv = this.pdvStopa(s.artikal_id)
             s.prodajna = Math.round(nabavna * (1 + marza / 100) * (1 + pdv / 100) * 100) / 100
+        },
+        // obrnuti smer: iz ručno unete prodajne cene izvedi maržu (%)
+        // marža = (prodajna / (nabavna × (1 + pdv/100)) − 1) × 100
+        izracunajMarzu(s) {
+            const nabavna = this.kalkNabavna(s)
+            const pdv = this.pdvStopa(s.artikal_id)
+            const osnovica = nabavna * (1 + pdv / 100)
+            if (osnovica <= 0) return // bez nabavne cene marža se ne može izvesti
+            const prodajna = parseFloat(s.prodajna) || 0
+            s.marza = Math.round(((prodajna / osnovica) - 1) * 100 * 100) / 100
         },
         // raspodela zavisi od svih stavki — promena troška/metoda/količine/cene preračunava sve
         preracunajSve() {

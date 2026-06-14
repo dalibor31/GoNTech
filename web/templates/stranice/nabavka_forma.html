@@ -16,7 +16,7 @@
 {{define "sadrzaj"}}
 
 <!-- lista artikala kao JSON — bezbedno serijalizovana na serveru -->
-<script>var _ntechArtikli = {{.ArtikliJSON}}; var _ntechMarza = {{.Marza}};</script>
+<script>var _ntechArtikli = {{.ArtikliJSON}}; var _ntechMarza = {{.Marza}}; var _ntechPdvObveznik = {{.PdvObveznik}};</script>
 
 <div style="width:100%;" x-data="nabavkaForma">
 
@@ -87,7 +87,7 @@
                             <th style="padding:8px 10px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Artikal</th>
                             <th style="padding:8px 10px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:90px;">Količina</th>
                             <th style="padding:8px 10px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:130px;">Cena/kom (din)</th>
-                            <th style="padding:8px 10px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:90px;">Marža %</th>
+                            <th style="padding:8px 10px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:120px;">Marža %</th>
                             <th style="padding:8px 10px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:130px;">Prodajna/kom (din)</th>
                             <th style="padding:8px 10px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:110px;">Ukupno</th>
                             <th style="width:40px;"></th>
@@ -122,6 +122,7 @@
                                 </td>
                                 <td style="padding:8px 10px;">
                                     <input type="number" :name="'prodajna[]'" x-model="stavka.prodajna"
+                                        @input="izracunajMarzu(stavka)"
                                         min="0" step="0.01" :disabled="isMobile" style="width:100%;text-align:right;">
                                 </td>
                                 <td style="padding:8px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">
@@ -191,7 +192,7 @@
                                 </div>
                                 <div>
                                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Prodajna/kom (din)</label>
-                                    <input type="number" :name="'prodajna[]'" x-model="stavka.prodajna" min="0" step="0.01" :disabled="!isMobile" style="width:100%;">
+                                    <input type="number" :name="'prodajna[]'" x-model="stavka.prodajna" @input="izracunajMarzu(stavka)" min="0" step="0.01" :disabled="!isMobile" style="width:100%;">
                                 </div>
                             </div>
                             <div style="text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">
