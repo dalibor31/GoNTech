@@ -39,6 +39,8 @@ type PodaciDetaljiNabavke struct {
 	model.PodaciStranice
 	Nabavka        model.Nabavka
 	Stavke         []model.StavkaSaArtiklom
+	Troskovi       []model.NabavkaTrosak
+	UkupanTrosak   float64
 	DobavljacNaziv string
 }
 
@@ -259,6 +261,12 @@ func (h *Handler) DetaljiNabavke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	troskovi, err := h.NabavkeRepo.DohvatiTroskove(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju troškova", http.StatusInternalServerError)
+		return
+	}
+
 	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
@@ -277,10 +285,16 @@ func (h *Handler) DetaljiNabavke(w http.ResponseWriter, r *http.Request) {
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "nabavke"
 	ps.NaslovStranice = "Detalji nabavke"
+	var ukupanTrosak float64
+	for _, t := range troskovi {
+		ukupanTrosak += t.Iznos
+	}
 	podaci := PodaciDetaljiNabavke{
 		PodaciStranice: ps,
 		Nabavka:        *nabavka,
 		Stavke:         stavke,
+		Troskovi:       troskovi,
+		UkupanTrosak:   ukupanTrosak,
 		DobavljacNaziv: dobavljacNaziv,
 	}
 

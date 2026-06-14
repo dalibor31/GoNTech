@@ -189,6 +189,8 @@ document.addEventListener('alpine:init', () => {
         stavke: [{artikal_id: '', kolicina: 1, cena: 0, marza: 0, prodajna: 0}],
         artikliOpcije: [],
         marzaDefault: 0,
+        troskovi: [],            // zavisni troškovi {naziv, iznos}
+        metodRaspodele: 'vrednost', // 'vrednost' ili 'kolicina'
         isMobile: false,
         modal: false,
         modalUcitavanje: false,
@@ -222,6 +224,7 @@ document.addEventListener('alpine:init', () => {
         },
         dodajStavku() {
             this.stavke.push({artikal_id: '', kolicina: 1, cena: 0, marza: this.marzaDefault, prodajna: 0})
+            this.preracunajSve()
         },
         // PDV stopa izabranog artikla (iz JSON liste) — za obračun prodajne cene
         pdvStopa(artikalId) {
@@ -238,15 +241,49 @@ document.addEventListener('alpine:init', () => {
             }
             this.izracunajProdajnu(s)
         },
-        // prodajna (sa PDV) = nabavna × (1 + marža/100) × (1 + pdvStopa/100), zaokruženo na 2 decimale
-        izracunajProdajnu(s) {
+        // ukupan zavisni trošak nabavke
+        ukupanTrosak() {
+            return this.troskovi.reduce((z, t) => z + (parseFloat(t.iznos) || 0), 0)
+        },
+        // osnovica raspodele po izabranom metodu (zbir po svim stavkama)
+        osnovicaRaspodele() {
+            return this.stavke.reduce((z, s) => {
+                const kol = parseFloat(s.kolicina) || 0
+                return z + (this.metodRaspodele === 'kolicina' ? kol : kol * (parseFloat(s.cena) || 0))
+            }, 0)
+        },
+        // kalkulativna nabavna cena po komadu (fakturna + raspodeljeni trošak) — isto kao server
+        kalkNabavna(s) {
             const cena = parseFloat(s.cena) || 0
+            const kol = parseFloat(s.kolicina) || 0
+            const trosak = this.ukupanTrosak()
+            const osn = this.osnovicaRaspodele()
+            if (trosak <= 0 || osn <= 0 || kol <= 0) return cena
+            const baza = this.metodRaspodele === 'kolicina' ? kol : kol * cena
+            const trosakPoKomadu = (trosak * (baza / osn)) / kol
+            return Math.round((cena + trosakPoKomadu) * 100) / 100
+        },
+        // prodajna (sa PDV) = kalkulativna nabavna × (1 + marža/100) × (1 + pdvStopa/100)
+        izracunajProdajnu(s) {
+            const nabavna = this.kalkNabavna(s)
             const marza = parseFloat(s.marza) || 0
             const pdv = this.pdvStopa(s.artikal_id)
-            s.prodajna = Math.round(cena * (1 + marza / 100) * (1 + pdv / 100) * 100) / 100
+            s.prodajna = Math.round(nabavna * (1 + marza / 100) * (1 + pdv / 100) * 100) / 100
+        },
+        // raspodela zavisi od svih stavki — promena troška/metoda/količine/cene preračunava sve
+        preracunajSve() {
+            this.stavke.forEach(s => this.izracunajProdajnu(s))
+        },
+        dodajTrosak() {
+            this.troskovi.push({naziv: '', iznos: 0})
+        },
+        ukloniTrosak(i) {
+            this.troskovi.splice(i, 1)
+            this.preracunajSve()
         },
         ukloniStavku(i) {
             if (this.stavke.length > 1) this.stavke.splice(i, 1)
+            this.preracunajSve()
         },
         ukupnoStavke(s) {
             return (parseFloat(s.kolicina) * parseFloat(s.cena) || 0).toFixed(2)
