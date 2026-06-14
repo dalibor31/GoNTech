@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // PdvKir je jedan zapis u knjizi izdatih računa (izlazni PDV).
 // Iznosi se vode po vrsti stope (opšta/posebna) — vidi migraciju 041.
@@ -175,4 +178,44 @@ func SumirajKpr(zapisi []PdvKpr) PdvKprSume {
 		s.Ukupno += z.Ukupno
 	}
 	return s
+}
+
+// NabavkaStavkaPdv je jedna stavka nabavke sa pripadajućom PDV stopom (iz artikla).
+type NabavkaStavkaPdv struct {
+	Osnovica float64 // nabavna vrednost stavke (cena × količina) — tretira se kao osnovica bez PDV
+	PdvStopa float64
+}
+
+// KprIzNabavke gradi KPR zapis iz nabavke. PDV se izvodi iz stope artikla po stavci
+// (⚠ aproksimacija: nabavna cena = osnovica bez PDV; stvaran PDV sa računa dobavljača može
+// se razlikovati). Grupiše po stopi (20→opšta, 10→posebna, ostalo→oslobođena nabavka).
+// Broj dokumenta je sintetički ("NAB-<id>") jer nabavka ne čuva broj računa dobavljača.
+func KprIzNabavke(nabavka Nabavka, dobavljacNaziv, dobavljacPib, dobavljacMesto string, stavke []NabavkaStavkaPdv) PdvKpr {
+	id := nabavka.ID
+	k := PdvKpr{
+		DatumPrometa:   nabavka.Datum,
+		DatumKnjizenja: nabavka.Datum,
+		BrojDokumenta:  fmt.Sprintf("NAB-%d", id),
+		DobavljacNaziv: dobavljacNaziv,
+		DobavljacPib:   dobavljacPib,
+		DobavljacMesto: dobavljacMesto,
+		Napomena:       nabavka.Napomena,
+		Izvor:          "nabavka",
+		IzvorID:        &id,
+	}
+	for _, s := range stavke {
+		pdv := s.Osnovica * s.PdvStopa / 100
+		switch s.PdvStopa {
+		case 20:
+			k.OsnovicaOpsta += s.Osnovica
+			k.PdvOpsta += pdv
+		case 10:
+			k.OsnovicaPosebna += s.Osnovica
+			k.PdvPosebna += pdv
+		default:
+			k.OslobodenNabavka += s.Osnovica
+		}
+		k.Ukupno += s.Osnovica + pdv
+	}
+	return k
 }
