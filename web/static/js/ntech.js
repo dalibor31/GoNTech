@@ -228,6 +228,16 @@ document.addEventListener('alpine:init', () => {
             const a = this.artikliOpcije.find(x => String(x.id) === String(artikalId))
             return a ? (parseFloat(a.pdv_stopa) || 0) : 0
         },
+        // pri izboru artikla predloži maržu: artikal → kategorija → globalna, pa izračunaj prodajnu
+        izaberiArtikal(s) {
+            const a = this.artikliOpcije.find(x => String(x.id) === String(s.artikal_id))
+            if (a) {
+                if (a.marza != null) s.marza = a.marza
+                else if (a.kategorija_marza != null) s.marza = a.kategorija_marza
+                else s.marza = this.marzaDefault
+            }
+            this.izracunajProdajnu(s)
+        },
         // prodajna (sa PDV) = nabavna × (1 + marža/100) × (1 + pdvStopa/100), zaokruženo na 2 decimale
         izracunajProdajnu(s) {
             const cena = parseFloat(s.cena) || 0
