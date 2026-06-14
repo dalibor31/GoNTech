@@ -16,7 +16,7 @@
 {{define "sadrzaj"}}
 
 <!-- lista artikala kao JSON — bezbedno serijalizovana na serveru -->
-<script>var _ntechArtikli = {{.ArtikliJSON}};</script>
+<script>var _ntechArtikli = {{.ArtikliJSON}}; var _ntechMarza = {{.Marza}};</script>
 
 <div style="width:100%;" x-data="nabavkaForma">
 
@@ -87,6 +87,8 @@
                             <th style="padding:8px 10px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Artikal</th>
                             <th style="padding:8px 10px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:90px;">Količina</th>
                             <th style="padding:8px 10px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:130px;">Cena/kom (din)</th>
+                            <th style="padding:8px 10px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:90px;">Marža %</th>
+                            <th style="padding:8px 10px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:130px;">Prodajna/kom (din)</th>
                             <th style="padding:8px 10px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:110px;">Ukupno</th>
                             <th style="width:40px;"></th>
                         </tr>
@@ -96,7 +98,7 @@
                             <tr style="border-bottom:0.5px solid var(--ivica);">
                                 <td style="padding:8px 10px;">
                                     <select :name="'artikal_id[]'" x-model="stavka.artikal_id"
-                                        :disabled="isMobile" style="width:100%;">
+                                        @change="izracunajProdajnu(stavka)" :disabled="isMobile" style="width:100%;">
                                         <option value="">— odaberi artikal —</option>
                                         <template x-for="a in artikliOpcije" :key="a.id">
                                             <option :value="a.id" x-text="a.naziv"></option>
@@ -109,6 +111,16 @@
                                 </td>
                                 <td style="padding:8px 10px;">
                                     <input type="number" :name="'cena_po_komadu[]'" x-model="stavka.cena"
+                                        @input="izracunajProdajnu(stavka)"
+                                        min="0" step="0.01" :disabled="isMobile" style="width:100%;text-align:right;">
+                                </td>
+                                <td style="padding:8px 10px;">
+                                    <input type="number" :name="'marza[]'" x-model="stavka.marza"
+                                        @input="izracunajProdajnu(stavka)"
+                                        min="0" step="0.01" :disabled="isMobile" style="width:100%;text-align:right;">
+                                </td>
+                                <td style="padding:8px 10px;">
+                                    <input type="number" :name="'prodajna[]'" x-model="stavka.prodajna"
                                         min="0" step="0.01" :disabled="isMobile" style="width:100%;text-align:right;">
                                 </td>
                                 <td style="padding:8px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">
@@ -127,7 +139,7 @@
                     </tbody>
                     <tfoot>
                         <tr style="border-top:0.5px solid var(--ivica);">
-                            <td colspan="3" style="padding:10px 10px;text-align:right;font-size:13px;color:var(--tekst-sporedni);font-weight:500;">Ukupno:</td>
+                            <td colspan="5" style="padding:10px 10px;text-align:right;font-size:13px;color:var(--tekst-sporedni);font-weight:500;">Ukupno:</td>
                             <td style="padding:10px 10px;text-align:right;font-size:15px;font-weight:600;color:var(--tekst-glavni);">
                                 <span x-text="ukupnoSvega() + ' din'"></span>
                             </td>
@@ -154,7 +166,7 @@
                             <div>
                                 <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Artikal</label>
                                 <select :name="'artikal_id[]'" x-model="stavka.artikal_id"
-                                    :disabled="!isMobile" style="width:100%;">
+                                    @change="izracunajProdajnu(stavka)" :disabled="!isMobile" style="width:100%;">
                                     <option value="">— odaberi artikal —</option>
                                     <template x-for="a in artikliOpcije" :key="a.id">
                                         <option :value="a.id" x-text="a.naziv"></option>
@@ -168,7 +180,17 @@
                                 </div>
                                 <div>
                                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Cena/kom (din)</label>
-                                    <input type="number" :name="'cena_po_komadu[]'" x-model="stavka.cena" min="0" step="0.01" :disabled="!isMobile" style="width:100%;">
+                                    <input type="number" :name="'cena_po_komadu[]'" x-model="stavka.cena" @input="izracunajProdajnu(stavka)" min="0" step="0.01" :disabled="!isMobile" style="width:100%;">
+                                </div>
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                                <div>
+                                    <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Marža %</label>
+                                    <input type="number" :name="'marza[]'" x-model="stavka.marza" @input="izracunajProdajnu(stavka)" min="0" step="0.01" :disabled="!isMobile" style="width:100%;">
+                                </div>
+                                <div>
+                                    <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Prodajna/kom (din)</label>
+                                    <input type="number" :name="'prodajna[]'" x-model="stavka.prodajna" min="0" step="0.01" :disabled="!isMobile" style="width:100%;">
                                 </div>
                             </div>
                             <div style="text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">

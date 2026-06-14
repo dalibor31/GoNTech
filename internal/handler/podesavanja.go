@@ -42,6 +42,7 @@ type PodaciPodesavanja struct {
 	Backupi                         []BackupInfo
 	BackupIntervalSati              string
 	BackupBrojKopija                string
+	KalkulacijaMarza                string
 	LoginPozadina                   string
 	LoginPozadinaOpacity            string
 	LoginPozadinaBlurPozadine       string
@@ -283,6 +284,20 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "backup_broj_kopija", strconv.Itoa(n)); err != nil {
+			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// podrazumevana marža za kalkulaciju (procenat, 0–1000)
+	if v := strings.TrimSpace(r.FormValue("kalkulacija_marza")); v != "" {
+		marza, err := strconv.ParseFloat(strings.Replace(v, ",", ".", 1), 64)
+		if err != nil || marza < 0 || marza > 1000 {
+			middleware.SetFlash(w, r, h.DB, "greska", "Marža mora biti broj između 0 i 1000.")
+			http.Redirect(w, r, sledeci, http.StatusSeeOther)
+			return
+		}
+		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "kalkulacija_marza", strconv.FormatFloat(marza, 'f', -1, 64)); err != nil {
 			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
 			return
 		}
@@ -627,6 +642,7 @@ func (h *Handler) napuniPodaciPodesavanja(r *http.Request, naslov string) (Podac
 		LoginPozadinaZatamnjenjeKartice: vrednostIliDefault(podesavanja, "login_pozadina_zatamnjenje_kartice", "0"),
 		BackupIntervalSati:              vrednostIliDefault(podesavanja, "backup_interval_sati", "24"),
 		BackupBrojKopija:                vrednostIliDefault(podesavanja, "backup_broj_kopija", "7"),
+		KalkulacijaMarza:                vrednostIliDefault(podesavanja, "kalkulacija_marza", "20"),
 	}, nil
 }
 

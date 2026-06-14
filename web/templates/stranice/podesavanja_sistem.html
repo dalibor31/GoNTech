@@ -56,6 +56,27 @@
             </form>
         </div>
 
+        <div style="margin-top:16px;border-top:0.5px solid var(--ivica);padding-top:16px;">
+            <div style="font-size:13px;font-weight:500;color:var(--tekst-glavni);margin-bottom:10px;">Kalkulacija</div>
+            <form method="POST" action="/podesavanja/sacuvaj">
+                <input type="hidden" name="_next" value="/admin/podesavanja/sistem">
+                <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;">
+                    <div>
+                        <label for="kalkulacija_marza" class="polje-labela">Podrazumevana marža (%)</label>
+                        <input type="number" id="kalkulacija_marza" name="kalkulacija_marza" min="0" max="1000" step="0.01" value="{{.KalkulacijaMarza}}"
+                            style="width:140px;padding:8px 12px;background:var(--pozadina);border:0.5px solid var(--ivica);border-radius:8px;color:var(--tekst-glavni);font-size:14px;">
+                    </div>
+                    <button type="submit"
+                        style="padding:9px 18px;background:var(--sb-akcent);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:500;cursor:pointer;">
+                        Sačuvaj
+                    </button>
+                </div>
+                <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:8px;">
+                    Početna marža za formiranje prodajne cene pri nabavci. Po stavci je možeš promeniti.
+                </div>
+            </form>
+        </div>
+
         <!-- panel sa listom backupa -->
         <div id="backup-panel" style="display:none;margin-top:16px;border-top:0.5px solid var(--ivica);padding-top:16px;">
             <div style="font-size:13px;font-weight:500;color:var(--tekst-glavni);margin-bottom:10px;">Dostupne rezervne kopije</div>
