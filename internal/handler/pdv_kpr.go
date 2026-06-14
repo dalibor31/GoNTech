@@ -128,6 +128,7 @@ func (h *Handler) SacuvajPdvKpr(w http.ResponseWriter, r *http.Request) {
 		PdvBezOdbitka:    parsiraIznos(r.FormValue("pdv_bez_odbitka")),
 		OslobodenNabavka: parsiraIznos(r.FormValue("osloboden_nabavka")),
 		Napomena:         strings.TrimSpace(r.FormValue("napomena")),
+		Uvoz:             r.FormValue("uvoz") == "1",
 	}
 	// datum plaćanja je opcionalan
 	if dp := parsiraDatumOpcionalno(r.FormValue("datum_placanja")); !dp.IsZero() {
