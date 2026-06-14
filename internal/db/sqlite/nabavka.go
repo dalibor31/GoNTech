@@ -22,7 +22,7 @@ func NoviNabavkaRepo(db *sql.DB) *NabavkaRepo {
 func (r *NabavkaRepo) Lista(ctx context.Context) ([]model.NabavkaSaDetaljem, error) {
 	redovi, err := r.db.QueryContext(ctx, `
 		SELECT
-			n.id, n.dobavljac_id, n.napomena, n.ukupno, n.datum,
+			n.id, n.dobavljac_id, n.napomena, n.ukupno, n.metod_raspodele, n.datum,
 			COALESCE(d.naziv, '') AS dobavljac_naziv
 		FROM nabavke n
 		LEFT JOIN dobavljaci d ON n.dobavljac_id = d.id
@@ -36,10 +36,10 @@ func (r *NabavkaRepo) Lista(ctx context.Context) ([]model.NabavkaSaDetaljem, err
 	for redovi.Next() {
 		var n model.NabavkaSaDetaljem
 		var dobavljacID sql.NullInt64
-		var napomena sql.NullString
+		var napomena, metod sql.NullString
 
 		err := redovi.Scan(
-			&n.ID, &dobavljacID, &napomena, &n.Ukupno, &n.Datum,
+			&n.ID, &dobavljacID, &napomena, &n.Ukupno, &metod, &n.Datum,
 			&n.DobavljacNaziv,
 		)
 		if err != nil {
@@ -50,6 +50,7 @@ func (r *NabavkaRepo) Lista(ctx context.Context) ([]model.NabavkaSaDetaljem, err
 			n.DobavljacID = &dobavljacID.Int64
 		}
 		n.Napomena = napomena.String
+		n.MetodRaspodele = metod.String
 
 		rezultat = append(rezultat, n)
 	}
@@ -61,12 +62,12 @@ func (r *NabavkaRepo) Lista(ctx context.Context) ([]model.NabavkaSaDetaljem, err
 func (r *NabavkaRepo) DohvatiID(ctx context.Context, id int64) (*model.Nabavka, error) {
 	var n model.Nabavka
 	var dobavljacID sql.NullInt64
-	var napomena sql.NullString
+	var napomena, metod sql.NullString
 
 	err := r.db.QueryRowContext(ctx, `
-		SELECT id, dobavljac_id, napomena, ukupno, datum
+		SELECT id, dobavljac_id, napomena, ukupno, metod_raspodele, datum
 		FROM nabavke WHERE id = ?`, id).Scan(
-		&n.ID, &dobavljacID, &napomena, &n.Ukupno, &n.Datum,
+		&n.ID, &dobavljacID, &napomena, &n.Ukupno, &metod, &n.Datum,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: NabavkaRepo.DohvatiID: %w", err)
@@ -76,6 +77,7 @@ func (r *NabavkaRepo) DohvatiID(ctx context.Context, id int64) (*model.Nabavka, 
 		n.DobavljacID = &dobavljacID.Int64
 	}
 	n.Napomena = napomena.String
+	n.MetodRaspodele = metod.String
 
 	return &n, nil
 }
@@ -113,8 +115,33 @@ func (r *NabavkaRepo) DohvatiStavke(ctx context.Context, nabavkaID int64) ([]mod
 	return rezultat, nil
 }
 
-// Kreiraj upisuje novu nabavku sa svim stavkama u jednoj transakciji i ažurira stanje magacina
-func (r *NabavkaRepo) Kreiraj(ctx context.Context, n *model.Nabavka, stavke []model.StavkaNabavke) (int64, error) {
+// DohvatiTroskove vraća sve zavisne troškove jedne nabavke
+func (r *NabavkaRepo) DohvatiTroskove(ctx context.Context, nabavkaID int64) ([]model.NabavkaTrosak, error) {
+	redovi, err := r.db.QueryContext(ctx, `
+		SELECT id, nabavka_id, naziv, iznos
+		FROM nabavka_troskovi
+		WHERE nabavka_id = ?
+		ORDER BY id ASC`, nabavkaID)
+	if err != nil {
+		return nil, fmt.Errorf("ntech: NabavkaRepo.DohvatiTroskove: %w", err)
+	}
+	defer redovi.Close()
+
+	var rezultat []model.NabavkaTrosak
+	for redovi.Next() {
+		var t model.NabavkaTrosak
+		if err := redovi.Scan(&t.ID, &t.NabavkaID, &t.Naziv, &t.Iznos); err != nil {
+			return nil, fmt.Errorf("ntech: NabavkaRepo.DohvatiTroskove: scan: %w", err)
+		}
+		rezultat = append(rezultat, t)
+	}
+
+	return rezultat, nil
+}
+
+// Kreiraj upisuje novu nabavku sa svim stavkama i zavisnim troškovima u jednoj
+// transakciji i ažurira stanje magacina
+func (r *NabavkaRepo) Kreiraj(ctx context.Context, n *model.Nabavka, stavke []model.StavkaNabavke, troskovi []model.NabavkaTrosak) (int64, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, fmt.Errorf("ntech: NabavkaRepo.Kreiraj: begin: %w", err)
@@ -130,9 +157,9 @@ func (r *NabavkaRepo) Kreiraj(ctx context.Context, n *model.Nabavka, stavke []mo
 
 	// upisujemo zaglavlje nabavke
 	rezultat, err := tx.ExecContext(ctx, `
-		INSERT INTO nabavke (dobavljac_id, napomena, ukupno)
-		VALUES (?, ?, ?)`,
-		nullInt64(n.DobavljacID), nullString(n.Napomena), ukupno,
+		INSERT INTO nabavke (dobavljac_id, napomena, ukupno, metod_raspodele)
+		VALUES (?, ?, ?, ?)`,
+		nullInt64(n.DobavljacID), nullString(n.Napomena), ukupno, nullString(n.MetodRaspodele),
 	)
 	if err != nil {
 		return 0, fmt.Errorf("ntech: NabavkaRepo.Kreiraj: insert nabavka: %w", err)
@@ -141,6 +168,18 @@ func (r *NabavkaRepo) Kreiraj(ctx context.Context, n *model.Nabavka, stavke []mo
 	nabavkaID, err := rezultat.LastInsertId()
 	if err != nil {
 		return 0, fmt.Errorf("ntech: NabavkaRepo.Kreiraj: last insert id: %w", err)
+	}
+
+	// upisujemo zavisne troškove (ako ih ima)
+	for _, t := range troskovi {
+		_, err := tx.ExecContext(ctx, `
+			INSERT INTO nabavka_troskovi (nabavka_id, naziv, iznos)
+			VALUES (?, ?, ?)`,
+			nabavkaID, t.Naziv, t.Iznos,
+		)
+		if err != nil {
+			return 0, fmt.Errorf("ntech: NabavkaRepo.Kreiraj: insert trošak: %w", err)
+		}
 	}
 
 	// upisujemo svaku stavku i ažuriramo stanje artikla u magacinu

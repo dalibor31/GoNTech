@@ -45,13 +45,18 @@ type PodaciDetaljiNabavke struct {
 // artikalUJSON pretvara listu artikala u template.JS vrednost bezbednu za umetanje u <script> tag
 func artikalUJSON(artikli []model.ArtikalSaKategorijom) template.JS {
 	type stavka struct {
-		ID       int64   `json:"id"`
-		Naziv    string  `json:"naziv"`
-		PdvStopa float64 `json:"pdv_stopa"`
+		ID              int64    `json:"id"`
+		Naziv           string   `json:"naziv"`
+		PdvStopa        float64  `json:"pdv_stopa"`
+		Marza           *float64 `json:"marza"`            // marža artikla; null = nije postavljeno
+		KategorijaMarza *float64 `json:"kategorija_marza"` // marža kategorije; fallback ako artikal nema
 	}
 	lista := make([]stavka, 0, len(artikli))
 	for _, a := range artikli {
-		lista = append(lista, stavka{ID: a.ID, Naziv: a.Naziv, PdvStopa: a.PdvStopa})
+		lista = append(lista, stavka{
+			ID: a.ID, Naziv: a.Naziv, PdvStopa: a.PdvStopa,
+			Marza: a.Marza, KategorijaMarza: a.KategorijaMarza,
+		})
 	}
 	b, _ := json.Marshal(lista)
 	return template.JS(b)
@@ -134,7 +139,7 @@ func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	nabavka, stavke, greska := parseFormuNabavke(r)
+	nabavka, stavke, troskovi, greska := parseFormuNabavke(r)
 	if greska != "" {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		artikli, _ := h.Artikli.Lista(r.Context(), db.ArtikalFilter{})
@@ -155,7 +160,7 @@ func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := h.NabavkeRepo.Kreiraj(r.Context(), &nabavka, stavke)
+	id, err := h.NabavkeRepo.Kreiraj(r.Context(), &nabavka, stavke, troskovi)
 	if err != nil {
 		http.Error(w, "Greška pri čuvanju nabavke", http.StatusInternalServerError)
 		return
@@ -194,6 +199,13 @@ func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
 	if k != nil {
 		korisnikID = &k.ID
 	}
+	// kalkulativna nabavna cena po stavci (fakturna + raspodeljeni zavisni trošak) —
+	// računa se na serveru; bez troškova je jednaka čistoj ceni po komadu.
+	var ukupanTrosak float64
+	for _, t := range troskovi {
+		ukupanTrosak += t.Iznos
+	}
+	kalkNabavna := model.RasporediTroskove(stavke, ukupanTrosak, nabavka.MetodRaspodele)
 	for i, s := range stavke {
 		if i >= len(prodajne) {
 			break
@@ -207,7 +219,7 @@ func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
 		if a, e := h.Artikli.DohvatiID(r.Context(), s.ArtikalID); e == nil {
 			staraProdajna = a.ProdajnaCena
 		}
-		if e := h.Artikli.AzurirajCene(r.Context(), s.ArtikalID, s.CenaPoKomadu, prodajna); e != nil {
+		if e := h.Artikli.AzurirajCene(r.Context(), s.ArtikalID, kalkNabavna[i], prodajna); e != nil {
 			slog.Error("kalkulacija: ažuriranje cena nije uspelo", "artikal_id", s.ArtikalID, "error", e)
 			continue
 		}
@@ -298,8 +310,9 @@ func (h *Handler) ObrisiNabavku(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/nabavke?obrisan=1", http.StatusSeeOther)
 }
 
-// parseFormuNabavke čita zaglavlje i stavke iz HTTP forme i vraća model i eventualnu grešku
-func parseFormuNabavke(r *http.Request) (model.Nabavka, []model.StavkaNabavke, string) {
+// parseFormuNabavke čita zaglavlje, stavke i zavisne troškove iz HTTP forme
+// i vraća model, stavke, troškove i eventualnu grešku
+func parseFormuNabavke(r *http.Request) (model.Nabavka, []model.StavkaNabavke, []model.NabavkaTrosak, string) {
 	var nabavka model.Nabavka
 
 	// opcioni dobavljač
@@ -317,28 +330,28 @@ func parseFormuNabavke(r *http.Request) (model.Nabavka, []model.StavkaNabavke, s
 	cene := r.Form["cena_po_komadu[]"]
 
 	if len(artikalIDovi) == 0 {
-		return nabavka, nil, "Nabavka mora imati najmanje jednu stavku."
+		return nabavka, nil, nil, "Nabavka mora imati najmanje jednu stavku."
 	}
 
 	if len(artikalIDovi) != len(kolicine) || len(artikalIDovi) != len(cene) {
-		return nabavka, nil, "Greška u podacima forme — broj stavki nije ispravan."
+		return nabavka, nil, nil, "Greška u podacima forme — broj stavki nije ispravan."
 	}
 
 	var stavke []model.StavkaNabavke
 	for i := range artikalIDovi {
 		artikalID, err := strconv.ParseInt(strings.TrimSpace(artikalIDovi[i]), 10, 64)
 		if err != nil || artikalID <= 0 {
-			return nabavka, nil, "Neispravan artikal u stavci."
+			return nabavka, nil, nil, "Neispravan artikal u stavci."
 		}
 
 		kolicina, err := strconv.Atoi(strings.TrimSpace(kolicine[i]))
 		if err != nil || kolicina <= 0 {
-			return nabavka, nil, "Količina mora biti pozitivan broj."
+			return nabavka, nil, nil, "Količina mora biti pozitivan broj."
 		}
 
 		cena, err := strconv.ParseFloat(strings.TrimSpace(cene[i]), 64)
 		if err != nil || cena < 0 {
-			return nabavka, nil, "Cena mora biti pozitivan broj."
+			return nabavka, nil, nil, "Cena mora biti pozitivan broj."
 		}
 
 		stavke = append(stavke, model.StavkaNabavke{
@@ -348,7 +361,35 @@ func parseFormuNabavke(r *http.Request) (model.Nabavka, []model.StavkaNabavke, s
 		})
 	}
 
-	return nabavka, stavke, ""
+	// zavisni troškovi (opcioni, paralelni nizovi); prazni redovi se preskaču
+	naziviT := r.Form["trosak_naziv[]"]
+	iznosiT := r.Form["trosak_iznos[]"]
+	var troskovi []model.NabavkaTrosak
+	for i := range naziviT {
+		naziv := strings.TrimSpace(naziviT[i])
+		if naziv == "" {
+			continue
+		}
+		var iznos float64
+		if i < len(iznosiT) {
+			iznos, _ = strconv.ParseFloat(strings.TrimSpace(iznosiT[i]), 64)
+		}
+		if iznos <= 0 {
+			continue
+		}
+		troskovi = append(troskovi, model.NabavkaTrosak{Naziv: naziv, Iznos: iznos})
+	}
+
+	// metod raspodele je bitan samo ako ima troškova; default je po vrednosti
+	if len(troskovi) > 0 {
+		metod := r.FormValue("metod_raspodele")
+		if metod != "kolicina" {
+			metod = "vrednost"
+		}
+		nabavka.MetodRaspodele = metod
+	}
+
+	return nabavka, stavke, troskovi, ""
 }
 
 // renderujFormuNabavke renderuje HTML šablon forme za unos nove nabavke
