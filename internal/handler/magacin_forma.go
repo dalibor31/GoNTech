@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -182,10 +183,30 @@ func (h *Handler) SacuvajIzmenuArtikla(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// stara prodajna cena — za nivelacioni trag ako se promeni kroz izmenu
+	var staraCena float64
+	if stari, e := h.Artikli.DohvatiID(r.Context(), id); e == nil {
+		staraCena = stari.ProdajnaCena
+	}
+
 	artikal.ID = id
 	if err := h.Artikli.Izmeni(r.Context(), &artikal); err != nil {
 		http.Error(w, "Greška pri čuvanju izmene", http.StatusInternalServerError)
 		return
+	}
+
+	// ako se prodajna cena promenila, automatski upiši nivelacioni zapis (izvor "izmena")
+	if razlika := artikal.ProdajnaCena - staraCena; razlika > 0.005 || razlika < -0.005 {
+		korisnikID := &k.ID
+		if _, e := h.NivelacijaRepo.Kreiraj(r.Context(), &model.Nivelacija{
+			ArtikalID:  id,
+			StaraCena:  staraCena,
+			NovaCena:   artikal.ProdajnaCena,
+			Izvor:      "izmena",
+			KorisnikID: korisnikID,
+		}); e != nil {
+			slog.Error("auto-nivelacija pri izmeni artikla nije upisana", "artikal_id", id, "error", e)
+		}
 	}
 
 	http.Redirect(w, r, "/magacin?sacuvano=1", http.StatusSeeOther)
@@ -226,6 +247,15 @@ func parseFormuArtikla(r *http.Request) (model.Artikal, string) {
 			return artikal, "Prodajna cena mora biti pozitivan broj."
 		}
 		artikal.ProdajnaCena = v
+	}
+
+	// marža (%) je opciona; prazno polje ostaje NULL (artikal nasleđuje maržu kategorije/globalnu)
+	if m := r.FormValue("marza"); m != "" {
+		v, err := strconv.ParseFloat(m, 64)
+		if err != nil || v < 0 {
+			return artikal, "Marža mora biti pozitivan broj."
+		}
+		artikal.Marza = &v
 	}
 
 	if katID := r.FormValue("kategorija_id"); katID != "" {

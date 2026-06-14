@@ -1,0 +1,136 @@
+{{template "base" .}}
+
+{{define "naslov"}}Novi ulazni račun (KPR) — NTech{{end}}
+
+{{define "sadrzaj"}}
+<div class="stranica-stack" style="width:100%;max-width:760px;">
+
+    <a href="/pdv/kpr" class="nazad-link">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Nazad na KPR
+    </a>
+
+    <form method="POST" action="/pdv/kpr/nova">
+        <!-- dokument -->
+        <div class="kartica animiraj" style="margin-bottom:16px;">
+            <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">Dokument</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                <div>
+                    <label class="polje-labela">Datum prometa</label>
+                    <input type="date" name="datum_prometa" value="{{.Danas}}" required style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div>
+                    <label class="polje-labela">Datum knjiženja</label>
+                    <input type="date" name="datum_knjizenja" value="{{.Danas}}" required style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div>
+                    <label class="polje-labela">Datum plaćanja (opciono)</label>
+                    <input type="date" name="datum_placanja" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div>
+                    <label class="polje-labela">Broj dokumenta</label>
+                    <input type="text" name="broj_dokumenta" required style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;" placeholder="npr. 2026-1234">
+                </div>
+            </div>
+        </div>
+
+        <!-- dobavljač -->
+        <div class="kartica animiraj" style="margin-bottom:16px;">
+            <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">Dobavljač</div>
+            <div class="kolona" style="gap:14px;">
+                {{if .Dobavljaci}}
+                <div>
+                    <label class="polje-labela">Izaberi iz dobavljača (opciono)</label>
+                    <select onchange="popuniDobavljaca(this)" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                        <option value="">— ručni unos —</option>
+                        {{range .Dobavljaci}}
+                        <option data-naziv="{{.Naziv}}" data-pib="{{.PIB}}" data-mesto="{{.Mesto}}">{{.Naziv}}{{if .Mesto}} — {{.Mesto}}{{end}}</option>
+                        {{end}}
+                    </select>
+                    <div class="pomocni-tekst" style="font-size:12px;margin-top:4px;">Izbor popunjava naziv, PIB i mesto; možeš ih i ručno izmeniti.</div>
+                </div>
+                {{end}}
+                <div>
+                    <label class="polje-labela">Naziv dobavljača</label>
+                    <input type="text" name="dobavljac_naziv" required style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                    <div>
+                        <label class="polje-labela">PIB</label>
+                        <input type="text" name="dobavljac_pib" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                    </div>
+                    <div>
+                        <label class="polje-labela">Mesto</label>
+                        <input type="text" name="dobavljac_mesto" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- iznosi po stopama -->
+        <div class="kartica animiraj" style="margin-bottom:16px;">
+            <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);margin-bottom:6px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">Iznosi po stopama</div>
+            <div class="pomocni-tekst" style="font-size:12px;margin-bottom:14px;">PDV (opšta/posebna) je iznos koji se može odbiti. „Ukupno" se računa automatski.</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                <div>
+                    <label class="polje-labela">Osnovica opšta (20%)</label>
+                    <input type="number" step="0.01" min="0" name="osnovica_opsta" value="0" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div>
+                    <label class="polje-labela">PDV opšta (20%, odbitni)</label>
+                    <input type="number" step="0.01" min="0" name="pdv_opsta" value="0" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div>
+                    <label class="polje-labela">Osnovica posebna (10%)</label>
+                    <input type="number" step="0.01" min="0" name="osnovica_posebna" value="0" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div>
+                    <label class="polje-labela">PDV posebna (10%, odbitni)</label>
+                    <input type="number" step="0.01" min="0" name="pdv_posebna" value="0" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div>
+                    <label class="polje-labela">PDV bez prava na odbitak</label>
+                    <input type="number" step="0.01" min="0" name="pdv_bez_odbitka" value="0" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div>
+                    <label class="polje-labela">Oslobođena nabavka / bez PDV</label>
+                    <input type="number" step="0.01" min="0" name="osloboden_nabavka" value="0" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+            </div>
+            <div style="margin-top:14px;">
+                <label class="polje-labela">Napomena</label>
+                <input type="text" name="napomena" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+            </div>
+
+            <div style="margin-top:14px;">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;color:var(--tekst-glavni);">
+                    <input type="checkbox" name="uvoz" value="1" style="width:16px;height:16px;cursor:pointer;">
+                    Uvoz (JCI)
+                </label>
+                <div class="pomocni-tekst" style="margin-top:4px;">
+                    Označi ako je račun uvoz po carinskom dokumentu (JCI) — PDV ide u polja 006/106 obrasca PPPDV.
+                </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;">
+                <a href="/pdv/kpr" class="btn-sekundarno" style="font-size:14px;padding:10px 20px;">Odustani</a>
+                <button type="submit" style="background:var(--sb-akcent);color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;">Sačuvaj</button>
+            </div>
+        </div>
+    </form>
+
+</div>
+
+<script>
+// Izbor dobavljača iz padajuće liste popunjava polja (naziv, PIB, mesto).
+function popuniDobavljaca(sel) {
+    var o = sel.options[sel.selectedIndex];
+    var naziv = o.getAttribute('data-naziv');
+    if (!naziv) return; // „— ručni unos —"
+    var f = sel.closest('form');
+    f.querySelector('input[name="dobavljac_naziv"]').value = naziv;
+    f.querySelector('input[name="dobavljac_pib"]').value = o.getAttribute('data-pib') || '';
+    f.querySelector('input[name="dobavljac_mesto"]').value = o.getAttribute('data-mesto') || '';
+}
+</script>
+{{end}}

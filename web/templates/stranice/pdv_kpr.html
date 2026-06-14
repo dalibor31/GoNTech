@@ -1,0 +1,93 @@
+{{template "base" .}}
+
+{{define "naslov"}}KPR — knjiga primljenih računa — NTech{{end}}
+
+{{define "sadrzaj"}}
+<div class="stranica-stack" style="width:100%;max-width:100%;">
+
+    <!-- zaglavlje: filter perioda + dugme za novi zapis -->
+    <div class="kartica animiraj" style="margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;">
+            <form method="GET" action="/pdv/kpr" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+                <div>
+                    <label class="polje-labela">Od datuma</label>
+                    <input type="date" name="od" value="{{.Od}}" style="padding:8px 10px;border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div>
+                    <label class="polje-labela">Do datuma</label>
+                    <input type="date" name="do" value="{{.Do}}" style="padding:8px 10px;border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <button type="submit" style="padding:8px 16px;background:var(--sb-aktivan);color:var(--tekst-jak);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;cursor:pointer;">Prikaži</button>
+                {{if or .Od .Do}}<a href="/pdv/kpr" class="nazad-link" style="margin-bottom:0;">Poništi filter</a>{{end}}
+            </form>
+            <a href="/pdv/kpr/nova" class="btn-primarno" style="font-size:13px;padding:8px 16px;white-space:nowrap;">+ Nov ulazni račun</a>
+        </div>
+    </div>
+
+    <!-- knjiga -->
+    <div class="kartica animiraj" style="padding:0;overflow:hidden;">
+        <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:980px;">
+                <thead>
+                    <tr style="text-align:left;color:var(--tekst-sporedni);border-bottom:0.5px solid var(--ivica);">
+                        <th style="padding:10px 12px;">Datum prometa</th>
+                        <th style="padding:10px 12px;">Broj dok.</th>
+                        <th style="padding:10px 12px;">Dobavljač</th>
+                        <th style="padding:10px 12px;text-align:right;">Osn. 20%</th>
+                        <th style="padding:10px 12px;text-align:right;">PDV 20%</th>
+                        <th style="padding:10px 12px;text-align:right;">Osn. 10%</th>
+                        <th style="padding:10px 12px;text-align:right;">PDV 10%</th>
+                        <th style="padding:10px 12px;text-align:right;">PDV bez odb.</th>
+                        <th style="padding:10px 12px;text-align:right;">Oslob. nab.</th>
+                        <th style="padding:10px 12px;text-align:right;">Ukupno</th>
+                        <th style="padding:10px 12px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Zapisi}}
+                    <tr style="border-bottom:0.5px solid var(--ivica);">
+                        <td style="padding:10px 12px;white-space:nowrap;">{{.DatumPrometa.Format "02.01.2006."}}</td>
+                        <td style="padding:10px 12px;">{{.BrojDokumenta}}{{if .Uvoz}}<div style="display:inline-block;margin-top:2px;font-size:10px;font-weight:600;color:var(--sb-akcent);border:0.5px solid var(--sb-akcent);border-radius:4px;padding:0 5px;">UVOZ</div>{{end}}</td>
+                        <td style="padding:10px 12px;">{{.DobavljacNaziv}}{{if .DobavljacPib}}<div style="font-size:11px;color:var(--tekst-sporedni);">{{.OznakaPoreskogBroja}}: {{.DobavljacPib}}</div>{{end}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .OsnovicaOpsta}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .PdvOpsta}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .OsnovicaPosebna}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .PdvPosebna}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .PdvBezOdbitka}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .OslobodenNabavka}}</td>
+                        <td style="padding:10px 12px;text-align:right;font-weight:500;">{{printf "%.2f" .Ukupno}}</td>
+                        <td style="padding:10px 12px;text-align:right;white-space:nowrap;">
+                            {{if eq .Izvor "rucno"}}
+                            <form method="POST" action="/pdv/kpr/obrisi/{{.ID}}" style="display:inline;">
+                                <button type="submit" class="btn-obrisi-malo" data-potvrda="Obrisati ovaj zapis iz KPR?">Obriši</button>
+                            </form>
+                            {{else}}
+                            <span style="font-size:11px;color:var(--tekst-sporedni);" title="Zavedeno automatski — upravlja se preko nabavke (obriši nabavku)">iz nabavke</span>
+                            {{end}}
+                        </td>
+                    </tr>
+                    {{else}}
+                    <tr><td colspan="11" style="padding:28px;text-align:center;color:var(--tekst-sporedni);">Nema zapisa u izabranom periodu. <a href="/pdv/kpr/nova" style="color:var(--sb-akcent);">Dodaj prvi.</a></td></tr>
+                    {{end}}
+                </tbody>
+                {{if .Zapisi}}
+                <tfoot>
+                    <tr style="border-top:0.5px solid var(--ivica);font-weight:500;background:var(--pozadina);">
+                        <td style="padding:10px 12px;" colspan="3">UKUPNO ({{len .Zapisi}})</td>
+                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .Sume.OsnovicaOpsta}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .Sume.PdvOpsta}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .Sume.OsnovicaPosebna}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .Sume.PdvPosebna}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .Sume.PdvBezOdbitka}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .Sume.OslobodenNabavka}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .Sume.Ukupno}}</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+                {{end}}
+            </table>
+        </div>
+    </div>
+
+</div>
+{{end}}

@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"io/fs"
 	"log/slog"
+	"mime"
 	"net/http"
 	"os"
-	"mime"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -87,12 +87,14 @@ func main() {
 
 	db, err := sqlite.OtvoriDB(putanjaBaze)
 	if err != nil {
-		slog.Error("Greška pri otvaranju baze", "error", err); os.Exit(1)
+		slog.Error("Greška pri otvaranju baze", "error", err)
+		os.Exit(1)
 	}
 	defer db.Close()
 
 	if err := sqlite.PokreniMigracije(db, migrFS); err != nil {
-		slog.Error("Greška pri migracijama", "error", err); os.Exit(1)
+		slog.Error("Greška pri migracijama", "error", err)
+		os.Exit(1)
 	}
 	slog.Info("migracije uspešno izvršene")
 
@@ -111,7 +113,8 @@ func main() {
 	// ključ za šifrovanje TOTP tajni u mirovanju (AES-256-GCM)
 	totpKljuc, err := ucitajTotpKljuc()
 	if err != nil {
-		slog.Error("Greška pri učitavanju ključa za TOTP", "error", err); os.Exit(1)
+		slog.Error("Greška pri učitavanju ključa za TOTP", "error", err)
+		os.Exit(1)
 	}
 
 	// jednokratno šifruj eventualne stare TOTP tajne koje su ostale kao čist tekst
@@ -137,7 +140,8 @@ func main() {
 	if os.Getenv("NTECH_ENV") == "production" {
 		kes, err := handler.KreirajKes(templFS)
 		if err != nil {
-			slog.Error("Greška pri kreiranju keša šablona", "error", err); os.Exit(1)
+			slog.Error("Greška pri kreiranju keša šablona", "error", err)
+			os.Exit(1)
 		}
 		h.Templates = kes
 		slog.Info("keš šablona kreiran", "broj", len(kes))
@@ -221,6 +225,20 @@ func main() {
 			return ntechmw.RequireDozvolaMut(h.DozvoleRepo.ImaDozvolu, akcija)
 		}
 
+		// modul vraća middleware koji propušta zahtev samo ako je zakonski modul
+		// uključen za firmu (profil firme). Sloj IZNAD RBAC-a — zahtev mora proći
+		// i „modul uključen" (ovo) i „korisnik sme" (doz/zahtevajDozvolu).
+		proveriModul := func(ctx context.Context, m string) bool {
+			pod, err := sqlite.DohvatiSvaPodesavanja(ctx, h.DB)
+			if err != nil {
+				return false
+			}
+			return config.ModulUkljucen(pod, m)
+		}
+		modul := func(m string) func(http.Handler) http.Handler {
+			return ntechmw.RequireModul(proveriModul, m)
+		}
+
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/dashboard", http.StatusFound)
 		})
@@ -229,6 +247,10 @@ func main() {
 		r.Get("/admin/podesavanja/opste", h.PodesavanjaOpste)
 		r.Get("/admin/podesavanja/izgled", h.PodesavanjaIzgled)
 		r.Get("/admin/podesavanja/sistem", h.PodesavanjaSistem)
+		r.Get("/admin/podesavanja/kalkulacija-pdv", h.PdvStope)
+		r.With(doz("podesavanja.izmeni")).Post("/podesavanja/pdv-stope/dodaj", h.DodajPdvStopu)
+		r.With(doz("podesavanja.izmeni")).Post("/podesavanja/pdv-stope/{id}/izmeni", h.IzmeniPdvStopu)
+		r.With(doz("podesavanja.izmeni")).Post("/podesavanja/pdv-stope/{id}/aktivnost", h.PromeniAktivnostPdvStope)
 		r.With(doz("podesavanja.izmeni")).Post("/podesavanja/sacuvaj", h.SacuvajPodesavanja)
 		r.With(doz("podesavanja.izmeni")).Post("/podesavanja/logo", h.OtpremiLogo)
 		r.With(doz("podesavanja.login_pozadina")).Post("/podesavanja/login-pozadina", h.OtpremiLoginPozadinu)
@@ -237,6 +259,18 @@ func main() {
 
 		r.Get("/podesavanja/backup", h.BackupBaze)
 		r.With(doz("backup.pokreni")).Post("/podesavanja/backup/vrati", h.VratiBackup)
+
+		// PDV evidencija — KIR (knjiga izdatih računa). Dostupno samo kada je modul
+		// „pdv" uključen za firmu (RequireModul), uz RBAC dozvolu pdv.*.
+		r.With(modul("pdv")).Get("/pdv/kir", h.PdvKir)
+		r.With(modul("pdv")).Get("/pdv/kir/nova", h.NoviPdvKir)
+		r.With(modul("pdv"), doz("pdv.dodaj")).Post("/pdv/kir/nova", h.SacuvajPdvKir)
+		r.With(modul("pdv"), doz("pdv.obrisi")).Post("/pdv/kir/obrisi/{id}", h.ObrisiPdvKir)
+		r.With(modul("pdv")).Get("/pdv/kpr", h.PdvKpr)
+		r.With(modul("pdv")).Get("/pdv/kpr/nova", h.NoviPdvKpr)
+		r.With(modul("pdv"), doz("pdv.dodaj")).Post("/pdv/kpr/nova", h.SacuvajPdvKpr)
+		r.With(modul("pdv"), doz("pdv.obrisi")).Post("/pdv/kpr/obrisi/{id}", h.ObrisiPdvKpr)
+		r.With(modul("pdv")).Get("/pdv/obracun", h.PdvObracunStranica)
 		r.Get("/magacin", h.Magacin)
 		r.Get("/magacin/novi", h.NoviArtikal)
 		r.With(doz("artikal.dodaj")).Post("/magacin/novi", h.SacuvajArtikal)
@@ -244,8 +278,11 @@ func main() {
 		r.With(doz("artikal.izmeni")).Post("/magacin/izmeni/{id}", h.SacuvajIzmenuArtikla)
 		r.With(doz("artikal.obrisi")).Get("/magacin/obrisi/{id}", h.ObrisiArtikal)
 		r.With(doz("artikal.premesti")).Post("/magacin/premesti/{id}", h.PremestiArtikal)
+		r.With(doz("artikal.izmeni")).Post("/magacin/promeni-cenu/{id}", h.PromeniCenuArtikla)
+		r.With(doz("artikal.izmeni")).Get("/nivelacije", h.Nivelacije)
 		r.Get("/magacin/kategorije", h.Kategorije)
 		r.With(doz("kategorija.dodaj")).Post("/magacin/kategorije/dodaj", h.DodajKategoriju)
+		r.With(doz("kategorija.izmeni")).Post("/magacin/kategorije/izmeni/{id}", h.IzmeniKategoriju)
 		r.With(doz("kategorija.obrisi")).Get("/magacin/kategorije/obrisi/{id}", h.ObrisiKategoriju)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "nabavka.pregled")).Get("/nabavke", h.Nabavke)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "nabavka.pregled")).Get("/nabavke/nova", h.NovaNabavka)
@@ -327,7 +364,8 @@ func main() {
 	slog.Info("NTech pokrenut", "port", port)
 	err = http.ListenAndServe(":"+port, r)
 	if err != nil {
-		slog.Error("port je zauzet ili nije dostupan", "port", port); os.Exit(1)
+		slog.Error("port je zauzet ili nije dostupan", "port", port)
+		os.Exit(1)
 	}
 }
 
@@ -419,4 +457,3 @@ func ocistiStareBackupe(folder string, max int) {
 		_ = os.Remove(f)
 	}
 }
-

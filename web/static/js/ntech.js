@@ -186,27 +186,118 @@ document.addEventListener('alpine:init', () => {
 
     // forma za nabavku
     Alpine.data('nabavkaForma', () => ({
-        stavke: [{artikal_id: '', kolicina: 1, cena: 0}],
+        stavke: [{artikal_id: '', kolicina: 1, cena: 0, marza: 0, prodajna: 0}],
         artikliOpcije: [],
+        marzaDefault: 0,
+        troskovi: [],            // zavisni troškovi {naziv, iznos}
+        metodRaspodele: 'vrednost', // 'vrednost' ili 'kolicina'
+        pdvObveznik: true,       // da li firma obračunava PDV (utiče na prodajnu cenu)
         isMobile: false,
         modal: false,
         modalUcitavanje: false,
         modalGreska: '',
         modalNaziv: '',
         modalKategorijaID: '',
+        modalOpis: '',
+        modalKolicina: '',
+        modalKolicinaMin: '',
         modalCena: '',
+        modalLokacija: '',
+        modalNapomena: '',
+        modalDob: false,
+        modalDobUcitavanje: false,
+        modalDobGreska: '',
+        modalDobNaziv: '',
+        modalDobKontakt: '',
+        modalDobTelefon: '',
+        modalDobEmail: '',
+        modalDobPib: '',
+        modalDobMesto: '',
+        modalDobNapomena: '',
         init() {
             this.artikliOpcije = window._ntechArtikli || []
+            this.marzaDefault = parseFloat(window._ntechMarza) || 0
+            this.pdvObveznik = window._ntechPdvObveznik === true
+            this.stavke.forEach(s => { s.marza = this.marzaDefault })
             this.isMobile = window.matchMedia('(max-width: 768px)').matches
             window.matchMedia('(max-width: 768px)').addEventListener('change', e => {
                 this.isMobile = e.matches
             })
         },
         dodajStavku() {
-            this.stavke.push({artikal_id: '', kolicina: 1, cena: 0})
+            this.stavke.push({artikal_id: '', kolicina: 1, cena: 0, marza: this.marzaDefault, prodajna: 0})
+            this.preracunajSve()
+        },
+        // PDV stopa izabranog artikla (iz JSON liste) — za obračun prodajne cene.
+        // Ako firma nije PDV obveznik, PDV se ne dodaje na prodajnu cenu (stopa = 0).
+        pdvStopa(artikalId) {
+            if (!this.pdvObveznik) return 0
+            const a = this.artikliOpcije.find(x => String(x.id) === String(artikalId))
+            return a ? (parseFloat(a.pdv_stopa) || 0) : 0
+        },
+        // pri izboru artikla predloži maržu: artikal → kategorija → globalna, pa izračunaj prodajnu
+        izaberiArtikal(s) {
+            const a = this.artikliOpcije.find(x => String(x.id) === String(s.artikal_id))
+            if (a) {
+                if (a.marza != null) s.marza = a.marza
+                else if (a.kategorija_marza != null) s.marza = a.kategorija_marza
+                else s.marza = this.marzaDefault
+            }
+            this.izracunajProdajnu(s)
+        },
+        // ukupan zavisni trošak nabavke
+        ukupanTrosak() {
+            return this.troskovi.reduce((z, t) => z + (parseFloat(t.iznos) || 0), 0)
+        },
+        // osnovica raspodele po izabranom metodu (zbir po svim stavkama)
+        osnovicaRaspodele() {
+            return this.stavke.reduce((z, s) => {
+                const kol = parseFloat(s.kolicina) || 0
+                return z + (this.metodRaspodele === 'kolicina' ? kol : kol * (parseFloat(s.cena) || 0))
+            }, 0)
+        },
+        // kalkulativna nabavna cena po komadu (fakturna + raspodeljeni trošak) — isto kao server
+        kalkNabavna(s) {
+            const cena = parseFloat(s.cena) || 0
+            const kol = parseFloat(s.kolicina) || 0
+            const trosak = this.ukupanTrosak()
+            const osn = this.osnovicaRaspodele()
+            if (trosak <= 0 || osn <= 0 || kol <= 0) return cena
+            const baza = this.metodRaspodele === 'kolicina' ? kol : kol * cena
+            const trosakPoKomadu = (trosak * (baza / osn)) / kol
+            return Math.round((cena + trosakPoKomadu) * 100) / 100
+        },
+        // prodajna (sa PDV) = kalkulativna nabavna × (1 + marža/100) × (1 + pdvStopa/100)
+        izracunajProdajnu(s) {
+            const nabavna = this.kalkNabavna(s)
+            const marza = parseFloat(s.marza) || 0
+            const pdv = this.pdvStopa(s.artikal_id)
+            s.prodajna = Math.round(nabavna * (1 + marza / 100) * (1 + pdv / 100) * 100) / 100
+        },
+        // obrnuti smer: iz ručno unete prodajne cene izvedi maržu (%)
+        // marža = (prodajna / (nabavna × (1 + pdv/100)) − 1) × 100
+        izracunajMarzu(s) {
+            const nabavna = this.kalkNabavna(s)
+            const pdv = this.pdvStopa(s.artikal_id)
+            const osnovica = nabavna * (1 + pdv / 100)
+            if (osnovica <= 0) return // bez nabavne cene marža se ne može izvesti
+            const prodajna = parseFloat(s.prodajna) || 0
+            s.marza = Math.round(((prodajna / osnovica) - 1) * 100 * 100) / 100
+        },
+        // raspodela zavisi od svih stavki — promena troška/metoda/količine/cene preračunava sve
+        preracunajSve() {
+            this.stavke.forEach(s => this.izracunajProdajnu(s))
+        },
+        dodajTrosak() {
+            this.troskovi.push({naziv: '', iznos: 0})
+        },
+        ukloniTrosak(i) {
+            this.troskovi.splice(i, 1)
+            this.preracunajSve()
         },
         ukloniStavku(i) {
             if (this.stavke.length > 1) this.stavke.splice(i, 1)
+            this.preracunajSve()
         },
         ukupnoStavke(s) {
             return (parseFloat(s.kolicina) * parseFloat(s.cena) || 0).toFixed(2)
@@ -219,7 +310,12 @@ document.addEventListener('alpine:init', () => {
             this.modalGreska = ''
             this.modalNaziv = ''
             this.modalKategorijaID = ''
+            this.modalOpis = ''
+            this.modalKolicina = ''
+            this.modalKolicinaMin = ''
             this.modalCena = ''
+            this.modalLokacija = ''
+            this.modalNapomena = ''
             this.$nextTick(() => this.$refs.modalNazivInput && this.$refs.modalNazivInput.focus())
         },
         zatvoriModal() {
@@ -235,7 +331,12 @@ document.addEventListener('alpine:init', () => {
             const params = new URLSearchParams()
             params.append('naziv', this.modalNaziv.trim())
             if (this.modalKategorijaID) params.append('kategorija_id', this.modalKategorijaID)
+            params.append('opis', this.modalOpis.trim())
+            if (this.modalKolicina) params.append('kolicina', this.modalKolicina)
+            if (this.modalKolicinaMin) params.append('kolicina_min', this.modalKolicinaMin)
             if (this.modalCena) params.append('prodajna_cena', this.modalCena)
+            params.append('lokacija', this.modalLokacija.trim())
+            params.append('napomena', this.modalNapomena.trim())
             params.append('_csrf', document.querySelector('meta[name=csrf-token]')?.content || '')
             try {
                 const odgovor = await fetch('/magacin/novi', {
@@ -254,6 +355,62 @@ document.addEventListener('alpine:init', () => {
                 this.modalGreska = 'Greška pri komunikaciji sa serverom.'
             } finally {
                 this.modalUcitavanje = false
+            }
+        },
+        otvoriModalDobavljac() {
+            this.modalDob = true
+            this.modalDobGreska = ''
+            this.modalDobNaziv = ''
+            this.modalDobKontakt = ''
+            this.modalDobTelefon = ''
+            this.modalDobEmail = ''
+            this.modalDobPib = ''
+            this.modalDobMesto = ''
+            this.modalDobNapomena = ''
+            this.$nextTick(() => this.$refs.modalDobNazivInput && this.$refs.modalDobNazivInput.focus())
+        },
+        zatvoriModalDobavljac() {
+            this.modalDob = false
+        },
+        async sacuvajDobavljaca() {
+            if (!this.modalDobNaziv.trim()) {
+                this.modalDobGreska = 'Naziv dobavljača je obavezan.'
+                return
+            }
+            this.modalDobUcitavanje = true
+            this.modalDobGreska = ''
+            const params = new URLSearchParams()
+            params.append('naziv', this.modalDobNaziv.trim())
+            params.append('kontakt_osoba', this.modalDobKontakt.trim())
+            params.append('telefon', this.modalDobTelefon.trim())
+            params.append('email', this.modalDobEmail.trim())
+            params.append('pib', this.modalDobPib.trim())
+            params.append('mesto', this.modalDobMesto.trim())
+            params.append('napomena', this.modalDobNapomena.trim())
+            params.append('_csrf', document.querySelector('meta[name=csrf-token]')?.content || '')
+            try {
+                const odgovor = await fetch('/dobavljaci/novi', {
+                    method: 'POST',
+                    headers: {'X-Requested-With': 'fetch', 'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: params
+                })
+                if (!odgovor.ok) {
+                    const greska = await odgovor.json().catch(() => null)
+                    this.modalDobGreska = (greska && greska.greska) || 'Greška pri čuvanju dobavljača. Pokušajte ponovo.'
+                    return
+                }
+                const novi = await odgovor.json()
+                // dodaj novog dobavljača u padajuću listu i odmah ga izaberi
+                const opcija = document.createElement('option')
+                opcija.value = novi.id
+                opcija.textContent = novi.naziv
+                this.$refs.selDobavljac.appendChild(opcija)
+                this.$refs.selDobavljac.value = novi.id
+                this.zatvoriModalDobavljac()
+            } catch {
+                this.modalDobGreska = 'Greška pri komunikaciji sa serverom.'
+            } finally {
+                this.modalDobUcitavanje = false
             }
         }
     }))

@@ -13,6 +13,8 @@ type ArtikalRepository interface {
 	DohvatiID(ctx context.Context, id int64) (*model.Artikal, error)
 	Kreiraj(ctx context.Context, a *model.Artikal) (int64, error)
 	Izmeni(ctx context.Context, a *model.Artikal) error
+	// AzurirajCene menja samo nabavnu i prodajnu cenu (kalkulacija pri nabavci)
+	AzurirajCene(ctx context.Context, id int64, nabavna, prodajna float64) error
 	PremestiKategoriju(ctx context.Context, id int64, kategorijaID *int64) error
 	Obrisi(ctx context.Context, id int64) error
 }
@@ -20,7 +22,51 @@ type ArtikalRepository interface {
 // KategorijaRepository definiše operacije nad kategorijama
 type KategorijaRepository interface {
 	Lista(ctx context.Context) ([]model.Kategorija, error)
+	DohvatiID(ctx context.Context, id int64) (*model.Kategorija, error)
 	Kreiraj(ctx context.Context, k *model.Kategorija) (int64, error)
+	Izmeni(ctx context.Context, k *model.Kategorija) error
+}
+
+// PdvStopaRepository definiše operacije nad šifarnikom PDV stopa
+type PdvStopaRepository interface {
+	Lista(ctx context.Context, samoAktivne bool) ([]model.PdvStopa, error)
+	DohvatiID(ctx context.Context, id int64) (*model.PdvStopa, error)
+	Kreiraj(ctx context.Context, s *model.PdvStopa) (int64, error)
+	Izmeni(ctx context.Context, s *model.PdvStopa) error
+	PostaviAktivnu(ctx context.Context, id int64, aktivna bool) error
+}
+
+// PdvKirRepository definiše operacije nad knjigom izdatih računa (KIR)
+type PdvKirRepository interface {
+	Lista(ctx context.Context, od, do time.Time) ([]model.PdvKir, error)
+	DohvatiID(ctx context.Context, id int64) (*model.PdvKir, error)
+	Kreiraj(ctx context.Context, k *model.PdvKir) (int64, error)
+	Obrisi(ctx context.Context, id int64) error
+	// ObrisiPoIzvoru briše zapise vezane za dati izvor (npr. pri stornu prodaje)
+	ObrisiPoIzvoru(ctx context.Context, izvor string, izvorID int64) error
+}
+
+// PdvKprRepository definiše operacije nad knjigom primljenih računa (KPR)
+type PdvKprRepository interface {
+	Lista(ctx context.Context, od, do time.Time) ([]model.PdvKpr, error)
+	DohvatiID(ctx context.Context, id int64) (*model.PdvKpr, error)
+	Kreiraj(ctx context.Context, k *model.PdvKpr) (int64, error)
+	Obrisi(ctx context.Context, id int64) error
+	// ObrisiPoIzvoru briše zapise vezane za dati izvor (npr. pri brisanju nabavke)
+	ObrisiPoIzvoru(ctx context.Context, izvor string, izvorID int64) error
+}
+
+// NivelacijaRepository definiše operacije nad evidencijom promene prodajnih cena
+type NivelacijaRepository interface {
+	// PromeniCenu transakciono menja prodajnu cenu artikla i upisuje nivelacioni zapis;
+	// vraća kreirani zapis (sa starom i novom cenom). Izvor je "rucno".
+	PromeniCenu(ctx context.Context, artikalID int64, novaCena float64, razlog string, korisnikID *int64) (*model.Nivelacija, error)
+	// Kreiraj upisuje gotov nivelacioni zapis (npr. auto-trag pri izmeni artikla)
+	Kreiraj(ctx context.Context, n *model.Nivelacija) (int64, error)
+	// Lista vraća nivelacije u periodu (po datumu); nulti datum znači bez granice
+	Lista(ctx context.Context, od, do time.Time) ([]model.Nivelacija, error)
+	// ListaZaArtikal vraća sve nivelacije jednog artikla (najnovije prvo)
+	ListaZaArtikal(ctx context.Context, artikalID int64) ([]model.Nivelacija, error)
 }
 
 // ArtikalFilter definiše parametre za filtriranje liste artikala
@@ -35,7 +81,8 @@ type NabavkaRepository interface {
 	Lista(ctx context.Context) ([]model.NabavkaSaDetaljem, error)
 	DohvatiID(ctx context.Context, id int64) (*model.Nabavka, error)
 	DohvatiStavke(ctx context.Context, nabavkaID int64) ([]model.StavkaSaArtiklom, error)
-	Kreiraj(ctx context.Context, n *model.Nabavka, stavke []model.StavkaNabavke) (int64, error)
+	DohvatiTroskove(ctx context.Context, nabavkaID int64) ([]model.NabavkaTrosak, error)
+	Kreiraj(ctx context.Context, n *model.Nabavka, stavke []model.StavkaNabavke, troskovi []model.NabavkaTrosak) (int64, error)
 	Obrisi(ctx context.Context, id int64) error
 }
 
@@ -117,8 +164,8 @@ type SesijeRepository interface {
 
 // PodsetnikFilter definiše parametre za filtriranje liste podsetnika
 type PodsetnikFilter struct {
-	SamoAktivni bool    // true = samo nezavršeni; false = svi
-	KorisnikID  *int64  // ako nije nil — samo podsetnici tog korisnika
+	SamoAktivni bool   // true = samo nezavršeni; false = svi
+	KorisnikID  *int64 // ako nije nil — samo podsetnici tog korisnika
 }
 
 // PokusajiPrijaveRepository definiše operacije nad evidencijom pokušaja prijave

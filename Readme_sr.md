@@ -40,6 +40,12 @@ Cilj je jednostavan: sve što servis treba da prati nalazi se na jednom mestu, b
 - Servisni nalozi — prijem, statusna traka, troškovi, priznanica
 - Prodajni nalozi — stavke, obračun, priznanica sa podacima firme i klijenta
 - Nabavke — evidencija nabavki od dobavljača
+- Kalkulacija prodajne cene pri nabavci — marža (globalna, po kategoriji i po artiklu), zavisni troškovi (carina, prevoz...) sa raspodelom na stavke, dvosmerni izračun marža↔prodajna; poštuje status PDV obveznika
+- Nivelacija — promena prodajne cene uz trag (istorija promena: stara→nova, razlog, izvor, korisnik)
+- Profil firme i moduli — funkcije se uključuju prema tipu firme i statusu PDV obveznika
+- PDV evidencija (KIR/KPR) — knjige izdatih i primljenih računa, automatsko punjenje iz prodaje i nabavke
+- PDV obračun za period + mapiranje na obrazac PP-PDV; uvoz robe (JCI) se vodi u poljima 006/106
+- Šifarnik PDV stopa
 - Klijenti i dobavljači — baza kontakata
 - Podsetnici — evidencija sa rokom
 - Izveštaji — pregled prihoda, stanje magacina
@@ -55,7 +61,8 @@ Cilj je jednostavan: sve što servis treba da prati nalazi se na jednom mestu, b
 
 ### Planirano
 
-- Fiskalizacija i PDV obračun (specifikacija u Project.md)
+- Fiskalizacija (ESIR/PFR) — specifikacija u Project.md
+- KPO knjiga i dvojno knjigovodstvo (opciono, kasnija faza)
 - Podrška za PostgreSQL (za višekorisničko okruženje)
 - WebAuthn / Passkey prijava (šema baze je pripremljena)
 - Obaveštenja (e-pošta / WhatsApp) — odloženo za kasniju fazu

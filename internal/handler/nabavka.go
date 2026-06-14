@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"html/template"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -26,9 +27,11 @@ type PodaciNabavki struct {
 type PodaciFormeNabavke struct {
 	model.PodaciStranice
 	Artikli     []model.ArtikalSaKategorijom
-	ArtikliJSON template.JS        // JSON niz artikala za Alpine.js — bezbedan za umetanje u <script>
+	ArtikliJSON template.JS // JSON niz artikala za Alpine.js — bezbedan za umetanje u <script>
 	Dobavljaci  []model.Dobavljac
 	Kategorije  []model.Kategorija // za dropdown u modalu novog artikla
+	Marza       string             // podrazumevana marža (%) za kalkulaciju
+	PdvObveznik bool               // da li firma obračunava PDV (utiče na prodajnu cenu u kalkulaciji)
 	Greska      string
 }
 
@@ -37,18 +40,26 @@ type PodaciDetaljiNabavke struct {
 	model.PodaciStranice
 	Nabavka        model.Nabavka
 	Stavke         []model.StavkaSaArtiklom
+	Troskovi       []model.NabavkaTrosak
+	UkupanTrosak   float64
 	DobavljacNaziv string
 }
 
 // artikalUJSON pretvara listu artikala u template.JS vrednost bezbednu za umetanje u <script> tag
 func artikalUJSON(artikli []model.ArtikalSaKategorijom) template.JS {
 	type stavka struct {
-		ID    int64  `json:"id"`
-		Naziv string `json:"naziv"`
+		ID              int64    `json:"id"`
+		Naziv           string   `json:"naziv"`
+		PdvStopa        float64  `json:"pdv_stopa"`
+		Marza           *float64 `json:"marza"`            // marža artikla; null = nije postavljeno
+		KategorijaMarza *float64 `json:"kategorija_marza"` // marža kategorije; fallback ako artikal nema
 	}
 	lista := make([]stavka, 0, len(artikli))
 	for _, a := range artikli {
-		lista = append(lista, stavka{ID: a.ID, Naziv: a.Naziv})
+		lista = append(lista, stavka{
+			ID: a.ID, Naziv: a.Naziv, PdvStopa: a.PdvStopa,
+			Marza: a.Marza, KategorijaMarza: a.KategorijaMarza,
+		})
 	}
 	b, _ := json.Marshal(lista)
 	return template.JS(b)
@@ -116,12 +127,15 @@ func (h *Handler) NovaNabavka(w http.ResponseWriter, r *http.Request) {
 		ArtikliJSON:    artikalUJSON(artikli),
 		Dobavljaci:     dobavljaci,
 		Kategorije:     kategorije,
+		Marza:          vrednostIliDefault(podesavanja, "kalkulacija_marza", "20"),
+		PdvObveznik:    h.modulUkljucen(r.Context(), "pdv"),
 	})
 }
 
 // SacuvajNabavku prima POST formu, parsira stavke i upisuje nabavku u bazu
 func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.zahtevajDozvolu(w, r, "nabavka.dodaj"); !ok {
+	k, ok := h.zahtevajDozvolu(w, r, "nabavka.dodaj")
+	if !ok {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -129,7 +143,7 @@ func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	nabavka, stavke, greska := parseFormuNabavke(r)
+	nabavka, stavke, troskovi, greska := parseFormuNabavke(r)
 	if greska != "" {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		artikli, _ := h.Artikli.Lista(r.Context(), db.ArtikalFilter{})
@@ -144,15 +158,87 @@ func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
 			ArtikliJSON:    artikalUJSON(artikli),
 			Dobavljaci:     dobavljaci,
 			Kategorije:     kategorije,
+			Marza:          vrednostIliDefault(podesavanja, "kalkulacija_marza", "20"),
+			PdvObveznik:    h.modulUkljucen(r.Context(), "pdv"),
 			Greska:         greska,
 		})
 		return
 	}
 
-	id, err := h.NabavkeRepo.Kreiraj(r.Context(), &nabavka, stavke)
+	id, err := h.NabavkeRepo.Kreiraj(r.Context(), &nabavka, stavke, troskovi)
 	if err != nil {
 		http.Error(w, "Greška pri čuvanju nabavke", http.StatusInternalServerError)
 		return
+	}
+
+	// automatski zavedi u KPR ako je firma PDV obveznik; PDV se izvodi iz stope artikla
+	if h.modulUkljucen(r.Context(), "pdv") {
+		var stavkePdv []model.NabavkaStavkaPdv
+		for _, s := range stavke {
+			var stopa float64
+			if a, e := h.Artikli.DohvatiID(r.Context(), s.ArtikalID); e == nil {
+				stopa = a.PdvStopa
+			}
+			stavkePdv = append(stavkePdv, model.NabavkaStavkaPdv{
+				Osnovica: float64(s.Kolicina) * s.CenaPoKomadu,
+				PdvStopa: stopa,
+			})
+		}
+		naziv, pib, mesto := "Nepoznat dobavljač", "", ""
+		if nabavka.DobavljacID != nil {
+			if d, e := h.DobavljaciRepo.DohvatiID(r.Context(), *nabavka.DobavljacID); e == nil {
+				naziv, pib, mesto = d.Naziv, d.PIB, d.Mesto
+			}
+		}
+		nabavka.ID = id
+		kpr := model.KprIzNabavke(nabavka, naziv, pib, mesto, stavkePdv)
+		if _, e := h.PdvKprRepo.Kreiraj(r.Context(), &kpr); e != nil {
+			slog.Error("auto-upis u KPR nije uspeo", "nabavka_id", id, "error", e)
+		}
+	}
+
+	// kalkulacija: ažuriraj nabavnu i prodajnu cenu artikla iz forme + nivelacioni trag.
+	// prodajna[] je paralelni niz uz stavke (isti redosled kao artikal_id[]).
+	prodajne := r.Form["prodajna[]"]
+	var korisnikID *int64
+	if k != nil {
+		korisnikID = &k.ID
+	}
+	// kalkulativna nabavna cena po stavci (fakturna + raspodeljeni zavisni trošak) —
+	// računa se na serveru; bez troškova je jednaka čistoj ceni po komadu.
+	var ukupanTrosak float64
+	for _, t := range troskovi {
+		ukupanTrosak += t.Iznos
+	}
+	kalkNabavna := model.RasporediTroskove(stavke, ukupanTrosak, nabavka.MetodRaspodele)
+	for i, s := range stavke {
+		if i >= len(prodajne) {
+			break
+		}
+		prodajna, e := strconv.ParseFloat(strings.TrimSpace(prodajne[i]), 64)
+		if e != nil || prodajna <= 0 {
+			continue // prazno/nula ne sme da pregazi postojeću cenu
+		}
+		// stara prodajna cena — za nivelacioni zapis
+		var staraProdajna float64
+		if a, e := h.Artikli.DohvatiID(r.Context(), s.ArtikalID); e == nil {
+			staraProdajna = a.ProdajnaCena
+		}
+		if e := h.Artikli.AzurirajCene(r.Context(), s.ArtikalID, kalkNabavna[i], prodajna); e != nil {
+			slog.Error("kalkulacija: ažuriranje cena nije uspelo", "artikal_id", s.ArtikalID, "error", e)
+			continue
+		}
+		if razlika := prodajna - staraProdajna; razlika > 0.005 || razlika < -0.005 {
+			if _, e := h.NivelacijaRepo.Kreiraj(r.Context(), &model.Nivelacija{
+				ArtikalID:  s.ArtikalID,
+				StaraCena:  staraProdajna,
+				NovaCena:   prodajna,
+				Izvor:      "kalkulacija",
+				KorisnikID: korisnikID,
+			}); e != nil {
+				slog.Error("kalkulacija: nivelacija nije upisana", "artikal_id", s.ArtikalID, "error", e)
+			}
+		}
 	}
 
 	http.Redirect(w, r, "/nabavke/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)
@@ -178,6 +264,12 @@ func (h *Handler) DetaljiNabavke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	troskovi, err := h.NabavkeRepo.DohvatiTroskove(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju troškova", http.StatusInternalServerError)
+		return
+	}
+
 	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
@@ -196,10 +288,16 @@ func (h *Handler) DetaljiNabavke(w http.ResponseWriter, r *http.Request) {
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "nabavke"
 	ps.NaslovStranice = "Detalji nabavke"
+	var ukupanTrosak float64
+	for _, t := range troskovi {
+		ukupanTrosak += t.Iznos
+	}
 	podaci := PodaciDetaljiNabavke{
 		PodaciStranice: ps,
 		Nabavka:        *nabavka,
 		Stavke:         stavke,
+		Troskovi:       troskovi,
+		UkupanTrosak:   ukupanTrosak,
 		DobavljacNaziv: dobavljacNaziv,
 	}
 
@@ -221,12 +319,17 @@ func (h *Handler) ObrisiNabavku(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Greška pri brisanju nabavke", http.StatusInternalServerError)
 		return
 	}
+	// ukloni vezani auto-KPR zapis (ako ga je ova nabavka kreirala)
+	if err := h.PdvKprRepo.ObrisiPoIzvoru(r.Context(), "nabavka", id); err != nil {
+		slog.Error("brisanje vezanog KPR zapisa nije uspelo", "nabavka_id", id, "error", err)
+	}
 
 	http.Redirect(w, r, "/nabavke?obrisan=1", http.StatusSeeOther)
 }
 
-// parseFormuNabavke čita zaglavlje i stavke iz HTTP forme i vraća model i eventualnu grešku
-func parseFormuNabavke(r *http.Request) (model.Nabavka, []model.StavkaNabavke, string) {
+// parseFormuNabavke čita zaglavlje, stavke i zavisne troškove iz HTTP forme
+// i vraća model, stavke, troškove i eventualnu grešku
+func parseFormuNabavke(r *http.Request) (model.Nabavka, []model.StavkaNabavke, []model.NabavkaTrosak, string) {
 	var nabavka model.Nabavka
 
 	// opcioni dobavljač
@@ -244,28 +347,28 @@ func parseFormuNabavke(r *http.Request) (model.Nabavka, []model.StavkaNabavke, s
 	cene := r.Form["cena_po_komadu[]"]
 
 	if len(artikalIDovi) == 0 {
-		return nabavka, nil, "Nabavka mora imati najmanje jednu stavku."
+		return nabavka, nil, nil, "Nabavka mora imati najmanje jednu stavku."
 	}
 
 	if len(artikalIDovi) != len(kolicine) || len(artikalIDovi) != len(cene) {
-		return nabavka, nil, "Greška u podacima forme — broj stavki nije ispravan."
+		return nabavka, nil, nil, "Greška u podacima forme — broj stavki nije ispravan."
 	}
 
 	var stavke []model.StavkaNabavke
 	for i := range artikalIDovi {
 		artikalID, err := strconv.ParseInt(strings.TrimSpace(artikalIDovi[i]), 10, 64)
 		if err != nil || artikalID <= 0 {
-			return nabavka, nil, "Neispravan artikal u stavci."
+			return nabavka, nil, nil, "Neispravan artikal u stavci."
 		}
 
 		kolicina, err := strconv.Atoi(strings.TrimSpace(kolicine[i]))
 		if err != nil || kolicina <= 0 {
-			return nabavka, nil, "Količina mora biti pozitivan broj."
+			return nabavka, nil, nil, "Količina mora biti pozitivan broj."
 		}
 
 		cena, err := strconv.ParseFloat(strings.TrimSpace(cene[i]), 64)
 		if err != nil || cena < 0 {
-			return nabavka, nil, "Cena mora biti pozitivan broj."
+			return nabavka, nil, nil, "Cena mora biti pozitivan broj."
 		}
 
 		stavke = append(stavke, model.StavkaNabavke{
@@ -275,7 +378,35 @@ func parseFormuNabavke(r *http.Request) (model.Nabavka, []model.StavkaNabavke, s
 		})
 	}
 
-	return nabavka, stavke, ""
+	// zavisni troškovi (opcioni, paralelni nizovi); prazni redovi se preskaču
+	naziviT := r.Form["trosak_naziv[]"]
+	iznosiT := r.Form["trosak_iznos[]"]
+	var troskovi []model.NabavkaTrosak
+	for i := range naziviT {
+		naziv := strings.TrimSpace(naziviT[i])
+		if naziv == "" {
+			continue
+		}
+		var iznos float64
+		if i < len(iznosiT) {
+			iznos, _ = strconv.ParseFloat(strings.TrimSpace(iznosiT[i]), 64)
+		}
+		if iznos <= 0 {
+			continue
+		}
+		troskovi = append(troskovi, model.NabavkaTrosak{Naziv: naziv, Iznos: iznos})
+	}
+
+	// metod raspodele je bitan samo ako ima troškova; default je po vrednosti
+	if len(troskovi) > 0 {
+		metod := r.FormValue("metod_raspodele")
+		if metod != "kolicina" {
+			metod = "vrednost"
+		}
+		nabavka.MetodRaspodele = metod
+	}
+
+	return nabavka, stavke, troskovi, ""
 }
 
 // renderujFormuNabavke renderuje HTML šablon forme za unos nove nabavke

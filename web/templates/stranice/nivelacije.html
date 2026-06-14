@@ -1,0 +1,69 @@
+{{template "base" .}}
+
+{{define "naslov"}}Nivelacije — promene cena — NTech{{end}}
+
+{{define "sadrzaj"}}
+<div class="stranica-stack" style="width:100%;max-width:100%;">
+
+    <!-- filter perioda -->
+    <div class="kartica animiraj" style="margin-bottom:16px;">
+        <form method="GET" action="/nivelacije" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+            <div>
+                <label class="polje-labela">Od datuma</label>
+                <input type="date" name="od" value="{{.Od}}" style="padding:8px 10px;border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+            </div>
+            <div>
+                <label class="polje-labela">Do datuma</label>
+                <input type="date" name="do" value="{{.Do}}" style="padding:8px 10px;border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+            </div>
+            <button type="submit" style="padding:8px 16px;background:var(--sb-aktivan);color:var(--tekst-jak);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;cursor:pointer;">Prikaži</button>
+            {{if or .Od .Do}}<a href="/nivelacije" class="nazad-link" style="margin-bottom:0;">Poništi filter</a>{{end}}
+        </form>
+    </div>
+
+    <!-- istorija nivelacija -->
+    <div class="kartica animiraj" style="padding:0;overflow:hidden;">
+        <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:760px;">
+                <thead>
+                    <tr style="text-align:left;color:var(--tekst-sporedni);border-bottom:0.5px solid var(--ivica);">
+                        <th style="padding:10px 12px;">Datum</th>
+                        <th style="padding:10px 12px;">Artikal</th>
+                        <th style="padding:10px 12px;text-align:right;">Stara cena</th>
+                        <th style="padding:10px 12px;text-align:right;">Nova cena</th>
+                        <th style="padding:10px 12px;text-align:right;">Razlika</th>
+                        <th style="padding:10px 12px;">Izvor</th>
+                        <th style="padding:10px 12px;">Razlog</th>
+                        <th style="padding:10px 12px;">Korisnik</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Zapisi}}
+                    <tr style="border-bottom:0.5px solid var(--ivica);">
+                        <td style="padding:10px 12px;white-space:nowrap;">{{.Datum.Format "02.01.2006."}}</td>
+                        <td style="padding:10px 12px;">{{.ArtikalNaziv}}</td>
+                        <td style="padding:10px 12px;text-align:right;color:var(--tekst-sporedni);">{{printf "%.2f" .StaraCena}}</td>
+                        <td style="padding:10px 12px;text-align:right;font-weight:500;">{{printf "%.2f" .NovaCena}}</td>
+                        <td style="padding:10px 12px;text-align:right;white-space:nowrap;color:{{if .Poskupljenje}}var(--greska){{else}}var(--uspeh){{end}};">
+                            {{if .Poskupljenje}}+{{end}}{{printf "%.2f" .Razlika}}
+                            <div style="font-size:11px;">{{if .Poskupljenje}}+{{end}}{{printf "%.1f" .Procenat}}%</div>
+                        </td>
+                        <td style="padding:10px 12px;">
+                            {{if eq .Izvor "rucno"}}<span title="Posebna akcija „Promeni cenu“">ručno</span>
+                            {{else if eq .Izvor "izmena"}}<span title="Promenjeno kroz izmenu artikla">izmena</span>
+                            {{else if eq .Izvor "kalkulacija"}}<span title="Iz kalkulacije pri prijemu robe">kalkulacija</span>
+                            {{else}}{{.Izvor}}{{end}}
+                        </td>
+                        <td style="padding:10px 12px;color:var(--tekst-sporedni);">{{if .Razlog}}{{.Razlog}}{{else}}—{{end}}</td>
+                        <td style="padding:10px 12px;color:var(--tekst-sporedni);">{{if .KorisnikIme}}{{.KorisnikIme}}{{else}}—{{end}}</td>
+                    </tr>
+                    {{else}}
+                    <tr><td colspan="8" style="padding:28px;text-align:center;color:var(--tekst-sporedni);">Nema zabeleženih promena cena u izabranom periodu.</td></tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{{end}}

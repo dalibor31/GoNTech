@@ -9,6 +9,8 @@ type Dobavljac struct {
 	KontaktOsoba string
 	Telefon      string
 	Email        string
+	PIB          string
+	Mesto        string
 	Napomena     string
 	DatumUnosa   time.Time
 }
