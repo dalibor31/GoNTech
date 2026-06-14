@@ -40,6 +40,12 @@ The goal is simple: everything the repair shop needs to track is located in one 
 - Service orders — intake, status bar, costs, receipt
 - Sales orders — items, calculation, receipt with company and client details
 - Procurement — records of purchases from suppliers
+- Sales price calculation on procurement — markup (global, per category, per item), landed costs (customs, shipping...) allocated across items, two-way markup↔price computation; respects VAT-payer status
+- Price revaluation (nivelacija) — sales price changes with an audit trail (old→new, reason, source, user)
+- Company profile and modules — features toggle based on company type and VAT-payer status
+- VAT records (KIR/KPR) — books of issued and received invoices, auto-filled from sales and procurement
+- VAT calculation per period + mapping to the PP-PDV form; imports (customs declaration) tracked in fields 006/106
+- VAT rate code list
 - Clients and suppliers — contact database
 - Reminders — records with deadlines
 - Reports — revenue overview, inventory status
@@ -55,7 +61,8 @@ The goal is simple: everything the repair shop needs to track is located in one 
 
 ### Planned
 
-- Fiscalization and VAT calculation (specification in Project.md)
+- Fiscalization (ESIR/PFR) — specification in Project.md
+- KPO book and double-entry bookkeeping (optional, later phase)
 - PostgreSQL support (for multi-user environments)
 - WebAuthn / Passkey login (database schema is already prepared)
 - Notifications (email / WhatsApp) — deferred to a later phase
