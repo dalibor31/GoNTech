@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"context"
 	"database/sql"
 	"html/template"
 	"io/fs"
 	"net/http"
 	"sync"
 
+	"ntech/internal/config"
 	"ntech/internal/db"
 	"ntech/internal/db/sqlite"
 	"ntech/internal/middleware"
@@ -34,6 +36,9 @@ type Handler struct {
 	PokusajiRepo          db.PokusajiPrijaveRepository
 	LoginIstorijsaRepo    db.LoginIstorijsaRepository
 	DozvoleRepo           db.DozvoleRepository
+	PdvStopeRepo          db.PdvStopaRepository
+	PdvKirRepo            db.PdvKirRepository
+	PdvKprRepo            db.PdvKprRepository
 	Verzija               string
 	AssetV                string // verzija statičkih fajlova za cache-busting (postavlja se pri pokretanju)
 	Templates             map[string]*template.Template
@@ -93,6 +98,9 @@ func Novi(baza *sql.DB, totpKljuc []byte) *Handler {
 		PokusajiRepo:          sqlite.NoviPokusajiPrijaveRepo(baza),
 		LoginIstorijsaRepo:    sqlite.NoviLoginIstorijsaRepo(baza),
 		DozvoleRepo:           sqlite.NoviDozvoleRepo(baza, middleware.ImaDozvolu, middleware.SveAkcije()),
+		PdvStopeRepo:          sqlite.NoviPdvStopaRepo(baza),
+		PdvKirRepo:            sqlite.NoviPdvKirRepo(baza),
+		PdvKprRepo:            sqlite.NoviPdvKprRepo(baza),
 	}
 }
 
@@ -118,6 +126,19 @@ func (h *Handler) reinicijalizujRepozitorijume(novaDB *sql.DB) {
 	h.PokusajiRepo = sqlite.NoviPokusajiPrijaveRepo(novaDB)
 	h.LoginIstorijsaRepo = sqlite.NoviLoginIstorijsaRepo(novaDB)
 	h.DozvoleRepo = sqlite.NoviDozvoleRepo(novaDB, middleware.ImaDozvolu, middleware.SveAkcije())
+	h.PdvStopeRepo = sqlite.NoviPdvStopaRepo(novaDB)
+	h.PdvKirRepo = sqlite.NoviPdvKirRepo(novaDB)
+	h.PdvKprRepo = sqlite.NoviPdvKprRepo(novaDB)
+}
+
+// modulUkljucen vraća da li je zakonski modul (npr. „pdv") uključen za firmu prema profilu.
+// Koristi se pri automatskom punjenju KIR/KPR iz prodaje/nabavke.
+func (h *Handler) modulUkljucen(ctx context.Context, modul string) bool {
+	podesavanja, err := sqlite.DohvatiSvaPodesavanja(ctx, h.DB)
+	if err != nil {
+		return false
+	}
+	return config.ModulUkljucen(podesavanja, modul)
 }
 
 // zahtevajDozvolu vraća prijavljenog korisnika ako njegova uloga sme da izvrši akciju.
@@ -159,6 +180,8 @@ func (h *Handler) popuniPodaciStranice(r *http.Request, podesavanja map[string]s
 	ps.CsrfToken = middleware.CsrfToken(r.Context())
 	ps.AssetV = h.AssetV
 	ps.Flash = middleware.GetFlash(r, h.DB)
+	// uključeni zakonski moduli prema profilu firme — šabloni ih koriste za uslovni meni
+	ps.Moduli = config.SviModuli(podesavanja)
 
 	// logika pozadine:
 	// - lična pozadina → uvek se prikazuje i forsira tamnu temu, bez obzira na KoristiLokalnuTemu

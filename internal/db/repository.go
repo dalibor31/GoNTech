@@ -23,6 +23,35 @@ type KategorijaRepository interface {
 	Kreiraj(ctx context.Context, k *model.Kategorija) (int64, error)
 }
 
+// PdvStopaRepository definiše operacije nad šifarnikom PDV stopa
+type PdvStopaRepository interface {
+	Lista(ctx context.Context, samoAktivne bool) ([]model.PdvStopa, error)
+	DohvatiID(ctx context.Context, id int64) (*model.PdvStopa, error)
+	Kreiraj(ctx context.Context, s *model.PdvStopa) (int64, error)
+	Izmeni(ctx context.Context, s *model.PdvStopa) error
+	PostaviAktivnu(ctx context.Context, id int64, aktivna bool) error
+}
+
+// PdvKirRepository definiše operacije nad knjigom izdatih računa (KIR)
+type PdvKirRepository interface {
+	Lista(ctx context.Context, od, do time.Time) ([]model.PdvKir, error)
+	DohvatiID(ctx context.Context, id int64) (*model.PdvKir, error)
+	Kreiraj(ctx context.Context, k *model.PdvKir) (int64, error)
+	Obrisi(ctx context.Context, id int64) error
+	// ObrisiPoIzvoru briše zapise vezane za dati izvor (npr. pri stornu prodaje)
+	ObrisiPoIzvoru(ctx context.Context, izvor string, izvorID int64) error
+}
+
+// PdvKprRepository definiše operacije nad knjigom primljenih računa (KPR)
+type PdvKprRepository interface {
+	Lista(ctx context.Context, od, do time.Time) ([]model.PdvKpr, error)
+	DohvatiID(ctx context.Context, id int64) (*model.PdvKpr, error)
+	Kreiraj(ctx context.Context, k *model.PdvKpr) (int64, error)
+	Obrisi(ctx context.Context, id int64) error
+	// ObrisiPoIzvoru briše zapise vezane za dati izvor (npr. pri brisanju nabavke)
+	ObrisiPoIzvoru(ctx context.Context, izvor string, izvorID int64) error
+}
+
 // ArtikalFilter definiše parametre za filtriranje liste artikala
 type ArtikalFilter struct {
 	Pretraga     string
@@ -117,8 +146,8 @@ type SesijeRepository interface {
 
 // PodsetnikFilter definiše parametre za filtriranje liste podsetnika
 type PodsetnikFilter struct {
-	SamoAktivni bool    // true = samo nezavršeni; false = svi
-	KorisnikID  *int64  // ako nije nil — samo podsetnici tog korisnika
+	SamoAktivni bool   // true = samo nezavršeni; false = svi
+	KorisnikID  *int64 // ako nije nil — samo podsetnici tog korisnika
 }
 
 // PokusajiPrijaveRepository definiše operacije nad evidencijom pokušaja prijave

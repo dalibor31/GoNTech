@@ -38,6 +38,9 @@ var sveAkcije = []string{
 	"backup.pokreni",
 	"tema.lokalno",
 	"dashboard.prihod",
+	"pdv.pregled",
+	"pdv.dodaj",
+	"pdv.obrisi",
 }
 
 // SveAkcije vraća listu svih poznatih akcija — koristi se pri inicijalizaciji baze i resetu
@@ -94,6 +97,9 @@ func ImaDozvolu(uloga, akcija string) bool {
 			return true
 		// dashboard — prihod samo admin+
 		case "dashboard.prihod":
+			return true
+		// PDV evidencija (KIR/KPR) — administrativno, radnik nema
+		case "pdv.pregled", "pdv.dodaj", "pdv.obrisi":
 			return true
 		}
 		return false
