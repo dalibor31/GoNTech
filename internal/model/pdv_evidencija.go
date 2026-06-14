@@ -76,6 +76,44 @@ func SumirajKir(zapisi []PdvKir) PdvKirSume {
 	return s
 }
 
+// KirIzProdaje gradi KIR zapis iz prodaje: stavke se grupišu po PDV stopi
+// (20→opšta, 10→posebna, ostalo→oslobođeno). CenaPoKomadu je prodajna cena SA PDV,
+// pa se osnovica izvodi deljenjem sa (1 + stopa/100).
+func KirIzProdaje(nalog ProdajniNalog, stavke []StavkaProdaje, kupacNaziv, kupacPib, kupacMesto string) PdvKir {
+	id := nalog.ID
+	k := PdvKir{
+		DatumPrometa:   nalog.Datum,
+		DatumKnjizenja: nalog.Datum,
+		BrojDokumenta:  nalog.BrojNaloga,
+		KupacNaziv:     kupacNaziv,
+		KupacPib:       kupacPib,
+		KupacMesto:     kupacMesto,
+		Izvor:          "prodaja",
+		IzvorID:        &id,
+	}
+	for _, s := range stavke {
+		ukupnoLinija := float64(s.Kolicina) * s.CenaPoKomadu
+		osnovica := ukupnoLinija
+		if s.PdvStopa > 0 {
+			osnovica = ukupnoLinija / (1 + s.PdvStopa/100)
+		}
+		pdv := ukupnoLinija - osnovica
+		switch s.PdvStopa {
+		case 20:
+			k.OsnovicaOpsta += osnovica
+			k.PdvOpsta += pdv
+		case 10:
+			k.OsnovicaPosebna += osnovica
+			k.PdvPosebna += pdv
+		default:
+			// 0% / oslobođeno — osnovica bez PDV-a u oslobođen promet sa pravom na odbitak
+			k.OslobodenSaPravom += osnovica
+		}
+		k.Ukupno += ukupnoLinija
+	}
+	return k
+}
+
 // PdvKpr je jedan zapis u knjizi primljenih računa (ulazni PDV).
 type PdvKpr struct {
 	ID               int64

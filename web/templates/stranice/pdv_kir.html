@@ -55,9 +55,13 @@
                         <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .OslobodenUkupno}}</td>
                         <td style="padding:10px 12px;text-align:right;font-weight:500;">{{printf "%.2f" .Ukupno}}</td>
                         <td style="padding:10px 12px;text-align:right;white-space:nowrap;">
+                            {{if eq .Izvor "rucno"}}
                             <form method="POST" action="/pdv/kir/obrisi/{{.ID}}" style="display:inline;">
                                 <button type="submit" class="btn-obrisi-malo" data-potvrda="Obrisati ovaj zapis iz KIR?">Obriši</button>
                             </form>
+                            {{else}}
+                            <span style="font-size:11px;color:var(--tekst-sporedni);" title="Zavedeno automatski — upravlja se preko prodaje (storniraj/obriši prodaju)">iz prodaje</span>
+                            {{end}}
                         </td>
                     </tr>
                     {{else}}

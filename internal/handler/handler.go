@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"database/sql"
 	"html/template"
 	"io/fs"
@@ -128,6 +129,16 @@ func (h *Handler) reinicijalizujRepozitorijume(novaDB *sql.DB) {
 	h.PdvStopeRepo = sqlite.NoviPdvStopaRepo(novaDB)
 	h.PdvKirRepo = sqlite.NoviPdvKirRepo(novaDB)
 	h.PdvKprRepo = sqlite.NoviPdvKprRepo(novaDB)
+}
+
+// modulUkljucen vraća da li je zakonski modul (npr. „pdv") uključen za firmu prema profilu.
+// Koristi se pri automatskom punjenju KIR/KPR iz prodaje/nabavke.
+func (h *Handler) modulUkljucen(ctx context.Context, modul string) bool {
+	podesavanja, err := sqlite.DohvatiSvaPodesavanja(ctx, h.DB)
+	if err != nil {
+		return false
+	}
+	return config.ModulUkljucen(podesavanja, modul)
 }
 
 // zahtevajDozvolu vraća prijavljenog korisnika ako njegova uloga sme da izvrši akciju.
