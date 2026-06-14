@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"ntech/internal/db/sqlite"
 	"ntech/internal/model"
@@ -64,6 +65,7 @@ func (h *Handler) DodajKategoriju(w http.ResponseWriter, r *http.Request) {
 	k := &model.Kategorija{
 		Naziv: naziv,
 		Opis:  r.FormValue("opis"),
+		Marza: parsirajMarzu(r.FormValue("marza")),
 	}
 
 	if _, err := h.KategorijeRepo.Kreiraj(r.Context(), k); err != nil {
@@ -72,6 +74,56 @@ func (h *Handler) DodajKategoriju(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/magacin/kategorije?sacuvano=1", http.StatusSeeOther)
+}
+
+// IzmeniKategoriju prima POST i ažurira naziv, opis i maržu postojeće kategorije
+func (h *Handler) IzmeniKategoriju(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "kategorija.izmeni"); !ok {
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Neispravan ID kategorije", http.StatusBadRequest)
+		return
+	}
+
+	naziv := r.FormValue("naziv")
+	if naziv == "" {
+		http.Redirect(w, r, "/magacin/kategorije", http.StatusSeeOther)
+		return
+	}
+
+	k := &model.Kategorija{
+		ID:    id,
+		Naziv: naziv,
+		Opis:  r.FormValue("opis"),
+		Marza: parsirajMarzu(r.FormValue("marza")),
+	}
+
+	if err := h.KategorijeRepo.Izmeni(r.Context(), k); err != nil {
+		http.Error(w, "Greška pri čuvanju izmene kategorije", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/magacin/kategorije?sacuvano=1", http.StatusSeeOther)
+}
+
+// parsirajMarzu pretvara tekst iz forme u *float64; prazno/neispravno → nil (NULL u bazi)
+func parsirajMarzu(s string) *float64 {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil
+	}
+	v, err := strconv.ParseFloat(s, 64)
+	if err != nil || v < 0 {
+		return nil
+	}
+	return &v
 }
 
 // ObrisiKategoriju briše kategoriju po ID-u

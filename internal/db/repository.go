@@ -22,7 +22,9 @@ type ArtikalRepository interface {
 // KategorijaRepository definiše operacije nad kategorijama
 type KategorijaRepository interface {
 	Lista(ctx context.Context) ([]model.Kategorija, error)
+	DohvatiID(ctx context.Context, id int64) (*model.Kategorija, error)
 	Kreiraj(ctx context.Context, k *model.Kategorija) (int64, error)
+	Izmeni(ctx context.Context, k *model.Kategorija) error
 }
 
 // PdvStopaRepository definiše operacije nad šifarnikom PDV stopa
@@ -79,7 +81,8 @@ type NabavkaRepository interface {
 	Lista(ctx context.Context) ([]model.NabavkaSaDetaljem, error)
 	DohvatiID(ctx context.Context, id int64) (*model.Nabavka, error)
 	DohvatiStavke(ctx context.Context, nabavkaID int64) ([]model.StavkaSaArtiklom, error)
-	Kreiraj(ctx context.Context, n *model.Nabavka, stavke []model.StavkaNabavke) (int64, error)
+	DohvatiTroskove(ctx context.Context, nabavkaID int64) ([]model.NabavkaTrosak, error)
+	Kreiraj(ctx context.Context, n *model.Nabavka, stavke []model.StavkaNabavke, troskovi []model.NabavkaTrosak) (int64, error)
 	Obrisi(ctx context.Context, id int64) error
 }
 
