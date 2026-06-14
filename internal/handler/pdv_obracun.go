@@ -16,6 +16,7 @@ type PodaciPdvObracun struct {
 	KirSume model.PdvKirSume
 	KprSume model.PdvKprSume
 	Obracun model.PdvObracun
+	PPPDV   model.PPPDV
 }
 
 // PdvObracunStranica računa obavezu PDV za izabrani period.
@@ -68,5 +69,6 @@ func (h *Handler) PdvObracunStranica(w http.ResponseWriter, r *http.Request) {
 		KirSume:        kirSume,
 		KprSume:        kprSume,
 		Obracun:        model.ObracunajPdv(kirSume, kprSume),
+		PPPDV:          model.MapirajPPPDV(kirSume, kprSume),
 	})
 }
