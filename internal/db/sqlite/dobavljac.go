@@ -21,7 +21,7 @@ func NoviDobavljacRepo(db *sql.DB) *DobavljacRepo {
 // Lista vraća listu dobavljača sa opcionom pretragom po nazivu
 func (r *DobavljacRepo) Lista(ctx context.Context, pretraga string) ([]model.Dobavljac, error) {
 	upit := `
-		SELECT id, naziv, kontakt_osoba, telefon, email, napomena, datum_unosa
+		SELECT id, naziv, kontakt_osoba, telefon, email, pib, mesto, napomena, datum_unosa
 		FROM dobavljaci
 		WHERE 1=1`
 
@@ -43,9 +43,9 @@ func (r *DobavljacRepo) Lista(ctx context.Context, pretraga string) ([]model.Dob
 	var rezultat []model.Dobavljac
 	for redovi.Next() {
 		var d model.Dobavljac
-		var kontaktOsoba, telefon, email, napomena sql.NullString
+		var kontaktOsoba, telefon, email, pib, mesto, napomena sql.NullString
 		err := redovi.Scan(
-			&d.ID, &d.Naziv, &kontaktOsoba, &telefon, &email, &napomena, &d.DatumUnosa,
+			&d.ID, &d.Naziv, &kontaktOsoba, &telefon, &email, &pib, &mesto, &napomena, &d.DatumUnosa,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("ntech: DobavljacRepo.Lista: scan: %w", err)
@@ -53,6 +53,8 @@ func (r *DobavljacRepo) Lista(ctx context.Context, pretraga string) ([]model.Dob
 		d.KontaktOsoba = kontaktOsoba.String
 		d.Telefon = telefon.String
 		d.Email = email.String
+		d.PIB = pib.String
+		d.Mesto = mesto.String
 		d.Napomena = napomena.String
 		rezultat = append(rezultat, d)
 	}
@@ -63,12 +65,12 @@ func (r *DobavljacRepo) Lista(ctx context.Context, pretraga string) ([]model.Dob
 // DohvatiID vraća jednog dobavljača po ID-u
 func (r *DobavljacRepo) DohvatiID(ctx context.Context, id int64) (*model.Dobavljac, error) {
 	var d model.Dobavljac
-	var kontaktOsoba, telefon, email, napomena sql.NullString
+	var kontaktOsoba, telefon, email, pib, mesto, napomena sql.NullString
 
 	err := r.db.QueryRowContext(ctx, `
-		SELECT id, naziv, kontakt_osoba, telefon, email, napomena, datum_unosa
+		SELECT id, naziv, kontakt_osoba, telefon, email, pib, mesto, napomena, datum_unosa
 		FROM dobavljaci WHERE id = ?`, id).Scan(
-		&d.ID, &d.Naziv, &kontaktOsoba, &telefon, &email, &napomena, &d.DatumUnosa,
+		&d.ID, &d.Naziv, &kontaktOsoba, &telefon, &email, &pib, &mesto, &napomena, &d.DatumUnosa,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: DobavljacRepo.DohvatiID: %w", err)
@@ -77,6 +79,8 @@ func (r *DobavljacRepo) DohvatiID(ctx context.Context, id int64) (*model.Dobavlj
 	d.KontaktOsoba = kontaktOsoba.String
 	d.Telefon = telefon.String
 	d.Email = email.String
+	d.PIB = pib.String
+	d.Mesto = mesto.String
 	d.Napomena = napomena.String
 
 	return &d, nil
@@ -85,10 +89,10 @@ func (r *DobavljacRepo) DohvatiID(ctx context.Context, id int64) (*model.Dobavlj
 // Kreiraj dodaje novog dobavljača u bazu
 func (r *DobavljacRepo) Kreiraj(ctx context.Context, d *model.Dobavljac) (int64, error) {
 	rezultat, err := r.db.ExecContext(ctx, `
-		INSERT INTO dobavljaci (naziv, kontakt_osoba, telefon, email, napomena)
-		VALUES (?, ?, ?, ?, ?)`,
+		INSERT INTO dobavljaci (naziv, kontakt_osoba, telefon, email, pib, mesto, napomena)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		d.Naziv, nullString(d.KontaktOsoba), nullString(d.Telefon),
-		nullString(d.Email), nullString(d.Napomena),
+		nullString(d.Email), nullString(d.PIB), nullString(d.Mesto), nullString(d.Napomena),
 	)
 	if err != nil {
 		return 0, fmt.Errorf("ntech: DobavljacRepo.Kreiraj: %w", err)
@@ -106,10 +110,10 @@ func (r *DobavljacRepo) Kreiraj(ctx context.Context, d *model.Dobavljac) (int64,
 func (r *DobavljacRepo) Izmeni(ctx context.Context, d *model.Dobavljac) error {
 	_, err := r.db.ExecContext(ctx, `
 		UPDATE dobavljaci SET
-			naziv = ?, kontakt_osoba = ?, telefon = ?, email = ?, napomena = ?
+			naziv = ?, kontakt_osoba = ?, telefon = ?, email = ?, pib = ?, mesto = ?, napomena = ?
 		WHERE id = ?`,
 		d.Naziv, nullString(d.KontaktOsoba), nullString(d.Telefon),
-		nullString(d.Email), nullString(d.Napomena), d.ID,
+		nullString(d.Email), nullString(d.PIB), nullString(d.Mesto), nullString(d.Napomena), d.ID,
 	)
 	if err != nil {
 		return fmt.Errorf("ntech: DobavljacRepo.Izmeni: %w", err)
@@ -127,4 +131,3 @@ func (r *DobavljacRepo) Obrisi(ctx context.Context, id int64) error {
 
 	return nil
 }
-

@@ -214,6 +214,8 @@ func parseFormuDobavljaca(r *http.Request) (model.Dobavljac, string) {
 		KontaktOsoba: strings.TrimSpace(r.FormValue("kontakt_osoba")),
 		Telefon:      strings.TrimSpace(r.FormValue("telefon")),
 		Email:        email,
+		PIB:          strings.TrimSpace(r.FormValue("pib")),
+		Mesto:        strings.TrimSpace(r.FormValue("mesto")),
 		Napomena:     strings.TrimSpace(r.FormValue("napomena")),
 	}, ""
 }
