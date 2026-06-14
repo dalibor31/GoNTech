@@ -52,6 +52,19 @@ type PdvKprRepository interface {
 	ObrisiPoIzvoru(ctx context.Context, izvor string, izvorID int64) error
 }
 
+// NivelacijaRepository definiše operacije nad evidencijom promene prodajnih cena
+type NivelacijaRepository interface {
+	// PromeniCenu transakciono menja prodajnu cenu artikla i upisuje nivelacioni zapis;
+	// vraća kreirani zapis (sa starom i novom cenom). Izvor je "rucno".
+	PromeniCenu(ctx context.Context, artikalID int64, novaCena float64, razlog string, korisnikID *int64) (*model.Nivelacija, error)
+	// Kreiraj upisuje gotov nivelacioni zapis (npr. auto-trag pri izmeni artikla)
+	Kreiraj(ctx context.Context, n *model.Nivelacija) (int64, error)
+	// Lista vraća nivelacije u periodu (po datumu); nulti datum znači bez granice
+	Lista(ctx context.Context, od, do time.Time) ([]model.Nivelacija, error)
+	// ListaZaArtikal vraća sve nivelacije jednog artikla (najnovije prvo)
+	ListaZaArtikal(ctx context.Context, artikalID int64) ([]model.Nivelacija, error)
+}
+
 // ArtikalFilter definiše parametre za filtriranje liste artikala
 type ArtikalFilter struct {
 	Pretraga     string
