@@ -194,7 +194,22 @@ document.addEventListener('alpine:init', () => {
         modalGreska: '',
         modalNaziv: '',
         modalKategorijaID: '',
+        modalOpis: '',
+        modalKolicina: '',
+        modalKolicinaMin: '',
         modalCena: '',
+        modalLokacija: '',
+        modalNapomena: '',
+        modalDob: false,
+        modalDobUcitavanje: false,
+        modalDobGreska: '',
+        modalDobNaziv: '',
+        modalDobKontakt: '',
+        modalDobTelefon: '',
+        modalDobEmail: '',
+        modalDobPib: '',
+        modalDobMesto: '',
+        modalDobNapomena: '',
         init() {
             this.artikliOpcije = window._ntechArtikli || []
             this.isMobile = window.matchMedia('(max-width: 768px)').matches
@@ -219,7 +234,12 @@ document.addEventListener('alpine:init', () => {
             this.modalGreska = ''
             this.modalNaziv = ''
             this.modalKategorijaID = ''
+            this.modalOpis = ''
+            this.modalKolicina = ''
+            this.modalKolicinaMin = ''
             this.modalCena = ''
+            this.modalLokacija = ''
+            this.modalNapomena = ''
             this.$nextTick(() => this.$refs.modalNazivInput && this.$refs.modalNazivInput.focus())
         },
         zatvoriModal() {
@@ -235,7 +255,12 @@ document.addEventListener('alpine:init', () => {
             const params = new URLSearchParams()
             params.append('naziv', this.modalNaziv.trim())
             if (this.modalKategorijaID) params.append('kategorija_id', this.modalKategorijaID)
+            params.append('opis', this.modalOpis.trim())
+            if (this.modalKolicina) params.append('kolicina', this.modalKolicina)
+            if (this.modalKolicinaMin) params.append('kolicina_min', this.modalKolicinaMin)
             if (this.modalCena) params.append('prodajna_cena', this.modalCena)
+            params.append('lokacija', this.modalLokacija.trim())
+            params.append('napomena', this.modalNapomena.trim())
             params.append('_csrf', document.querySelector('meta[name=csrf-token]')?.content || '')
             try {
                 const odgovor = await fetch('/magacin/novi', {
@@ -254,6 +279,62 @@ document.addEventListener('alpine:init', () => {
                 this.modalGreska = 'Greška pri komunikaciji sa serverom.'
             } finally {
                 this.modalUcitavanje = false
+            }
+        },
+        otvoriModalDobavljac() {
+            this.modalDob = true
+            this.modalDobGreska = ''
+            this.modalDobNaziv = ''
+            this.modalDobKontakt = ''
+            this.modalDobTelefon = ''
+            this.modalDobEmail = ''
+            this.modalDobPib = ''
+            this.modalDobMesto = ''
+            this.modalDobNapomena = ''
+            this.$nextTick(() => this.$refs.modalDobNazivInput && this.$refs.modalDobNazivInput.focus())
+        },
+        zatvoriModalDobavljac() {
+            this.modalDob = false
+        },
+        async sacuvajDobavljaca() {
+            if (!this.modalDobNaziv.trim()) {
+                this.modalDobGreska = 'Naziv dobavljača je obavezan.'
+                return
+            }
+            this.modalDobUcitavanje = true
+            this.modalDobGreska = ''
+            const params = new URLSearchParams()
+            params.append('naziv', this.modalDobNaziv.trim())
+            params.append('kontakt_osoba', this.modalDobKontakt.trim())
+            params.append('telefon', this.modalDobTelefon.trim())
+            params.append('email', this.modalDobEmail.trim())
+            params.append('pib', this.modalDobPib.trim())
+            params.append('mesto', this.modalDobMesto.trim())
+            params.append('napomena', this.modalDobNapomena.trim())
+            params.append('_csrf', document.querySelector('meta[name=csrf-token]')?.content || '')
+            try {
+                const odgovor = await fetch('/dobavljaci/novi', {
+                    method: 'POST',
+                    headers: {'X-Requested-With': 'fetch', 'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: params
+                })
+                if (!odgovor.ok) {
+                    const greska = await odgovor.json().catch(() => null)
+                    this.modalDobGreska = (greska && greska.greska) || 'Greška pri čuvanju dobavljača. Pokušajte ponovo.'
+                    return
+                }
+                const novi = await odgovor.json()
+                // dodaj novog dobavljača u padajuću listu i odmah ga izaberi
+                const opcija = document.createElement('option')
+                opcija.value = novi.id
+                opcija.textContent = novi.naziv
+                this.$refs.selDobavljac.appendChild(opcija)
+                this.$refs.selDobavljac.value = novi.id
+                this.zatvoriModalDobavljac()
+            } catch {
+                this.modalDobGreska = 'Greška pri komunikaciji sa serverom.'
+            } finally {
+                this.modalDobUcitavanje = false
             }
         }
     }))
