@@ -219,3 +219,48 @@ func KprIzNabavke(nabavka Nabavka, dobavljacNaziv, dobavljacPib, dobavljacMesto 
 	}
 	return k
 }
+
+// PdvObracun je rezultat obračuna PDV za period: izlazni (dugovani) PDV iz KIR,
+// prethodni (odbitni) PDV iz KPR i konačna obaveza. Pozitivna obaveza znači iznos
+// za uplatu, negativna iznos za povraćaj / prenos poreskog kredita u naredni period.
+type PdvObracun struct {
+	// izlazni (dugovani) PDV — iz KIR, po stopama
+	IzlazniPdvOpsta   float64
+	IzlazniPdvPosebna float64
+	IzlazniPdvUkupno  float64
+	// prethodni (odbitni) PDV — iz KPR, po stopama (bez PDV bez prava na odbitak)
+	OdbitniPdvOpsta   float64
+	OdbitniPdvPosebna float64
+	OdbitniPdvUkupno  float64
+	// obaveza = izlazni − odbitni (>0 za uplatu, <0 za povraćaj/prenos)
+	Obaveza float64
+}
+
+// ZaUplatu vraća true kada postoji obaveza za uplatu (izlazni PDV veći od odbitnog).
+func (o PdvObracun) ZaUplatu() bool {
+	return o.Obaveza > 0
+}
+
+// ObavezaApsolutna vraća iznos obaveze bez predznaka (za prikaz povraćaja kao pozitivan broj).
+func (o PdvObracun) ObavezaApsolutna() float64 {
+	if o.Obaveza < 0 {
+		return -o.Obaveza
+	}
+	return o.Obaveza
+}
+
+// ObracunajPdv računa obavezu PDV iz zbirova KIR i KPR za isti period.
+// PdvBezOdbitka iz KPR se namerno NE računa u odbitni PDV — to je PDV za koji
+// ne postoji pravo na odbitak prethodnog poreza.
+func ObracunajPdv(kir PdvKirSume, kpr PdvKprSume) PdvObracun {
+	o := PdvObracun{
+		IzlazniPdvOpsta:   kir.PdvOpsta,
+		IzlazniPdvPosebna: kir.PdvPosebna,
+		OdbitniPdvOpsta:   kpr.PdvOpsta,
+		OdbitniPdvPosebna: kpr.PdvPosebna,
+	}
+	o.IzlazniPdvUkupno = o.IzlazniPdvOpsta + o.IzlazniPdvPosebna
+	o.OdbitniPdvUkupno = o.OdbitniPdvOpsta + o.OdbitniPdvPosebna
+	o.Obaveza = o.IzlazniPdvUkupno - o.OdbitniPdvUkupno
+	return o
+}

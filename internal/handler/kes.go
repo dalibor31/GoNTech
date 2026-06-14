@@ -28,6 +28,7 @@ var saSidebar = []string{
 	"pdv_stope",
 	"pdv_kir", "pdv_kir_forma",
 	"pdv_kpr", "pdv_kpr_forma",
+	"pdv_obracun",
 	"podsetnici", "podsetnik_forma",
 	"profil_tema",
 	"prodaja", "prodaja_detalji", "prodaja_forma",

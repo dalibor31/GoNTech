@@ -70,3 +70,28 @@ func TestKprIzNabavke(t *testing.T) {
 		t.Errorf("ukupno=%v, očekivano 400 (240+110+50)", k.Ukupno)
 	}
 }
+
+func TestObracunajPdv(t *testing.T) {
+	// izlazni: 200 (opšta) + 50 (posebna) = 250; odbitni: 80 + 20 = 100; obaveza = 150
+	kir := PdvKirSume{PdvOpsta: 200, PdvPosebna: 50}
+	kpr := PdvKprSume{PdvOpsta: 80, PdvPosebna: 20, PdvBezOdbitka: 30}
+
+	o := ObracunajPdv(kir, kpr)
+
+	if !blizu(o.IzlazniPdvUkupno, 250) {
+		t.Errorf("izlazni=%v, očekivano 250", o.IzlazniPdvUkupno)
+	}
+	// PdvBezOdbitka (30) ne sme da uđe u odbitni PDV
+	if !blizu(o.OdbitniPdvUkupno, 100) {
+		t.Errorf("odbitni=%v, očekivano 100 (bez PdvBezOdbitka)", o.OdbitniPdvUkupno)
+	}
+	if !blizu(o.Obaveza, 150) || !o.ZaUplatu() {
+		t.Errorf("obaveza=%v ZaUplatu=%v, očekivano 150/true", o.Obaveza, o.ZaUplatu())
+	}
+
+	// kada je odbitni veći od izlaznog → negativna obaveza (povraćaj/prenos), ZaUplatu=false
+	o2 := ObracunajPdv(PdvKirSume{PdvOpsta: 40}, PdvKprSume{PdvOpsta: 100})
+	if !blizu(o2.Obaveza, -60) || o2.ZaUplatu() {
+		t.Errorf("obaveza=%v ZaUplatu=%v, očekivano -60/false", o2.Obaveza, o2.ZaUplatu())
+	}
+}
