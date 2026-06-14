@@ -127,3 +127,47 @@ func TestPdvKprRepo(t *testing.T) {
 		}
 	})
 }
+
+func TestPdvKirIzvor(t *testing.T) {
+	db := testDB(t)
+	repo := NoviPdvKirRepo(db)
+	ctx := context.Background()
+	dp := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
+	izvorID := int64(7)
+
+	// ručni zapis (bez izvora) → default „rucno", izvor_id NULL
+	if _, err := repo.Kreiraj(ctx, &model.PdvKir{
+		DatumPrometa: dp, DatumKnjizenja: dp, BrojDokumenta: "R-1", KupacNaziv: "Ručni",
+	}); err != nil {
+		t.Fatalf("Kreiraj ručni: %v", err)
+	}
+	// auto zapis iz prodaje
+	if _, err := repo.Kreiraj(ctx, &model.PdvKir{
+		DatumPrometa: dp, DatumKnjizenja: dp, BrojDokumenta: "P-1", KupacNaziv: "Iz prodaje",
+		Izvor: "prodaja", IzvorID: &izvorID,
+	}); err != nil {
+		t.Fatalf("Kreiraj auto: %v", err)
+	}
+
+	sve, _ := repo.Lista(ctx, time.Time{}, time.Time{})
+	if len(sve) != 2 {
+		t.Fatalf("očekivano 2 zapisa, dobijeno %d", len(sve))
+	}
+	for _, z := range sve {
+		if z.BrojDokumenta == "R-1" && (z.Izvor != "rucno" || z.IzvorID != nil) {
+			t.Errorf("ručni zapis: izvor=%q izvor_id=%v, očekivano rucno/nil", z.Izvor, z.IzvorID)
+		}
+		if z.BrojDokumenta == "P-1" && (z.Izvor != "prodaja" || z.IzvorID == nil || *z.IzvorID != 7) {
+			t.Errorf("auto zapis: izvor=%q izvor_id=%v, očekivano prodaja/7", z.Izvor, z.IzvorID)
+		}
+	}
+
+	// ObrisiPoIzvoru briše samo vezani auto zapis, ručni ostaje
+	if err := repo.ObrisiPoIzvoru(ctx, "prodaja", 7); err != nil {
+		t.Fatalf("ObrisiPoIzvoru: %v", err)
+	}
+	preostali, _ := repo.Lista(ctx, time.Time{}, time.Time{})
+	if len(preostali) != 1 || preostali[0].BrojDokumenta != "R-1" {
+		t.Errorf("posle ObrisiPoIzvoru očekivan samo ručni zapis, dobijeno %d", len(preostali))
+	}
+}

@@ -28,7 +28,7 @@ func (r *PdvKirRepo) Lista(ctx context.Context, od, do time.Time) ([]model.PdvKi
 		       kupac_naziv, COALESCE(kupac_pib, ''), COALESCE(kupac_mesto, ''),
 		       osnovica_opsta, pdv_opsta, osnovica_posebna, pdv_posebna,
 		       osloboden_sa_pravom, osloboden_bez_prava, ukupno,
-		       COALESCE(napomena, ''), datum_unosa
+		       COALESCE(napomena, ''), izvor, izvor_id, datum_unosa
 		FROM pdv_kir WHERE 1=1`
 	args := []any{}
 	if !od.IsZero() {
@@ -49,14 +49,8 @@ func (r *PdvKirRepo) Lista(ctx context.Context, od, do time.Time) ([]model.PdvKi
 
 	var rezultat []model.PdvKir
 	for redovi.Next() {
-		var k model.PdvKir
-		if err := redovi.Scan(
-			&k.ID, &k.DatumPrometa, &k.DatumKnjizenja, &k.BrojDokumenta,
-			&k.KupacNaziv, &k.KupacPib, &k.KupacMesto,
-			&k.OsnovicaOpsta, &k.PdvOpsta, &k.OsnovicaPosebna, &k.PdvPosebna,
-			&k.OslobodenSaPravom, &k.OslobodenBezPrava, &k.Ukupno,
-			&k.Napomena, &k.DatumUnosa,
-		); err != nil {
+		k, err := skenirajKir(redovi.Scan)
+		if err != nil {
 			return nil, fmt.Errorf("ntech: PdvKirRepo.Lista: scan: %w", err)
 		}
 		rezultat = append(rezultat, k)
@@ -69,24 +63,37 @@ func (r *PdvKirRepo) Lista(ctx context.Context, od, do time.Time) ([]model.PdvKi
 
 // DohvatiID vraća jedan zapis KIR-a po identifikatoru
 func (r *PdvKirRepo) DohvatiID(ctx context.Context, id int64) (*model.PdvKir, error) {
-	var k model.PdvKir
-	err := r.db.QueryRowContext(ctx, `
+	red := r.db.QueryRowContext(ctx, `
 		SELECT id, datum_prometa, datum_knjizenja, broj_dokumenta,
 		       kupac_naziv, COALESCE(kupac_pib, ''), COALESCE(kupac_mesto, ''),
 		       osnovica_opsta, pdv_opsta, osnovica_posebna, pdv_posebna,
 		       osloboden_sa_pravom, osloboden_bez_prava, ukupno,
-		       COALESCE(napomena, ''), datum_unosa
-		FROM pdv_kir WHERE id = ?`, id).Scan(
-		&k.ID, &k.DatumPrometa, &k.DatumKnjizenja, &k.BrojDokumenta,
-		&k.KupacNaziv, &k.KupacPib, &k.KupacMesto,
-		&k.OsnovicaOpsta, &k.PdvOpsta, &k.OsnovicaPosebna, &k.PdvPosebna,
-		&k.OslobodenSaPravom, &k.OslobodenBezPrava, &k.Ukupno,
-		&k.Napomena, &k.DatumUnosa,
-	)
+		       COALESCE(napomena, ''), izvor, izvor_id, datum_unosa
+		FROM pdv_kir WHERE id = ?`, id)
+	k, err := skenirajKir(red.Scan)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: PdvKirRepo.DohvatiID: %w", err)
 	}
 	return &k, nil
+}
+
+// skenirajKir čita jedan red KIR-a; izvor_id je nullable pa ide preko sql.NullInt64
+func skenirajKir(scan func(...any) error) (model.PdvKir, error) {
+	var k model.PdvKir
+	var izvorID sql.NullInt64
+	if err := scan(
+		&k.ID, &k.DatumPrometa, &k.DatumKnjizenja, &k.BrojDokumenta,
+		&k.KupacNaziv, &k.KupacPib, &k.KupacMesto,
+		&k.OsnovicaOpsta, &k.PdvOpsta, &k.OsnovicaPosebna, &k.PdvPosebna,
+		&k.OslobodenSaPravom, &k.OslobodenBezPrava, &k.Ukupno,
+		&k.Napomena, &k.Izvor, &izvorID, &k.DatumUnosa,
+	); err != nil {
+		return model.PdvKir{}, err
+	}
+	if izvorID.Valid {
+		k.IzvorID = &izvorID.Int64
+	}
+	return k, nil
 }
 
 // Kreiraj dodaje novi zapis u KIR i vraća njegov id
@@ -96,12 +103,13 @@ func (r *PdvKirRepo) Kreiraj(ctx context.Context, k *model.PdvKir) (int64, error
 			datum_prometa, datum_knjizenja, broj_dokumenta,
 			kupac_naziv, kupac_pib, kupac_mesto,
 			osnovica_opsta, pdv_opsta, osnovica_posebna, pdv_posebna,
-			osloboden_sa_pravom, osloboden_bez_prava, ukupno, napomena
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			osloboden_sa_pravom, osloboden_bez_prava, ukupno, napomena, izvor, izvor_id
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		k.DatumPrometa, k.DatumKnjizenja, k.BrojDokumenta,
 		k.KupacNaziv, k.KupacPib, k.KupacMesto,
 		k.OsnovicaOpsta, k.PdvOpsta, k.OsnovicaPosebna, k.PdvPosebna,
-		k.OslobodenSaPravom, k.OslobodenBezPrava, k.Ukupno, k.Napomena)
+		k.OslobodenSaPravom, k.OslobodenBezPrava, k.Ukupno, k.Napomena,
+		izvorIliRucno(k.Izvor), izvorIDArg(k.IzvorID))
 	if err != nil {
 		return 0, fmt.Errorf("ntech: PdvKirRepo.Kreiraj: %w", err)
 	}
@@ -118,6 +126,30 @@ func (r *PdvKirRepo) Obrisi(ctx context.Context, id int64) error {
 		return fmt.Errorf("ntech: PdvKirRepo.Obrisi: %w", err)
 	}
 	return nil
+}
+
+// ObrisiPoIzvoru briše KIR zapise vezane za dati izvor (npr. pri stornu/brisanju prodaje)
+func (r *PdvKirRepo) ObrisiPoIzvoru(ctx context.Context, izvor string, izvorID int64) error {
+	if _, err := r.db.ExecContext(ctx, "DELETE FROM pdv_kir WHERE izvor = ? AND izvor_id = ?", izvor, izvorID); err != nil {
+		return fmt.Errorf("ntech: PdvKirRepo.ObrisiPoIzvoru: %w", err)
+	}
+	return nil
+}
+
+// izvorIliRucno vraća izvor ili podrazumevano „rucno" (izvor kolona je NOT NULL)
+func izvorIliRucno(izvor string) string {
+	if izvor == "" {
+		return "rucno"
+	}
+	return izvor
+}
+
+// izvorIDArg pretvara *int64 u argument za upit (nil → NULL)
+func izvorIDArg(id *int64) any {
+	if id == nil {
+		return nil
+	}
+	return *id
 }
 
 // --- KPR: knjiga primljenih računa ---
@@ -139,7 +171,7 @@ func (r *PdvKprRepo) Lista(ctx context.Context, od, do time.Time) ([]model.PdvKp
 		       dobavljac_naziv, COALESCE(dobavljac_pib, ''), COALESCE(dobavljac_mesto, ''),
 		       osnovica_opsta, pdv_opsta, osnovica_posebna, pdv_posebna,
 		       pdv_bez_odbitka, osloboden_nabavka, ukupno,
-		       COALESCE(napomena, ''), datum_unosa
+		       COALESCE(napomena, ''), izvor, izvor_id, datum_unosa
 		FROM pdv_kpr WHERE 1=1`
 	args := []any{}
 	if !od.IsZero() {
@@ -179,7 +211,7 @@ func (r *PdvKprRepo) DohvatiID(ctx context.Context, id int64) (*model.PdvKpr, er
 		       dobavljac_naziv, COALESCE(dobavljac_pib, ''), COALESCE(dobavljac_mesto, ''),
 		       osnovica_opsta, pdv_opsta, osnovica_posebna, pdv_posebna,
 		       pdv_bez_odbitka, osloboden_nabavka, ukupno,
-		       COALESCE(napomena, ''), datum_unosa
+		       COALESCE(napomena, ''), izvor, izvor_id, datum_unosa
 		FROM pdv_kpr WHERE id = ?`, id)
 	k, err := skenirajKpr(red.Scan)
 	if err != nil {
@@ -192,17 +224,21 @@ func (r *PdvKprRepo) DohvatiID(ctx context.Context, id int64) (*model.PdvKpr, er
 func skenirajKpr(scan func(...any) error) (model.PdvKpr, error) {
 	var k model.PdvKpr
 	var datumPlacanja sql.NullTime
+	var izvorID sql.NullInt64
 	if err := scan(
 		&k.ID, &k.DatumPrometa, &k.DatumKnjizenja, &datumPlacanja, &k.BrojDokumenta,
 		&k.DobavljacNaziv, &k.DobavljacPib, &k.DobavljacMesto,
 		&k.OsnovicaOpsta, &k.PdvOpsta, &k.OsnovicaPosebna, &k.PdvPosebna,
 		&k.PdvBezOdbitka, &k.OslobodenNabavka, &k.Ukupno,
-		&k.Napomena, &k.DatumUnosa,
+		&k.Napomena, &k.Izvor, &izvorID, &k.DatumUnosa,
 	); err != nil {
 		return model.PdvKpr{}, err
 	}
 	if datumPlacanja.Valid {
 		k.DatumPlacanja = &datumPlacanja.Time
+	}
+	if izvorID.Valid {
+		k.IzvorID = &izvorID.Int64
 	}
 	return k, nil
 }
@@ -218,12 +254,13 @@ func (r *PdvKprRepo) Kreiraj(ctx context.Context, k *model.PdvKpr) (int64, error
 			datum_prometa, datum_knjizenja, datum_placanja, broj_dokumenta,
 			dobavljac_naziv, dobavljac_pib, dobavljac_mesto,
 			osnovica_opsta, pdv_opsta, osnovica_posebna, pdv_posebna,
-			pdv_bez_odbitka, osloboden_nabavka, ukupno, napomena
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			pdv_bez_odbitka, osloboden_nabavka, ukupno, napomena, izvor, izvor_id
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		k.DatumPrometa, k.DatumKnjizenja, datumPlacanja, k.BrojDokumenta,
 		k.DobavljacNaziv, k.DobavljacPib, k.DobavljacMesto,
 		k.OsnovicaOpsta, k.PdvOpsta, k.OsnovicaPosebna, k.PdvPosebna,
-		k.PdvBezOdbitka, k.OslobodenNabavka, k.Ukupno, k.Napomena)
+		k.PdvBezOdbitka, k.OslobodenNabavka, k.Ukupno, k.Napomena,
+		izvorIliRucno(k.Izvor), izvorIDArg(k.IzvorID))
 	if err != nil {
 		return 0, fmt.Errorf("ntech: PdvKprRepo.Kreiraj: %w", err)
 	}
@@ -238,6 +275,14 @@ func (r *PdvKprRepo) Kreiraj(ctx context.Context, k *model.PdvKpr) (int64, error
 func (r *PdvKprRepo) Obrisi(ctx context.Context, id int64) error {
 	if _, err := r.db.ExecContext(ctx, "DELETE FROM pdv_kpr WHERE id = ?", id); err != nil {
 		return fmt.Errorf("ntech: PdvKprRepo.Obrisi: %w", err)
+	}
+	return nil
+}
+
+// ObrisiPoIzvoru briše KPR zapise vezane za dati izvor (npr. pri brisanju nabavke)
+func (r *PdvKprRepo) ObrisiPoIzvoru(ctx context.Context, izvor string, izvorID int64) error {
+	if _, err := r.db.ExecContext(ctx, "DELETE FROM pdv_kpr WHERE izvor = ? AND izvor_id = ?", izvor, izvorID); err != nil {
+		return fmt.Errorf("ntech: PdvKprRepo.ObrisiPoIzvoru: %w", err)
 	}
 	return nil
 }
