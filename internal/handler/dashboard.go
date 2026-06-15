@@ -95,7 +95,7 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	} else {
 		for _, z := range redovi {
 			boja := "#f97316"
-			if z.Kolicina == 0 {
+			if z.Kolicina == 0 || (z.KolicinaMin > 0 && z.Kolicina <= z.KolicinaMin/2) {
 				boja = "#dc2626"
 			}
 			kriticneZalihe = append(kriticneZalihe, model.StavkaZalihe{

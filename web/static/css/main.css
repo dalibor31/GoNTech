@@ -1153,9 +1153,11 @@ select {
     position: relative;
 }
 
-/* sprečava treperenje pozadine pri navigaciji između stranica (Chrome/Opera/noviji Firefox) */
-@view-transition {
-    navigation: auto;
+/* sprečava treperenje pozadine pri navigaciji između stranica (samo browseri koji podržavaju) */
+@supports (view-transition-name: none) {
+    @view-transition {
+        navigation: auto;
+    }
 }
 
 /* pomoćne klase (ranije iz Tailwind-a, sada lokalno da ne zavisimo od CDN-a) */
