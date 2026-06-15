@@ -103,7 +103,7 @@
 		</div>
 		{{ range .KriticneZalihe }}
 			<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--ivica);">
-				<div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#f59e0b;"></div>
+				<div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:{{ .BojaTacke }};"></div>
 				<span style="font-size:13px;color:var(--tekst-glavni);flex:1;">{{ .Naziv }}</span>
 				<span style="font-size:12px;color:var(--tekst-sporedni);">{{ .Kolicina }} kom</span>
 			</div>

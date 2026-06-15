@@ -15,8 +15,9 @@ type ServisRedDashboard struct {
 
 // ZalihaRed je artikal sa kritičnom zalihom (naziv + količina)
 type ZalihaRed struct {
-	Naziv    string
-	Kolicina int
+	Naziv       string
+	Kolicina    int
+	KolicinaMin int
 }
 
 // ProdajaRedDashboard je jedan red za listu poslednjih prodaja na dashboardu
