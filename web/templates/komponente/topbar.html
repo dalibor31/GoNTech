@@ -10,11 +10,19 @@
         </svg>
     </button>
 
+    {{if and .TopbarLogoSlika .LogoPutanja}}
+    <img src="{{.LogoPutanja}}" alt="Logo" class="topbar-logo">
+    {{end}}
+
     <span class="topbar-naslov">{{.NaslovStranice}}</span>
 
     <div style="position:relative;" id="avatar-wrapper">
-        <div class="avatar-korisnik" id="avatar-dugme" style="cursor:pointer;" title="{{.Korisnik}}">
+        <div class="avatar-korisnik" id="avatar-dugme" style="cursor:pointer;overflow:hidden;" title="{{.Korisnik}}">
+            {{if .AvatarPutanja}}
+            <img src="{{.AvatarPutanja}}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;display:block;">
+            {{else}}
             {{if .Korisnik}}{{slice .Korisnik 0 2}}{{else}}NT{{end}}
+            {{end}}
         </div>
         <div id="avatar-meni" style="display:none;position:fixed;background:var(--kartica);backdrop-filter:none;-webkit-backdrop-filter:none;border:0.5px solid var(--ivica);border-radius:10px;box-shadow:var(--senka);min-width:160px;z-index:9999;overflow:hidden;transform-origin:top right;">
             <a href="/admin/profil" style="display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:14px;color:var(--tekst-glavni);text-decoration:none;transition:background 0.15s;"

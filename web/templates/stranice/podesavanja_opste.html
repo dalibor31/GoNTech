@@ -11,15 +11,23 @@
 
     <!-- upload loga — posebna forma jer je multipart, mora biti van glavne forme -->
     <form method="POST" action="/podesavanja/logo" enctype="multipart/form-data">
+        <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
         <div class="kartica animiraj" style="margin-bottom:16px;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sb-akcent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                 <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Logo firme</span>
             </div>
             {{if .LogoPutanja}}
-            <div style="margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
                 <img src="{{.LogoPutanja}}" alt="Trenutni logo"
-                    style="max-height:60px;max-width:200px;object-fit:contain;border:0.5px solid var(--ivica);border-radius:8px;padding:6px;background:var(--kartica);">
+                    style="max-height:60px;max-width:200px;object-fit:contain;border:0.5px solid var(--ivica);border-radius:8px;padding:6px;background:var(--kartica);flex-shrink:0;">
+                <form method="POST" action="/podesavanja/logo/ukloni" style="margin:0;">
+                    <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+                    <button type="submit"
+                        style="padding:6px 14px;background:none;border:0.5px solid #dc2626;color:#dc2626;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap;">
+                        Ukloni sliku
+                    </button>
+                </form>
             </div>
             {{end}}
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
@@ -43,6 +51,7 @@
 
     <!-- firma: naziv, podnazlov, adresa, telefon, PIB, logo zona -->
     <form method="POST" action="/podesavanja/sacuvaj">
+        <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
         <input type="hidden" name="_next" value="/admin/podesavanja/opste">
         <div class="kartica animiraj" style="margin-bottom:16px;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
@@ -87,22 +96,15 @@
                     </div>
                 </div>
 
-                <div>
-                    <label style="font-size:13px;color:var(--tekst-sporedni);display:block;margin-bottom:8px;">Logo zona</label>
-                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                        <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;cursor:pointer;flex:1;{{if or (eq .LogoTip "sa_nazivom") (eq .LogoTip "tekst") (eq .LogoTip "ikonica") (not .LogoTip)}}border-color:var(--sb-akcent);background:var(--pozadina);{{end}}">
-                            <input type="radio" name="logo_tip" value="sa_nazivom" {{if or (eq .LogoTip "sa_nazivom") (eq .LogoTip "tekst") (eq .LogoTip "ikonica") (not .LogoTip)}}checked{{end}} style="accent-color:var(--sb-akcent);">
-                            <span style="font-size:13px;color:var(--tekst-glavni);">Sa nazivom</span>
-                        </label>
-                        <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;cursor:pointer;flex:1;{{if eq .LogoTip "bez_naziva"}}border-color:var(--sb-akcent);background:var(--pozadina);{{end}}">
-                            <input type="radio" name="logo_tip" value="bez_naziva" {{if eq .LogoTip "bez_naziva"}}checked{{end}} style="accent-color:var(--sb-akcent);">
-                            <span style="font-size:13px;color:var(--tekst-glavni);">Bez naziva</span>
-                        </label>
-                        <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;flex:1;{{if eq .LogoTip "slika"}}border-color:var(--sb-akcent);background:var(--pozadina);{{end}}{{if not .LogoPutanja}}opacity:0.45;cursor:not-allowed;{{else}}cursor:pointer;{{end}}">
-                            <input type="radio" name="logo_tip" value="slika" {{if eq .LogoTip "slika"}}checked{{end}} {{if not .LogoPutanja}}disabled{{end}} style="accent-color:var(--sb-akcent);">
-                            <span style="font-size:13px;color:var(--tekst-glavni);">Sa logom</span>
-                        </label>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;">
+                    <div>
+                        <div style="font-size:13px;font-weight:500;color:var(--tekst-glavni);">Prikaži logo u gornjoj traci</div>
+                        <div style="font-size:12px;color:var(--tekst-sporedni);">Logo slika se prikazuje pored naslova stranice</div>
                     </div>
+                    <label class="toggl">
+                        <input type="checkbox" name="topbar_logo_slika" value="1" {{if .TopbarLogoSlika}}checked{{end}}>
+                        <span class="toggl-klizac"></span>
+                    </label>
                 </div>
 
             </div>
@@ -119,6 +121,7 @@
 
     <!-- profil firme: pravni/poreski status (Faza 0) — određuje koji se zakonski moduli pale -->
     <form method="POST" action="/podesavanja/sacuvaj">
+        <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
         <input type="hidden" name="_next" value="/admin/podesavanja/opste">
         <div class="kartica animiraj" style="margin-bottom:16px;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">

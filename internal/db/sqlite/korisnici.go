@@ -21,7 +21,7 @@ type sqliteKorisniciRepo struct {
 // NULL vrednosti — deljeno između skeniraiKorisnika (jedan red) i Lista (više redova)
 func dodeliOpcijeKorisnika(k *model.Korisnik, aktivan, koristiLokalnuTemu int,
 	lokalnaTema, lokalnaPozadina, lokalnaPozadinaOpacity, lokalnaPozadinaBlur,
-	lokalnaPozadinaBlurPozadine, lokalnaPozadinaGlassOpacity sql.NullString,
+	lokalnaPozadinaBlurPozadine, lokalnaPozadinaGlassOpacity, avatarPutanja sql.NullString,
 	datumKreiranja time.Time) {
 	k.Aktivan = aktivan == 1
 	k.LokalnaTema = lokalnaTema.String
@@ -32,6 +32,7 @@ func dodeliOpcijeKorisnika(k *model.Korisnik, aktivan, koristiLokalnuTemu int,
 	k.LokalnaPozadinaBlur = lokalnaPozadinaBlur.String
 	k.LokalnaPozadinaBlurPozadine = lokalnaPozadinaBlurPozadine.String
 	k.LokalnaPozadinaGlassOpacity = lokalnaPozadinaGlassOpacity.String
+	k.AvatarPutanja = avatarPutanja.String
 }
 
 // skeniraiKorisnika čita jedan red iz baze i popunjava model.Korisnik
@@ -40,18 +41,19 @@ func skeniraiKorisnika(row interface{ Scan(...any) error }) (*model.Korisnik, er
 	var aktivan, koristiLokalnuTemu int
 	var lokalnaTema sql.NullString
 	var lokalnaPozadina, lokalnaPozadinaOpacity, lokalnaPozadinaBlur, lokalnaPozadinaBlurPozadine, lokalnaPozadinaGlassOpacity sql.NullString
+	var avatarPutanja sql.NullString
 	var datumKreiranja time.Time
 	if err := row.Scan(
 		&k.ID, &k.KorisnickoIme, &k.LozinkaHash, &k.Uloga, &aktivan, &k.TotpTajna,
 		&lokalnaTema, &koristiLokalnuTemu, &datumKreiranja,
 		&lokalnaPozadina, &lokalnaPozadinaOpacity, &lokalnaPozadinaBlur,
-		&lokalnaPozadinaBlurPozadine, &lokalnaPozadinaGlassOpacity,
+		&lokalnaPozadinaBlurPozadine, &lokalnaPozadinaGlassOpacity, &avatarPutanja,
 	); err != nil {
 		return nil, err
 	}
 	dodeliOpcijeKorisnika(k, aktivan, koristiLokalnuTemu, lokalnaTema,
 		lokalnaPozadina, lokalnaPozadinaOpacity, lokalnaPozadinaBlur,
-		lokalnaPozadinaBlurPozadine, lokalnaPozadinaGlassOpacity, datumKreiranja)
+		lokalnaPozadinaBlurPozadine, lokalnaPozadinaGlassOpacity, avatarPutanja, datumKreiranja)
 	return k, nil
 }
 
@@ -91,7 +93,7 @@ func (r *sqliteKorisniciRepo) DohvatiPoImenu(ctx context.Context, korisnickoIme 
 		        COALESCE(lokalna_tema, ''), koristi_lokalnu_temu, datum_kreiranja,
 		        COALESCE(lokalna_pozadina, ''), COALESCE(lokalna_pozadina_opacity, '50'),
 		        COALESCE(lokalna_pozadina_blur, '12'), COALESCE(lokalna_pozadina_blur_pozadine, '0'),
-		        COALESCE(lokalna_pozadina_glass_opacity, '10')
+		        COALESCE(lokalna_pozadina_glass_opacity, '10'), COALESCE(avatar_putanja, '')
 		 FROM korisnici WHERE korisnicko_ime = ?`, korisnickoIme)
 	k, err := skeniraiKorisnika(row)
 	if err != nil {
@@ -107,7 +109,7 @@ func (r *sqliteKorisniciRepo) DohvatiPoID(ctx context.Context, id int64) (*model
 		        COALESCE(lokalna_tema, ''), koristi_lokalnu_temu, datum_kreiranja,
 		        COALESCE(lokalna_pozadina, ''), COALESCE(lokalna_pozadina_opacity, '50'),
 		        COALESCE(lokalna_pozadina_blur, '12'), COALESCE(lokalna_pozadina_blur_pozadine, '0'),
-		        COALESCE(lokalna_pozadina_glass_opacity, '10')
+		        COALESCE(lokalna_pozadina_glass_opacity, '10'), COALESCE(avatar_putanja, '')
 		 FROM korisnici WHERE id = ?`, id)
 	k, err := skeniraiKorisnika(row)
 	if err != nil {
@@ -123,7 +125,7 @@ func (r *sqliteKorisniciRepo) Lista(ctx context.Context) ([]model.Korisnik, erro
 		        COALESCE(lokalna_tema, ''), koristi_lokalnu_temu, datum_kreiranja,
 		        COALESCE(lokalna_pozadina, ''), COALESCE(lokalna_pozadina_opacity, '50'),
 		        COALESCE(lokalna_pozadina_blur, '12'), COALESCE(lokalna_pozadina_blur_pozadine, '0'),
-		        COALESCE(lokalna_pozadina_glass_opacity, '10')
+		        COALESCE(lokalna_pozadina_glass_opacity, '10'), COALESCE(avatar_putanja, '')
 		 FROM korisnici ORDER BY datum_kreiranja ASC`)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: korisnici.Lista: %w", err)
@@ -135,20 +137,30 @@ func (r *sqliteKorisniciRepo) Lista(ctx context.Context) ([]model.Korisnik, erro
 		var aktivan, koristiLokalnuTemu int
 		var lokalnaTema sql.NullString
 		var lokalnaPozadina, lokalnaPozadinaOpacity, lokalnaPozadinaBlur, lokalnaPozadinaBlurPozadine, lokalnaPozadinaGlassOpacity sql.NullString
+		var avatarPutanja sql.NullString
 		var datumKreiranja time.Time
 		if err := rows.Scan(&k.ID, &k.KorisnickoIme, &k.Uloga, &aktivan, &k.TotpTajna,
 			&lokalnaTema, &koristiLokalnuTemu, &datumKreiranja,
 			&lokalnaPozadina, &lokalnaPozadinaOpacity, &lokalnaPozadinaBlur, &lokalnaPozadinaBlurPozadine,
-			&lokalnaPozadinaGlassOpacity); err != nil {
+			&lokalnaPozadinaGlassOpacity, &avatarPutanja); err != nil {
 			return nil, fmt.Errorf("ntech: korisnici.Lista: %w", err)
 		}
 		dodeliOpcijeKorisnika(&k, aktivan, koristiLokalnuTemu, lokalnaTema,
 			lokalnaPozadina, lokalnaPozadinaOpacity, lokalnaPozadinaBlur,
-			lokalnaPozadinaBlurPozadine, lokalnaPozadinaGlassOpacity, datumKreiranja)
+			lokalnaPozadinaBlurPozadine, lokalnaPozadinaGlassOpacity, avatarPutanja, datumKreiranja)
 		r.desifrujTotpTajnu(&k)
 		lista = append(lista, k)
 	}
 	return lista, nil
+}
+
+func (r *sqliteKorisniciRepo) SacuvajAvatar(ctx context.Context, id int64, putanja string) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE korisnici SET avatar_putanja = ? WHERE id = ?`, putanja, id)
+	if err != nil {
+		return fmt.Errorf("ntech: korisnici.SacuvajAvatar: %w", err)
+	}
+	return nil
 }
 
 func (r *sqliteKorisniciRepo) SacuvajLokalnuPozadinu(ctx context.Context, id int64, pozadina, opacity, blur, blurPozadine, glassOpacity string) error {

@@ -36,9 +36,11 @@ type PodaciStranice struct {
 	Tema           string
 	NazivFirme     string
 	Podnazlov      string
-	LogoTip        string // "sa_nazivom", "bez_naziva", "slika"
-	LogoPutanja    string // putanja do slike, koristi se samo kada je LogoTip "slika"
-	Korisnik       string
+	LogoPutanja        string // putanja do slike loga firme
+	TopbarLogoSlika    bool   // prikaži logo sliku u topbaru
+	TopbarLogoTekst    bool   // prikaži naziv firme u topbaru
+	AvatarPutanja      string // putanja do lične avatar slike korisnika
+	Korisnik           string
 	KorisnikIme    string          // korisničko ime prijavljenog korisnika
 	KorisnikUloga  string          // uloga: "superadmin", "admin", "radnik"
 	CsrfToken      string          // CSRF zaštitni token za forme

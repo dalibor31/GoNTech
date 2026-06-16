@@ -9,18 +9,10 @@
             </svg>
         </button>
         <div class="logo-zona">
-            {{if eq .LogoTip "slika"}}
-                <img src="{{.LogoPutanja}}" alt="Logo"
-                    style="max-height:48px;width:auto;border-radius:8px;padding:4px;background:var(--kartica);box-shadow:var(--senka);transition:transform 0.2s;flex-shrink:0;"
-                    onmouseover="this.style.transform='scale(1.02)'"
-                    onmouseout="this.style.transform='scale(1)'">
-            {{else if eq .LogoTip "bez_naziva"}}
-            {{else}}
-                <div>
-                    <div class="logo-naziv">{{.NazivFirme}}</div>
-                    <div class="logo-podnazlov">{{.Podnazlov}}</div>
-                </div>
-            {{end}}
+            <div>
+                <div class="logo-naziv">{{.NazivFirme}}</div>
+                {{if .Podnazlov}}<div class="logo-podnazlov">{{.Podnazlov}}</div>{{end}}
+            </div>
         </div>
     </div>
 
