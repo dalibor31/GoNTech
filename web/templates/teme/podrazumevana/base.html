@@ -22,6 +22,8 @@
 
     {{block "dodatni-css" .}}{{end}}
 
+    {{if .AppPozadina}}<link rel="preload" as="image" href="{{.AppPozadina}}">{{end}}
+
     {{if .AppPozadina}}
     <style>
       html {
