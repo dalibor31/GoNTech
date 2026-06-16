@@ -289,3 +289,118 @@ func (h *Handler) SacuvajLokalnuTemu(w http.ResponseWriter, r *http.Request) {
 	}
 	http.Redirect(w, r, "/admin/profil", http.StatusSeeOther)
 }
+
+// ProfilOtpremiAvatar prima upload lične avatar slike korisnika
+func (h *Handler) ProfilOtpremiAvatar(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil {
+		http.Redirect(w, r, "/prijava", http.StatusSeeOther)
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 2<<20+4096)
+	if err := r.ParseMultipartForm(2 << 20); err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Fajl je prevelik (maksimum 2 MB).")
+		http.Redirect(w, r, "/profil/tema", http.StatusSeeOther)
+		return
+	}
+
+	fajl, zaglavlje, err := r.FormFile("avatar")
+	if err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Nije odabran fajl.")
+		http.Redirect(w, r, "/profil/tema", http.StatusSeeOther)
+		return
+	}
+	defer fajl.Close()
+
+	ext := strings.ToLower(filepath.Ext(zaglavlje.Filename))
+	dozvoljenoExt := map[string]string{
+		".jpg":  "image/jpeg",
+		".jpeg": "image/jpeg",
+		".png":  "image/png",
+		".webp": "image/webp",
+	}
+	ocekivaniMime, ok := dozvoljenoExt[ext]
+	if !ok {
+		middleware.SetFlash(w, r, h.DB, "greska", "Dozvoljeni formati su JPG, PNG i WebP.")
+		http.Redirect(w, r, "/profil/tema", http.StatusSeeOther)
+		return
+	}
+
+	buf := make([]byte, 512)
+	n, _ := fajl.Read(buf)
+	stvarniMime := http.DetectContentType(buf[:n])
+	if !strings.HasPrefix(stvarniMime, ocekivaniMime) {
+		middleware.SetFlash(w, r, h.DB, "greska", "Sadržaj fajla ne odgovara odabranoj ekstenziji.")
+		http.Redirect(w, r, "/profil/tema", http.StatusSeeOther)
+		return
+	}
+	if _, err := fajl.Seek(0, io.SeekStart); err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri obradi fajla.")
+		http.Redirect(w, r, "/profil/tema", http.StatusSeeOther)
+		return
+	}
+
+	// briše stari avatar sa diska
+	svezi, _ := h.KorisniciRepo.DohvatiPoID(r.Context(), k.ID)
+	if svezi != nil && svezi.AvatarPutanja != "" {
+		deo, _, _ := strings.Cut(svezi.AvatarPutanja, "?")
+		os.Remove(filepath.Join("web/static/uploads", filepath.Base(deo)))
+	}
+
+	novoIme := fmt.Sprintf("korisnik_%d_avatar%s", k.ID, ext)
+	odrediste := filepath.Join("web/static/uploads", novoIme)
+	dst, err := os.Create(odrediste)
+	if err != nil {
+		slog.Error("ProfilOtpremiAvatar: ne mogu kreirati fajl", "error", err)
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju fajla.")
+		http.Redirect(w, r, "/profil/tema", http.StatusSeeOther)
+		return
+	}
+	defer dst.Close()
+	if _, err := io.Copy(dst, fajl); err != nil {
+		slog.Error("ProfilOtpremiAvatar: greška pri kopiranju", "error", err)
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju fajla.")
+		http.Redirect(w, r, "/profil/tema", http.StatusSeeOther)
+		return
+	}
+
+	// cache-buster verzija u URL-u
+	v := fmt.Sprintf("%d", time.Now().Unix())
+	putanja := fmt.Sprintf("/static/uploads/%s?v=%s", novoIme, v)
+
+	if err := h.KorisniciRepo.SacuvajAvatar(r.Context(), k.ID, putanja); err != nil {
+		slog.Error("ProfilOtpremiAvatar: greška pri čuvanju u bazi", "error", err)
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju.")
+		http.Redirect(w, r, "/profil/tema", http.StatusSeeOther)
+		return
+	}
+
+	middleware.SetFlash(w, r, h.DB, "uspeh", "Avatar je sačuvan.")
+	http.Redirect(w, r, "/profil/tema", http.StatusSeeOther)
+}
+
+// ProfilUkloniAvatar briše ličnu avatar sliku korisnika
+func (h *Handler) ProfilUkloniAvatar(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil {
+		http.Redirect(w, r, "/prijava", http.StatusSeeOther)
+		return
+	}
+
+	svezi, _ := h.KorisniciRepo.DohvatiPoID(r.Context(), k.ID)
+	if svezi != nil && svezi.AvatarPutanja != "" {
+		deo, _, _ := strings.Cut(svezi.AvatarPutanja, "?")
+		os.Remove(filepath.Join("web/static/uploads", filepath.Base(deo)))
+	}
+
+	if err := h.KorisniciRepo.SacuvajAvatar(r.Context(), k.ID, ""); err != nil {
+		slog.Error("ProfilUkloniAvatar", "error", err)
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri uklanjanju avatara.")
+		http.Redirect(w, r, "/profil/tema", http.StatusSeeOther)
+		return
+	}
+
+	middleware.SetFlash(w, r, h.DB, "uspeh", "Avatar je uklonjen.")
+	http.Redirect(w, r, "/profil/tema", http.StatusSeeOther)
+}

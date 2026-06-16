@@ -161,12 +161,13 @@ func (h *Handler) popuniPodaciStranice(r *http.Request, podesavanja map[string]s
 	tema := "tamna"
 
 	ps := model.PodaciStranice{
-		Tema:        tema,
-		NazivFirme:  podesavanja["naziv_firme"],
-		Podnazlov:   podesavanja["podnazlov"],
-		LogoTip:     podesavanja["logo_tip"],
-		LogoPutanja: podesavanja["logo_putanja"],
-		Korisnik:    "Admin",
+		Tema:            tema,
+		NazivFirme:      podesavanja["naziv_firme"],
+		Podnazlov:       podesavanja["podnazlov"],
+		LogoPutanja:     podesavanja["logo_putanja"],
+		TopbarLogoSlika: podesavanja["topbar_logo_slika"] == "1",
+		TopbarLogoTekst: podesavanja["topbar_logo_tekst"] == "1",
+		Korisnik:        "Admin",
 	}
 	var korisnik *model.Korisnik
 	if k := middleware.KorisnikIzKonteksta(r.Context()); k != nil {
@@ -174,6 +175,7 @@ func (h *Handler) popuniPodaciStranice(r *http.Request, podesavanja map[string]s
 		ps.Korisnik = k.KorisnickoIme
 		ps.KorisnikIme = k.KorisnickoIme
 		ps.KorisnikUloga = k.Uloga
+		ps.AvatarPutanja = k.AvatarPutanja
 		ps.Dozvole = h.DozvoleRepo.SveDozvole(r.Context(), k.Uloga)
 		// lokalna tema korisnika — primenjuje se uvek kada je postavljena, bez obzira na KoristiLokalnuTemu
 		if k.LokalnaTema != "" {
