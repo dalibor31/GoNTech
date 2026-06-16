@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -282,10 +283,12 @@ func (h *Handler) SacuvajLokalnuTemu(w http.ResponseWriter, r *http.Request) {
 	}
 
 	middleware.SetFlash(w, r, h.DB, "uspeh", "Tema je sačuvana.")
-	// vrati korisnika na stranicu odakle je došao (Referer), ili na profil kao fallback
+	// koristimo samo putanju iz Referer zaglavlja — nikad ceo URL jer može biti spoljni sajt
 	if ref := r.Referer(); ref != "" {
-		http.Redirect(w, r, ref, http.StatusSeeOther)
-		return
+		if u, err := url.Parse(ref); err == nil {
+			http.Redirect(w, r, u.RequestURI(), http.StatusSeeOther)
+			return
+		}
 	}
 	http.Redirect(w, r, "/admin/profil", http.StatusSeeOther)
 }
