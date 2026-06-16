@@ -253,6 +253,7 @@ func main() {
 		r.With(doz("podesavanja.izmeni")).Post("/podesavanja/pdv-stope/{id}/aktivnost", h.PromeniAktivnostPdvStope)
 		r.With(doz("podesavanja.izmeni")).Post("/podesavanja/sacuvaj", h.SacuvajPodesavanja)
 		r.With(doz("podesavanja.izmeni")).Post("/podesavanja/logo", h.OtpremiLogo)
+		r.With(doz("podesavanja.izmeni")).Post("/podesavanja/logo/ukloni", h.UkloniLogo)
 		r.With(doz("podesavanja.login_pozadina")).Post("/podesavanja/login-pozadina", h.OtpremiLoginPozadinu)
 		r.With(doz("podesavanja.login_pozadina")).Post("/podesavanja/login-pozadina/ukloni", h.UkloniLoginPozadinu)
 		r.With(doz("podesavanja.login_pozadina")).Post("/podesavanja/login-pozadina/stilovi", h.SacuvajLoginPozadinaStilove)
@@ -359,6 +360,8 @@ func main() {
 		r.With(doz("tema.lokalno")).Post("/profil/pozadina", h.ProfilOtpremiPozadinu)
 		r.With(doz("tema.lokalno")).Post("/profil/pozadina/ukloni", h.ProfilUkloniPozadinu)
 		r.With(doz("tema.lokalno")).Post("/profil/pozadina/stilovi", h.ProfilSacuvajPozadinuStilove)
+		r.Post("/profil/avatar", h.ProfilOtpremiAvatar)
+		r.Post("/profil/avatar/ukloni", h.ProfilUkloniAvatar)
 	})
 
 	slog.Info("NTech pokrenut", "port", port)

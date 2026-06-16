@@ -28,8 +28,8 @@ type PodaciPodesavanja struct {
 	Adresa      string
 	Telefon     string
 	PIB         string
-	LogoTip     string
-	LogoPutanja string
+	LogoPutanja        string
+	TopbarLogoSlika    bool
 	// profil firme — pravni/poreski status (Faza 0); određuje koji se zakonski moduli pale
 	FirmaPravniOblik                string
 	FirmaPdvObveznik                string
@@ -81,8 +81,8 @@ func (h *Handler) Podesavanja(w http.ResponseWriter, r *http.Request) {
 		Adresa:                          podesavanja["adresa"],
 		Telefon:                         podesavanja["telefon"],
 		PIB:                             podesavanja["pib"],
-		LogoTip:                         podesavanja["logo_tip"],
 		LogoPutanja:                     podesavanja["logo_putanja"],
+		TopbarLogoSlika:                 podesavanja["topbar_logo_slika"] == "1",
 		Sacuvano:                        r.URL.Query().Get("sacuvano") == "1",
 		BackupVracen:                    r.URL.Query().Get("sacuvano") == "vraceno",
 		Verzija:                         h.Verzija,
@@ -233,13 +233,19 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// checkbox-i: šalju vrednost samo kada su čekirani, pa ih uvek eksplicitno čitamo
+	topbarLogoSlika := "0"
+	if r.FormValue("topbar_logo_slika") == "1" {
+		topbarLogoSlika = "1"
+	}
+
 	polja := map[string]string{
-		"naziv_firme": r.FormValue("naziv_firme"),
-		"podnazlov":   r.FormValue("podnazlov"),
-		"adresa":      r.FormValue("adresa"),
-		"telefon":     r.FormValue("telefon"),
-		"pib":         r.FormValue("pib"),
-		"logo_tip":    r.FormValue("logo_tip"),
+		"naziv_firme":       r.FormValue("naziv_firme"),
+		"podnazlov":         r.FormValue("podnazlov"),
+		"adresa":            r.FormValue("adresa"),
+		"telefon":           r.FormValue("telefon"),
+		"pib":               r.FormValue("pib"),
+		"topbar_logo_slika": topbarLogoSlika,
 		// profil firme (Faza 0) — radio dugmad uvek šalju vrednost, pa se uredno čuvaju
 		"firma_pravni_oblik":  r.FormValue("firma_pravni_oblik"),
 		"firma_pdv_obveznik":  r.FormValue("firma_pdv_obveznik"),
@@ -410,6 +416,21 @@ func (h *Handler) OtpremiLogo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/podesavanja?sacuvano=1", http.StatusSeeOther)
+}
+
+// UkloniLogo briše logo fajl i čisti putanju iz podešavanja
+func (h *Handler) UkloniLogo(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "podesavanja.izmeni"); !ok {
+		return
+	}
+	stari, _ := filepath.Glob("web/static/uploads/logo.*")
+	for _, s := range stari {
+		os.Remove(s)
+	}
+	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "logo_putanja", ""); err != nil {
+		slog.Error("ukloni logo: greška pri čuvanju", "error", err)
+	}
+	http.Redirect(w, r, "/admin/podesavanja/opste?sacuvano=1", http.StatusSeeOther)
 }
 
 // generisiImeUploada vraća slučajno hex ime (16 bajtova) sa datom ekstenzijom
@@ -624,8 +645,8 @@ func (h *Handler) napuniPodaciPodesavanja(r *http.Request, naslov string) (Podac
 		Adresa:                          podesavanja["adresa"],
 		Telefon:                         podesavanja["telefon"],
 		PIB:                             podesavanja["pib"],
-		LogoTip:                         podesavanja["logo_tip"],
 		LogoPutanja:                     podesavanja["logo_putanja"],
+		TopbarLogoSlika:                 podesavanja["topbar_logo_slika"] == "1",
 		FirmaPravniOblik:                vrednostIliDefault(podesavanja, "firma_pravni_oblik", "pausalac"),
 		FirmaPdvObveznik:                vrednostIliDefault(podesavanja, "firma_pdv_obveznik", "ne"),
 		FirmaFiskalizacija:              vrednostIliDefault(podesavanja, "firma_fiskalizacija", "ne"),

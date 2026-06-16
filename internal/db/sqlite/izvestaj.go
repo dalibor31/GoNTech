@@ -75,7 +75,7 @@ func (r *sqliteIzvestajRepo) PoslednjiServisi(ctx context.Context, limit int) ([
 
 func (r *sqliteIzvestajRepo) KriticneZalihe(ctx context.Context, limit int) ([]model.ZalihaRed, error) {
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT naziv, kolicina FROM artikli
+		SELECT naziv, kolicina, kolicina_min FROM artikli
 		WHERE kolicina <= kolicina_min
 		ORDER BY kolicina ASC LIMIT ?`, limit)
 	if err != nil {
@@ -85,7 +85,7 @@ func (r *sqliteIzvestajRepo) KriticneZalihe(ctx context.Context, limit int) ([]m
 	var lista []model.ZalihaRed
 	for rows.Next() {
 		var z model.ZalihaRed
-		if err := rows.Scan(&z.Naziv, &z.Kolicina); err != nil {
+		if err := rows.Scan(&z.Naziv, &z.Kolicina, &z.KolicinaMin); err != nil {
 			return nil, fmt.Errorf("ntech: izvestaj.KriticneZalihe: %w", err)
 		}
 		lista = append(lista, z)

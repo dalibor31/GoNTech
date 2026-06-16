@@ -303,11 +303,27 @@ body {
 }
 
 .topbar-naslov {
-    font-weight: 500;
-    font-size: 15px;
+    font-weight: 600;
+    font-size: 18px;
     color: var(--tekst-glavni);
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
+
+/* identifikacija firme u topbaru (naziv + logo) — pomera se i može da se skrati */
+.topbar-firma { flex-shrink: 0; line-height: 1.2; min-width: 0; }
+.topbar-firma .topbar-firma-naziv {
+    font-weight: 700; font-size: 14px; color: var(--tekst-glavni); letter-spacing: -0.2px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.topbar-firma .topbar-firma-podnaziv {
+    font-size: 11px; color: var(--tekst-sporedni);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.topbar-logo { height: 34px; width: auto; border-radius: 6px; flex-shrink: 0; }
 
 /* sadržaj stranice */
 .sadrzaj {
@@ -583,7 +599,7 @@ body {
 .avatar-korisnik {
     width: 32px;
     height: 32px;
-    border-radius: 50%;
+    border-radius: 9px;
     background: var(--sb-akcent);
     display: flex;
     align-items: center;
@@ -918,6 +934,11 @@ select {
     #hamburger-topbar { display: flex !important; color: var(--tekst-glavni); }
     #hamburger-topbar:hover { background: var(--pozadina); }
 
+    /* na telefonu sklanjamo identifikaciju firme iz topbara — naziv i logo su
+       već vidljivi u bočnom meniju, pa naslov stranice dobija ceo prostor */
+    .topbar-firma, .topbar-logo { display: none; }
+    .topbar-naslov { font-size: 16px; }
+
     /* teme */
     .topbar-teme { display: none; }
     .teme-grid { flex-direction: column !important; }
@@ -1016,6 +1037,13 @@ select {
 .stranica-stack .animiraj:nth-child(3) { animation-delay: 0.22s; }
 .stranica-stack .animiraj:nth-child(4) { animation-delay: 0.28s; }
 .stranica-stack .animiraj:nth-child(5) { animation-delay: 0.34s; }
+
+/* Dashboard stat kartice — delay da ne krenemo pre nego što view-transition završi */
+.dash-stat.animiraj:nth-child(1) { animation-delay: 0.08s; }
+.dash-stat.animiraj:nth-child(2) { animation-delay: 0.13s; }
+.dash-stat.animiraj:nth-child(3) { animation-delay: 0.18s; }
+.dash-stat.animiraj:nth-child(4) { animation-delay: 0.23s; }
+.dash-stat.animiraj:nth-child(5) { animation-delay: 0.28s; }
 
 /* Bedž statusa servisnog naloga — JEDNO mesto za izgled i boje statusa (lista i detalji).
    Mora biti u main.css: HTMX navigacija odbacuje <head>, pa page <style> ne bi važio. */
@@ -1153,10 +1181,29 @@ select {
     position: relative;
 }
 
-/* sprečava treperenje pozadine pri navigaciji između stranica (Chrome/Opera/noviji Firefox) */
-@view-transition {
-    navigation: auto;
+/* sprečava treperenje pozadine pri navigaciji između stranica (samo browseri koji podržavaju) */
+@supports (view-transition-name: none) {
+    @view-transition {
+        navigation: auto;
+    }
 }
+
+/* iOS-style toggle switch (.toggl > input[type=checkbox] + .toggl-klizac) */
+.toggl { position:relative; display:inline-block; width:44px; height:26px; flex-shrink:0; }
+.toggl input { opacity:0; width:0; height:0; position:absolute; }
+.toggl-klizac {
+    position:absolute; inset:0; border-radius:26px; cursor:pointer;
+    background:var(--ivica); transition:background 0.2s;
+}
+.toggl-klizac::before {
+    content:''; position:absolute;
+    width:20px; height:20px; border-radius:50%;
+    left:3px; top:3px;
+    background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.25);
+    transition:transform 0.2s;
+}
+.toggl input:checked + .toggl-klizac { background:var(--sb-akcent); }
+.toggl input:checked + .toggl-klizac::before { transform:translateX(18px); }
 
 /* pomoćne klase (ranije iz Tailwind-a, sada lokalno da ne zavisimo od CDN-a) */
 .grid { display: grid; }
