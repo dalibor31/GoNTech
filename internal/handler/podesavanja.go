@@ -7,7 +7,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -264,13 +263,14 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// whitelist dozvoljenih redirekcija — vrednost uvek dolazi iz mape, nikad od korisnika
+	dozvoljeniSledeci := map[string]string{
+		"/admin/podesavanja/opste": "/admin/podesavanja/opste",
+		"/podesavanja":             "/podesavanja",
+	}
 	sledeci := "/podesavanja"
-	if next := r.FormValue("_next"); next != "" {
-		if u, err := url.Parse(next); err == nil && u.Host == "" && u.Scheme == "" {
-			if p := u.RequestURI(); p != "" {
-				sledeci = p
-			}
-		}
+	if v, ok := dozvoljeniSledeci[r.FormValue("_next")]; ok {
+		sledeci = v
 	}
 
 	// backup podešavanja — pri neispravnom unosu javljamo jasnu grešku
