@@ -328,7 +328,12 @@ func (h *Handler) ProfilOtpremiAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	buf := make([]byte, 512)
-	n, _ := fajl.Read(buf)
+	n, err := fajl.Read(buf)
+	if err != nil && err != io.EOF {
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čitanju fajla.")
+		http.Redirect(w, r, "/profil/tema", http.StatusSeeOther)
+		return
+	}
 	stvarniMime := http.DetectContentType(buf[:n])
 	if !strings.HasPrefix(stvarniMime, ocekivaniMime) {
 		middleware.SetFlash(w, r, h.DB, "greska", "Sadržaj fajla ne odgovara odabranoj ekstenziji.")

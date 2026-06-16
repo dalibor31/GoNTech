@@ -38,7 +38,6 @@ type PodaciStranice struct {
 	Podnazlov      string
 	LogoPutanja        string // putanja do slike loga firme
 	TopbarLogoSlika    bool   // prikaži logo sliku u topbaru
-	TopbarLogoTekst    bool   // prikaži naziv firme u topbaru
 	AvatarPutanja      string // putanja do lične avatar slike korisnika
 	Korisnik           string
 	KorisnikIme    string          // korisničko ime prijavljenog korisnika
