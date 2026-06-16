@@ -74,6 +74,54 @@
         {{end}}
     </div>
 
+    <!-- kartica: moj avatar -->
+    <div class="kartica animiraj" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sb-akcent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Moj avatar</span>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
+            <div style="width:64px;height:64px;border-radius:10px;overflow:hidden;border:0.5px solid var(--ivica);flex-shrink:0;background:var(--pozadina);display:flex;align-items:center;justify-content:center;">
+                {{if .AvatarPutanja}}
+                <img src="{{.AvatarPutanja}}" alt="Moj avatar" style="width:100%;height:100%;object-fit:cover;">
+                {{else}}
+                <span style="font-size:22px;font-weight:600;color:var(--tekst-sporedni);">{{if .KorisnikIme}}{{slice .KorisnikIme 0 2}}{{else}}NT{{end}}</span>
+                {{end}}
+            </div>
+            <div style="font-size:13px;color:var(--tekst-sporedni);line-height:1.5;">
+                Slika se prikazuje kao dugme u gornjoj traci.<br>
+                Dozvoljeni formati: JPG, PNG, WebP. Maksimum 2 MB.
+            </div>
+        </div>
+
+        {{if .AvatarPutanja}}
+        <form method="POST" action="/profil/avatar/ukloni" style="display:inline;margin-bottom:12px;">
+            <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+            <button type="submit" style="background:none;border:0.5px solid #dc2626;color:#dc2626;padding:6px 14px;border-radius:8px;font-size:13px;cursor:pointer;margin-bottom:12px;">
+                Ukloni avatar
+            </button>
+        </form>
+        {{end}}
+
+        <form method="POST" action="/profil/avatar" enctype="multipart/form-data">
+            <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <input type="file" id="avatar-file" name="avatar" accept=".jpg,.jpeg,.png,.webp"
+                    style="display:none;" onchange="document.getElementById('avatar-ime').textContent=this.files[0]?this.files[0].name:'Nijedan fajl nije izabran'">
+                <label for="avatar-file"
+                    style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:0.5px solid var(--ivica);border-radius:8px;cursor:pointer;font-size:13px;color:var(--tekst-glavni);background:var(--pozadina);">
+                    Izaberi sliku
+                </label>
+                <span id="avatar-ime" class="pomocni-tekst">Nijedan fajl nije izabran</span>
+                <button type="submit"
+                    style="background:var(--sb-akcent);color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer;">
+                    Otpremi avatar
+                </button>
+            </div>
+        </form>
+    </div>
+
     <!-- kartica: moja pozadinska slika -->
     <div class="kartica animiraj" style="margin-bottom:16px;">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">

@@ -14,8 +14,6 @@
     }
     </script>
 
-    {{if .AppPozadina}}<link rel="preload" as="image" href="{{.AppPozadina}}">{{end}}
-
     <!-- tema — učitava se prva -->
     <link rel="stylesheet" href="/static/css/teme/{{.Tema}}.css?v={{.AssetV}}" />
 
@@ -23,6 +21,8 @@
     <link rel="stylesheet" href="/static/css/main.css?v={{.AssetV}}" />
 
     {{block "dodatni-css" .}}{{end}}
+
+    {{if .AppPozadina}}<link rel="preload" as="image" href="{{.AppPozadina}}">{{end}}
 
     {{if .AppPozadina}}
     <style>

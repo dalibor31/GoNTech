@@ -34,8 +34,9 @@ func (r *ArtikalRepo) Lista(ctx context.Context, filter db.ArtikalFilter) ([]mod
 	args := []any{}
 
 	if filter.Pretraga != "" {
-		upit += " AND a.naziv LIKE ?"
-		args = append(args, "%"+filter.Pretraga+"%")
+		upit += " AND (a.naziv LIKE ? OR a.lokacija LIKE ? OR k.naziv LIKE ?)"
+		t := "%" + filter.Pretraga + "%"
+		args = append(args, t, t, t)
 	}
 
 	if filter.KategorijaID != nil {
