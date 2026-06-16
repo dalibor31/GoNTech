@@ -263,9 +263,9 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	sledeci := r.FormValue("_next")
-	if sledeci == "" || !strings.HasPrefix(sledeci, "/") {
-		sledeci = "/podesavanja"
+	sledeci := "/podesavanja"
+	if next := r.FormValue("_next"); strings.HasPrefix(next, "/") && (len(next) == 1 || (next[1] != '/' && next[1] != '\\')) {
+		sledeci = next
 	}
 
 	// backup podešavanja — pri neispravnom unosu javljamo jasnu grešku
