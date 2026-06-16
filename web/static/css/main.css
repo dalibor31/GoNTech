@@ -1017,6 +1017,13 @@ select {
 .stranica-stack .animiraj:nth-child(4) { animation-delay: 0.28s; }
 .stranica-stack .animiraj:nth-child(5) { animation-delay: 0.34s; }
 
+/* Dashboard stat kartice — delay da ne krenemo pre nego što view-transition završi */
+.dash-stat.animiraj:nth-child(1) { animation-delay: 0.08s; }
+.dash-stat.animiraj:nth-child(2) { animation-delay: 0.13s; }
+.dash-stat.animiraj:nth-child(3) { animation-delay: 0.18s; }
+.dash-stat.animiraj:nth-child(4) { animation-delay: 0.23s; }
+.dash-stat.animiraj:nth-child(5) { animation-delay: 0.28s; }
+
 /* Bedž statusa servisnog naloga — JEDNO mesto za izgled i boje statusa (lista i detalji).
    Mora biti u main.css: HTMX navigacija odbacuje <head>, pa page <style> ne bi važio. */
 .status-badge       { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; white-space: nowrap; }
