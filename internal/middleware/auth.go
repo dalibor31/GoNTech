@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"os"
 	"time"
 
 	"ntech/internal/db/sqlite"
@@ -34,11 +35,13 @@ func RequireAuth(db *sql.DB, totpKljuc []byte) func(http.Handler) http.Handler {
 			if err != nil {
 				// nevažeći token — briši kolačić i preusmeri
 				http.SetCookie(w, &http.Cookie{
-					Name:    "ntech_sesija",
-					Value:   "",
-					Path:    "/",
-					Expires: time.Unix(0, 0),
-					MaxAge:  -1,
+					Name:     "ntech_sesija",
+					Value:    "",
+					Path:     "/",
+					Expires:  time.Unix(0, 0),
+					MaxAge:   -1,
+					Secure:   os.Getenv("NTECH_ENV") == "production",
+					HttpOnly: true,
 				})
 				http.Redirect(w, r, "/prijava", http.StatusSeeOther)
 				return
@@ -154,6 +157,7 @@ func postaviFlashGresku(w http.ResponseWriter, poruka string) {
 		Path:     "/",
 		MaxAge:   60,
 		HttpOnly: true,
+		Secure:   os.Getenv("NTECH_ENV") == "production",
 	})
 }
 

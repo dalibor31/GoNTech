@@ -262,11 +262,13 @@ func (h *Handler) Odjava(w http.ResponseWriter, r *http.Request) {
 		_ = h.SesijeRepo.Obrisi(r.Context(), kolacic.Value)
 	}
 	http.SetCookie(w, &http.Cookie{
-		Name:    imeKolacica,
-		Value:   "",
-		Path:    "/",
-		Expires: time.Unix(0, 0),
-		MaxAge:  -1,
+		Name:     imeKolacica,
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
+		Secure:   os.Getenv("NTECH_ENV") == "production",
+		HttpOnly: true,
 	})
 	http.Redirect(w, r, "/prijava", http.StatusSeeOther)
 }

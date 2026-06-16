@@ -3,6 +3,7 @@ package handler
 import (
 	"log/slog"
 	"net/http"
+	"os"
 
 	appdb "ntech/internal/db"
 	"ntech/internal/db/sqlite"
@@ -19,10 +20,12 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	if kol, err := r.Cookie("ntech_flash_greska"); err == nil {
 		flashGreska = kol.Value
 		http.SetCookie(w, &http.Cookie{
-			Name:   "ntech_flash_greska",
-			Value:  "",
-			Path:   "/",
-			MaxAge: -1,
+			Name:     "ntech_flash_greska",
+			Value:    "",
+			Path:     "/",
+			MaxAge:   -1,
+			HttpOnly: true,
+			Secure:   os.Getenv("NTECH_ENV") == "production",
 		})
 	}
 
