@@ -63,6 +63,7 @@ func (h *Handler) PrikazPrijave(w http.ResponseWriter, r *http.Request) {
 		"LoginPozadinaBlurPozadine":       loginBlurPozadine,
 		"LoginPozadinaBlurKartice":        loginBlurKartice,
 		"LoginPozadinaZatamnjenjeKartice": loginZatamnjenjeKartice,
+		"Verzija":                         h.Verzija,
 	})
 }
 
