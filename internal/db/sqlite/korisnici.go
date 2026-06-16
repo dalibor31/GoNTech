@@ -17,43 +17,48 @@ type sqliteKorisniciRepo struct {
 	kljuc []byte
 }
 
-// dodeliOpcijeKorisnika popunjava bool i opciona polja korisnika iz skeniranih
-// NULL vrednosti — deljeno između skeniraiKorisnika (jedan red) i Lista (više redova)
-func dodeliOpcijeKorisnika(k *model.Korisnik, aktivan, koristiLokalnuTemu int,
-	lokalnaTema, lokalnaPozadina, lokalnaPozadinaOpacity, lokalnaPozadinaBlur,
-	lokalnaPozadinaBlurPozadine, lokalnaPozadinaGlassOpacity, avatarPutanja sql.NullString,
-	datumKreiranja time.Time) {
-	k.Aktivan = aktivan == 1
-	k.LokalnaTema = lokalnaTema.String
-	k.KoristiLokalnuTemu = koristiLokalnuTemu == 1
-	k.DatumKreiranja = datumKreiranja
-	k.LokalnaPozadina = lokalnaPozadina.String
-	k.LokalnaPozadinaOpacity = lokalnaPozadinaOpacity.String
-	k.LokalnaPozadinaBlur = lokalnaPozadinaBlur.String
-	k.LokalnaPozadinaBlurPozadine = lokalnaPozadinaBlurPozadine.String
-	k.LokalnaPozadinaGlassOpacity = lokalnaPozadinaGlassOpacity.String
-	k.AvatarPutanja = avatarPutanja.String
+// korisnikOpcije drži NULL vrednosti skeniranih opcionalnih kolona korisnika;
+// dodavanje novog polja zahteva izmenu samo ovog struct-a i relevantnih Scan poziva.
+type korisnikOpcije struct {
+	aktivan                     int
+	koristiLokalnuTemu          int
+	datumKreiranja              time.Time
+	lokalnaTema                 sql.NullString
+	lokalnaPozadina             sql.NullString
+	lokalnaPozadinaOpacity      sql.NullString
+	lokalnaPozadinaBlur         sql.NullString
+	lokalnaPozadinaBlurPozadine sql.NullString
+	lokalnaPozadinaGlassOpacity sql.NullString
+	avatarPutanja               sql.NullString
+}
+
+// dodeliOpcijeKorisnika prenosi vrednosti iz korisnikOpcije na model.Korisnik
+func dodeliOpcijeKorisnika(k *model.Korisnik, o korisnikOpcije) {
+	k.Aktivan = o.aktivan == 1
+	k.KoristiLokalnuTemu = o.koristiLokalnuTemu == 1
+	k.DatumKreiranja = o.datumKreiranja
+	k.LokalnaTema = o.lokalnaTema.String
+	k.LokalnaPozadina = o.lokalnaPozadina.String
+	k.LokalnaPozadinaOpacity = o.lokalnaPozadinaOpacity.String
+	k.LokalnaPozadinaBlur = o.lokalnaPozadinaBlur.String
+	k.LokalnaPozadinaBlurPozadine = o.lokalnaPozadinaBlurPozadine.String
+	k.LokalnaPozadinaGlassOpacity = o.lokalnaPozadinaGlassOpacity.String
+	k.AvatarPutanja = o.avatarPutanja.String
 }
 
 // skeniraiKorisnika čita jedan red iz baze i popunjava model.Korisnik
 func skeniraiKorisnika(row interface{ Scan(...any) error }) (*model.Korisnik, error) {
 	k := &model.Korisnik{}
-	var aktivan, koristiLokalnuTemu int
-	var lokalnaTema sql.NullString
-	var lokalnaPozadina, lokalnaPozadinaOpacity, lokalnaPozadinaBlur, lokalnaPozadinaBlurPozadine, lokalnaPozadinaGlassOpacity sql.NullString
-	var avatarPutanja sql.NullString
-	var datumKreiranja time.Time
+	var o korisnikOpcije
 	if err := row.Scan(
-		&k.ID, &k.KorisnickoIme, &k.LozinkaHash, &k.Uloga, &aktivan, &k.TotpTajna,
-		&lokalnaTema, &koristiLokalnuTemu, &datumKreiranja,
-		&lokalnaPozadina, &lokalnaPozadinaOpacity, &lokalnaPozadinaBlur,
-		&lokalnaPozadinaBlurPozadine, &lokalnaPozadinaGlassOpacity, &avatarPutanja,
+		&k.ID, &k.KorisnickoIme, &k.LozinkaHash, &k.Uloga, &o.aktivan, &k.TotpTajna,
+		&o.lokalnaTema, &o.koristiLokalnuTemu, &o.datumKreiranja,
+		&o.lokalnaPozadina, &o.lokalnaPozadinaOpacity, &o.lokalnaPozadinaBlur,
+		&o.lokalnaPozadinaBlurPozadine, &o.lokalnaPozadinaGlassOpacity, &o.avatarPutanja,
 	); err != nil {
 		return nil, err
 	}
-	dodeliOpcijeKorisnika(k, aktivan, koristiLokalnuTemu, lokalnaTema,
-		lokalnaPozadina, lokalnaPozadinaOpacity, lokalnaPozadinaBlur,
-		lokalnaPozadinaBlurPozadine, lokalnaPozadinaGlassOpacity, avatarPutanja, datumKreiranja)
+	dodeliOpcijeKorisnika(k, o)
 	return k, nil
 }
 
@@ -134,20 +139,16 @@ func (r *sqliteKorisniciRepo) Lista(ctx context.Context) ([]model.Korisnik, erro
 	var lista []model.Korisnik
 	for rows.Next() {
 		var k model.Korisnik
-		var aktivan, koristiLokalnuTemu int
-		var lokalnaTema sql.NullString
-		var lokalnaPozadina, lokalnaPozadinaOpacity, lokalnaPozadinaBlur, lokalnaPozadinaBlurPozadine, lokalnaPozadinaGlassOpacity sql.NullString
-		var avatarPutanja sql.NullString
-		var datumKreiranja time.Time
-		if err := rows.Scan(&k.ID, &k.KorisnickoIme, &k.Uloga, &aktivan, &k.TotpTajna,
-			&lokalnaTema, &koristiLokalnuTemu, &datumKreiranja,
-			&lokalnaPozadina, &lokalnaPozadinaOpacity, &lokalnaPozadinaBlur, &lokalnaPozadinaBlurPozadine,
-			&lokalnaPozadinaGlassOpacity, &avatarPutanja); err != nil {
+		var o korisnikOpcije
+		if err := rows.Scan(
+			&k.ID, &k.KorisnickoIme, &k.Uloga, &o.aktivan, &k.TotpTajna,
+			&o.lokalnaTema, &o.koristiLokalnuTemu, &o.datumKreiranja,
+			&o.lokalnaPozadina, &o.lokalnaPozadinaOpacity, &o.lokalnaPozadinaBlur,
+			&o.lokalnaPozadinaBlurPozadine, &o.lokalnaPozadinaGlassOpacity, &o.avatarPutanja,
+		); err != nil {
 			return nil, fmt.Errorf("ntech: korisnici.Lista: %w", err)
 		}
-		dodeliOpcijeKorisnika(&k, aktivan, koristiLokalnuTemu, lokalnaTema,
-			lokalnaPozadina, lokalnaPozadinaOpacity, lokalnaPozadinaBlur,
-			lokalnaPozadinaBlurPozadine, lokalnaPozadinaGlassOpacity, avatarPutanja, datumKreiranja)
+		dodeliOpcijeKorisnika(&k, o)
 		r.desifrujTotpTajnu(&k)
 		lista = append(lista, k)
 	}

@@ -166,7 +166,6 @@ func (h *Handler) popuniPodaciStranice(r *http.Request, podesavanja map[string]s
 		Podnazlov:       podesavanja["podnazlov"],
 		LogoPutanja:     podesavanja["logo_putanja"],
 		TopbarLogoSlika: podesavanja["topbar_logo_slika"] == "1",
-		TopbarLogoTekst: podesavanja["topbar_logo_tekst"] == "1",
 		Korisnik:        "Admin",
 	}
 	var korisnik *model.Korisnik

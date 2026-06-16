@@ -30,7 +30,6 @@ type PodaciPodesavanja struct {
 	PIB         string
 	LogoPutanja        string
 	TopbarLogoSlika    bool
-	TopbarLogoTekst    bool
 	// profil firme — pravni/poreski status (Faza 0); određuje koji se zakonski moduli pale
 	FirmaPravniOblik                string
 	FirmaPdvObveznik                string
@@ -84,7 +83,6 @@ func (h *Handler) Podesavanja(w http.ResponseWriter, r *http.Request) {
 		PIB:                             podesavanja["pib"],
 		LogoPutanja:                     podesavanja["logo_putanja"],
 		TopbarLogoSlika:                 podesavanja["topbar_logo_slika"] == "1",
-		TopbarLogoTekst:                 podesavanja["topbar_logo_tekst"] == "1",
 		Sacuvano:                        r.URL.Query().Get("sacuvano") == "1",
 		BackupVracen:                    r.URL.Query().Get("sacuvano") == "vraceno",
 		Verzija:                         h.Verzija,
@@ -240,10 +238,6 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("topbar_logo_slika") == "1" {
 		topbarLogoSlika = "1"
 	}
-	topbarLogoTekst := "0"
-	if r.FormValue("topbar_logo_tekst") == "1" {
-		topbarLogoTekst = "1"
-	}
 
 	polja := map[string]string{
 		"naziv_firme":       r.FormValue("naziv_firme"),
@@ -252,7 +246,6 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 		"telefon":           r.FormValue("telefon"),
 		"pib":               r.FormValue("pib"),
 		"topbar_logo_slika": topbarLogoSlika,
-		"topbar_logo_tekst": topbarLogoTekst,
 		// profil firme (Faza 0) — radio dugmad uvek šalju vrednost, pa se uredno čuvaju
 		"firma_pravni_oblik":  r.FormValue("firma_pravni_oblik"),
 		"firma_pdv_obveznik":  r.FormValue("firma_pdv_obveznik"),
@@ -654,7 +647,6 @@ func (h *Handler) napuniPodaciPodesavanja(r *http.Request, naslov string) (Podac
 		PIB:                             podesavanja["pib"],
 		LogoPutanja:                     podesavanja["logo_putanja"],
 		TopbarLogoSlika:                 podesavanja["topbar_logo_slika"] == "1",
-		TopbarLogoTekst:                 podesavanja["topbar_logo_tekst"] == "1",
 		FirmaPravniOblik:                vrednostIliDefault(podesavanja, "firma_pravni_oblik", "pausalac"),
 		FirmaPdvObveznik:                vrednostIliDefault(podesavanja, "firma_pdv_obveznik", "ne"),
 		FirmaFiskalizacija:              vrednostIliDefault(podesavanja, "firma_fiskalizacija", "ne"),
