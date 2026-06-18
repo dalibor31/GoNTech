@@ -53,6 +53,13 @@ func main() {
 		putanjaBaze = "ntech.db"
 	}
 	envFajl := config.PutanjaNtechEnv(putanjaBaze)
+	// u production/demo modu sve podešavanja dolaze iz env promenljivih —
+	// kreiraj prazan fajl ako ne postoji da se ne pokrene setup wizard
+	if env := os.Getenv("NTECH_ENV"); env == "production" || env == "demo" {
+		if _, err := os.Stat(envFajl); os.IsNotExist(err) {
+			os.WriteFile(envFajl, []byte(""), 0600)
+		}
+	}
 	godotenv.Load(envFajl)
 	podesiLog()
 	auth.InitAuthLog()
