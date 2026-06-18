@@ -46,7 +46,7 @@ func nadjiLokalneAdrese() []string {
 }
 
 // PokreniSetup pokreće HTTP server za prvo podešavanje i čeka da korisnik završi
-func PokreniSetup(fsys fs.FS) {
+func PokreniSetup(fsys fs.FS, envFajl string) {
 	port := NadjiSlobodanPort()
 	if port == 0 {
 		slog.Error("setup: nije pronađen nijedan slobodan port"); os.Exit(1)
@@ -90,7 +90,7 @@ func PokreniSetup(fsys fs.FS) {
 			Port int `json:"port"`
 		}
 		json.NewDecoder(req.Body).Decode(&telo)
-		if err := SacuvajEnv(telo.Port); err != nil {
+		if err := SacuvajEnv(telo.Port, envFajl); err != nil {
 			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
 			return
 		}

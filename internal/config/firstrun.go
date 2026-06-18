@@ -4,7 +4,16 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 )
+
+// PutanjaNtechEnv vraća putanju do ntech.env fajla na osnovu putanje SQLite baze.
+// Fajl se čuva u istom direktorijumu kao i baza, tako da volume mount direktorijuma
+// pokriva i bazu i konfiguraciju.
+func PutanjaNtechEnv(sqlitePutanja string) string {
+	dir := filepath.Dir(sqlitePutanja)
+	return filepath.Join(dir, "ntech.env")
+}
 
 // lista portova koje proveravamo pri prvom pokretanju
 var kandidatPortovi = []int{8080, 3000, 8000, 9090}
@@ -32,8 +41,8 @@ func NadjiSlobodanPort() int {
 }
 
 // proverava da li je ovo prvo pokretanje programa
-func JelPrvoPokretanje() bool {
-	_, err := os.Stat("ntech.env")
+func JelPrvoPokretanje(envFajl string) bool {
+	_, err := os.Stat(envFajl)
 	return os.IsNotExist(err)
 }
 
@@ -56,7 +65,7 @@ func StatusPortova() []PortStatus {
 }
 
 // SacuvajEnv upisuje izabrani port u ntech.env fajl
-func SacuvajEnv(port int) error {
+func SacuvajEnv(port int, envFajl string) error {
 	sadrzaj := fmt.Sprintf("NTECH_PORT=%d\n", port)
-	return os.WriteFile("ntech.env", []byte(sadrzaj), 0600)
+	return os.WriteFile(envFajl, []byte(sadrzaj), 0600)
 }
