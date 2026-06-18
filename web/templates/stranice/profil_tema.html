@@ -74,6 +74,104 @@
         {{end}}
     </div>
 
+    <!-- kartica: animacije -->
+    <div class="kartica animiraj" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sb-akcent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12s2.545-5 7-5c4.454 0 7 5 7 5s-2.546 5-7 5c-4.455 0-7-5-7-5z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Animacije tabela</span>
+        </div>
+
+        <form method="POST" action="/profil/animacija">
+            <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+            <div class="kolona" style="gap:16px;">
+                <div style="max-width:300px;">
+                    <label class="polje-labela" for="anim-select">Vrsta animacije pri učitavanju</label>
+                    <select id="anim-select" name="lokalna_animacija" style="width:100%;" onchange="animPreview(this.value)"><!-- preview se primenjuje na wrapper, ne na body -->
+                        <option value="" {{if eq .LokalnaAnimacija ""}}selected{{end}}>Podrazumevano (klizanje gore)</option>
+                        <option value="bez" {{if eq .LokalnaAnimacija "bez"}}selected{{end}}>Bez animacije</option>
+                        <option value="fadeInUp" {{if eq .LokalnaAnimacija "fadeInUp"}}selected{{end}}>Klizanje gore (fadeInUp)</option>
+                        <option value="fadeIn" {{if eq .LokalnaAnimacija "fadeIn"}}selected{{end}}>Pojavljivanje (fadeIn)</option>
+                        <option value="scaleIn" {{if eq .LokalnaAnimacija "scaleIn"}}selected{{end}}>Zumiranje (scaleIn)</option>
+                        <option value="slideLeft" {{if eq .LokalnaAnimacija "slideLeft"}}selected{{end}}>Klizanje s leva (slideLeft)</option>
+                    </select>
+                </div>
+
+                <!-- preview -->
+                <div>
+                    <div class="pomocni-tekst" style="margin-bottom:8px;">Pregled:</div>
+                    <!-- preview wrapper nosi data-animacija atribut; isti CSS [data-animacija] .animiraj
+                         koji radi globalno na body radi i ovde, ali izolovano — pogađa SAMO redove unutar wrappera -->
+                    <div id="anim-preview-wrap" style="border:0.5px solid var(--ivica);border-radius:8px;overflow:hidden;max-width:340px;">
+                        <table style="width:100%;border-collapse:collapse;">
+                            <tbody id="anim-preview-body">
+                                <tr class="animiraj" style="border-bottom:0.5px solid var(--ivica);"><td style="padding:8px 12px;font-size:13px;color:var(--tekst-glavni);">Laptop HP 840</td><td style="padding:8px 12px;text-align:right;font-size:13px;color:var(--tekst-sporedni);">120.000 din</td></tr>
+                                <tr class="animiraj" style="border-bottom:0.5px solid var(--ivica);animation-delay:0.08s;"><td style="padding:8px 12px;font-size:13px;color:var(--tekst-glavni);">iPhone 14 Pro</td><td style="padding:8px 12px;text-align:right;font-size:13px;color:var(--tekst-sporedni);">95.000 din</td></tr>
+                                <tr class="animiraj" style="animation-delay:0.16s;"><td style="padding:8px 12px;font-size:13px;color:var(--tekst-glavni);">Samsung S24</td><td style="padding:8px 12px;text-align:right;font-size:13px;color:var(--tekst-sporedni);">80.000 din</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" onclick="animPreviewPonovi()"
+                        style="margin-top:8px;padding:6px 14px;background:var(--pozadina);border:0.5px solid var(--ivica);border-radius:8px;font-size:12px;color:var(--tekst-sporedni);cursor:pointer;">
+                        Ponovi pregled
+                    </button>
+                </div>
+
+                <div>
+                    <button type="submit" class="btn-primarno">Sačuvaj</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- kartica: hover efekat -->
+    <div class="kartica animiraj" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sb-akcent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l14 9-7 1-4 7z"/></svg>
+            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Hover efekat kartica</span>
+        </div>
+
+        <form method="POST" action="/profil/hover">
+            <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+            <div class="kolona" style="gap:16px;">
+                <div style="max-width:300px;">
+                    <label class="polje-labela" for="hover-select">Efekat pri prelasku mišem</label>
+                    <select id="hover-select" name="lokalni_hover" style="width:100%;" onchange="hoverPreview(this.value)">
+                        <option value="" {{if eq .LokalniHover ""}}selected{{end}}>Podrazumevano (senka + ivica)</option>
+                        <option value="bez" {{if eq .LokalniHover "bez"}}selected{{end}}>Bez efekta</option>
+                        <option value="podizanje" {{if eq .LokalniHover "podizanje"}}selected{{end}}>Podizanje (lift)</option>
+                        <option value="svetlost" {{if eq .LokalniHover "svetlost"}}selected{{end}}>Svetlost ivice (akcent)</option>
+                        <option value="zoom" {{if eq .LokalniHover "zoom"}}selected{{end}}>Zoom (uvećanje)</option>
+                        <option value="boja" {{if eq .LokalniHover "boja"}}selected{{end}}>Boja pozadine (akcent)</option>
+                    </select>
+                </div>
+
+                <!-- preview -->
+                <div>
+                    <div class="pomocni-tekst" style="margin-bottom:8px;">Pregled — pređi mišem:</div>
+                    <div id="hover-preview-wrap" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;max-width:380px;">
+                        <div id="hprev1" class="kartica" style="padding:12px;cursor:default;min-height:64px;display:flex;flex-direction:column;gap:4px;">
+                            <div style="font-size:11px;color:var(--tekst-sporedni);">Artikli</div>
+                            <div style="font-size:18px;font-weight:600;color:var(--tekst-glavni);">1.284</div>
+                        </div>
+                        <div id="hprev2" class="kartica" style="padding:12px;cursor:default;min-height:64px;display:flex;flex-direction:column;gap:4px;">
+                            <div style="font-size:11px;color:var(--tekst-sporedni);">Servis</div>
+                            <div style="font-size:18px;font-weight:600;color:var(--tekst-glavni);">47</div>
+                        </div>
+                        <div id="hprev3" class="kartica" style="padding:12px;cursor:default;min-height:64px;display:flex;flex-direction:column;gap:4px;">
+                            <div style="font-size:11px;color:var(--tekst-sporedni);">Prihod</div>
+                            <div style="font-size:18px;font-weight:600;color:var(--tekst-glavni);">+12%</div>
+                        </div>
+                    </div>
+                    <div class="pomocni-tekst" style="margin-top:6px;font-size:11px;">Efekat se primenjuje odmah pri odabiru.</div>
+                </div>
+
+                <div>
+                    <button type="submit" class="btn-primarno">Sačuvaj</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
     <!-- kartica: moj avatar -->
     <div class="kartica animiraj" style="margin-bottom:16px;">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
@@ -255,4 +353,51 @@
     {{end}}
 
 </div>
+<script>
+function hoverPreview(val) {
+    var wrap = document.getElementById('hover-preview-wrap');
+    if (!wrap) return;
+    if (val === '') {
+        wrap.removeAttribute('data-hover');
+    } else {
+        wrap.setAttribute('data-hover', val);
+    }
+}
+// inicijalizuj preview na osnovu trenutnog odabira pri učitavanju
+(function() {
+    var sel = document.getElementById('hover-select');
+    if (sel) hoverPreview(sel.value);
+})();
+
+// mapiranje vrednosti dropdowna na vrednost data-animacija atributa.
+// prazna vrednost ("Podrazumevano") odgovara fadeInUp — istom podrazumevanom stilu.
+var animVrednosti = {
+    '':          'fadeInUp',
+    'bez':       'bez',
+    'fadeInUp':  'fadeInUp',
+    'fadeIn':    'fadeIn',
+    'scaleIn':   'scaleIn',
+    'slideLeft': 'slideLeft'
+};
+// postavlja data-animacija na PREVIEW wrapper (ne na body), pa CSS
+// [data-animacija] .animiraj radi izolovano — samo nad redovima preview tabele.
+function animPreview(val) {
+    var wrap = document.getElementById('anim-preview-wrap');
+    if (!wrap) return;
+    var anim = animVrednosti[val] || 'fadeInUp';
+    // restartuj animaciju: skini atribut, izazovi reflow, pa ga vrati
+    wrap.removeAttribute('data-animacija');
+    void wrap.offsetHeight; // reflow da bi se animacija ponovo okinula
+    wrap.setAttribute('data-animacija', anim);
+}
+// "Ponovi pregled" — ponovo okida animaciju za trenutno izabrani stil
+function animPreviewPonovi() {
+    animPreview(document.getElementById('anim-select').value);
+}
+// inicijalizuj preview na osnovu sačuvane preferencije pri učitavanju stranice
+(function() {
+    var sel = document.getElementById('anim-select');
+    if (sel) animPreview(sel.value);
+})();
+</script>
 {{end}}

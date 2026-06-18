@@ -53,6 +53,8 @@ type PodaciStranice struct {
 	AppPozadinaBlur         string // vrednost 0-20 (px backdrop-filter blur na elementima)
 	AppPozadinaBlurPozadine string // vrednost 0-20 (px filter blur na pozadinskoj slici)
 	AppPozadinaGlassOpacity string // vrednost 0-80 (% zatamnjivanje glass elemenata) — samo za ličnu pozadinu
+	LokalnaAnimacija        string // "" | "fadeInUp" | "fadeIn" | "scaleIn" | "slideLeft"
+	LokalniHover            string // "" | "bez" | "podizanje" | "svetlost"
 }
 
 // PodaciDashboarda su podaci specifični za dashboard stranicu

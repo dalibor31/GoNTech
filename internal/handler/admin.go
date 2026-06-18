@@ -46,6 +46,8 @@ type podaciProfilTema struct {
 	LokalnaPozadinaBlur         string
 	LokalnaPozadinaBlurPozadine string
 	LokalnaPozadinaGlassOpacity string
+	LokalnaAnimacija            string
+	LokalniHover                string
 }
 
 // AdminKorisnici prikazuje listu korisnika

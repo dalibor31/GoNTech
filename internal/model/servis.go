@@ -43,6 +43,9 @@ type ServisniNalog struct {
 	GarancijaDo    *time.Time
 	DatumPrijema   time.Time
 	DatumZavrsetka *time.Time
+	Ostecenja      string
+	PinUredjaja    string
+	Pribor         string
 }
 
 // ServisniDeo predstavlja jedan artikal ugrađen u servisni nalog

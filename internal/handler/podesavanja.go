@@ -43,6 +43,7 @@ type PodaciPodesavanja struct {
 	BackupIntervalSati              string
 	BackupBrojKopija                string
 	KalkulacijaMarza                string
+	ServisGarancijaMeseci           string
 	LoginPozadina                   string
 	LoginPozadinaOpacity            string
 	LoginPozadinaBlurPozadine       string
@@ -314,6 +315,20 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// podrazumevani rok garancije za servis (meseci, 0–120)
+	if v := strings.TrimSpace(r.FormValue("servis_garancija_meseci")); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 0 || n > 120 {
+			middleware.SetFlash(w, r, h.DB, "greska", "Rok garancije mora biti broj između 0 i 120 meseci.")
+			http.Redirect(w, r, sledeci, http.StatusSeeOther)
+			return
+		}
+		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "servis_garancija_meseci", strconv.Itoa(n)); err != nil {
+			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
+			return
+		}
+	}
+
 	http.Redirect(w, r, sledeci+"?sacuvano=1", http.StatusSeeOther)
 }
 
@@ -436,6 +451,20 @@ func (h *Handler) UkloniLogo(w http.ResponseWriter, r *http.Request) {
 		slog.Error("ukloni logo: greška pri čuvanju", "error", err)
 	}
 	http.Redirect(w, r, "/admin/podesavanja/opste?sacuvano=1", http.StatusSeeOther)
+}
+
+// PodesavanjaServis renderuje stranicu sa podešavanjima servisnog modula
+func (h *Handler) PodesavanjaServis(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "podesavanja.pregled"); !ok {
+		return
+	}
+	podaci, err := h.napuniPodaciPodesavanja(r, "Podešavanja — Servis")
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
+		return
+	}
+	podaci.Stranica = "podesavanja-servis"
+	h.renderujTemplate(w, "podesavanja_servis", podaci)
 }
 
 // generisiImeUploada vraća slučajno hex ime (16 bajtova) sa datom ekstenzijom
@@ -669,6 +698,7 @@ func (h *Handler) napuniPodaciPodesavanja(r *http.Request, naslov string) (Podac
 		BackupIntervalSati:              vrednostIliDefault(podesavanja, "backup_interval_sati", "24"),
 		BackupBrojKopija:                vrednostIliDefault(podesavanja, "backup_broj_kopija", "7"),
 		KalkulacijaMarza:                vrednostIliDefault(podesavanja, "kalkulacija_marza", "20"),
+		ServisGarancijaMeseci:           vrednostIliDefault(podesavanja, "servis_garancija_meseci", "2"),
 	}, nil
 }
 

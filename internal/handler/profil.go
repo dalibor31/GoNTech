@@ -48,6 +48,8 @@ func (h *Handler) ProfilTema(w http.ResponseWriter, r *http.Request) {
 		LokalnaPozadinaBlur:         svezi.LokalnaPozadinaBlur,
 		LokalnaPozadinaBlurPozadine: svezi.LokalnaPozadinaBlurPozadine,
 		LokalnaPozadinaGlassOpacity: svezi.LokalnaPozadinaGlassOpacity,
+		LokalnaAnimacija:            svezi.LokalnaAnimacija,
+		LokalniHover:                svezi.LokalniHover,
 	}
 	if podaci.LokalnaPozadinaOpacity == "" {
 		podaci.LokalnaPozadinaOpacity = "50"
@@ -291,6 +293,84 @@ func (h *Handler) SacuvajLokalnuTemu(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	http.Redirect(w, r, "/admin/profil", http.StatusSeeOther)
+}
+
+// SacuvajLokalnuAnimaciju čuva korisnikovu preferencu animacije tabela
+func (h *Handler) SacuvajLokalnuAnimaciju(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil {
+		http.Redirect(w, r, "/prijava", http.StatusSeeOther)
+		return
+	}
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "tema.lokalno") {
+		http.Error(w, "Pristup odbijen", http.StatusForbidden)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška. Pokušajte ponovo.")
+		http.Redirect(w, r, "/admin/profil/tema", http.StatusSeeOther)
+		return
+	}
+
+	animacija := r.FormValue("lokalna_animacija")
+	dozvoljene := map[string]bool{"": true, "bez": true, "fadeInUp": true, "fadeIn": true, "scaleIn": true, "slideLeft": true}
+	if !dozvoljene[animacija] {
+		animacija = ""
+	}
+
+	if err := h.KorisniciRepo.SacuvajLokalnuAnimaciju(r.Context(), k.ID, animacija); err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju. Pokušajte ponovo.")
+		http.Redirect(w, r, "/admin/profil/tema", http.StatusSeeOther)
+		return
+	}
+
+	middleware.SetFlash(w, r, h.DB, "uspeh", "Animacija je sačuvana.")
+	if ref := r.Referer(); ref != "" {
+		if u, err := url.Parse(ref); err == nil {
+			http.Redirect(w, r, u.RequestURI(), http.StatusSeeOther)
+			return
+		}
+	}
+	http.Redirect(w, r, "/admin/profil/tema", http.StatusSeeOther)
+}
+
+// SacuvajLokalniHover čuva korisnikovu preferencu hover efekta na karticama
+func (h *Handler) SacuvajLokalniHover(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil {
+		http.Redirect(w, r, "/prijava", http.StatusSeeOther)
+		return
+	}
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "tema.lokalno") {
+		http.Error(w, "Pristup odbijen", http.StatusForbidden)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška. Pokušajte ponovo.")
+		http.Redirect(w, r, "/admin/profil/tema", http.StatusSeeOther)
+		return
+	}
+
+	hover := r.FormValue("lokalni_hover")
+	dozvoljeni := map[string]bool{"": true, "bez": true, "podizanje": true, "svetlost": true, "zoom": true, "boja": true}
+	if !dozvoljeni[hover] {
+		hover = ""
+	}
+
+	if err := h.KorisniciRepo.SacuvajLokalniHover(r.Context(), k.ID, hover); err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju. Pokušajte ponovo.")
+		http.Redirect(w, r, "/admin/profil/tema", http.StatusSeeOther)
+		return
+	}
+
+	middleware.SetFlash(w, r, h.DB, "uspeh", "Hover efekat je sačuvan.")
+	if ref := r.Referer(); ref != "" {
+		if u, err := url.Parse(ref); err == nil {
+			http.Redirect(w, r, u.RequestURI(), http.StatusSeeOther)
+			return
+		}
+	}
+	http.Redirect(w, r, "/admin/profil/tema", http.StatusSeeOther)
 }
 
 // ProfilOtpremiAvatar prima upload lične avatar slike korisnika

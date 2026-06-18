@@ -43,6 +43,7 @@ func (r *ServisRepo) Lista(ctx context.Context, pretraga, status string) ([]mode
 			sn.id, sn.klijent_id, sn.tehnicar_id, sn.broj_naloga, sn.uredjaj, sn.serijski_broj,
 			sn.opis_kvara, sn.status, sn.cena_od, sn.cena_do, sn.cena_konacna,
 			sn.avans, sn.napomena, sn.garancija_do, sn.datum_prijema, sn.datum_zavrsetka,
+			sn.ostecenja, sn.pin_uredjaja, sn.pribor,
 			COALESCE(kp.naziv, '') AS klijent_naziv
 		FROM servisni_nalozi sn
 		LEFT JOIN klijent_prikaz kp ON kp.id = sn.klijent_id
@@ -88,7 +89,8 @@ func (r *ServisRepo) DohvatiID(ctx context.Context, id int64) (*model.ServisniNa
 		SELECT
 			id, klijent_id, tehnicar_id, broj_naloga, uredjaj, serijski_broj,
 			opis_kvara, status, cena_od, cena_do, cena_konacna,
-			avans, napomena, garancija_do, datum_prijema, datum_zavrsetka
+			avans, napomena, garancija_do, datum_prijema, datum_zavrsetka,
+			ostecenja, pin_uredjaja, pribor
 		FROM servisni_nalozi WHERE id = ?`, id)
 
 	var n model.ServisniNalog
@@ -105,13 +107,16 @@ func (r *ServisRepo) Kreiraj(ctx context.Context, n *model.ServisniNalog) (int64
 	rezultat, err := r.db.ExecContext(ctx, `
 		INSERT INTO servisni_nalozi
 			(klijent_id, tehnicar_id, broj_naloga, uredjaj, serijski_broj, opis_kvara,
-			 status, cena_od, cena_do, cena_konacna, avans, napomena, garancija_do, datum_zavrsetka)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			 status, cena_od, cena_do, cena_konacna, avans, napomena, garancija_do, datum_zavrsetka,
+			 ostecenja, pin_uredjaja, pribor, datum_prijema)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		nullInt64(n.KlijentID), nullInt64(n.TehnicarID), n.BrojNaloga, n.Uredjaj,
 		nullString(n.SerijskiBroj), n.OpisKvara, n.Status,
 		nullFloat64(n.CenaOd), nullFloat64(n.CenaDo), nullFloat64(n.CenaKonacna),
 		nullFloat64(n.Avans), nullString(n.Napomena),
 		nullTime(n.GarancijaDo), nullTime(n.DatumZavrsetka),
+		nullString(n.Ostecenja), nullString(n.PinUredjaja), nullString(n.Pribor),
+		n.DatumPrijema,
 	)
 	if err != nil {
 		return 0, fmt.Errorf("ntech: ServisRepo.Kreiraj: %w", err)
@@ -131,11 +136,13 @@ func (r *ServisRepo) Izmeni(ctx context.Context, n *model.ServisniNalog) error {
 		UPDATE servisni_nalozi SET
 			klijent_id = ?, tehnicar_id = ?, uredjaj = ?, serijski_broj = ?, opis_kvara = ?,
 			status = ?, cena_od = ?, cena_do = ?, cena_konacna = ?,
-			avans = ?, napomena = ?, garancija_do = ?, datum_zavrsetka = ?
+			avans = ?, napomena = ?, garancija_do = ?, datum_zavrsetka = ?,
+			ostecenja = ?, pin_uredjaja = ?, pribor = ?
 		WHERE id = ?`,
 		nullInt64(n.KlijentID), nullInt64(n.TehnicarID), n.Uredjaj, nullString(n.SerijskiBroj), n.OpisKvara,
 		n.Status, nullFloat64(n.CenaOd), nullFloat64(n.CenaDo), nullFloat64(n.CenaKonacna),
 		nullFloat64(n.Avans), nullString(n.Napomena), nullTime(n.GarancijaDo), nullTime(n.DatumZavrsetka),
+		nullString(n.Ostecenja), nullString(n.PinUredjaja), nullString(n.Pribor),
 		n.ID,
 	)
 	if err != nil {
@@ -159,7 +166,7 @@ func (r *ServisRepo) Obrisi(ctx context.Context, id int64) error {
 // klijentNaziv je opcioni pokazivač, nil kada se čita bez JOIN-a
 func scanNalog(scan func(...any) error, n *model.ServisniNalog, klijentNaziv *string) error {
 	var klijentID, tehnicarID sql.NullInt64
-	var serijskiBroj, napomena sql.NullString
+	var serijskiBroj, napomena, ostecenja, pinUredjaja, pribor sql.NullString
 	var cenaOd, cenaDo, cenaKonacna, avans sql.NullFloat64
 	var garancijaDo, datumZavrsetka sql.NullTime
 
@@ -167,6 +174,7 @@ func scanNalog(scan func(...any) error, n *model.ServisniNalog, klijentNaziv *st
 		&n.ID, &klijentID, &tehnicarID, &n.BrojNaloga, &n.Uredjaj, &serijskiBroj,
 		&n.OpisKvara, &n.Status, &cenaOd, &cenaDo, &cenaKonacna,
 		&avans, &napomena, &garancijaDo, &n.DatumPrijema, &datumZavrsetka,
+		&ostecenja, &pinUredjaja, &pribor,
 	}
 
 	if klijentNaziv != nil {
@@ -187,6 +195,9 @@ func scanNalog(scan func(...any) error, n *model.ServisniNalog, klijentNaziv *st
 	}
 	n.SerijskiBroj = serijskiBroj.String
 	n.Napomena = napomena.String
+	n.Ostecenja = ostecenja.String
+	n.PinUredjaja = pinUredjaja.String
+	n.Pribor = pribor.String
 	if cenaOd.Valid {
 		v := cenaOd.Float64
 		n.CenaOd = &v

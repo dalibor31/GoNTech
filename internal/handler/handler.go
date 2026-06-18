@@ -211,6 +211,10 @@ func (h *Handler) popuniPodaciStranice(r *http.Request, podesavanja map[string]s
 			ps.AppPozadinaGlassOpacity = "10"
 		}
 	}
+	if korisnik != nil {
+		ps.LokalnaAnimacija = korisnik.LokalnaAnimacija
+		ps.LokalniHover = korisnik.LokalniHover
+	}
 
 	return ps
 }

@@ -24,7 +24,7 @@ var saSidebar = []string{
 	"klijenti", "klijent_forma",
 	"magacin", "magacin_forma",
 	"nabavke", "nabavka_forma", "nabavka_detalji",
-	"podesavanja", "podesavanja_opste", "podesavanja_izgled", "podesavanja_sistem",
+	"podesavanja", "podesavanja_opste", "podesavanja_izgled", "podesavanja_sistem", "podesavanja_servis",
 	"pdv_stope",
 	"pdv_kir", "pdv_kir_forma",
 	"pdv_kpr", "pdv_kpr_forma",

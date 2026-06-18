@@ -106,7 +106,7 @@
     </script>
     {{end}}
   </head>
-  <body>
+  <body{{if .LokalnaAnimacija}} data-animacija="{{.LokalnaAnimacija}}"{{end}}{{if .LokalniHover}} data-hover="{{.LokalniHover}}"{{end}}>
     <div class="raspored">
       <div class="sidebar-overlay" id="sidebar-overlay"></div>
       {{template "sidebar" .}}

@@ -339,12 +339,42 @@ body {
     border-radius: 12px;
     padding: 16px;
     box-shadow: var(--senka);
-    transition: transform 0.25s cubic-bezier(.4,0,.2,1), box-shadow 0.25s;
+    transition: box-shadow 0.25s, border-color 0.25s, transform 0.25s, background 0.25s;
 }
 
 .kartica:hover {
-    transform: scale(1.02);
+    box-shadow: var(--senka-hover);
+    border-color: var(--ivica-jaka);
+}
+
+/* hover varijante po korisničkoj preferenciji.
+   Selektor je [data-hover] (ne body[data-hover]) da bi isti CSS
+   radio i globalno (body) i lokalno na preview wrapperima. */
+[data-hover="bez"] .kartica:hover {
     box-shadow: var(--senka);
+    border-color: var(--ivica);
+    transform: none;
+}
+[data-hover="podizanje"] .kartica:hover {
+    box-shadow: var(--senka-hover);
+    border-color: var(--ivica-jaka);
+    transform: translateY(-3px);
+}
+[data-hover="svetlost"] .kartica:hover {
+    box-shadow: 0 0 0 1.5px var(--sb-akcent), 0 0 20px color-mix(in srgb, var(--sb-akcent) 35%, transparent);
+    border-color: var(--sb-akcent);
+    transform: none;
+}
+[data-hover="zoom"] .kartica:hover {
+    box-shadow: var(--senka-hover);
+    border-color: var(--ivica-jaka);
+    transform: scale(1.02);
+}
+[data-hover="boja"] .kartica:hover {
+    box-shadow: var(--senka-hover);
+    border-color: var(--ivica-jaka);
+    background: color-mix(in srgb, var(--sb-akcent) 6%, var(--kartica));
+    transform: none;
 }
 
 /* modal za premeštanje artikla — koristi promenljive teme, pa prati svetlu/tamnu;
@@ -592,7 +622,9 @@ body {
     color: var(--tekst-sporedni);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin-bottom: 10px;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+    border-bottom: 0.5px solid var(--ivica);
 }
 
 /* avatar krug korisnika u topbaru */
@@ -980,6 +1012,21 @@ select {
     to   { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideLeft {
+    from { opacity: 0; transform: translateX(-12px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
 @keyframes slideDown {
     from { opacity: 0; transform: translateY(-10px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -1003,11 +1050,40 @@ select {
     animation: fadeInUp 0.2s ease backwards;
 }
 
+/* kartice ne animiramo po defaultu — animacija je samo na redovima tabela */
+.kartica.animiraj {
+    animation: none;
+}
+
+/* korisnikova preferencija animacije: body[data-animacija] nadjačava podrazumevano.
+   Kad korisnik odabere stil, animiraju se i redovi tabela i mobilne kartice. */
+[data-animacija="bez"] .animiraj,
+[data-animacija="bez"] .tabela tbody tr,
+[data-animacija="bez"] .kartica.animiraj      { animation: none; }
+
+[data-animacija="fadeInUp"] .animiraj,
+[data-animacija="fadeInUp"] .tabela tbody tr,
+[data-animacija="fadeInUp"] .kartica.animiraj { animation: fadeInUp 0.2s ease backwards; }
+
+[data-animacija="fadeIn"] .animiraj,
+[data-animacija="fadeIn"] .tabela tbody tr,
+[data-animacija="fadeIn"] .kartica.animiraj   { animation: fadeIn 0.2s ease backwards; }
+
+[data-animacija="scaleIn"] .animiraj,
+[data-animacija="scaleIn"] .tabela tbody tr,
+[data-animacija="scaleIn"] .kartica.animiraj  { animation: scaleIn 0.2s ease backwards; }
+
+[data-animacija="slideLeft"] .animiraj,
+[data-animacija="slideLeft"] .tabela tbody tr,
+[data-animacija="slideLeft"] .kartica.animiraj { animation: slideLeft 0.2s ease backwards; }
+
 /* Stepenasta (stagger) animacija redova u svim listama — JEDNO mesto za sve tabele.
-   Pogađa samo redove koji se animiraju (<tr class="animiraj">); ostali ostaju bez
-   delay-a. Mora biti u main.css: HTMX navigacija (hx-select) odbacuje <head>, pa
-   stilovi iz page <style> blokova ne bi važili tokom navigacije.
-   Da promeniš animaciju redova svuda — menjaš samo ovde. */
+   Animacija se primenjuje direktno na <tr> u .tabela, bez potrebe za .animiraj klasom.
+   Mora biti u main.css: HTMX navigacija (hx-select) odbacuje <head>, pa
+   stilovi iz page <style> blokova ne bi važili tokom navigacije. */
+.tabela tbody tr {
+    animation: fadeInUp 0.2s ease backwards;
+}
 .tabela tbody tr:nth-child(1)  { animation-delay: 0.04s; }
 .tabela tbody tr:nth-child(2)  { animation-delay: 0.08s; }
 .tabela tbody tr:nth-child(3)  { animation-delay: 0.12s; }
