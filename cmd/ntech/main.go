@@ -125,7 +125,13 @@ func main() {
 		slog.Info("šifrovane postojeće TOTP tajne", "broj", br)
 	}
 
-	napraviBackup(db, putanjaBaze)
+	{
+		max := procitajIntPodesavanje(db, "backup_broj_kopija", 7)
+		if os.Getenv("NTECH_ENV") == "demo" {
+			max = 2
+		}
+		napraviBackup(db, putanjaBaze, max)
+	}
 
 	os.MkdirAll("web/static/uploads", 0755)
 
@@ -168,7 +174,11 @@ func main() {
 			})
 			time.Sleep(time.Duration(sati) * time.Hour)
 			h.SaBazom(func(db *sql.DB) {
-				napraviBackup(db, putanjaBaze)
+				max := procitajIntPodesavanje(db, "backup_broj_kopija", 7)
+				if h.JelDemo {
+					max = 2
+				}
+				napraviBackup(db, putanjaBaze, max)
 			})
 		}
 	}()
@@ -456,7 +466,7 @@ func postaviDemoKorisnika(ctx context.Context, repo db.KorisniciRepository) erro
 
 // napraviBackup kreira konzistentnu kopiju baze i briše najstarije preko zadatog broja kopija.
 // Koristi već otvorenu vezu ka bazi (VACUUM INTO je bezbedan na pooled konekciji).
-func napraviBackup(db *sql.DB, putanjaBaze string) {
+func napraviBackup(db *sql.DB, putanjaBaze string, maxKopija int) {
 	if _, err := os.Stat(putanjaBaze); os.IsNotExist(err) {
 		return
 	}
@@ -476,7 +486,7 @@ func napraviBackup(db *sql.DB, putanjaBaze string) {
 	}
 
 	slog.Info("backup kreiran", "putanja", odrediste)
-	ocistiStareBackupe(folder, procitajIntPodesavanje(db, "backup_broj_kopija", 7))
+	ocistiStareBackupe(folder, maxKopija)
 }
 
 // procitajIntPodesavanje vraća celobrojnu vrednost podešavanja iz baze,
