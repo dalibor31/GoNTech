@@ -110,9 +110,15 @@ func (h *Handler) NoviNalog(w http.ResponseWriter, r *http.Request) {
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "servis"
 	ps.NaslovStranice = "Novi nalog"
+	noviNalog := model.ServisniNalog{
+		BrojNaloga:   brojNaloga,
+		Status:       model.StatusPrimljeno,
+		DatumPrijema: time.Now(),
+	}
+	noviNalog.GarancijaDo = defaultGarancija(noviNalog.DatumPrijema, podesavanja)
 	h.renderujFormuNaloga(w, PodaciFormeNaloga{
 		PodaciStranice: ps,
-		Nalog:          model.ServisniNalog{BrojNaloga: brojNaloga, Status: model.StatusPrimljeno},
+		Nalog:          noviNalog,
 		Klijenti:       klijenti,
 		Tehnicari:      tehnicari,
 		SviStatusi:     model.SviStatusi,
@@ -206,6 +212,9 @@ func (h *Handler) IzmeniNalog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if nalog.GarancijaDo == nil {
+		nalog.GarancijaDo = defaultGarancija(nalog.DatumPrijema, podesavanja)
+	}
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "servis"
 	ps.NaslovStranice = "Izmeni nalog"
@@ -460,6 +469,17 @@ func parseFormuNaloga(r *http.Request) (model.ServisniNalog, string) {
 		OpisKvara:    opisKvara,
 		Status:       r.FormValue("status"),
 		Napomena:     strings.TrimSpace(r.FormValue("napomena")),
+		Ostecenja:    strings.TrimSpace(r.FormValue("ostecenja")),
+		PinUredjaja:  strings.TrimSpace(r.FormValue("pin_uredjaja")),
+		Pribor:       strings.TrimSpace(r.FormValue("pribor")),
+		DatumPrijema: time.Now(),
+	}
+
+	// datum prijema — korisnik može da unese drugi datum (npr. retroaktivno)
+	if dp := strings.TrimSpace(r.FormValue("datum_prijema")); dp != "" {
+		if t, err := time.Parse("2006-01-02", dp); err == nil {
+			nalog.DatumPrijema = t
+		}
 	}
 
 	if nalog.Status == "" {
@@ -493,14 +513,27 @@ func parseFormuNaloga(r *http.Request) (model.ServisniNalog, string) {
 		}
 	}
 
-	// opcioni datum garancije
-	if gd := strings.TrimSpace(r.FormValue("garancija_do")); gd != "" {
-		if t, err := time.Parse("2006-01-02", gd); err == nil {
-			nalog.GarancijaDo = &t
+	// opcioni datum garancije — preskačemo ako je korisnik označio "bez garancije"
+	if r.FormValue("bez_garancije") != "1" {
+		if gd := strings.TrimSpace(r.FormValue("garancija_do")); gd != "" {
+			if t, err := time.Parse("2006-01-02", gd); err == nil {
+				nalog.GarancijaDo = &t
+			}
 		}
 	}
 
 	return nalog, ""
+}
+
+// defaultGarancija vraća datum garancije na osnovu datuma prijema i podešavanja;
+// vraća nil ako je rok 0 ili podešavanje nedostaje
+func defaultGarancija(datumPrijema time.Time, podesavanja map[string]string) *time.Time {
+	meseci, err := strconv.Atoi(vrednostIliDefault(podesavanja, "servis_garancija_meseci", "2"))
+	if err != nil || meseci <= 0 {
+		return nil
+	}
+	t := datumPrijema.AddDate(0, meseci, 0)
+	return &t
 }
 
 // parseOpcionuCenu pretvara string u *float64 — prazno polje ili neispravna vrednost vraća nil

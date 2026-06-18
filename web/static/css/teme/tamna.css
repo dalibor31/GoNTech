@@ -8,6 +8,7 @@
   --tekst-sporedni: #a0a8b5;
   --tekst-jak: #f0f3f6;
   --ivica: #353a44;
+  --ivica-jaka: #5a6070;
   --sb-akcent: #4684d6;
   --sb-akcent-hover: #5a96e6;
   --sb-aktivan: #2a2f37;
@@ -15,7 +16,8 @@
   --upozorenje: #e1b04a;
   --greska: #cf5757;
   --info: #5cb1d6;
-  --senka: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --senka: 0 4px 16px rgba(0, 0, 0, 0.55), 0 1px 4px rgba(0, 0, 0, 0.35);
+  --senka-hover: 0 8px 28px rgba(0, 0, 0, 0.7), 0 2px 8px rgba(0, 0, 0, 0.45);
   --sidebar-pozadina: #1a1c20;
   --poruka-uspeh-bg: rgba(93, 184, 118, 0.15);
   --poruka-uspeh-boja: #5db876;

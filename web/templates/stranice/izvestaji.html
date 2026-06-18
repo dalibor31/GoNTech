@@ -6,12 +6,6 @@
 <style>
     .izv-naslov { font-size: 13px; font-weight: 500; color: var(--tekst-sporedni); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; }
     .toggle-red { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-    .toggle-switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
-    .toggle-switch input { opacity: 0; width: 0; height: 0; }
-    .toggle-slider { position: absolute; inset: 0; background: var(--ivica); border-radius: 22px; cursor: pointer; transition: background 0.2s; }
-    .toggle-slider::before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform 0.2s; }
-    .toggle-switch input:checked + .toggle-slider { background: var(--sb-akcent); }
-    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); }
     .rang-broj { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: var(--pozadina); font-size: 11px; font-weight: 600; color: var(--tekst-sporedni); flex-shrink: 0; }
     .rang-broj.zlatni { background: #fef3c7; color: #92400e; }
     .badge-dana { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; white-space: nowrap; }
@@ -34,9 +28,9 @@
             <div class="izv-naslov" style="margin-bottom:0;">Mesečni prihod — poslednjih 12 meseci</div>
             <div class="toggle-red" style="margin-bottom:0;">
                 <span class="pomocni-tekst">Grafikon</span>
-                <label class="toggle-switch">
+                <label class="toggl">
                     <input type="checkbox" id="toggle-grafikon" checked>
-                    <span class="toggle-slider"></span>
+                    <span class="toggl-klizac"></span>
                 </label>
             </div>
         </div>

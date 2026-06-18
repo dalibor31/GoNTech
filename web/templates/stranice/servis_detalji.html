@@ -103,6 +103,28 @@
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:6px;">Opis kvara</div>
                 <div style="font-size:14px;color:var(--tekst-glavni);line-height:1.6;white-space:pre-wrap;">{{.Nalog.OpisKvara}}</div>
             </div>
+            {{if or .Nalog.Ostecenja .Nalog.PinUredjaja .Nalog.Pribor}}
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:16px;">
+                {{if .Nalog.Ostecenja}}
+                <div>
+                    <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Oštećenja pri prijemu</div>
+                    <div style="font-size:14px;color:var(--tekst-glavni);">{{.Nalog.Ostecenja}}</div>
+                </div>
+                {{end}}
+                {{if .Nalog.PinUredjaja}}
+                <div>
+                    <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">PIN / lozinka uređaja</div>
+                    <div style="font-size:14px;color:var(--tekst-glavni);font-family:monospace;">{{.Nalog.PinUredjaja}}</div>
+                </div>
+                {{end}}
+                {{if .Nalog.Pribor}}
+                <div>
+                    <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Pribor i oprema</div>
+                    <div style="font-size:14px;color:var(--tekst-glavni);">{{.Nalog.Pribor}}</div>
+                </div>
+                {{end}}
+            </div>
+            {{end}}
             {{if .Nalog.Napomena}}
             <div>
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:6px;">Napomena</div>

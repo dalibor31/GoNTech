@@ -12,11 +12,11 @@
     </a>
 
     <div class="kartica forma-kartica animiraj">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);flex-wrap:wrap;gap:10px;">
-            <span style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin:-16px -16px 20px -16px;padding:12px 16px;background:var(--pozadina);border-radius:12px 12px 0 0;flex-wrap:wrap;gap:10px;">
+            <span style="font-size:15px;font-weight:600;color:var(--tekst-glavni);">
                 {{if .Izmena}}Izmeni nalog{{else}}Novi nalog{{end}}
             </span>
-            <span style="font-size:14px;font-weight:500;color:var(--tekst-sporedni);font-family:monospace;">
+            <span style="font-size:13px;font-weight:500;color:var(--tekst-sporedni);font-family:monospace;">
                 {{.Nalog.BrojNaloga}}
             </span>
         </div>
@@ -60,6 +60,26 @@
                                 placeholder="Opišite problem koji je klijent prijavio..."
                                 style="width:100%;resize:vertical;">{{.Nalog.OpisKvara}}</textarea>
                         </div>
+                        <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                            <div>
+                                <label class="polje-labela">Oštećenja pri prijemu</label>
+                                <input type="text" name="ostecenja" value="{{.Nalog.Ostecenja}}"
+                                    placeholder="npr. ogrebotina na ekranu"
+                                    style="width:100%;">
+                            </div>
+                            <div>
+                                <label class="polje-labela">PIN / lozinka uređaja</label>
+                                <input type="text" name="pin_uredjaja" value="{{.Nalog.PinUredjaja}}"
+                                    placeholder="npr. 1234"
+                                    style="width:100%;">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="polje-labela">Pribor i oprema</label>
+                            <input type="text" name="pribor" value="{{.Nalog.Pribor}}"
+                                placeholder="npr. punjač, torbica, miš"
+                                style="width:100%;">
+                        </div>
                     </div>
                 </div>
 
@@ -97,8 +117,8 @@
                 <!-- status i datumi -->
                 <div>
                     <div class="sekcija-naslov">Status i datumi</div>
-                    <div class="forma-grid-4" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;">
-                        <div style="grid-column:span 2;">
+                    <div class="kolona" style="gap:12px;">
+                        <div>
                             <label class="polje-labela">Status naloga</label>
                             <select name="status" style="width:100%;">
                                 {{range .SviStatusi}}
@@ -106,17 +126,38 @@
                                 {{end}}
                             </select>
                         </div>
-                        <div>
-                            <label class="polje-labela">Datum završetka</label>
-                            <input type="date" name="datum_zavrsetka"
-                                value="{{if .Nalog.DatumZavrsetka}}{{.Nalog.DatumZavrsetka.Format "2006-01-02"}}{{end}}"
-                                style="width:100%;">
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
+                            <div>
+                                <label class="polje-labela">Datum prijema</label>
+                                <input type="date" name="datum_prijema"
+                                    value="{{.Nalog.DatumPrijema.Format "2006-01-02"}}"
+                                    style="width:100%;">
+                            </div>
+                            <div>
+                                <label class="polje-labela">Datum završetka</label>
+                                <input type="date" name="datum_zavrsetka"
+                                    value="{{if .Nalog.DatumZavrsetka}}{{.Nalog.DatumZavrsetka.Format "2006-01-02"}}{{end}}"
+                                    style="width:100%;">
+                            </div>
                         </div>
                         <div>
                             <label class="polje-labela">Garancija do</label>
-                            <input type="date" name="garancija_do"
+                            <input type="date" name="garancija_do" id="garancija_do_input"
                                 value="{{if .Nalog.GarancijaDo}}{{.Nalog.GarancijaDo.Format "2006-01-02"}}{{end}}"
-                                style="width:100%;">
+                                {{if not .Nalog.GarancijaDo}}disabled{{end}}
+                                style="width:100%;{{if not .Nalog.GarancijaDo}}opacity:0.4;{{end}}">
+                        </div>
+                        <!-- svič bez garancije -->
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <label class="toggl" style="flex-shrink:0;">
+                                <input type="checkbox" id="bez_garancije_chk"
+                                    {{if not .Nalog.GarancijaDo}}checked{{end}}
+                                    onchange="toggleGarancija(this)">
+                                <span class="toggl-klizac"></span>
+                            </label>
+                            <input type="hidden" name="bez_garancije" id="bez_garancije_val"
+                                value="{{if not .Nalog.GarancijaDo}}1{{else}}0{{end}}">
+                            <span style="font-size:13px;color:var(--tekst-sporedni);">Bez garancije</span>
                         </div>
                     </div>
                 </div>
@@ -172,4 +213,20 @@
         </form>
     </div>
 </div>
+<script>
+function toggleGarancija(chk) {
+    var input = document.getElementById('garancija_do_input');
+    var hidden = document.getElementById('bez_garancije_val');
+    if (chk.checked) {
+        input.value = '';
+        input.disabled = true;
+        input.style.opacity = '0.4';
+        hidden.value = '1';
+    } else {
+        input.disabled = false;
+        input.style.opacity = '1';
+        hidden.value = '0';
+    }
+}
+</script>
 {{end}}

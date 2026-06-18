@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"ntech/internal/db/sqlite"
 	"ntech/internal/middleware"
@@ -34,6 +35,18 @@ func (h *Handler) Nivelacije(w http.ResponseWriter, r *http.Request) {
 
 	odStr := r.URL.Query().Get("od")
 	doStr := r.URL.Query().Get("do")
+	// podrazumevano: tekući mesec (od prvog do poslednjeg dana)
+	if odStr == "" || doStr == "" {
+		sada := time.Now()
+		prvi := time.Date(sada.Year(), sada.Month(), 1, 0, 0, 0, 0, sada.Location())
+		poslednji := prvi.AddDate(0, 1, -1)
+		if odStr == "" {
+			odStr = prvi.Format("2006-01-02")
+		}
+		if doStr == "" {
+			doStr = poslednji.Format("2006-01-02")
+		}
+	}
 	zapisi, err := h.NivelacijaRepo.Lista(r.Context(), parsiraDatumOpcionalno(odStr), parsiraDatumOpcionalno(doStr))
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju nivelacija", http.StatusInternalServerError)
