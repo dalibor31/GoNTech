@@ -35,6 +35,7 @@ type podaciAdminProfil struct {
 	BrojRezervnih      int      // koliko neiskorišćenih rezervnih kodova je preostalo
 	LokalnaTema        string
 	KoristiLokalnuTemu bool
+	JelDemo            bool
 }
 
 type podaciProfilTema struct {
@@ -312,6 +313,7 @@ func (h *Handler) AdminProfil(w http.ResponseWriter, r *http.Request) {
 		BrojRezervnih:      brojRezervnih,
 		LokalnaTema:        svezi.LokalnaTema,
 		KoristiLokalnuTemu: svezi.KoristiLokalnuTemu,
+		JelDemo:            h.JelDemo,
 	})
 }
 
@@ -352,6 +354,7 @@ func (h *Handler) generisiIPrikaziKodove(w http.ResponseWriter, r *http.Request,
 		TotpAktivan:    true,
 		RezervniKodovi: kodovi,
 		BrojRezervnih:  len(kodovi),
+		JelDemo:        h.JelDemo,
 	})
 }
 
@@ -360,6 +363,12 @@ func (h *Handler) AdminPromeniLozinku(w http.ResponseWriter, r *http.Request) {
 	k := middleware.KorisnikIzKonteksta(r.Context())
 	if k == nil {
 		http.Redirect(w, r, "/prijava", http.StatusSeeOther)
+		return
+	}
+
+	if h.JelDemo {
+		middleware.SetFlash(w, r, h.DB, "greska", "Promena lozinke nije dozvoljena u demo modu.")
+		http.Redirect(w, r, "/admin/profil", http.StatusSeeOther)
 		return
 	}
 
@@ -426,6 +435,7 @@ func (h *Handler) AdminTotpPokreni(w http.ResponseWriter, r *http.Request) {
 		TotpURI:        totp.URI,
 		TotpTajna:      totp.Tajna,
 		TotpQR:         template.URL("data:image/png;base64," + totp.QRBase64),
+		JelDemo:        h.JelDemo,
 	})
 }
 
@@ -465,6 +475,7 @@ func (h *Handler) AdminTotpAktivacija(w http.ResponseWriter, r *http.Request) {
 			TotpTajna:      tajna,
 			TotpQR:         template.URL("data:image/png;base64," + qr),
 			Greska:         "totp",
+			JelDemo:        h.JelDemo,
 		})
 		return
 	}

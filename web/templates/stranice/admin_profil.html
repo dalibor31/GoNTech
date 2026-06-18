@@ -5,6 +5,9 @@
 	<div class="kartica animiraj">
 		<div style="font-size: 15px; font-weight: 500; color: var(--tekst-glavni); margin-bottom: 16px; padding-bottom: 12px; border-bottom: 0.5px solid var(--ivica)">Promena lozinke</div>
 
+		{{if .JelDemo}}
+		<p style="font-size: 13px; color: var(--tekst-sporedni)">Promena lozinke nije dostupna u demo modu.</p>
+		{{else}}
 		<form method="POST" action="/admin/profil/lozinka">
 			<div style="display: flex; flex-direction: column; gap: 12px">
 				<div>
@@ -24,6 +27,7 @@
 				</div>
 			</div>
 		</form>
+		{{end}}
 	</div>
 
 	<!-- TOTP / 2FA -->
