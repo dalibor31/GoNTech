@@ -75,9 +75,9 @@ func main() {
 	if _, err := os.Stat("migrations"); err == nil {
 		migrFS = os.DirFS(".")
 	}
-	// staticFS je rootovan na "web/static" — u produkciji embed, u razvoju disk
+	// staticFS je rootovan na "web/static" — u produkciji i demo modu embed, u razvoju disk
 	var staticFS fs.FS
-	if os.Getenv("NTECH_ENV") == "production" {
+	if ntechEnv := os.Getenv("NTECH_ENV"); ntechEnv == "production" || ntechEnv == "demo" {
 		staticFS, _ = fs.Sub(assets.StaticFS, "web/static")
 	} else {
 		staticFS = os.DirFS("web/static")
@@ -158,7 +158,7 @@ func main() {
 	// čuva odabrani FS (disk ili embed) za hot-reload u razvoju i za keš u produkciji
 	h.TemplatesFS = templFS
 
-	if os.Getenv("NTECH_ENV") == "production" {
+	if ntechEnv := os.Getenv("NTECH_ENV"); ntechEnv == "production" || ntechEnv == "demo" {
 		kes, err := handler.KreirajKes(templFS)
 		if err != nil {
 			slog.Error("Greška pri kreiranju keša šablona", "error", err)
@@ -219,7 +219,8 @@ func main() {
 	// ostali statični fajlovi: disk ako postoji web/static, inače embed.
 	// U produkciji dug immutable keš (URL nosi ?v=verzija za cache-busting pri novom buildu);
 	// u razvoju bez keša, da izmene CSS/JS odmah budu vidljive bez ručnog osvežavanja.
-	produkcija := os.Getenv("NTECH_ENV") == "production"
+	ntechEnvStr := os.Getenv("NTECH_ENV")
+	produkcija := ntechEnvStr == "production" || ntechEnvStr == "demo"
 	r.Handle("/static/*", http.StripPrefix("/static/",
 		http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			if produkcija {
