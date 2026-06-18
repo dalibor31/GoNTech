@@ -418,6 +418,12 @@ func (h *Handler) AdminTotpPokreni(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if h.JelDemo {
+		middleware.SetFlash(w, r, h.DB, "greska", "Podešavanje 2FA nije dostupno u demo modu.")
+		http.Redirect(w, r, "/admin/profil", http.StatusSeeOther)
+		return
+	}
+
 	podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	totp, err := auth.GenerisuTotpTajnu(k.KorisnickoIme, podesavanja["naziv_firme"])
 	if err != nil {

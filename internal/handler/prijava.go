@@ -269,7 +269,7 @@ func (h *Handler) Odjava(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		Expires:  time.Unix(0, 0),
 		MaxAge:   -1,
-		Secure:   os.Getenv("NTECH_ENV") == "production",
+		Secure:   os.Getenv("NTECH_ENV") == "production" || os.Getenv("NTECH_ENV") == "demo",
 		HttpOnly: true,
 	})
 	http.Redirect(w, r, "/prijava", http.StatusSeeOther)
@@ -318,7 +318,7 @@ func napraviKolacic(token string, istice time.Time) *http.Cookie {
 		Path:     "/",
 		Expires:  istice,
 		HttpOnly: true,
-		Secure:   os.Getenv("NTECH_ENV") == "production",
+		Secure:   os.Getenv("NTECH_ENV") == "production" || os.Getenv("NTECH_ENV") == "demo",
 		SameSite: http.SameSiteStrictMode,
 	}
 }

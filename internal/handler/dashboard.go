@@ -25,7 +25,7 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 			Path:     "/",
 			MaxAge:   -1,
 			HttpOnly: true,
-			Secure:   os.Getenv("NTECH_ENV") == "production",
+			Secure:   os.Getenv("NTECH_ENV") == "production" || os.Getenv("NTECH_ENV") == "demo",
 		})
 	}
 

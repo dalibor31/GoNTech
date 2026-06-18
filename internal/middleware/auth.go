@@ -40,7 +40,7 @@ func RequireAuth(db *sql.DB, totpKljuc []byte) func(http.Handler) http.Handler {
 					Path:     "/",
 					Expires:  time.Unix(0, 0),
 					MaxAge:   -1,
-					Secure:   os.Getenv("NTECH_ENV") == "production",
+					Secure:   os.Getenv("NTECH_ENV") == "production" || os.Getenv("NTECH_ENV") == "demo",
 					HttpOnly: true,
 				})
 				http.Redirect(w, r, "/prijava", http.StatusSeeOther)
@@ -157,7 +157,7 @@ func postaviFlashGresku(w http.ResponseWriter, poruka string) {
 		Path:     "/",
 		MaxAge:   60,
 		HttpOnly: true,
-		Secure:   os.Getenv("NTECH_ENV") == "production",
+		Secure:   os.Getenv("NTECH_ENV") == "production" || os.Getenv("NTECH_ENV") == "demo",
 	})
 }
 

@@ -97,9 +97,11 @@
 						Status:
 						<strong>Isključena</strong>
 					</div>
-					<div style="font-size: 13px; color: var(--tekst-sporedni)">Preporučujemo uključivanje dvostepene verifikacije.</div>
+					<div style="font-size: 13px; color: var(--tekst-sporedni)">
+						{{if .JelDemo}}Podešavanje 2FA nije dostupno u demo modu.{{else}}Preporučujemo uključivanje dvostepene verifikacije.{{end}}
+					</div>
 				</div>
-				<a href="/admin/profil/totp/pokreni" class="btn-primarno">Podesi 2FA</a>
+				{{if not .JelDemo}}<a href="/admin/profil/totp/pokreni" class="btn-primarno">Podesi 2FA</a>{{end}}
 			</div>
 		{{ end }}
 	</div>

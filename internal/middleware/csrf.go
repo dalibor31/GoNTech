@@ -39,7 +39,7 @@ func CsrfMiddleware(next http.Handler) http.Handler {
 					Path:     "/",
 					MaxAge:   86400 * 30,
 					HttpOnly: true,
-					Secure:   os.Getenv("NTECH_ENV") == "production",
+					Secure:   os.Getenv("NTECH_ENV") == "production" || os.Getenv("NTECH_ENV") == "demo",
 					SameSite: http.SameSiteStrictMode,
 				})
 			}
