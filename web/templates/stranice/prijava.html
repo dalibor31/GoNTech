@@ -57,11 +57,11 @@
                     <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
                     <div class="polje">
                         <label for="korisnicko_ime">Korisničko ime</label>
-                        <input type="text" id="korisnicko_ime" name="korisnicko_ime" autocomplete="username" autofocus required>
+                        <input type="text" id="korisnicko_ime" name="korisnicko_ime" autocomplete="username" autofocus required{{if .JelDemo}} value="Demo"{{end}}>
                     </div>
                     <div class="polje">
                         <label for="lozinka">Lozinka</label>
-                        <input type="password" id="lozinka" name="lozinka" autocomplete="current-password" required>
+                        <input type="password" id="lozinka" name="lozinka" autocomplete="current-password" required{{if .JelDemo}} value="Demo1234"{{end}}>
                     </div>
                     <button type="submit" class="dugme">Prijavi se</button>
                 </form>

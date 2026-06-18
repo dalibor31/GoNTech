@@ -41,6 +41,7 @@ type Handler struct {
 	PdvKprRepo            db.PdvKprRepository
 	NivelacijaRepo        db.NivelacijaRepository
 	Verzija               string
+	JelDemo              bool
 	AssetV                string // verzija statičkih fajlova za cache-busting (postavlja se pri pokretanju)
 	Templates             map[string]*template.Template
 	TemplatesFS           fs.FS

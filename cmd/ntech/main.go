@@ -19,6 +19,7 @@ import (
 	"ntech"
 	"ntech/internal/auth"
 	"ntech/internal/config"
+	"ntech/internal/db"
 	"ntech/internal/db/sqlite"
 	"ntech/internal/handler"
 	ntechmw "ntech/internal/middleware"
@@ -47,7 +48,12 @@ func podesiLog() {
 func main() {
 	mime.AddExtensionType(".js", "text/javascript")
 	mime.AddExtensionType(".css", "text/css")
-	godotenv.Load("ntech.env")
+	putanjaBaze := os.Getenv("NTECH_SQLITE")
+	if putanjaBaze == "" {
+		putanjaBaze = "ntech.db"
+	}
+	envFajl := config.PutanjaNtechEnv(putanjaBaze)
+	godotenv.Load(envFajl)
 	podesiLog()
 	auth.InitAuthLog()
 
@@ -70,19 +76,14 @@ func main() {
 		staticFS = os.DirFS("web/static")
 	}
 
-	if config.JelPrvoPokretanje() {
-		config.PokreniSetup(templFS)
+	if config.JelPrvoPokretanje(envFajl) {
+		config.PokreniSetup(templFS, envFajl)
 		return
 	}
 
 	port := os.Getenv("NTECH_PORT")
 	if port == "" {
 		port = "8080"
-	}
-
-	putanjaBaze := os.Getenv("NTECH_SQLITE")
-	if putanjaBaze == "" {
-		putanjaBaze = "ntech.db"
 	}
 
 	db, err := sqlite.OtvoriDB(putanjaBaze)
@@ -111,7 +112,7 @@ func main() {
 	}
 
 	// ključ za šifrovanje TOTP tajni u mirovanju (AES-256-GCM)
-	totpKljuc, err := ucitajTotpKljuc()
+	totpKljuc, err := ucitajTotpKljuc(envFajl)
 	if err != nil {
 		slog.Error("Greška pri učitavanju ključa za TOTP", "error", err)
 		os.Exit(1)
@@ -130,6 +131,13 @@ func main() {
 
 	h := handler.Novi(db, totpKljuc)
 	h.Verzija = Verzija
+	h.JelDemo = os.Getenv("NTECH_ENV") == "demo"
+	if h.JelDemo {
+		h.Verzija = "DEMO verzija"
+		if err := postaviDemoKorisnika(context.Background(), h.KorisniciRepo); err != nil {
+			slog.Warn("demo: greška pri postavljanju demo korisnika", "error", err)
+		}
+	}
 	// verzija statičkih fajlova za cache-busting — menja se pri svakom pokretanju,
 	// pa novi build/restart natera brauzer da povuče sveži CSS/JS (umesto starog iz keša)
 	h.AssetV = strconv.FormatInt(time.Now().Unix(), 36)
@@ -382,7 +390,7 @@ func main() {
 //
 // VAŽNO: ako se ovaj ključ izgubi ili promeni, postojeće šifrovane TOTP tajne se
 // više ne mogu dešifrovati (korisnici moraju ponovo aktivirati 2FA).
-func ucitajTotpKljuc() ([]byte, error) {
+func ucitajTotpKljuc(envFajl string) ([]byte, error) {
 	if v := os.Getenv("NTECH_TOTP_KEY"); v != "" {
 		kljuc, err := base64.StdEncoding.DecodeString(v)
 		if err != nil {
@@ -400,7 +408,7 @@ func ucitajTotpKljuc() ([]byte, error) {
 		return nil, fmt.Errorf("generisanje ključa: %w", err)
 	}
 	enkodiran := base64.StdEncoding.EncodeToString(kljuc)
-	f, err := os.OpenFile("ntech.env", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+	f, err := os.OpenFile(envFajl, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		return nil, fmt.Errorf("otvaranje ntech.env: %w", err)
 	}
@@ -411,6 +419,39 @@ func ucitajTotpKljuc() ([]byte, error) {
 	os.Setenv("NTECH_TOTP_KEY", enkodiran)
 	slog.Info("generisan nov NTECH_TOTP_KEY i upisan u ntech.env")
 	return kljuc, nil
+}
+
+// postaviDemoKorisnika osigurava da pri pokretanju demo instance postoji korisnik "Demo"
+// sa ulogom "admin" i resetovanom lozinkom. Poziva se samo kada je NTECH_ENV=demo.
+func postaviDemoKorisnika(ctx context.Context, repo db.KorisniciRepository) error {
+	const (
+		demoIme     = "Demo"
+		demoLozinka = "Demo1234"
+	)
+	hash, err := auth.HashujLozinku(demoLozinka)
+	if err != nil {
+		return fmt.Errorf("ntech: postaviDemoKorisnika: %w", err)
+	}
+	korisnik, err := repo.DohvatiPoImenu(ctx, demoIme)
+	if err != nil {
+		// korisnik ne postoji — kreiraj ga
+		if _, err := repo.Kreiraj(ctx, demoIme, hash, "admin"); err != nil {
+			return fmt.Errorf("ntech: postaviDemoKorisnika: kreiranje: %w", err)
+		}
+		slog.Info("demo korisnik kreiran", "korisnik", demoIme)
+		return nil
+	}
+	// korisnik postoji — resetuj lozinku i osiguraj da je aktivan
+	if err := repo.PromeniLozinku(ctx, korisnik.ID, hash); err != nil {
+		return fmt.Errorf("ntech: postaviDemoKorisnika: lozinka: %w", err)
+	}
+	if !korisnik.Aktivan {
+		if err := repo.AzurirajAktivan(ctx, korisnik.ID, true); err != nil {
+			return fmt.Errorf("ntech: postaviDemoKorisnika: aktivan: %w", err)
+		}
+	}
+	slog.Info("demo korisnik resetovan", "korisnik", demoIme)
+	return nil
 }
 
 // napraviBackup kreira konzistentnu kopiju baze i briše najstarije preko zadatog broja kopija.
