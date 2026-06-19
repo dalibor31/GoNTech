@@ -152,6 +152,24 @@ func (r *ServisRepo) Izmeni(ctx context.Context, n *model.ServisniNalog) error {
 	return nil
 }
 
+// AzurirajStatus menja samo status naloga; ako nalog prelazi u završno stanje
+// i datum_zavrsetka još nije postavljen, automatski ga postavlja na danas.
+func (r *ServisRepo) AzurirajStatus(ctx context.Context, id int64, status string) error {
+	var upit string
+	if status == model.StatusZavrseno || status == model.StatusPreuzeto {
+		upit = `UPDATE servisni_nalozi SET status = ?,
+			datum_zavrsetka = COALESCE(datum_zavrsetka, date('now', 'localtime'))
+			WHERE id = ?`
+	} else {
+		upit = `UPDATE servisni_nalozi SET status = ? WHERE id = ?`
+	}
+	_, err := r.db.ExecContext(ctx, upit, status, id)
+	if err != nil {
+		return fmt.Errorf("ntech: ServisRepo.AzurirajStatus: %w", err)
+	}
+	return nil
+}
+
 // Obrisi briše servisni nalog po ID-u
 func (r *ServisRepo) Obrisi(ctx context.Context, id int64) error {
 	_, err := r.db.ExecContext(ctx, "DELETE FROM servisni_nalozi WHERE id = ?", id)
