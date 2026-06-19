@@ -114,6 +114,7 @@ type ServisRepository interface {
 	DohvatiID(ctx context.Context, id int64) (*model.ServisniNalog, error)
 	Kreiraj(ctx context.Context, n *model.ServisniNalog) (int64, error)
 	Izmeni(ctx context.Context, n *model.ServisniNalog) error
+	AzurirajStatus(ctx context.Context, id int64, status string) error
 	Obrisi(ctx context.Context, id int64) error
 	SledeciBroj(ctx context.Context) (string, error)
 }

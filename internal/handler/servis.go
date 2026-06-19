@@ -49,6 +49,7 @@ type PodaciDetaljiNaloga struct {
 	UkupnoDelovi   float64
 	UkupnoSve      float64
 	PreostaloSve   float64
+	SviStatusi     []string
 }
 
 // Servis renderuje listu servisnih naloga sa opcionom pretragom i filterom statusa
@@ -389,6 +390,7 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 		UkupnoDelovi:   ukupnoDelovi,
 		UkupnoSve:      ukupnoSve,
 		PreostaloSve:   preostaloSve,
+		SviStatusi:     model.SviStatusi,
 	}
 
 	h.renderujTemplate(w, "servis_detalji", podaci)
@@ -755,4 +757,32 @@ func (h *Handler) StampaOtpremnice(w http.ResponseWriter, r *http.Request) {
 		Telefon:        podesavanja["telefon"],
 		PIB:            podesavanja["pib"],
 	})
+}
+
+// PromeniStatus obrađuje POST /servis/{id}/status i menja samo status naloga
+func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
+		return
+	}
+	noviStatus := strings.TrimSpace(r.FormValue("status"))
+	dozvoljenStatusi := map[string]bool{}
+	for _, s := range model.SviStatusi {
+		dozvoljenStatusi[s] = true
+	}
+	if !dozvoljenStatusi[noviStatus] {
+		http.Error(w, "Nepoznat status", http.StatusBadRequest)
+		return
+	}
+	if err := h.ServisRepo.AzurirajStatus(r.Context(), id, noviStatus); err != nil {
+		slog.Error("greška pri promeni statusa naloga", "id", id, "error", err)
+		http.Error(w, "Greška pri promeni statusa", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)
 }

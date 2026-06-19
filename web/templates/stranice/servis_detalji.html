@@ -43,7 +43,18 @@
                 <span style="font-size:20px;font-weight:600;color:var(--tekst-glavni);font-family:monospace;">
                     {{.Nalog.BrojNaloga}}
                 </span>
-                {{template "status-badge-detalji" .Nalog.Status}}
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    {{template "status-badge-detalji" .Nalog.Status}}
+                    <form method="post" action="/servis/{{.Nalog.ID}}/status" style="display:flex;align-items:center;gap:6px;">
+                        <input type="hidden" name="csrf_token" value="{{.CsrfToken}}">
+                        <select name="status" style="font-size:13px;padding:4px 8px;border-radius:6px;border:0.5px solid var(--ivica);background:var(--kartica-pozadina);color:var(--tekst-glavni);cursor:pointer;">
+                            {{range .SviStatusi}}
+                            <option value="{{.}}"{{if eq . $.Nalog.Status}} selected{{end}}>{{.}}</option>
+                            {{end}}
+                        </select>
+                        <button type="submit" class="btn-sekundarno" style="font-size:13px;padding:4px 12px;">Promeni</button>
+                    </form>
+                </div>
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
                 <a href="/servis/{{.Nalog.ID}}/stampa" target="_blank" class="btn-sekundarno">
