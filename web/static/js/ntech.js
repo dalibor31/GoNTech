@@ -201,6 +201,7 @@ document.addEventListener('alpine:init', () => {
         modalOpis: '',
         modalKolicina: '',
         modalKolicinaMin: '',
+        modalNabavnaCena: '',
         modalCena: '',
         modalLokacija: '',
         modalNapomena: '',
@@ -313,6 +314,7 @@ document.addEventListener('alpine:init', () => {
             this.modalOpis = ''
             this.modalKolicina = ''
             this.modalKolicinaMin = ''
+            this.modalNabavnaCena = ''
             this.modalCena = ''
             this.modalLokacija = ''
             this.modalNapomena = ''
@@ -334,6 +336,7 @@ document.addEventListener('alpine:init', () => {
             params.append('opis', this.modalOpis.trim())
             if (this.modalKolicina) params.append('kolicina', this.modalKolicina)
             if (this.modalKolicinaMin) params.append('kolicina_min', this.modalKolicinaMin)
+            if (this.modalNabavnaCena) params.append('nabavna_cena', this.modalNabavnaCena)
             if (this.modalCena) params.append('prodajna_cena', this.modalCena)
             params.append('lokacija', this.modalLokacija.trim())
             params.append('napomena', this.modalNapomena.trim())

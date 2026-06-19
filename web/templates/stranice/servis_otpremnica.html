@@ -88,12 +88,19 @@
                 {{if .PIB}}PIB: {{.PIB}}{{end}}
             </div>
         </div>
-        <div class="dok-naslov">
-            <div class="dok-tip">Otpremnica</div>
-            <div class="dok-broj">{{.Nalog.BrojNaloga}}</div>
-            <div class="dok-datum">Datum: {{.Nalog.DatumPrijema.Format "02.01.2006."}}</div>
-            {{if .Nalog.DatumZavrsetka}}
-            <div class="dok-datum">Završeno: {{.Nalog.DatumZavrsetka.Format "02.01.2006."}}</div>
+        <div style="display:flex;align-items:flex-start;gap:14px;">
+            <div class="dok-naslov">
+                <div class="dok-tip">Otpremnica</div>
+                <div class="dok-broj">{{.Nalog.BrojNaloga}}</div>
+                <div class="dok-datum">Datum: {{.Nalog.DatumPrijema.Format "02.01.2006."}}</div>
+                {{if .Nalog.DatumZavrsetka}}
+                <div class="dok-datum">Završeno: {{.Nalog.DatumZavrsetka.Format "02.01.2006."}}</div>
+                {{end}}
+            </div>
+            {{if .QRKod}}
+            <img src="data:image/png;base64,{{.QRKod}}" width="76" height="76"
+                 alt="QR {{.Nalog.BrojNaloga}}"
+                 style="image-rendering:pixelated;border:1px solid #ddd;border-radius:4px;flex-shrink:0;">
             {{end}}
         </div>
     </div>
