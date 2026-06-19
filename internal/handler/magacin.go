@@ -123,3 +123,47 @@ func (h *Handler) ObrisiArtikal(w http.ResponseWriter, r *http.Request) {
 
 	http.Redirect(w, r, "/magacin?obrisan=1", http.StatusSeeOther)
 }
+
+// PodaciMagacinskeKartice su podaci za karticu jednog artikla
+type PodaciMagacinskeKartice struct {
+	model.PodaciStranice
+	Artikal  model.Artikal
+	Promene  []model.MagacinskaPromenaSaDetaljem
+}
+
+// MagacinskaKartica prikazuje sve promene stanja za jedan artikal
+func (h *Handler) MagacinskaKartica(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Neispravan ID artikla", http.StatusBadRequest)
+		return
+	}
+
+	artikal, err := h.Artikli.DohvatiID(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Artikal nije pronađen", http.StatusNotFound)
+		return
+	}
+
+	promene, err := h.MagacinskePromeneRepo.Lista(r.Context(), &id, 0)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju promena", http.StatusInternalServerError)
+		return
+	}
+
+	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
+		return
+	}
+
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "magacin"
+	ps.NaslovStranice = "Kartica: " + artikal.Naziv
+
+	h.renderujTemplate(w, "magacin_kartica", PodaciMagacinskeKartice{
+		PodaciStranice: ps,
+		Artikal:        *artikal,
+		Promene:        promene,
+	})
+}

@@ -79,6 +79,9 @@
                         </td>
                         <td style="padding:12px 16px;text-align:center;">
                             <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+                                <a href="/magacin/kartica/{{.ID}}" class="btn-sekundarno-malo">
+                                    Kartica
+                                </a>
                                 {{if index $.Dozvole "artikal.izmeni"}}
                                 <a href="/magacin/izmeni/{{.ID}}" class="btn-primarno-malo">
                                     Izmeni
@@ -121,6 +124,7 @@
                     {{end}}
                 </div>
                 <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">
+                    <a href="/magacin/kartica/{{.ID}}" class="btn-sekundarno-malo">Kartica</a>
                     {{if index $.Dozvole "artikal.izmeni"}}
                     <a href="/magacin/izmeni/{{.ID}}" class="btn-primarno-malo">Izmeni</a>
                     {{template "promeniCenuMeni" (dict "ID" .ID "Cena" .ProdajnaCena)}}
