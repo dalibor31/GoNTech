@@ -17,6 +17,8 @@ type ArtikalRepository interface {
 	AzurirajCene(ctx context.Context, id int64, nabavna, prodajna float64) error
 	PremestiKategoriju(ctx context.Context, id int64, kategorijaID *int64) error
 	Obrisi(ctx context.Context, id int64) error
+	// SledecaSifra vraća predlog sledeće auto-šifre (npr. ART-00042)
+	SledecaSifra(ctx context.Context) (string, error)
 }
 
 // KategorijaRepository definiše operacije nad kategorijama

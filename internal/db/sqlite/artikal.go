@@ -23,7 +23,7 @@ func NoviArtikalRepo(db *sql.DB) *ArtikalRepo {
 func (r *ArtikalRepo) Lista(ctx context.Context, filter db.ArtikalFilter) ([]model.ArtikalSaKategorijom, error) {
 	upit := `
 		SELECT
-			a.id, a.kategorija_id, a.naziv, a.opis,
+			a.id, a.kategorija_id, a.sifra, a.barkod, a.naziv, a.opis,
 			a.kolicina, a.kolicina_min, a.lokacija,
 			a.nabavna_cena, a.prodajna_cena, a.pdv_stopa, a.marza, a.napomena, a.datum_unosa,
 			COALESCE(k.naziv, '') as kategorija_naziv, k.marza as kategorija_marza
@@ -34,9 +34,9 @@ func (r *ArtikalRepo) Lista(ctx context.Context, filter db.ArtikalFilter) ([]mod
 	args := []any{}
 
 	if filter.Pretraga != "" {
-		upit += " AND (a.naziv LIKE ? OR a.lokacija LIKE ? OR k.naziv LIKE ?)"
+		upit += " AND (a.naziv LIKE ? OR a.sifra LIKE ? OR a.barkod LIKE ? OR a.lokacija LIKE ? OR k.naziv LIKE ?)"
 		t := "%" + filter.Pretraga + "%"
-		args = append(args, t, t, t)
+		args = append(args, t, t, t, t, t)
 	}
 
 	if filter.KategorijaID != nil {
@@ -60,10 +60,11 @@ func (r *ArtikalRepo) Lista(ctx context.Context, filter db.ArtikalFilter) ([]mod
 	for redovi.Next() {
 		var a model.ArtikalSaKategorijom
 		var kategorijaID sql.NullInt64
+		var sifra, barkod sql.NullString
 		var marza, katMarza sql.NullFloat64
 
 		err := redovi.Scan(
-			&a.ID, &kategorijaID, &a.Naziv, &a.Opis,
+			&a.ID, &kategorijaID, &sifra, &barkod, &a.Naziv, &a.Opis,
 			&a.Kolicina, &a.KolicinMin, &a.Lokacija,
 			&a.NabavnaCena, &a.ProdajnaCena, &a.PdvStopa, &marza, &a.Napomena, &a.DatumUnosa,
 			&a.KategorijaNaziv, &katMarza,
@@ -74,6 +75,12 @@ func (r *ArtikalRepo) Lista(ctx context.Context, filter db.ArtikalFilter) ([]mod
 
 		if kategorijaID.Valid {
 			a.KategorijaID = &kategorijaID.Int64
+		}
+		if sifra.Valid {
+			a.Sifra = sifra.String
+		}
+		if barkod.Valid {
+			a.Barkod = barkod.String
 		}
 		if marza.Valid {
 			a.Marza = &marza.Float64
@@ -94,13 +101,14 @@ func (r *ArtikalRepo) Lista(ctx context.Context, filter db.ArtikalFilter) ([]mod
 func (r *ArtikalRepo) DohvatiID(ctx context.Context, id int64) (*model.Artikal, error) {
 	var a model.Artikal
 	var kategorijaID sql.NullInt64
+	var sifra, barkod sql.NullString
 	var marza sql.NullFloat64
 
 	err := r.db.QueryRowContext(ctx, `
-		SELECT id, kategorija_id, naziv, opis, kolicina, kolicina_min,
+		SELECT id, kategorija_id, sifra, barkod, naziv, opis, kolicina, kolicina_min,
 		       lokacija, nabavna_cena, prodajna_cena, pdv_stopa, marza, napomena, datum_unosa
 		FROM artikli WHERE id = ?`, id).Scan(
-		&a.ID, &kategorijaID, &a.Naziv, &a.Opis,
+		&a.ID, &kategorijaID, &sifra, &barkod, &a.Naziv, &a.Opis,
 		&a.Kolicina, &a.KolicinMin, &a.Lokacija,
 		&a.NabavnaCena, &a.ProdajnaCena, &a.PdvStopa, &marza, &a.Napomena, &a.DatumUnosa,
 	)
@@ -111,6 +119,12 @@ func (r *ArtikalRepo) DohvatiID(ctx context.Context, id int64) (*model.Artikal, 
 	if kategorijaID.Valid {
 		a.KategorijaID = &kategorijaID.Int64
 	}
+	if sifra.Valid {
+		a.Sifra = sifra.String
+	}
+	if barkod.Valid {
+		a.Barkod = barkod.String
+	}
 	if marza.Valid {
 		a.Marza = &marza.Float64
 	}
@@ -120,12 +134,20 @@ func (r *ArtikalRepo) DohvatiID(ctx context.Context, id int64) (*model.Artikal, 
 
 // Kreiraj dodaje novi artikal u bazu
 func (r *ArtikalRepo) Kreiraj(ctx context.Context, a *model.Artikal) (int64, error) {
+	var sifra, barkod any
+	if a.Sifra != "" {
+		sifra = a.Sifra
+	}
+	if a.Barkod != "" {
+		barkod = a.Barkod
+	}
+
 	rezultat, err := r.db.ExecContext(ctx, `
 		INSERT INTO artikli
-			(kategorija_id, naziv, opis, kolicina, kolicina_min, lokacija,
+			(kategorija_id, sifra, barkod, naziv, opis, kolicina, kolicina_min, lokacija,
 			 nabavna_cena, prodajna_cena, pdv_stopa, marza, napomena)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		a.KategorijaID, a.Naziv, a.Opis, a.Kolicina, a.KolicinMin,
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		a.KategorijaID, sifra, barkod, a.Naziv, a.Opis, a.Kolicina, a.KolicinMin,
 		a.Lokacija, a.NabavnaCena, a.ProdajnaCena, a.PdvStopa, a.Marza, a.Napomena,
 	)
 	if err != nil {
@@ -142,13 +164,21 @@ func (r *ArtikalRepo) Kreiraj(ctx context.Context, a *model.Artikal) (int64, err
 
 // Izmeni ažurira postojeći artikal
 func (r *ArtikalRepo) Izmeni(ctx context.Context, a *model.Artikal) error {
+	var sifra, barkod any
+	if a.Sifra != "" {
+		sifra = a.Sifra
+	}
+	if a.Barkod != "" {
+		barkod = a.Barkod
+	}
+
 	_, err := r.db.ExecContext(ctx, `
 		UPDATE artikli SET
-			kategorija_id = ?, naziv = ?, opis = ?, kolicina = ?,
+			kategorija_id = ?, sifra = ?, barkod = ?, naziv = ?, opis = ?, kolicina = ?,
 			kolicina_min = ?, lokacija = ?,
 			nabavna_cena = ?, prodajna_cena = ?, pdv_stopa = ?, marza = ?, napomena = ?
 		WHERE id = ?`,
-		a.KategorijaID, a.Naziv, a.Opis, a.Kolicina,
+		a.KategorijaID, sifra, barkod, a.Naziv, a.Opis, a.Kolicina,
 		a.KolicinMin, a.Lokacija,
 		a.NabavnaCena, a.ProdajnaCena, a.PdvStopa, a.Marza, a.Napomena, a.ID,
 	)
@@ -157,6 +187,16 @@ func (r *ArtikalRepo) Izmeni(ctx context.Context, a *model.Artikal) error {
 	}
 
 	return nil
+}
+
+// SledecaSifra vraća predlog sledeće auto-šifre u formatu ART-XXXXX
+func (r *ArtikalRepo) SledecaSifra(ctx context.Context) (string, error) {
+	var n int64
+	err := r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM artikli").Scan(&n)
+	if err != nil {
+		return "", fmt.Errorf("ntech: ArtikalRepo.SledecaSifra: %w", err)
+	}
+	return fmt.Sprintf("ART-%05d", n+1), nil
 }
 
 // AzurirajCene menja samo nabavnu i prodajnu cenu artikla (kalkulacija pri prijemu robe).
