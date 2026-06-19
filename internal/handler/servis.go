@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/base64"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 	"ntech/internal/model"
 
 	"github.com/go-chi/chi/v5"
+	qrcode "github.com/skip2/go-qrcode"
 )
 
 // PodaciServisa su podaci za stranicu sa listom servisnih naloga
@@ -591,6 +593,7 @@ type PodaciStampeServisa struct {
 	Adresa         string
 	Telefon        string
 	PIB            string
+	QRKod          string // base64 PNG QR koda sa URL-om naloga
 }
 
 // StampaServisa renderuje print-friendly stranicu za servisni nalog
@@ -644,6 +647,17 @@ func (h *Handler) StampaServisa(w http.ResponseWriter, r *http.Request) {
 		ukupnoDelovi += d.Ukupno()
 	}
 
+	// QR kod sadrži URL naloga — isti host kao što korisnik koristi
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	nalogURL := scheme + "://" + r.Host + "/servis/" + strconv.FormatInt(id, 10)
+	var qrKod string
+	if png, err := qrcode.Encode(nalogURL, qrcode.Medium, 160); err == nil {
+		qrKod = base64.StdEncoding.EncodeToString(png)
+	}
+
 	h.renderujStandalone(w, "servis_stampa", PodaciStampeServisa{
 		Nalog:          *nalog,
 		ServisniDelovi: delovi,
@@ -655,6 +669,7 @@ func (h *Handler) StampaServisa(w http.ResponseWriter, r *http.Request) {
 		Adresa:         podesavanja["adresa"],
 		Telefon:        podesavanja["telefon"],
 		PIB:            podesavanja["pib"],
+		QRKod:          qrKod,
 	})
 }
 
