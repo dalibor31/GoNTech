@@ -161,22 +161,38 @@
                 </div>
             </div>
             <div>
-                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Konačna cena</div>
-                <div style="font-size:20px;font-weight:600;color:var(--sb-akcent);">
+                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Cena usluge</div>
+                <div style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">
                     {{if .Nalog.CenaKonacna}}{{.Nalog.CenaKonacnaStr}} din{{else}}—{{end}}
                 </div>
             </div>
+            {{if gt .UkupnoDelovi 0.0}}
+            <div>
+                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Ugrađeni delovi</div>
+                <div style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">
+                    {{printf "%.2f" .UkupnoDelovi}} din
+                </div>
+            </div>
+            {{end}}
+            {{if .Nalog.CenaKonacna}}
+            <div>
+                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Ukupno</div>
+                <div style="font-size:20px;font-weight:600;color:var(--sb-akcent);">
+                    {{printf "%.2f" .UkupnoSve}} din
+                </div>
+            </div>
+            {{end}}
             <div>
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Avans</div>
                 <div style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">
                     {{if .Nalog.Avans}}{{.Nalog.AvansStr}} din{{else}}—{{end}}
                 </div>
             </div>
-            {{if .Nalog.PreostaloZaNaplatu}}
+            {{if .Nalog.CenaKonacna}}
             <div>
-                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Preostalo za naplatu</div>
+                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Za naplatu</div>
                 <div style="font-size:20px;font-weight:600;color:#16a34a;">
-                    {{.Nalog.PreostaloZaNaplatuStr}} din
+                    {{printf "%.2f" .PreostaloSve}} din
                 </div>
             </div>
             {{end}}
@@ -199,7 +215,7 @@
                     <select name="artikal_id" style="width:100%;" required>
                         <option value="">— odaberi —</option>
                         {{range .Artikli}}
-                        <option value="{{.ID}}">{{.Naziv}} ({{.Kolicina}} kom)</option>
+                        <option value="{{.ID}}" data-cena="{{.ProdajnaCena}}">{{.Naziv}} ({{.Kolicina}} kom)</option>
                         {{end}}
                     </select>
                 </div>
@@ -279,4 +295,21 @@
     </div>
 
 </div>
+
+<script>
+(function() {
+    var sel = document.querySelector('select[name="artikal_id"]');
+    var cenaInput = document.querySelector('input[name="cena_komada"]');
+    if (!sel || !cenaInput) return;
+    sel.addEventListener('change', function() {
+        var opt = sel.options[sel.selectedIndex];
+        var cena = parseFloat(opt.dataset.cena);
+        if (!isNaN(cena) && cena > 0) {
+            cenaInput.value = cena.toFixed(2);
+        } else {
+            cenaInput.value = '0';
+        }
+    });
+})();
+</script>
 {{end}}

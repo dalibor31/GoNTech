@@ -226,8 +226,51 @@
 
     {{block "dodatni-js" .}}{{end}}
 
+    <!-- modal za potvrdu akcije -->
+    <div id="potvrda-modal" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;">
+        <div id="potvrda-pozadina" style="position:absolute;inset:0;background:rgba(0,0,0,0.55);backdrop-filter:blur(3px);"></div>
+        <div style="position:relative;background:var(--kartica-pozadina);border:0.5px solid var(--ivica);border-radius:12px;padding:28px 28px 22px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.35);">
+            <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);margin-bottom:20px;line-height:1.5;" id="potvrda-poruka"></div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button id="potvrda-odustani" class="btn-sekundarno">Odustani</button>
+                <button id="potvrda-potvrdi" class="btn-opasno">Potvrdi</button>
+            </div>
+        </div>
+    </div>
+
     <!-- CSRF i potvrda: inicijalizacija na učitavanju i posle htmx swap-a -->
     <script>
+    (function() {
+        var modal = document.getElementById('potvrda-modal');
+        var poruka = document.getElementById('potvrda-poruka');
+        var btnPotvrdi = document.getElementById('potvrda-potvrdi');
+        var btnOdustani = document.getElementById('potvrda-odustani');
+        var pozadina = document.getElementById('potvrda-pozadina');
+        var _resolveFn = null;
+
+        function prikaziModal(tekst) {
+            return new Promise(function(resolve) {
+                poruka.textContent = tekst;
+                modal.style.display = 'flex';
+                _resolveFn = resolve;
+            });
+        }
+
+        function zatvoriModal(rezultat) {
+            modal.style.display = 'none';
+            if (_resolveFn) { _resolveFn(rezultat); _resolveFn = null; }
+        }
+
+        btnPotvrdi.addEventListener('click', function() { zatvoriModal(true); });
+        btnOdustani.addEventListener('click', function() { zatvoriModal(false); });
+        pozadina.addEventListener('click', function() { zatvoriModal(false); });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && modal.style.display === 'flex') zatvoriModal(false);
+        });
+
+        window._ntechPotvrdi = prikaziModal;
+    })();
+
     function ntechInicijalizuj() {
         var m = document.querySelector('meta[name="csrf-token"]');
         if (m && m.content) {
@@ -242,11 +285,18 @@
             if (el._potvrda) return;
             el._potvrda = true;
             el.addEventListener('click', function(e) {
-                if (!confirm(el.getAttribute('data-potvrda'))) e.preventDefault();
+                e.preventDefault();
+                window._ntechPotvrdi(el.getAttribute('data-potvrda')).then(function(ok) {
+                    if (!ok) return;
+                    // dugme unutar forme — submit forme
+                    var forma = el.closest('form');
+                    if (forma) { forma.submit(); return; }
+                    // link
+                    if (el.href) { window.location.href = el.href; }
+                });
             });
         });
     }
-    // htmx:afterSettle listener se dodaje samo jednom — ne sme da se gomila po swap-ovima
     if (!window._ntechCsrfDodato) {
         window._ntechCsrfDodato = true;
         document.addEventListener('htmx:afterSettle', ntechInicijalizuj);

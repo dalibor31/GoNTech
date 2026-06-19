@@ -199,6 +199,12 @@
                     <td>Cena usluge</td>
                     <td class="desno" style="width:160px;">{{.Nalog.CenaKonacnaStr}} din</td>
                 </tr>
+                {{if gt .UkupnoDelovi 0.0}}
+                <tr>
+                    <td>Ugrađeni delovi i materijal</td>
+                    <td class="desno">{{printf "%.2f" .UkupnoDelovi}} din</td>
+                </tr>
+                {{end}}
                 {{if .Nalog.Avans}}
                 <tr>
                     <td>Avans (plaćeno)</td>
@@ -207,12 +213,10 @@
                 {{end}}
             </tbody>
         </table>
-        {{if .Nalog.PreostaloZaNaplatu}}
         <div class="naplata-blok">
             <div class="naplata-labela">Za naplatu pri preuzimanju:</div>
-            <div class="naplata-iznos">{{.Nalog.PreostaloZaNaplatuStr}} din</div>
+            <div class="naplata-iznos">{{printf "%.2f" .PreostaloSve}} din</div>
         </div>
-        {{end}}
     </div>
     {{end}}
 
