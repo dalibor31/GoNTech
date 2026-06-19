@@ -229,3 +229,32 @@ func (r *ArtikalRepo) Obrisi(ctx context.Context, id int64) error {
 
 	return nil
 }
+
+// KorigujKolicinu postavlja novu količinu i upisuje korekciju u magacinske_promene
+func (r *ArtikalRepo) KorigujKolicinu(ctx context.Context, artikalID int64, novaKolicina int, korisnikID *int64, napomena string) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("ntech: ArtikalRepo.KorigujKolicinu: begin: %w", err)
+	}
+	defer tx.Rollback()
+
+	var staraCena float64
+	var staraKolicina int
+	err = tx.QueryRowContext(ctx, "SELECT kolicina, nabavna_cena FROM artikli WHERE id = ?", artikalID).
+		Scan(&staraKolicina, &staraCena)
+	if err != nil {
+		return fmt.Errorf("ntech: ArtikalRepo.KorigujKolicinu: dohvati: %w", err)
+	}
+
+	if _, err = tx.ExecContext(ctx, "UPDATE artikli SET kolicina = ? WHERE id = ?", novaKolicina, artikalID); err != nil {
+		return fmt.Errorf("ntech: ArtikalRepo.KorigujKolicinu: update: %w", err)
+	}
+
+	promena := novaKolicina - staraKolicina
+	if err = zabeleziMagacinPromenu(ctx, tx, artikalID, model.PromenaKorekcija, promena,
+		staraKolicina, novaKolicina, 0, korisnikID, napomena); err != nil {
+		return fmt.Errorf("ntech: ArtikalRepo.KorigujKolicinu: %w", err)
+	}
+
+	return tx.Commit()
+}

@@ -19,6 +19,8 @@ type ArtikalRepository interface {
 	Obrisi(ctx context.Context, id int64) error
 	// SledecaSifra vraća predlog sledeće auto-šifre (npr. ART-00042)
 	SledecaSifra(ctx context.Context) (string, error)
+	// KorigujKolicinu postavlja novu količinu artikla i upisuje korekciju u magacinske_promene
+	KorigujKolicinu(ctx context.Context, artikalID int64, novaKolicina int, korisnikID *int64, napomena string) error
 }
 
 // KategorijaRepository definiše operacije nad kategorijama
