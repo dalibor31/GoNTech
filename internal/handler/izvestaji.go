@@ -202,3 +202,96 @@ func (h *Handler) Izvestaji(w http.ResponseWriter, r *http.Request) {
 
 	h.renderujTemplate(w, "izvestaji", podaci)
 }
+
+// PodaciPrometногLista su podaci za prometni list magacina
+type PodaciPrometногLista struct {
+	model.PodaciStranice
+	Promene  []model.PrometniRed
+	Od       string
+	Do       string
+	Ukupno   int
+}
+
+// PrometniListMagacina renderuje prometni list magacina za odabrani period
+func (h *Handler) PrometniListMagacina(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "izvestaj.pregled"); !ok {
+		return
+	}
+
+	danas := time.Now()
+	odStr := r.URL.Query().Get("od")
+	doStr := r.URL.Query().Get("do")
+
+	if odStr == "" {
+		odStr = danas.Format("2006-01-02")[:7] + "-01"
+	}
+	if doStr == "" {
+		doStr = danas.Format("2006-01-02")
+	}
+
+	od, err := time.Parse("2006-01-02", odStr)
+	if err != nil {
+		od = time.Now()
+	}
+	do, err := time.Parse("2006-01-02", doStr)
+	if err != nil {
+		do = time.Now()
+	}
+
+	promene, err := h.IzvestajRepo.PrometniList(r.Context(), od, do)
+	if err != nil {
+		slog.Error("prometni list: greška", "error", err)
+		promene = nil
+	}
+
+	podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "izvestaji"
+	ps.NaslovStranice = "Prometni list"
+
+	h.renderujTemplate(w, "prometni_list", PodaciPrometногLista{
+		PodaciStranice: ps,
+		Promene:        promene,
+		Od:             odStr,
+		Do:             doStr,
+		Ukupno:         len(promene),
+	})
+}
+
+// PodaciStanjaZaliha su podaci za izveštaj o stanju zaliha
+type PodaciStanjaZaliha struct {
+	model.PodaciStranice
+	Zalihe        []model.StanjeZalihaRed
+	UkupnaVrednost float64
+	BrojArtikala  int
+}
+
+// StanjeZalihaIzvestaj renderuje izveštaj o trenutnom stanju zaliha
+func (h *Handler) StanjeZalihaIzvestaj(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "izvestaj.pregled"); !ok {
+		return
+	}
+
+	zalihe, err := h.IzvestajRepo.StanjeZaliha(r.Context())
+	if err != nil {
+		slog.Error("stanje zaliha: greška", "error", err)
+		zalihe = nil
+	}
+
+	var ukupnaVrednost float64
+	for _, z := range zalihe {
+		ukupnaVrednost += z.VrednostZalihe
+	}
+
+	podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "izvestaji"
+	ps.NaslovStranice = "Stanje zaliha"
+
+	h.renderujTemplate(w, "stanje_zaliha", PodaciStanjaZaliha{
+		PodaciStranice: ps,
+		Zalihe:         zalihe,
+		UkupnaVrednost: ukupnaVrednost,
+		BrojArtikala:   len(zalihe),
+	})
+}

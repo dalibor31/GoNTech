@@ -58,3 +58,27 @@ type TopKlijentRed struct {
 	UkupnoVrednost float64
 	BrojNaloga     int
 }
+
+// PrometniRed je jedan red prometnog lista magacina
+type PrometniRed struct {
+	Datum           time.Time
+	ArtikalNaziv    string
+	ArtikalSifra    string
+	TipPromene      string
+	PromenaKolicine int
+	StanjePre       int
+	StanjePosle     int
+	Napomena        string
+}
+
+// StanjeZalihaRed je jedan red izveštaja o stanju zaliha
+type StanjeZalihaRed struct {
+	Naziv         string
+	Sifra         string
+	Kategorija    string
+	Kolicina      int
+	KolicinMin    int
+	NabavnaCena   float64
+	ProdajnaCena  float64
+	VrednostZalihe float64 // kolicina × nabavna_cena
+}

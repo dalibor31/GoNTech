@@ -1,0 +1,79 @@
+{{template "base" .}}
+
+{{define "naslov"}}Stanje zaliha — NTech{{end}}
+
+{{define "sadrzaj"}}
+<div class="kolona" style="gap:16px;">
+
+    <!-- zaglavlje -->
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+            <a href="/izvestaji" class="nazad-link" style="margin-bottom:0;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                Izveštaji
+            </a>
+        </div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;">
+            <div style="text-align:right;">
+                <div style="font-size:12px;color:var(--tekst-slabi);">Broj artikala</div>
+                <div style="font-size:18px;font-weight:600;color:var(--tekst-glavni);">{{.BrojArtikala}}</div>
+            </div>
+            <div style="text-align:right;">
+                <div style="font-size:12px;color:var(--tekst-slabi);">Ukupna vrednost zalihe</div>
+                <div style="font-size:18px;font-weight:600;color:var(--tekst-glavni);">{{printf "%.2f" .UkupnaVrednost}} din</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- tabela -->
+    <div class="kartica animiraj" style="padding:0;overflow:hidden;">
+        <div style="padding:14px 20px;border-bottom:0.5px solid var(--ivica);">
+            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Stanje zaliha</span>
+        </div>
+
+        {{if not .Zalihe}}
+        <div style="padding:40px;text-align:center;color:var(--tekst-slabi);font-size:14px;">
+            Nema artikala u magacinu.
+        </div>
+        {{else}}
+        <div style="overflow-x:auto;">
+            <table class="tabela">
+                <thead>
+                    <tr>
+                        <th>Artikal</th>
+                        <th>Šifra</th>
+                        <th>Kategorija</th>
+                        <th style="text-align:right;">Stanje</th>
+                        <th style="text-align:right;">Min.</th>
+                        <th style="text-align:right;">Nab. cena</th>
+                        <th style="text-align:right;">Prod. cena</th>
+                        <th style="text-align:right;">Vrednost</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {{range .Zalihe}}
+                <tr {{if le .Kolicina .KolicinMin}}style="background:rgba(220,38,38,0.05);"{{end}}>
+                    <td style="font-weight:500;{{if le .Kolicina .KolicinMin}}color:#dc2626;{{end}}">{{.Naziv}}</td>
+                    <td style="font-family:monospace;font-size:12px;color:var(--tekst-slabi);">{{if .Sifra}}{{.Sifra}}{{else}}—{{end}}</td>
+                    <td style="font-size:12px;color:var(--tekst-slabi);">{{if .Kategorija}}{{.Kategorija}}{{else}}—{{end}}</td>
+                    <td style="text-align:right;font-weight:600;{{if le .Kolicina .KolicinMin}}color:#dc2626;{{end}}">{{.Kolicina}}</td>
+                    <td style="text-align:right;font-size:12px;color:var(--tekst-slabi);">{{.KolicinMin}}</td>
+                    <td style="text-align:right;font-family:monospace;font-size:12px;">{{printf "%.2f" .NabavnaCena}}</td>
+                    <td style="text-align:right;font-family:monospace;font-size:12px;">{{printf "%.2f" .ProdajnaCena}}</td>
+                    <td style="text-align:right;font-family:monospace;font-weight:500;">{{printf "%.2f" .VrednostZalihe}}</td>
+                </tr>
+                {{end}}
+                </tbody>
+                <tfoot>
+                    <tr style="border-top:1.5px solid var(--ivica);font-weight:600;">
+                        <td colspan="7" style="padding:10px 12px;font-size:13px;">Ukupna vrednost zalihe</td>
+                        <td style="text-align:right;padding:10px 12px;font-family:monospace;">{{printf "%.2f" .UkupnaVrednost}} din</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {{end}}
+    </div>
+
+</div>
+{{end}}
