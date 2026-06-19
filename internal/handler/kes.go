@@ -38,7 +38,7 @@ var saSidebar = []string{
 
 // standalone su šabloni bez base layouta
 var standaloneIme = []string{
-	"prijava", "setup", "totp_provera", "prodaja_stampa", "servis_stampa",
+	"prijava", "setup", "totp_provera", "prodaja_stampa", "servis_stampa", "servis_otpremnica",
 }
 
 // sablonskeFunkcije su pomoćne funkcije dostupne u svim šablonima.
