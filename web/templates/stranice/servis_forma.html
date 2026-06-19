@@ -179,7 +179,7 @@
                                 placeholder="0" style="width:100%;">
                         </div>
                         <div>
-                            <label class="polje-labela">Konačna cena</label>
+                            <label class="polje-labela">Cena rada</label>
                             <input type="number" name="cena_konacna" min="0" step="0.01"
                                 value="{{if .Nalog.CenaKonacna}}{{.Nalog.CenaKonacna}}{{end}}"
                                 placeholder="0" style="width:100%;">
@@ -218,6 +218,7 @@ function toggleGarancija(chk) {
     var input = document.getElementById('garancija_do_input');
     var hidden = document.getElementById('bez_garancije_val');
     if (chk.checked) {
+        if (input.value) input.dataset.sacuvano = input.value;
         input.value = '';
         input.disabled = true;
         input.style.opacity = '0.4';
@@ -225,6 +226,7 @@ function toggleGarancija(chk) {
     } else {
         input.disabled = false;
         input.style.opacity = '1';
+        if (input.dataset.sacuvano) input.value = input.dataset.sacuvano;
         hidden.value = '0';
     }
 }

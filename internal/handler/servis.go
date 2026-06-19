@@ -662,6 +662,7 @@ type PodaciOtpremnice struct {
 	ServisniDelovi []model.ServisniDeoSaArtiklom
 	UkupnoDelovi   float64
 	PreostaloSve   float64
+	ImaAvans       bool
 	Klijent        *model.Klijent
 	KlijentNaziv   string
 	TehnicarNaziv  string
@@ -725,11 +726,13 @@ func (h *Handler) StampaOtpremnice(w http.ResponseWriter, r *http.Request) {
 		ukupnoDelovi += d.Ukupno()
 	}
 	var preostaloSve float64
+	var imaAvans bool
 	if nalog.CenaKonacna != nil {
 		ukupnoSve := *nalog.CenaKonacna + ukupnoDelovi
 		avans := 0.0
-		if nalog.Avans != nil {
+		if nalog.Avans != nil && *nalog.Avans > 0 {
 			avans = *nalog.Avans
+			imaAvans = true
 		}
 		preostaloSve = ukupnoSve - avans
 		if preostaloSve < 0 {
@@ -742,6 +745,7 @@ func (h *Handler) StampaOtpremnice(w http.ResponseWriter, r *http.Request) {
 		ServisniDelovi: delovi,
 		UkupnoDelovi:   ukupnoDelovi,
 		PreostaloSve:   preostaloSve,
+		ImaAvans:       imaAvans,
 		Klijent:        klijent,
 		KlijentNaziv:   klijentNaziv,
 		TehnicarNaziv:  tehnicarNaziv,
