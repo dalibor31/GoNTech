@@ -752,6 +752,9 @@ select {
     min-width: 0;
 }
 
+/* kad JS radi, .poruka-uspeh se konvertuje u toast — sakrivamo odmah da ne treptne */
+.js-on .poruka-uspeh { display: none !important; }
+
 /* poruka o uspehu — konzistentna za sve teme */
 .poruka-uspeh {
     background: var(--poruka-uspeh-bg);
@@ -790,8 +793,8 @@ select {
     animation: toastIn 0.3s ease forwards;
     max-width: 340px;
 }
-.toast-greska { background: #fef2f2; color: #dc2626; border: 0.5px solid #fca5a5; }
-.toast-uspeh { background: #f0fdf4; color: #16a34a; border: 0.5px solid #86efac; }
+.toast-greska { background: rgba(207, 87, 87, 0.12); color: var(--greska); border: 0.5px solid var(--greska); }
+.toast-uspeh { background: var(--poruka-uspeh-bg); color: var(--poruka-uspeh-boja); border: 0.5px solid var(--poruka-uspeh-boja); }
 .toast.nestaje { animation: toastOut 0.3s ease forwards; }
 @keyframes toastIn {
     from { opacity: 0; transform: translateY(12px); }

@@ -12,6 +12,8 @@
     if (window.innerWidth > 768 && localStorage.getItem('sidebar-skupljen') === 'true') {
         document.documentElement.classList.add('sidebar-init-skupljen');
     }
+    // sakriva poruke-uspeha odmah da ne trepnu pre toast konverzije
+    document.documentElement.classList.add('js-on');
     </script>
 
     <!-- tema — učitava se prva -->
@@ -271,7 +273,40 @@
         window._ntechPotvrdi = prikaziModal;
     })();
 
+    // toast obaveštenja — prikazuje poruku u uglu ekrana, nestaje posle 4s
+    window.ntechToast = function(tekst, tip) {
+        var t = document.createElement('div');
+        t.className = 'toast ' + (tip === 'greska' ? 'toast-greska' : 'toast-uspeh');
+        // ikonica
+        var svg = tip === 'greska'
+            ? '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
+            : '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
+        t.innerHTML = svg + '<span>' + tekst + '</span>';
+        // prilagođavamo poziciju za mobilne uređaje
+        t.style.bottom = '24px';
+        t.style.right = '16px';
+        document.body.appendChild(t);
+        var ukloni = function() {
+            t.classList.add('nestaje');
+            setTimeout(function() { if (t.parentNode) t.parentNode.removeChild(t); }, 320);
+        };
+        t.addEventListener('click', ukloni);
+        setTimeout(ukloni, 4000);
+    };
+
+    // konvertuje sve .poruka-uspeh u toast i sklanja original
+    function ntechKonvertujPoruke() {
+        document.querySelectorAll('.poruka-uspeh').forEach(function(el) {
+            if (el.dataset.toastPrikazan) return;
+            el.dataset.toastPrikazan = '1';
+            var tekst = el.textContent.trim();
+            el.style.display = 'none';
+            if (tekst) window.ntechToast(tekst, 'uspeh');
+        });
+    }
+
     function ntechInicijalizuj() {
+        ntechKonvertujPoruke();
         var m = document.querySelector('meta[name="csrf-token"]');
         if (m && m.content) {
             document.querySelectorAll('form[method="POST"],form[method="post"]').forEach(function(f) {
