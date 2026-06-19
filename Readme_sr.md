@@ -58,6 +58,7 @@ Cilj je jednostavan: sve što servis treba da prati nalazi se na jednom mestu, b
 - Grafikoni — mesečni prihod na izveštajima (Chart.js)
 - Strukturisano logovanje — `log/slog` (JSON u produkciji, tekst u razvoju); zaseban auth log u fail2ban formatu
 - Automatski testovi — jedinični i integracioni nad SQLite bazom (kripto, RBAC, tokovi prijave, validatori forme, izveštaji)
+- **Demo mod** (`NTECH_ENV=demo`) — automatski kreiran demo korisnik, pre-popunjeni login, ograničen bekap, blokirana promena lozinke i 2FA
 
 ### Planirano
 
@@ -97,30 +98,29 @@ Cilj je jednostavan: sve što servis treba da prati nalazi se na jednom mestu, b
 git clone <url-repozitorijuma>
 cd GoNtech
 
-# 2. Kopiranje konfiguracionog fajla
-cp ntech.env.example ntech.env
-# Otvori ntech.env i postavi vrednosti (videti tabelu ispod)
-
-# 3. Učitavanje promenljivih i pokretanje u razvojnom okruženju
-export $(grep -v '^#' ntech.env | xargs)
+# 2. Pokretanje u razvojnom modu (čita fajlove sa diska, ne zahteva HTTPS)
 go run ./cmd/ntech
 ```
 
-Program se otvara na `http://localhost:8080` (ili na portu definisanom u `ntech.env`).
-
-Pri prvom pokretanju automatski se pokreće setup wizard.
+Program se otvara na `http://localhost:8080`. Pri prvom pokretanju automatski se pokreće setup wizard.
 
 ### Produkcioni build
 
-```bash
-# Pomoću build.sh skripte (prima opcioni argument verzije)
-./build.sh 1.0.0
+Koristi interaktivnu skriptu:
 
-# Ili ručno
-CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build \
+```bash
+./start.sh
+```
+
+Skripta pita za verziju, okruženje (production/development), platformu (Linux/Windows/obe), opcionalnu UPX kompresiju i da li da gurne Docker image na Gitea i GitHub Container Registry.
+
+Ili ručno:
+
+```bash
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
   -ldflags "-X main.Verzija=1.0.0 -s -w" \
+  -trimpath \
   -o ntech ./cmd/ntech
-./ntech
 ```
 
 Rezultat je jedan statički binarni fajl bez zavisnosti.
@@ -129,15 +129,87 @@ Rezultat je jedan statički binarni fajl bez zavisnosti.
 
 ## Promenljive okruženja
 
-Kopirati `ntech.env.example` u `ntech.env` i popuniti vrednosti. Fajl `ntech.env` se **ne commituje** u Git.
+Program čita promenljive okruženja pri pokretanju. U razvojnom modu staviti ih u `ntech.env` pored SQLite baze. U production/demo modu program sam kreira `ntech.env` u istom folderu gde je baza.
 
-| Promenljiva    | Podrazumevano | Opis                                         |
-| -------------- | ------------- | -------------------------------------------- |
-| `NTECH_ENV`    | `development` | Okruženje: `development` ili `production`    |
-| `NTECH_PORT`   | `8080`        | HTTP port                                    |
-| `NTECH_DB`     | `sqlite`      | Tip baze: `sqlite` ili `postgres`            |
-| `NTECH_SQLITE` | `ntech.db`    | Putanja do SQLite fajla                      |
-| `NTECH_DSN`    | —             | PostgreSQL connection string                 |
+Fajl `ntech.env` se **ne commituje** u Git.
+
+| Promenljiva      | Podrazumevano | Opis                                                               |
+| ---------------- | ------------- | ------------------------------------------------------------------ |
+| `NTECH_ENV`      | `development` | Mod: `development`, `production` ili `demo`                        |
+| `NTECH_PORT`     | `8080`        | HTTP port                                                          |
+| `NTECH_DB`       | `sqlite`      | Tip baze: `sqlite` ili `postgres`                                  |
+| `NTECH_SQLITE`   | `ntech.db`    | Putanja do SQLite fajla                                            |
+| `NTECH_DSN`      | —             | PostgreSQL connection string                                       |
+| `NTECH_SECRET`   | —             | Ključ za potpisivanje sesija (min. 32 bajta); auto-generiše se     |
+| `NTECH_TOTP_KEY` | —             | AES-256 ključ za šifrovanje TOTP tajni; auto-generiše se          |
+
+`NTECH_SECRET` i `NTECH_TOTP_KEY` se automatski generišu pri prvom pokretanju i upisuju u `ntech.env`. **Sačuvaj backup ovog fajla** — gubitak `NTECH_TOTP_KEY` onemogućuje prijavu svim korisnicima koji imaju 2FA.
+
+---
+
+## Docker deployment
+
+Docker image je dostupan na:
+- `ghcr.io/dalibor31/ntech:latest`
+- `git.vm-net.in.rs/dasko/ntech:latest`
+
+### Produkcija
+
+```yaml
+# docker-compose.yml
+services:
+  ntech:
+    image: ghcr.io/dalibor31/ntech:latest
+    restart: unless-stopped
+    environment:
+      NTECH_ENV: production
+      NTECH_PORT: "8000"
+      NTECH_SQLITE: /app/data/ntech.db
+    volumes:
+      - ./data:/app/data         # baza + ntech.env (tajne)
+      - ./uploads:/app/uploads   # uploadovane slike
+      - ./logs:/app/logs         # strukturisani + auth log
+      - ./backups:/app/backups   # automatski bekap baze
+    ports:
+      - "8000:8000"
+```
+
+Pri **prvom pokretanju** pokreće se setup wizard za kreiranje prvog admin korisnika. Nakon toga, `./data/ntech.env` sadrži auto-generisane tajne — **sačuvaj backup**.
+
+Stavi program iza reverznog proksija (Caddy, nginx) koji terminira HTTPS. Secure kolačići zahtevaju HTTPS.
+
+Primer Caddy konfiguracije:
+
+```
+tvoj.domen.com {
+    reverse_proxy ntech:8000
+}
+```
+
+### Demo mod
+
+Demo mod pokreće potpuno funkcionalnu kopiju sa pre-kreiranim nalogom `Demo` / `Demo1234` (admin). Promena lozinke i 2FA su blokirani. Bekap je ograničen na 2 kopije.
+
+```yaml
+# docker-compose.yml (demo)
+services:
+  ntech-demo:
+    image: ghcr.io/dalibor31/ntech:latest
+    restart: unless-stopped
+    environment:
+      NTECH_ENV: demo
+      NTECH_PORT: "8000"
+      NTECH_SQLITE: /app/data/ntech.db
+    volumes:
+      - ./data:/app/data
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+      - ./backups:/app/backups
+    ports:
+      - "8000:8000"
+```
+
+Demo takođe zahteva HTTPS (Caddy ili slično) jer su Secure kolačići uključeni.
 
 ---
 
@@ -161,8 +233,8 @@ ntech/
 ├── migrations/         # SQL migracije (001_opis.sql, 002_opis.sql, ...)
 ├── logs/               # auth.log i ostali logovi
 ├── backups/            # rezervne kopije baze
-├── build.sh            # skripta za produkcioni build
-├── ntech.env           # lokalna konfiguracija (ne commituje se)
+├── start.sh            # interaktivna skripta za build i Docker push
+├── Dockerfile
 ├── go.mod
 └── go.sum
 ```
