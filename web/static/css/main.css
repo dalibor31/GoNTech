@@ -1121,6 +1121,22 @@ select {
 .dash-stat.animiraj:nth-child(4) { animation-delay: 0.23s; }
 .dash-stat.animiraj:nth-child(5) { animation-delay: 0.28s; }
 
+/* kartica koja je ujedno i link — zamena za inline text-decoration/display/cursor */
+.kartica-link { text-decoration: none; display: block; cursor: pointer; }
+
+/* ikona wrapper na stat karticama dashboarda */
+.dash-ikona {
+    width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 10px;
+    transition: filter 0.25s;
+}
+.dash-ikona-plava       { background: #eff2ff; }
+.dash-ikona-zelena      { background: #f0fdf4; }
+.dash-ikona-narandzasta { background: #fff7ed; }
+.dash-ikona-crvena      { background: #fef2f2; }
+.dash-ikona-nebo        { background: #f0f9ff; }
+
 /* Bedž statusa servisnog naloga — JEDNO mesto za izgled i boje statusa (lista i detalji).
    Mora biti u main.css: HTMX navigacija odbacuje <head>, pa page <style> ne bi važio. */
 .status-badge       { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; white-space: nowrap; }

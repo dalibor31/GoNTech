@@ -57,6 +57,7 @@
       .topbar-naslov { color: rgba(255,255,255,0.95) !important; text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.55); }
       .kartica, .premesti-modal { background: rgba(0,0,0,{{if .AppPozadinaGlassOpacity}}{{.AppPozadinaGlassOpacity}}%{{else}}0.08{{end}}) !important; backdrop-filter: blur({{.AppPozadinaBlur}}px); -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px); border: 1px solid rgba(255,255,255,0.12) !important; }
       body:not([data-hover]) .kartica:hover { background: rgba(0,0,0,0.38) !important; }
+      body:not([data-hover]) .kartica:hover .dash-ikona { filter: brightness(0.55); }
       .kartica p, .kartica span, .kartica h1, .kartica h2, .kartica h3, .kartica h4, .kartica label, .kartica td, .kartica th, .kartica li, .kartica a { color: rgba(255,255,255,0.95) !important; text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.55); }
       /* naslovi kartica i labele su goli <div> (boju im NE diramo, da namerno obojeni — crveni/akcenat — ostanu) — samo senka da se vide */
       .kartica div { text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.55); }
