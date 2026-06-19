@@ -11,6 +11,8 @@ A business application for computer repair shop management, parts inventory trac
 
 > ⚠️ The project is under active development. It is not ready for production use.
 
+**Live demo:** [https://demo.vm-net.in.rs](https://demo.vm-net.in.rs) — log in with `Demo` / `Demo1234` (admin role; password and 2FA changes are disabled in demo mode).
+
 ---
 
 ## About the Project
