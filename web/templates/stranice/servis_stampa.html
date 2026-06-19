@@ -81,9 +81,18 @@
             </div>
         </div>
         <div class="nalog-broj">
-            <div class="nalog-naslov">Servisni nalog</div>
-            <div class="nalog-broj-vrednost">{{.Nalog.BrojNaloga}}</div>
-            <div style="margin-top:6px;"><span class="status">{{.Nalog.Status}}</span></div>
+            <div style="display:flex;align-items:flex-start;gap:14px;justify-content:flex-end;">
+                <div>
+                    <div class="nalog-naslov">Servisni nalog</div>
+                    <div class="nalog-broj-vrednost">{{.Nalog.BrojNaloga}}</div>
+                    <div style="margin-top:6px;"><span class="status">{{.Nalog.Status}}</span></div>
+                </div>
+                {{if .QRKod}}
+                <img src="data:image/png;base64,{{.QRKod}}" width="80" height="80"
+                     alt="QR {{.Nalog.BrojNaloga}}"
+                     style="image-rendering:pixelated;border:1px solid #ddd;border-radius:4px;">
+                {{end}}
+            </div>
         </div>
     </div>
 
