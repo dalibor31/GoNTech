@@ -46,6 +46,9 @@ type PodaciDetaljiNaloga struct {
 	ServisniDelovi []model.ServisniDeoSaArtiklom
 	Artikli        []model.ArtikalSaKategorijom
 	Sacuvano       bool
+	UkupnoDelovi   float64
+	UkupnoSve      float64
+	PreostaloSve   float64
 }
 
 // Servis renderuje listu servisnih naloga sa opcionom pretragom i filterom statusa
@@ -355,6 +358,23 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 		slog.Error("greška pri učitavanju artikala", "error", err)
 	}
 
+	var ukupnoDelovi float64
+	for _, d := range delovi {
+		ukupnoDelovi += d.Ukupno()
+	}
+	var ukupnoSve, preostaloSve float64
+	if nalog.CenaKonacna != nil {
+		ukupnoSve = *nalog.CenaKonacna + ukupnoDelovi
+		avans := 0.0
+		if nalog.Avans != nil {
+			avans = *nalog.Avans
+		}
+		preostaloSve = ukupnoSve - avans
+		if preostaloSve < 0 {
+			preostaloSve = 0
+		}
+	}
+
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "servis"
 	ps.NaslovStranice = "Detalji naloga"
@@ -366,6 +386,9 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 		ServisniDelovi: delovi,
 		Artikli:        artikli,
 		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
+		UkupnoDelovi:   ukupnoDelovi,
+		UkupnoSve:      ukupnoSve,
+		PreostaloSve:   preostaloSve,
 	}
 
 	h.renderujTemplate(w, "servis_detalji", podaci)
@@ -638,6 +661,7 @@ type PodaciOtpremnice struct {
 	Nalog          model.ServisniNalog
 	ServisniDelovi []model.ServisniDeoSaArtiklom
 	UkupnoDelovi   float64
+	PreostaloSve   float64
 	Klijent        *model.Klijent
 	KlijentNaziv   string
 	TehnicarNaziv  string
@@ -700,11 +724,24 @@ func (h *Handler) StampaOtpremnice(w http.ResponseWriter, r *http.Request) {
 	for _, d := range delovi {
 		ukupnoDelovi += d.Ukupno()
 	}
+	var preostaloSve float64
+	if nalog.CenaKonacna != nil {
+		ukupnoSve := *nalog.CenaKonacna + ukupnoDelovi
+		avans := 0.0
+		if nalog.Avans != nil {
+			avans = *nalog.Avans
+		}
+		preostaloSve = ukupnoSve - avans
+		if preostaloSve < 0 {
+			preostaloSve = 0
+		}
+	}
 
 	h.renderujStandalone(w, "servis_otpremnica", PodaciOtpremnice{
 		Nalog:          *nalog,
 		ServisniDelovi: delovi,
 		UkupnoDelovi:   ukupnoDelovi,
+		PreostaloSve:   preostaloSve,
 		Klijent:        klijent,
 		KlijentNaziv:   klijentNaziv,
 		TehnicarNaziv:  tehnicarNaziv,
