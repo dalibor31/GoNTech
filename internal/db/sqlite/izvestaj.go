@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"ntech/internal/model"
 )
@@ -229,6 +230,62 @@ func (r *sqliteIzvestajRepo) TopKlijenti(ctx context.Context, limit int) ([]mode
 			return nil, fmt.Errorf("ntech: izvestaj.TopKlijenti: %w", err)
 		}
 		lista = append(lista, k)
+	}
+	return lista, rows.Err()
+}
+
+// PrometniList vraća sve magacinske promene u zadatom periodu
+func (r *sqliteIzvestajRepo) PrometniList(ctx context.Context, od, do time.Time) ([]model.PrometniRed, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT mp.datum, a.naziv, COALESCE(a.sifra, ''), mp.tip_promene,
+		       mp.promena_kolicine, mp.stanje_pre, mp.stanje_posle,
+		       COALESCE(mp.napomena, '')
+		FROM magacinske_promene mp
+		JOIN artikli a ON a.id = mp.artikal_id
+		WHERE DATE(mp.datum) >= DATE(?) AND DATE(mp.datum) <= DATE(?)
+		ORDER BY mp.datum ASC`,
+		od.Format("2006-01-02"), do.Format("2006-01-02"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("ntech: IzvestajRepo.PrometniList: %w", err)
+	}
+	defer rows.Close()
+
+	var lista []model.PrometniRed
+	for rows.Next() {
+		var p model.PrometniRed
+		if err := rows.Scan(&p.Datum, &p.ArtikalNaziv, &p.ArtikalSifra, &p.TipPromene,
+			&p.PromenaKolicine, &p.StanjePre, &p.StanjePosle, &p.Napomena); err != nil {
+			return nil, fmt.Errorf("ntech: IzvestajRepo.PrometniList: scan: %w", err)
+		}
+		lista = append(lista, p)
+	}
+	return lista, rows.Err()
+}
+
+// StanjeZaliha vraća trenutno stanje svih artikala sa vrednostima
+func (r *sqliteIzvestajRepo) StanjeZaliha(ctx context.Context) ([]model.StanjeZalihaRed, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT a.naziv, COALESCE(a.sifra, ''), COALESCE(k.naziv, ''),
+		       a.kolicina, a.kolicina_min, a.nabavna_cena, a.prodajna_cena,
+		       a.kolicina * a.nabavna_cena AS vrednost
+		FROM artikli a
+		LEFT JOIN kategorije k ON k.id = a.kategorija_id
+		ORDER BY k.naziv ASC, a.naziv ASC`,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("ntech: IzvestajRepo.StanjeZaliha: %w", err)
+	}
+	defer rows.Close()
+
+	var lista []model.StanjeZalihaRed
+	for rows.Next() {
+		var s model.StanjeZalihaRed
+		if err := rows.Scan(&s.Naziv, &s.Sifra, &s.Kategorija,
+			&s.Kolicina, &s.KolicinMin, &s.NabavnaCena, &s.ProdajnaCena, &s.VrednostZalihe); err != nil {
+			return nil, fmt.Errorf("ntech: IzvestajRepo.StanjeZaliha: scan: %w", err)
+		}
+		lista = append(lista, s)
 	}
 	return lista, rows.Err()
 }

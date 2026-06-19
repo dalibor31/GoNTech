@@ -222,6 +222,9 @@ type IzvestajRepository interface {
 	StariOtvoreniNalozi(ctx context.Context) ([]model.StariNalogRed, error)
 	TopArtikli(ctx context.Context, limit int) ([]model.TopArtikalRed, error)
 	TopKlijenti(ctx context.Context, limit int) ([]model.TopKlijentRed, error)
+	// magacinski izveštaji
+	PrometniList(ctx context.Context, od, do time.Time) ([]model.PrometniRed, error)
+	StanjeZaliha(ctx context.Context) ([]model.StanjeZalihaRed, error)
 }
 
 // PodsetnikRepository definiše operacije nad podsetnicima

@@ -19,7 +19,7 @@ var saSidebar = []string{
 	"admin_korisnici", "admin_profil", "admin_login_istorija", "admin_dozvole",
 	"dashboard",
 	"dobavljaci", "dobavljac_forma",
-	"izvestaji",
+	"izvestaji", "prometni_list", "stanje_zaliha",
 	"kategorije",
 	"klijenti", "klijent_forma",
 	"magacin", "magacin_forma", "magacin_kartica",
