@@ -148,6 +148,7 @@ func (r *sqliteIzvestajRepo) MesecniPrihodServis(ctx context.Context) ([]model.M
 		SELECT substr(datum_zavrsetka, 1, 7), SUM(cena_konacna)
 		FROM servisni_nalozi
 		WHERE datum_zavrsetka IS NOT NULL
+		  AND status = 'Preuzeto'
 		  AND substr(datum_zavrsetka, 1, 10) >= date('now', '-11 months', 'start of month')
 		GROUP BY substr(datum_zavrsetka, 1, 7)`, "MesecniPrihodServis")
 }
