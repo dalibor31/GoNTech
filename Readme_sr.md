@@ -11,6 +11,8 @@ Poslovna aplikacija za upravljanje servisom računara, magacinom delova i prodaj
 
 > ⚠️ Projekat je u aktivnom razvoju. Nije spreman za produkcijsku upotrebu.
 
+**Demo:** [https://demo.vm-net.in.rs](https://demo.vm-net.in.rs) — prijava sa `Demo` / `Demo1234` (uloga: admin; promena lozinke i 2FA su u demo modu onemogućeni).
+
 ---
 
 ## O projektu
