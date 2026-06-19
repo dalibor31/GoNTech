@@ -84,9 +84,15 @@
                     </div>
                 </div>
 
-                <div>
-                    <label class="polje-labela">Prodajna cena (din)</label>
-                    <input type="number" name="prodajna_cena" value="{{.Artikal.ProdajnaCena}}" min="0" step="0.01" style="width:100%;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div>
+                        <label class="polje-labela">Nabavna cena (din)</label>
+                        <input type="number" name="nabavna_cena" value="{{.Artikal.NabavnaCena}}" min="0" step="0.01" style="width:100%;">
+                    </div>
+                    <div>
+                        <label class="polje-labela">Prodajna cena (din)</label>
+                        <input type="number" name="prodajna_cena" value="{{.Artikal.ProdajnaCena}}" min="0" step="0.01" style="width:100%;">
+                    </div>
                 </div>
 
                 <!-- marža za kalkulaciju; prazno = nasleđuje maržu kategorije ili globalnu -->

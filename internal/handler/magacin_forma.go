@@ -260,6 +260,14 @@ func parseFormuArtikla(r *http.Request) (model.Artikal, string) {
 		artikal.KolicinMin = v
 	}
 
+	if c := r.FormValue("nabavna_cena"); c != "" {
+		v, err := strconv.ParseFloat(c, 64)
+		if err != nil || v < 0 {
+			return artikal, "Nabavna cena mora biti pozitivan broj."
+		}
+		artikal.NabavnaCena = v
+	}
+
 	if c := r.FormValue("prodajna_cena"); c != "" {
 		v, err := strconv.ParseFloat(c, 64)
 		if err != nil || v < 0 {
