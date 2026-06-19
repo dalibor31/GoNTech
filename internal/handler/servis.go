@@ -680,6 +680,7 @@ type PodaciOtpremnice struct {
 	UkupnoDelovi   float64
 	PreostaloSve   float64
 	ImaAvans       bool
+	QRKod          string
 	Klijent        *model.Klijent
 	KlijentNaziv   string
 	TehnicarNaziv  string
@@ -757,12 +758,23 @@ func (h *Handler) StampaOtpremnice(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	nalogURL := "http"
+	if r.TLS != nil {
+		nalogURL += "s"
+	}
+	nalogURL += "://" + r.Host + "/servis/" + strconv.FormatInt(id, 10)
+	var qrKodOtpr string
+	if png, err := qrcode.Encode(nalogURL, qrcode.Medium, 160); err == nil {
+		qrKodOtpr = base64.StdEncoding.EncodeToString(png)
+	}
+
 	h.renderujStandalone(w, "servis_otpremnica", PodaciOtpremnice{
 		Nalog:          *nalog,
 		ServisniDelovi: delovi,
 		UkupnoDelovi:   ukupnoDelovi,
 		PreostaloSve:   preostaloSve,
 		ImaAvans:       imaAvans,
+		QRKod:          qrKodOtpr,
 		Klijent:        klijent,
 		KlijentNaziv:   klijentNaziv,
 		TehnicarNaziv:  tehnicarNaziv,
