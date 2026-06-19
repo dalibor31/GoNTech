@@ -1,0 +1,153 @@
+{{template "base" .}}
+
+{{define "naslov"}}Popis — NTech{{end}}
+
+{{define "dodatni-css"}}
+<style>
+    .popis-input {
+        width: 80px;
+        text-align: right;
+        font-family: monospace;
+        font-size: 14px;
+        padding: 5px 8px;
+    }
+    .popis-input.izmenjeno {
+        border-color: #f97316;
+        background: rgba(249,115,22,0.06);
+    }
+    .popis-razlika {
+        font-family: monospace;
+        font-size: 13px;
+        font-weight: 600;
+        min-width: 40px;
+        text-align: right;
+    }
+    .red-kriticno td { background: rgba(220,38,38,0.04); }
+</style>
+{{end}}
+
+{{define "sadrzaj"}}
+<div class="kolona" style="gap:16px;">
+
+    {{if .Sacuvano}}
+    <div class="poruka-uspeh poruka-animacija">Popis je uspešno sačuvan. Korekcije su upisane u magacinsku evidenciju.</div>
+    {{end}}
+    {{if .Greska}}
+    <div class="poruka-greska greska-animacija">{{.Greska}}</div>
+    {{end}}
+
+    <!-- uputstvo -->
+    <div class="kartica animiraj" style="padding:14px 18px;">
+        <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:260px;">
+                <div style="font-size:14px;font-weight:500;color:var(--tekst-glavni);margin-bottom:4px;">Godišnji popis magacina</div>
+                <div style="font-size:13px;color:var(--tekst-slabi);line-height:1.6;">
+                    Unesite stvarno prebrojano stanje za svaki artikal. Polja sa razlikom biće istaknuta narandžasto.
+                    Samo artikli sa izmenjenom količinom biće korigovani — ostali ostaju nepromenjeni.
+                </div>
+            </div>
+            <a href="/izvestaji" class="btn-sekundarno" style="white-space:nowrap;">← Izveštaji</a>
+        </div>
+    </div>
+
+    <!-- forma -->
+    <form method="POST" action="/izvestaji/popis">
+        <input type="hidden" name="csrf_token" value="{{.CsrfToken}}">
+
+        <div class="kartica animiraj" style="padding:0;overflow:hidden;">
+            <div style="padding:12px 20px;border-bottom:0.5px solid var(--ivica);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+                <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Artikli</span>
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                    <div>
+                        <label class="polje-labela" style="display:inline;margin-right:6px;">Napomena:</label>
+                        <input type="text" name="napomena" value="Godišnji popis" style="width:200px;font-size:13px;padding:5px 8px;">
+                    </div>
+                    <button type="submit" class="btn-primarno">Sačuvaj popis</button>
+                </div>
+            </div>
+
+            {{if not .Artikli}}
+            <div style="padding:40px;text-align:center;color:var(--tekst-slabi);font-size:14px;">
+                Nema artikala u magacinu.
+            </div>
+            {{else}}
+            <div style="overflow-x:auto;">
+                <table class="tabela">
+                    <thead>
+                        <tr>
+                            <th>Artikal</th>
+                            <th>Šifra</th>
+                            <th>Kategorija</th>
+                            <th style="text-align:right;">Knjižno stanje</th>
+                            <th style="text-align:right;">Stvarno stanje</th>
+                            <th style="text-align:right;">Razlika</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {{range .Artikli}}
+                    <tr class="{{if le .Kolicina .KolicinMin}}red-kriticno{{end}}" id="red-{{.ID}}">
+                        <td style="font-weight:500;">{{.Naziv}}</td>
+                        <td style="font-family:monospace;font-size:12px;color:var(--tekst-slabi);">{{if .Sifra}}{{.Sifra}}{{else}}—{{end}}</td>
+                        <td style="font-size:12px;color:var(--tekst-slabi);">{{if .KategorijaNaziv}}{{.KategorijaNaziv}}{{else}}—{{end}}</td>
+                        <td style="text-align:right;font-family:monospace;font-weight:600;" id="knjizno-{{.ID}}">{{.Kolicina}}</td>
+                        <td style="text-align:right;">
+                            <input type="number"
+                                class="popis-input"
+                                name="kolicina_{{.ID}}"
+                                id="input-{{.ID}}"
+                                value="{{.Kolicina}}"
+                                min="0"
+                                data-knjizno="{{.Kolicina}}"
+                                data-id="{{.ID}}"
+                                oninput="azurirajRazliku(this)">
+                        </td>
+                        <td style="text-align:right;">
+                            <span class="popis-razlika" id="razlika-{{.ID}}">—</span>
+                        </td>
+                    </tr>
+                    {{end}}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- dugme na dnu -->
+            <div style="padding:14px 20px;border-top:0.5px solid var(--ivica);display:flex;justify-content:flex-end;">
+                <button type="submit" class="btn-primarno">Sačuvaj popis</button>
+            </div>
+            {{end}}
+        </div>
+    </form>
+
+</div>
+
+<script>
+function azurirajRazliku(input) {
+    var id = input.dataset.id;
+    var knjizno = parseInt(input.dataset.knjizno, 10);
+    var stvarno = parseInt(input.value, 10);
+    var span = document.getElementById('razlika-' + id);
+
+    if (isNaN(stvarno)) {
+        span.textContent = '—';
+        span.style.color = '';
+        input.classList.remove('izmenjeno');
+        return;
+    }
+
+    var razlika = stvarno - knjizno;
+    if (razlika === 0) {
+        span.textContent = '—';
+        span.style.color = '';
+        input.classList.remove('izmenjeno');
+    } else if (razlika > 0) {
+        span.textContent = '+' + razlika;
+        span.style.color = '#22c55e';
+        input.classList.add('izmenjeno');
+    } else {
+        span.textContent = razlika;
+        span.style.color = '#dc2626';
+        input.classList.add('izmenjeno');
+    }
+}
+</script>
+{{end}}

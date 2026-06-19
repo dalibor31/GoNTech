@@ -344,6 +344,8 @@ func main() {
 		r.Get("/izvestaji", h.Izvestaji)
 			r.Get("/izvestaji/prometni-list", h.PrometniListMagacina)
 			r.Get("/izvestaji/stanje-zaliha", h.StanjeZalihaIzvestaj)
+			r.Get("/izvestaji/popis", h.Popis)
+			r.With(doz("artikal.izmeni")).Post("/izvestaji/popis", h.SacuvajPopis)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "prodaja.pregled")).Get("/prodaja", h.Prodaja)
 		r.Get("/prodaja/nova", h.NovaProdaja)
 		r.With(doz("prodaja.dodaj")).Post("/prodaja/nova", h.SacuvajProdaju)

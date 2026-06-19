@@ -6,9 +6,12 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
+	appdbPkg "ntech/internal/db"
 	"ntech/internal/db/sqlite"
+	"ntech/internal/middleware"
 	"ntech/internal/model"
 )
 
@@ -294,4 +297,95 @@ func (h *Handler) StanjeZalihaIzvestaj(w http.ResponseWriter, r *http.Request) {
 		UkupnaVrednost: ukupnaVrednost,
 		BrojArtikala:   len(zalihe),
 	})
+}
+
+// PodaciPopisa su podaci za stranicu popisa
+type PodaciPopisa struct {
+	model.PodaciStranice
+	Artikli  []model.ArtikalSaKategorijom
+	Sacuvano bool
+	Greska   string
+}
+
+// Popis prikazuje formu za unos stvarnog stanja (inventuru)
+func (h *Handler) Popis(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "artikal.izmeni"); !ok {
+		return
+	}
+
+	artikli, err := h.Artikli.Lista(r.Context(), appdbPkg.ArtikalFilter{})
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju artikala", http.StatusInternalServerError)
+		return
+	}
+
+	podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "izvestaji"
+	ps.NaslovStranice = "Popis"
+
+	h.renderujTemplate(w, "popis", PodaciPopisa{
+		PodaciStranice: ps,
+		Artikli:        artikli,
+		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
+	})
+}
+
+// SacuvajPopis prima POST formu sa prebrojenim količinama i upisuje korekcije
+func (h *Handler) SacuvajPopis(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "artikal.izmeni") {
+		http.Error(w, "Nemate dozvolu za ovu akciju.", http.StatusForbidden)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
+		return
+	}
+
+	artikli, err := h.Artikli.Lista(r.Context(), appdbPkg.ArtikalFilter{})
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju artikala", http.StatusInternalServerError)
+		return
+	}
+
+	napomena := r.FormValue("napomena")
+	if napomena == "" {
+		napomena = "Godišnji popis"
+	}
+
+	var greskaBroj int
+	for _, a := range artikli {
+		kljuc := fmt.Sprintf("kolicina_%d", a.ID)
+		vr := r.FormValue(kljuc)
+		if vr == "" {
+			continue
+		}
+		nova, err := strconv.Atoi(vr)
+		if err != nil || nova < 0 {
+			continue
+		}
+		if nova == a.Kolicina {
+			continue
+		}
+		if err := h.Artikli.KorigujKolicinu(r.Context(), a.ID, nova, &k.ID, napomena); err != nil {
+			slog.Error("popis: korekcija artikla", "id", a.ID, "error", err)
+			greskaBroj++
+		}
+	}
+
+	if greskaBroj > 0 {
+		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+		ps := h.popuniPodaciStranice(r, podesavanja)
+		ps.Stranica = "izvestaji"
+		ps.NaslovStranice = "Popis"
+		h.renderujTemplate(w, "popis", PodaciPopisa{
+			PodaciStranice: ps,
+			Artikli:        artikli,
+			Greska:         fmt.Sprintf("Došlo je do greške pri upisivanju %d artikala.", greskaBroj),
+		})
+		return
+	}
+
+	http.Redirect(w, r, "/izvestaji/popis?sacuvano=1", http.StatusSeeOther)
 }
