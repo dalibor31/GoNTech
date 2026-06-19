@@ -37,12 +37,19 @@ func (h *Handler) NoviArtikal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	predlogSifre, err := h.Artikli.SledecaSifra(r.Context())
+	if err != nil {
+		slog.Error("greška pri generisanju predloga šifre", "err", err)
+		predlogSifre = "ART-00001"
+	}
+
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "magacin"
 	ps.NaslovStranice = "Novi artikal"
 	h.renderujFormuArtikla(w, PodaciFormeArtikla{
 		PodaciStranice: ps,
 		Kategorije:     kategorije,
+		Artikal:        model.Artikal{Sifra: predlogSifre},
 		Izmena:         false,
 	})
 }
@@ -85,6 +92,16 @@ func (h *Handler) SacuvajArtikal(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Greška pri čuvanju artikla", http.StatusInternalServerError)
 		return
+	}
+
+	// ako korisnik nije uneo šifru, auto-generišemo po ID-u
+	if artikal.Sifra == "" {
+		autoSifra := fmt.Sprintf("ART-%05d", id)
+		artikal.ID = id
+		artikal.Sifra = autoSifra
+		if err := h.Artikli.Izmeni(r.Context(), &artikal); err != nil {
+			slog.Error("greška pri upisu auto-šifre", "id", id, "err", err)
+		}
 	}
 
 	// fetch zahtev (iz modala) dobija JSON sa ID-em i nazivom novog artikla
@@ -221,6 +238,8 @@ func parseFormuArtikla(r *http.Request) (model.Artikal, string) {
 
 	var artikal model.Artikal
 	artikal.Naziv = naziv
+	artikal.Sifra = r.FormValue("sifra")
+	artikal.Barkod = r.FormValue("barkod")
 	artikal.Opis = r.FormValue("opis")
 	artikal.Lokacija = r.FormValue("lokacija")
 	artikal.Napomena = r.FormValue("napomena")

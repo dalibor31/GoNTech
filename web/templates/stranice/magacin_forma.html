@@ -25,6 +25,24 @@
         <form method="POST" action="{{if .Izmena}}/magacin/izmeni/{{.Artikal.ID}}{{else}}/magacin/novi{{end}}">
             <div class="kolona" style="gap:14px;">
 
+                <!-- šifra i barkod -->
+                <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div>
+                        <label class="polje-labela">Šifra artikla</label>
+                        <input type="text" name="sifra" value="{{.Artikal.Sifra}}"
+                            placeholder="npr. ART-00001"
+                            style="width:100%;font-family:monospace;">
+                        <div style="font-size:11px;color:var(--tekst-slabi);margin-top:4px;">Ako ostaviš prazno, šifra se automatski dodeljuje.</div>
+                    </div>
+                    <div>
+                        <label class="polje-labela">Barkod (EAN)</label>
+                        <input type="text" name="barkod" value="{{.Artikal.Barkod}}"
+                            placeholder="npr. 3830057592015"
+                            style="width:100%;font-family:monospace;">
+                        <div style="font-size:11px;color:var(--tekst-slabi);margin-top:4px;">Barkod sa pakovanja (opciono).</div>
+                    </div>
+                </div>
+
                 <!-- naziv -->
                 <div>
                     <label class="polje-labela">

@@ -6,6 +6,8 @@ import "time"
 type Artikal struct {
 	ID           int64
 	KategorijaID *int64
+	Sifra        string
+	Barkod       string
 	Naziv        string
 	Opis         string
 	Kolicina     int
