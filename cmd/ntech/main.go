@@ -337,6 +337,7 @@ func main() {
 		r.With(doz("servis.izmeni")).Post("/servis/izmeni/{id}", h.SacuvajIzmenaNaloga)
 		r.With(doz("servis.obrisi")).Post("/servis/obrisi/{id}", h.ObrisiNalog)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "servis.pregled")).Get("/servis/{id}", h.DetaljiNaloga)
+			r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "servis.pregled")).Get("/servis/{id}/stampa", h.StampaServisa)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/delovi", h.DodajDeloNalogu)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/delovi/{deo_id}/obrisi", h.ObrisiDeloNaloga)
 		r.Get("/izvestaji", h.Izvestaji)

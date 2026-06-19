@@ -553,3 +553,82 @@ func parseOpcionuCenu(s string) *float64 {
 func (h *Handler) renderujFormuNaloga(w http.ResponseWriter, podaci PodaciFormeNaloga) {
 	h.renderujTemplate(w, "servis_forma", podaci)
 }
+
+// PodaciStampeServisa su podaci za print-friendly prikaz servisnog naloga
+type PodaciStampeServisa struct {
+	Nalog          model.ServisniNalog
+	ServisniDelovi []model.ServisniDeoSaArtiklom
+	UkupnoDelovi   float64
+	KlijentNaziv   string
+	TehnicarNaziv  string
+	NazivFirme     string
+	Podnazlov      string
+	Adresa         string
+	Telefon        string
+	PIB            string
+}
+
+// StampaServisa renderuje print-friendly stranicu za servisni nalog
+func (h *Handler) StampaServisa(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+
+	nalog, err := h.ServisRepo.DohvatiID(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Nalog nije pronađen", http.StatusNotFound)
+		return
+	}
+
+	delovi, err := h.ServisniDeloviRepo.DohvatiZaNalog(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju delova", http.StatusInternalServerError)
+		return
+	}
+
+	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
+		return
+	}
+
+	klijentNaziv := ""
+	if nalog.KlijentID != nil {
+		klijent, err := h.KlijentiRepo.DohvatiID(r.Context(), *nalog.KlijentID)
+		if err == nil {
+			if klijent.NazivFirme != "" {
+				klijentNaziv = klijent.NazivFirme
+			} else {
+				klijentNaziv = strings.TrimSpace(klijent.Ime + " " + klijent.Prezime)
+			}
+		}
+	}
+
+	tehnicarNaziv := ""
+	if nalog.TehnicarID != nil {
+		tehnicar, err := h.KorisniciRepo.DohvatiPoID(r.Context(), *nalog.TehnicarID)
+		if err == nil {
+			tehnicarNaziv = tehnicar.KorisnickoIme
+		}
+	}
+
+	var ukupnoDelovi float64
+	for _, d := range delovi {
+		ukupnoDelovi += d.Ukupno()
+	}
+
+	h.renderujStandalone(w, "servis_stampa", PodaciStampeServisa{
+		Nalog:          *nalog,
+		ServisniDelovi: delovi,
+		UkupnoDelovi:   ukupnoDelovi,
+		KlijentNaziv:   klijentNaziv,
+		TehnicarNaziv:  tehnicarNaziv,
+		NazivFirme:     podesavanja["naziv_firme"],
+		Podnazlov:      podesavanja["podnazlov"],
+		Adresa:         podesavanja["adresa"],
+		Telefon:        podesavanja["telefon"],
+		PIB:            podesavanja["pib"],
+	})
+}
