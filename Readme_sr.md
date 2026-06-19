@@ -62,7 +62,7 @@ Cilj je jednostavan: sve što servis treba da prati nalazi se na jednom mestu, b
 
 ### Planirano
 
-- Fiskalizacija (ESIR/PFR) — specifikacija u Project.md
+- Fiskalizacija (ESIR/PFR)
 - KPO knjiga i dvojno knjigovodstvo (opciono, kasnija faza)
 - Podrška za PostgreSQL (za višekorisničko okruženje)
 - WebAuthn / Passkey prijava (šema baze je pripremljena)
