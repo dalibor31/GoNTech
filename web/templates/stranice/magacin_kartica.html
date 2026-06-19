@@ -1,0 +1,102 @@
+{{template "base" .}}
+
+{{define "naslov"}}Kartica: {{.Artikal.Naziv}} — NTech{{end}}
+
+{{define "sadrzaj"}}
+<div class="kolona" style="gap:16px;">
+
+    <a href="/magacin" class="nazad-link">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+        Nazad na magacin
+    </a>
+
+    <!-- zaglavlje artikla -->
+    <div class="kartica animiraj">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <div>
+                <div style="font-size:18px;font-weight:600;color:var(--tekst-glavni);">{{.Artikal.Naziv}}</div>
+                <div style="margin-top:6px;display:flex;gap:16px;flex-wrap:wrap;">
+                    {{if .Artikal.Sifra}}
+                    <span style="font-size:12px;color:var(--tekst-slabi);">Šifra: <span style="font-family:monospace;color:var(--tekst-glavni);">{{.Artikal.Sifra}}</span></span>
+                    {{end}}
+                    {{if .Artikal.Barkod}}
+                    <span style="font-size:12px;color:var(--tekst-slabi);">Barkod: <span style="font-family:monospace;color:var(--tekst-glavni);">{{.Artikal.Barkod}}</span></span>
+                    {{end}}
+                    {{if .Artikal.Lokacija}}
+                    <span style="font-size:12px;color:var(--tekst-slabi);">Lokacija: <span style="color:var(--tekst-glavni);">{{.Artikal.Lokacija}}</span></span>
+                    {{end}}
+                </div>
+            </div>
+            <div style="text-align:right;">
+                <div style="font-size:24px;font-weight:700;color:{{if le .Artikal.Kolicina .Artikal.KolicinMin}}#dc2626{{else}}var(--tekst-glavni){{end}};">
+                    {{.Artikal.Kolicina}} kom
+                </div>
+                <div style="font-size:12px;color:var(--tekst-slabi);">trenutno stanje</div>
+                {{if gt .Artikal.KolicinMin 0}}
+                <div style="font-size:11px;color:var(--tekst-slabi);margin-top:2px;">min. {{.Artikal.KolicinMin}} kom</div>
+                {{end}}
+            </div>
+        </div>
+    </div>
+
+    <!-- tabela promena -->
+    <div class="kartica animiraj">
+        <div style="font-size:14px;font-weight:500;color:var(--tekst-glavni);margin-bottom:14px;padding-bottom:10px;border-bottom:0.5px solid var(--ivica);">
+            Prometna kartica
+            <span style="font-size:12px;font-weight:400;color:var(--tekst-slabi);margin-left:8px;">{{len .Promene}} zapisa</span>
+        </div>
+
+        {{if not .Promene}}
+        <div style="text-align:center;padding:32px 0;color:var(--tekst-slabi);font-size:14px;">
+            Nema evidentiranih promena za ovaj artikal.
+        </div>
+        {{else}}
+        <div style="overflow-x:auto;">
+            <table class="tabela">
+                <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Vrsta promene</th>
+                        <th style="text-align:right;">Promena</th>
+                        <th style="text-align:right;">Pre</th>
+                        <th style="text-align:right;">Posle</th>
+                        <th>Napomena</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {{range .Promene}}
+                <tr>
+                    <td style="white-space:nowrap;color:var(--tekst-slabi);font-size:12px;">
+                        {{.Datum.Format "02.01.2006. 15:04"}}
+                    </td>
+                    <td>
+                        {{if eq .TipPromene "ulaz_nabavka"}}
+                            <span class="bedz" style="background:rgba(34,197,94,0.12);color:#22c55e;">Ulaz — nabavka</span>
+                        {{else if eq .TipPromene "izlaz_prodaja"}}
+                            <span class="bedz" style="background:rgba(59,130,246,0.12);color:#3b82f6;">Izlaz — prodaja</span>
+                        {{else if eq .TipPromene "izlaz_servis"}}
+                            <span class="bedz" style="background:rgba(249,115,22,0.12);color:#f97316;">Izlaz — servis</span>
+                        {{else if eq .TipPromene "povracaj"}}
+                            <span class="bedz" style="background:rgba(168,85,247,0.12);color:#a855f7;">Povraćaj</span>
+                        {{else if eq .TipPromene "korekcija"}}
+                            <span class="bedz" style="background:rgba(156,163,175,0.12);color:#9ca3af;">Korekcija</span>
+                        {{else}}
+                            <span class="bedz">{{.TipPromene}}</span>
+                        {{end}}
+                    </td>
+                    <td style="text-align:right;font-weight:600;font-family:monospace;{{if gt .PromenaKolicine 0}}color:#22c55e;{{else}}color:#dc2626;{{end}}">
+                        {{if gt .PromenaKolicine 0}}+{{end}}{{.PromenaKolicine}}
+                    </td>
+                    <td style="text-align:right;font-family:monospace;color:var(--tekst-slabi);">{{.StanjePre}}</td>
+                    <td style="text-align:right;font-family:monospace;font-weight:500;">{{.StanjePosle}}</td>
+                    <td style="font-size:12px;color:var(--tekst-slabi);">{{.Napomena}}</td>
+                </tr>
+                {{end}}
+                </tbody>
+            </table>
+        </div>
+        {{end}}
+    </div>
+
+</div>
+{{end}}

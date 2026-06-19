@@ -22,7 +22,7 @@ var saSidebar = []string{
 	"izvestaji",
 	"kategorije",
 	"klijenti", "klijent_forma",
-	"magacin", "magacin_forma",
+	"magacin", "magacin_forma", "magacin_kartica",
 	"nabavke", "nabavka_forma", "nabavka_detalji",
 	"podesavanja", "podesavanja_opste", "podesavanja_izgled", "podesavanja_sistem", "podesavanja_servis",
 	"pdv_stope",
