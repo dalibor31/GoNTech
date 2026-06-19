@@ -58,6 +58,7 @@ The goal is simple: everything the repair shop needs to track is located in one 
 - Charts — monthly revenue on reports (Chart.js)
 - Structured logging — `log/slog` (JSON in production, text in development); separate auth log in fail2ban format
 - Automated tests — unit and integration over a SQLite database (crypto, RBAC, login flows, form validators, reports)
+- **Demo mode** (`NTECH_ENV=demo`) — auto-created demo user, pre-filled login form, restricted backup count, blocked password/2FA changes
 
 ### Planned
 
@@ -97,11 +98,143 @@ The goal is simple: everything the repair shop needs to track is located in one 
 git clone <repository-url>
 cd GoNtech
 
-# 2. Copy the configuration file
-cp ntech.env.example ntech.env
-# Open ntech.env and set the values (see the table below)
-
-# 3. Load environment variables and run in the development environment
-export $(grep -v '^#' ntech.env | xargs)
+# 2. Run in development mode (reads files from disk, no HTTPS required)
 go run ./cmd/ntech
+```
+
+The application opens at `http://localhost:8080`. On first run the setup wizard starts automatically.
+
+### Production Build
+
+Use the interactive build script:
+
+```bash
+./start.sh
+```
+
+It asks for the version, environment (production/development), platform (Linux/Windows/both), optional UPX compression, and whether to push a Docker image to Gitea and GitHub Container Registry.
+
+Or build manually:
+
+```bash
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+  -ldflags "-X main.Verzija=1.0.0 -s -w" \
+  -trimpath \
+  -o ntech ./cmd/ntech
+```
+
+The result is a single static binary with no external dependencies.
+
+---
+
+## Environment Variables
+
+The application reads environment variables on startup. In development, place them in `ntech.env` alongside the SQLite database file. In production/demo the program creates `ntech.env` automatically in the same directory as the database.
+
+`ntech.env` is **never committed** to Git.
+
+| Variable         | Default       | Description                                                       |
+| ---------------- | ------------- | ----------------------------------------------------------------- |
+| `NTECH_ENV`      | `development` | Mode: `development`, `production`, or `demo`                      |
+| `NTECH_PORT`     | `8080`        | HTTP port                                                         |
+| `NTECH_DB`       | `sqlite`      | Database type: `sqlite` or `postgres`                             |
+| `NTECH_SQLITE`   | `ntech.db`    | Path to the SQLite file                                           |
+| `NTECH_DSN`      | —             | PostgreSQL connection string                                      |
+| `NTECH_SECRET`   | —             | Session signing key (min. 32 bytes); auto-generated if missing    |
+| `NTECH_TOTP_KEY` | —             | AES-256 key for TOTP secret encryption; auto-generated if missing |
+
+`NTECH_SECRET` and `NTECH_TOTP_KEY` are generated automatically on the first run and saved to `ntech.env`. **Back this file up** — losing `NTECH_TOTP_KEY` invalidates all 2FA secrets stored in the database.
+
+---
+
+## Docker Deployment
+
+Docker images are published to:
+- `ghcr.io/dalibor31/ntech:latest`
+- `git.vm-net.in.rs/dasko/ntech:latest`
+
+### Production
+
+```yaml
+# docker-compose.yml
+services:
+  ntech:
+    image: ghcr.io/dalibor31/ntech:latest
+    restart: unless-stopped
+    environment:
+      NTECH_ENV: production
+      NTECH_PORT: "8000"
+      NTECH_SQLITE: /app/data/ntech.db
+    volumes:
+      - ./data:/app/data         # database + ntech.env (secrets)
+      - ./uploads:/app/uploads   # uploaded images
+      - ./logs:/app/logs         # structured + auth logs
+      - ./backups:/app/backups   # automatic database backups
+    ports:
+      - "8000:8000"
+```
+
+On the **first start** the setup wizard runs and creates the first admin user. After that, `./data/ntech.env` contains the auto-generated secrets — **back it up**.
+
+Place the app behind a reverse proxy (Caddy, nginx) that terminates HTTPS. Secure cookies require HTTPS.
+
+Example Caddy config:
+
+```
+your.domain.com {
+    reverse_proxy ntech:8000
+}
+```
+
+### Demo Mode
+
+Demo mode runs a fully functional copy with a pre-created `Demo` / `Demo1234` admin account. Password and 2FA changes are blocked. Backup is limited to 2 copies.
+
+```yaml
+# docker-compose.yml (demo)
+services:
+  ntech-demo:
+    image: ghcr.io/dalibor31/ntech:latest
+    restart: unless-stopped
+    environment:
+      NTECH_ENV: demo
+      NTECH_PORT: "8000"
+      NTECH_SQLITE: /app/data/ntech.db
+    volumes:
+      - ./data:/app/data
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+      - ./backups:/app/backups
+    ports:
+      - "8000:8000"
+```
+
+Demo also requires HTTPS (Caddy or similar) because Secure cookies are enabled.
+
+---
+
+## Project Structure
+
+```
+ntech/
+├── cmd/
+│   └── ntech/          # entry point
+├── internal/
+│   ├── auth/           # login, sessions, fail2ban log
+│   ├── config/         # settings, setup wizard
+│   ├── db/             # database layer
+│   │   └── sqlite/     # SQLite implementation
+│   ├── handler/        # HTTP handlers
+│   ├── middleware/      # CSRF, security headers, authentication
+│   └── model/          # shared data types
+├── web/
+│   ├── static/         # CSS, JavaScript, images, logos
+│   └── templates/      # HTML templates
+├── migrations/         # SQL migrations (001_desc.sql, 002_desc.sql, ...)
+├── logs/               # auth.log and other logs
+├── backups/            # database backups
+├── start.sh            # interactive build and Docker push script
+├── Dockerfile
+├── go.mod
+└── go.sum
 ```
