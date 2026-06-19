@@ -62,7 +62,7 @@ The goal is simple: everything the repair shop needs to track is located in one 
 
 ### Planned
 
-- Fiscalization (ESIR/PFR) — specification in Project.md
+- Fiscalization (ESIR/PFR)
 - KPO book and double-entry bookkeeping (optional, later phase)
 - PostgreSQL support (for multi-user environments)
 - WebAuthn / Passkey login (database schema is already prepared)
