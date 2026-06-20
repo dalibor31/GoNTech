@@ -30,6 +30,25 @@
 
     <div id="klijenti-rezultati">
 
+    <!-- filter po tipu klijenta -->
+    <div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+        <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:14px;">
+            <input type="radio" name="tip" value="" {{if eq .TipFilter ""}}checked{{end}}
+                hx-trigger="change" hx-get="/klijenti?pretraga={{.Pretraga}}"
+                hx-target="#klijenti-rezultati" hx-select="#klijenti-rezultati" hx-swap="innerHTML" hx-push-url="true"> Svi
+        </label>
+        <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:14px;">
+            <input type="radio" name="tip" value="pravno" {{if eq .TipFilter "pravno"}}checked{{end}}
+                hx-trigger="change" hx-get="/klijenti?pretraga={{.Pretraga}}&tip=pravno"
+                hx-target="#klijenti-rezultati" hx-select="#klijenti-rezultati" hx-swap="innerHTML" hx-push-url="true"> Firme
+        </label>
+        <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:14px;">
+            <input type="radio" name="tip" value="fizicko" {{if eq .TipFilter "fizicko"}}checked{{end}}
+                hx-trigger="change" hx-get="/klijenti?pretraga={{.Pretraga}}&tip=fizicko"
+                hx-target="#klijenti-rezultati" hx-select="#klijenti-rezultati" hx-swap="innerHTML" hx-push-url="true"> Fizička lica
+        </label>
+    </div>
+
     <!-- desktop tabela -->
     <div class="kartica klijenti-tabela kartica-tabela animiraj">
         <div class="tabela-skrol">
