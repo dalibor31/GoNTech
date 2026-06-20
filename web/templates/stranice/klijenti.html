@@ -100,7 +100,7 @@
                     {{else}}
                     <tr>
                         <td colspan="5" class="prazno-stanje">
-                            Nema klijenata. <a href="/klijenti/novi" style="color:var(--sb-akcent);">Dodaj prvog klijenta.</a>
+                            {{if $.Pretraga}}Za datu pretragu nema klijenata u bazi.{{else}}Nema klijenata. <a href="/klijenti/novi" style="color:var(--sb-akcent);">Dodaj prvog klijenta.</a>{{end}}
                         </td>
                     </tr>
                     {{end}}
@@ -156,7 +156,7 @@
         </div>
         {{else}}
         <div class="prazno-stanje">
-            Nema klijenata. <a href="/klijenti/novi" style="color:var(--sb-akcent);">Dodaj prvog klijenta.</a>
+            {{if $.Pretraga}}Za datu pretragu nema klijenata u bazi.{{else}}Nema klijenata. <a href="/klijenti/novi" style="color:var(--sb-akcent);">Dodaj prvog klijenta.</a>{{end}}
         </div>
         {{end}}
     </div>

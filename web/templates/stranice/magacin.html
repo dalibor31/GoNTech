@@ -135,7 +135,7 @@
                     {{else}}
                     <tr>
                         <td colspan="7" style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
-                            Nema artikala. <a href="/magacin/novi" style="color:var(--sb-akcent);">Dodaj prvi artikal.</a>
+                            {{if or $.Filter.Pretraga $.KategorijaIDStr $.Filter.SamoKriticni}}Za datu pretragu nema artikala u bazi.{{else}}Nema artikala. <a href="/magacin/novi" style="color:var(--sb-akcent);">Dodaj prvi artikal.</a>{{end}}
                         </td>
                     </tr>
                     {{end}}
@@ -203,7 +203,7 @@
         </div>
         {{else}}
         <div style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
-            Nema artikala. <a href="/magacin/novi" style="color:var(--sb-akcent);">Dodaj prvi artikal.</a>
+            {{if or $.Filter.Pretraga $.KategorijaIDStr $.Filter.SamoKriticni}}Za datu pretragu nema artikala u bazi.{{else}}Nema artikala. <a href="/magacin/novi" style="color:var(--sb-akcent);">Dodaj prvi artikal.</a>{{end}}
         </div>
         {{end}}
     </div>

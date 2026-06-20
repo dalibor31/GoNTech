@@ -12,18 +12,20 @@
     <div class="poruka-uspeh poruka-animacija">Dobavljač je uspešno obrisan.</div>
     {{end}}
 
-    <!-- gornja traka: dugme + pretraga -->
-    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+    <!-- gornja traka: dugme + interaktivna pretraga -->
+    <div id="dobavljaci-filteri" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
         <a href="/dobavljaci/novi" class="btn-primarno">+ Novi dobavljač</a>
-        <form method="GET" action="/dobavljaci" style="display:flex;gap:8px;flex:1;min-width:200px;">
+        <form method="GET" action="/dobavljaci" style="display:flex;gap:8px;flex:1;min-width:200px;"
+              hx-get="/dobavljaci" hx-target="#dobavljaci-rezultati" hx-select="#dobavljaci-rezultati" hx-swap="innerHTML" hx-push-url="true">
             <input type="text" name="pretraga" value="{{.Pretraga}}"
                 placeholder="Pretraži dobavljače..."
-                style="flex:1;">
-            <button type="submit" class="btn-primarno">
-                Traži
-            </button>
+                style="flex:1;"
+                hx-trigger="keyup[target.value.length==0||target.value.length>=3] changed delay:150ms, search"
+                hx-get="/dobavljaci" hx-target="#dobavljaci-rezultati" hx-select="#dobavljaci-rezultati" hx-swap="innerHTML" hx-push-url="true">
         </form>
     </div>
+
+    <div id="dobavljaci-rezultati">
 
     <!-- desktop tabela -->
     <div class="kartica dobavljaci-tabela animiraj" style="padding:0;overflow:hidden;">
@@ -70,7 +72,7 @@
                     {{else}}
                     <tr>
                         <td colspan="5" style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
-                            Nema dobavljača. <a href="/dobavljaci/novi" style="color:var(--sb-akcent);">Dodaj prvog dobavljača.</a>
+                            {{if $.Pretraga}}Za datu pretragu nema dobavljača u bazi.{{else}}Nema dobavljača. <a href="/dobavljaci/novi" style="color:var(--sb-akcent);">Dodaj prvog dobavljača.</a>{{end}}
                         </td>
                     </tr>
                     {{end}}
@@ -122,10 +124,33 @@
         </div>
         {{else}}
         <div style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
-            Nema dobavljača. <a href="/dobavljaci/novi" style="color:var(--sb-akcent);">Dodaj prvog dobavljača.</a>
+            {{if $.Pretraga}}Za datu pretragu nema dobavljača u bazi.{{else}}Nema dobavljača. <a href="/dobavljaci/novi" style="color:var(--sb-akcent);">Dodaj prvog dobavljača.</a>{{end}}
         </div>
         {{end}}
     </div>
 
+    </div><!-- kraj #dobavljaci-rezultati -->
+
 </div>
+
+<script>
+// Gasi animaciju redova pri pretrazi.
+document.body.addEventListener('htmx:beforeRequest', function (e) {
+    var elt = e.detail && e.detail.elt;
+    if (elt && elt.name === 'pretraga') {
+        var rez = document.getElementById('dobavljaci-rezultati');
+        if (rez) rez.classList.add('bez-anim');
+    }
+});
+// Reflow pri sidebar navigaciji da nema bljeska animacije.
+document.body.addEventListener('htmx:afterSwap', function (e) {
+    var t = e.detail && e.detail.target;
+    if (t && t.id === 'dobavljaci-rezultati') return;
+    var rez = document.getElementById('dobavljaci-rezultati');
+    if (!rez) return;
+    rez.classList.add('bez-anim');
+    void rez.offsetHeight;
+    rez.classList.remove('bez-anim');
+});
+</script>
 {{end}}
