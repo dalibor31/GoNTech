@@ -420,11 +420,12 @@ function brzinaPromena(val) {
     var v = parseFloat(val).toFixed(1);
     document.getElementById('brzina-hidden').value = v;
     document.getElementById('brzina-labela').textContent = v + 's';
-    // primeni odmah — korisnik vidi efekat pre čuvanja
     document.body.dataset.brzinaAnimacije = v;
-    // ažuriraj i preview wrapper da odmah odrazi novu brzinu
     var wrap = document.getElementById('anim-preview-wrap');
     if (wrap) wrap.style.setProperty('--anim-trajanje', v + 's');
+    // ponovi preview da korisnik odmah vidi novu brzinu
+    var sel = document.getElementById('anim-select');
+    if (sel) animPreview(sel.value);
 }
 </script>
 {{end}}
