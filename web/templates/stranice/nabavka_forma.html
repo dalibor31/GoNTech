@@ -130,7 +130,7 @@
                                         min="0" step="0.01" :disabled="isMobile" style="width:100%;text-align:right;">
                                 </td>
                                 <td style="padding:8px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">
-                                    <span x-text="ukupnoStavke(stavka) + ' din'"></span>
+                                    <span x-text="fmtDin(ukupnoStavke(stavka)) + ' din'"></span>
                                 </td>
                                 <td style="padding:8px 10px;text-align:center;">
                                     <button type="button" @click="ukloniStavku(i)"
@@ -146,7 +146,7 @@
                         <tr style="border-top:0.5px solid var(--ivica);">
                             <td colspan="5" style="padding:10px 10px;text-align:right;font-size:13px;color:var(--tekst-sporedni);font-weight:500;">Ukupno:</td>
                             <td style="padding:10px 10px;text-align:right;font-size:15px;font-weight:600;color:var(--tekst-glavni);">
-                                <span x-text="ukupnoSvega() + ' din'"></span>
+                                <span x-text="fmtDin(ukupnoSvega()) + ' din'"></span>
                             </td>
                             <td></td>
                         </tr>
@@ -203,7 +203,7 @@
                                 </div>
                             </div>
                             <div style="text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">
-                                Ukupno: <span x-text="ukupnoStavke(stavka) + ' din'"></span>
+                                Ukupno: <span x-text="fmtDin(ukupnoStavke(stavka)) + ' din'"></span>
                             </div>
                         </div>
                     </div>
@@ -213,7 +213,7 @@
                     + Dodaj stavku
                 </button>
                 <div style="text-align:right;font-size:15px;font-weight:600;color:var(--tekst-glavni);padding:8px 4px;">
-                    Ukupno: <span x-text="ukupnoSvega() + ' din'"></span>
+                    Ukupno: <span x-text="fmtDin(ukupnoSvega()) + ' din'"></span>
                 </div>
             </div>
         </div>
@@ -251,7 +251,7 @@
                         </div>
                     </template>
                     <div style="text-align:right;font-size:13px;color:var(--tekst-sporedni);">
-                        Ukupno troškovi: <strong x-text="ukupanTrosak().toFixed(2) + ' din'"></strong>
+                        Ukupno troškovi: <strong x-text="fmtDin(ukupanTrosak()) + ' din'"></strong>
                     </div>
                 </div>
             </template>
