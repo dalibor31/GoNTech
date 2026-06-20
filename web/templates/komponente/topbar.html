@@ -10,8 +10,8 @@
         </svg>
     </button>
 
-    {{if and .TopbarLogoSlika .LogoPutanja}}
-    <img src="{{.LogoPutanja}}" alt="Logo" class="topbar-logo">
+    {{if .LogoPutanja}}
+    <img src="{{.LogoPutanja}}" alt="Logo" class="topbar-logo{{if not .TopbarLogoSlika}} skriven{{end}}">
     {{end}}
 
     <span class="topbar-naslov">{{.NaslovStranice}}</span>
