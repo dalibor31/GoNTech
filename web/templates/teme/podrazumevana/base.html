@@ -356,7 +356,7 @@
             f._ajaxSave = true;
             f.addEventListener('submit', function(e) {
                 // file upload i forme sa data-full-reload šalju se normalno
-                if (f.enctype === 'multipart/form-data' || f.dataset.fullReload) return;
+                if (f.enctype === 'multipart/form-data' || f.hasAttribute('data-full-reload')) return;
                 e.preventDefault();
                 // prikazujemo dugme kao zauzeto
                 var btn = f.querySelector('[type="submit"]');
