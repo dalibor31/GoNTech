@@ -318,6 +318,16 @@
                 f.appendChild(i);
             });
         }
+        // toast pri učitavanju stranice ako URL sadrži ?sacuvano=1 (cross-page redirect)
+        if (!window._ntechSacuvanoPrikazano && location.search.indexOf('sacuvano=1') !== -1) {
+            window._ntechSacuvanoPrikazano = true;
+            window.ntechToast('Sačuvano', 'uspeh');
+            var _p = new URLSearchParams(location.search);
+            _p.delete('sacuvano');
+            var _q = _p.toString() ? '?' + _p.toString() : '';
+            history.replaceState(null, '', location.pathname + _q + location.hash);
+        }
+
         document.querySelectorAll('[data-potvrda]').forEach(function(el) {
             if (el._potvrda) return;
             el._potvrda = true;

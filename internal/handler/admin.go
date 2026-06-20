@@ -126,8 +126,7 @@ func (h *Handler) AdminSacuvajKorisnika(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	middleware.SetFlash(w, r, h.DB, "uspeh", "Korisnik je uspešno kreiran.")
-	http.Redirect(w, r, "/admin/korisnici", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/korisnici?sacuvano=1", http.StatusSeeOther)
 }
 
 // AdminToggleAktivan menja aktivan status korisnika
@@ -172,8 +171,7 @@ func (h *Handler) AdminToggleAktivan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	middleware.SetFlash(w, r, h.DB, "uspeh", "Promene su uspešno sačuvane.")
-	http.Redirect(w, r, "/admin/korisnici", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/korisnici?sacuvano=1", http.StatusSeeOther)
 }
 
 // AdminPromeniUlogu menja ulogu korisnika
@@ -234,8 +232,7 @@ func (h *Handler) AdminPromeniUlogu(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	middleware.SetFlash(w, r, h.DB, "uspeh", "Promene su uspešno sačuvane.")
-	http.Redirect(w, r, "/admin/korisnici", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/korisnici?sacuvano=1", http.StatusSeeOther)
 }
 
 // AdminObrisiKorisnika briše korisnika sa ulogom radnik
@@ -279,8 +276,7 @@ func (h *Handler) AdminObrisiKorisnika(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	middleware.SetFlash(w, r, h.DB, "uspeh", "Korisnik je obrisan.")
-	http.Redirect(w, r, "/admin/korisnici", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/korisnici?sacuvano=1", http.StatusSeeOther)
 }
 
 // AdminProfil prikazuje stranicu profila
@@ -406,8 +402,7 @@ func (h *Handler) AdminPromeniLozinku(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	middleware.SetFlash(w, r, h.DB, "uspeh", "Lozinka je uspešno promenjena.")
-	http.Redirect(w, r, "/admin/profil", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/profil?sacuvano=1", http.StatusSeeOther)
 }
 
 // AdminTotpPokreni generiše TOTP tajnu i prikazuje QR kod
@@ -529,8 +524,7 @@ func (h *Handler) AdminTotpDeaktivacija(w http.ResponseWriter, r *http.Request) 
 	// isključenjem 2FA brišemo i rezervne kodove
 	_ = h.RezervniKodoviRepo.Obrisi(r.Context(), k.ID)
 
-	middleware.SetFlash(w, r, h.DB, "uspeh", "Dvostepena verifikacija je isključena.")
-	http.Redirect(w, r, "/admin/profil", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/profil?sacuvano=1", http.StatusSeeOther)
 }
 
 // AdminLoginIstorija prikazuje evidenciju prijava za datog korisnika
@@ -679,8 +673,7 @@ func (h *Handler) AdminDozvolePromeniUlogu(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	middleware.SetFlash(w, r, h.DB, "uspeh", "Promene su uspešno sačuvane.")
-	http.Redirect(w, r, "/admin/dozvole", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/dozvole?sacuvano=1", http.StatusSeeOther)
 }
 
 // AdminDozvoleSacuvaj prima POST i čuva promene dozvola za radnik i admin uloge
@@ -711,8 +704,7 @@ func (h *Handler) AdminDozvoleSacuvaj(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	middleware.SetFlash(w, r, h.DB, "uspeh", "Promene su uspešno sačuvane.")
-	http.Redirect(w, r, "/admin/dozvole", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/dozvole?sacuvano=1", http.StatusSeeOther)
 }
 
 // AdminDozvoleReset vraća sve dozvole na podrazumevane vrednosti — samo superadmin
@@ -727,6 +719,5 @@ func (h *Handler) AdminDozvoleReset(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/admin/dozvole", http.StatusSeeOther)
 		return
 	}
-	middleware.SetFlash(w, r, h.DB, "uspeh", "Dozvole su vraćene na podrazumevane vrednosti.")
-	http.Redirect(w, r, "/admin/dozvole", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/dozvole?sacuvano=1", http.StatusSeeOther)
 }
