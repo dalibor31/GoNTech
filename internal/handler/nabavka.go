@@ -51,6 +51,7 @@ func artikalUJSON(artikli []model.ArtikalSaKategorijom) template.JS {
 		ID              int64    `json:"id"`
 		Naziv           string   `json:"naziv"`
 		PdvStopa        float64  `json:"pdv_stopa"`
+		NabavnaCena     float64  `json:"nabavna_cena"`     // poslednja nabavna cena — predlog za Cena/kom
 		Marza           *float64 `json:"marza"`            // marža artikla; null = nije postavljeno
 		KategorijaMarza *float64 `json:"kategorija_marza"` // marža kategorije; fallback ako artikal nema
 	}
@@ -58,7 +59,8 @@ func artikalUJSON(artikli []model.ArtikalSaKategorijom) template.JS {
 	for _, a := range artikli {
 		lista = append(lista, stavka{
 			ID: a.ID, Naziv: a.Naziv, PdvStopa: a.PdvStopa,
-			Marza: a.Marza, KategorijaMarza: a.KategorijaMarza,
+			NabavnaCena: a.NabavnaCena,
+			Marza:       a.Marza, KategorijaMarza: a.KategorijaMarza,
 		})
 	}
 	b, _ := json.Marshal(lista)

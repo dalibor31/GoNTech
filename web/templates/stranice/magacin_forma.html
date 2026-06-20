@@ -184,6 +184,28 @@
                 .then(function (t) { if (t) sifra.value = t; });
         });
     }
+
+    // dvosmerno povezivanje: nabavna + marža → prodajna, i prodajna → marža
+    var nabavna = document.querySelector('[name="nabavna_cena"]');
+    var prodajna = document.querySelector('[name="prodajna_cena"]');
+    var marza = document.querySelector('[name="marza"]');
+    function broj(el) { return parseFloat(el.value) || 0; }
+    // postavljanje .value programski ne okida 'input', pa nema beskonačne petlje
+    function izProdajne() {
+        var n = broj(nabavna);
+        if (n <= 0) return;
+        prodajna.value = (n * (1 + broj(marza) / 100)).toFixed(2);
+    }
+    function izMarze() {
+        var n = broj(nabavna), p = broj(prodajna);
+        if (n <= 0) { marza.value = ''; return; }
+        marza.value = ((p / n - 1) * 100).toFixed(2);
+    }
+    if (nabavna && prodajna && marza) {
+        marza.addEventListener('input', izProdajne);
+        nabavna.addEventListener('input', izProdajne);
+        prodajna.addEventListener('input', izMarze);
+    }
 })();
 </script>
 {{end}}
