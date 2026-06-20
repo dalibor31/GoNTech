@@ -93,10 +93,11 @@ func (h *Handler) PromeniCenuArtikla(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case errors.Is(err, sqlite.ErrArtikalNePostoji):
 		middleware.SetFlash(w, r, h.DB, "greska", "Artikal nije pronađen.")
+		http.Redirect(w, r, "/magacin", http.StatusSeeOther)
 	case err != nil:
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri promeni cene.")
+		http.Redirect(w, r, "/magacin", http.StatusSeeOther)
 	default:
-		middleware.SetFlash(w, r, h.DB, "uspeh", "Prodajna cena je izmenjena.")
+		http.Redirect(w, r, "/magacin?sacuvano=1", http.StatusSeeOther)
 	}
-	http.Redirect(w, r, "/magacin", http.StatusSeeOther)
 }

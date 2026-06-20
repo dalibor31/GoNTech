@@ -432,8 +432,7 @@ func (h *Handler) StornoProdaje(w http.ResponseWriter, r *http.Request) {
 	if err := h.PdvKirRepo.ObrisiPoIzvoru(r.Context(), "prodaja", id); err != nil {
 		slog.Error("brisanje vezanog KIR zapisa nije uspelo", "prodaja_id", id, "error", err)
 	}
-	middleware.SetFlash(w, r, h.DB, "uspeh", "Prodajni nalog je storniran.")
-	http.Redirect(w, r, "/prodaja/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+	http.Redirect(w, r, "/prodaja/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)
 }
 
 // renderujFormuProdaje renderuje HTML šablon forme za unos nove prodaje

@@ -239,6 +239,7 @@ func main() {
 	r.Get("/setup", h.PrikazSetupa)
 	r.Post("/setup", h.SacuvajSetup)
 	r.Get("/odjava", h.Odjava)
+	r.Get("/status/{token}", h.ServisJavniStatus)
 
 	// zaštićene rute — zahtevaju prijavljenog korisnika
 	r.Group(func(r chi.Router) {

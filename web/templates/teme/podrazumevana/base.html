@@ -351,8 +351,10 @@
                     redirect: 'follow'
                 }).then(function(res) {
                     var finUrl = new URL(res.url);
-                    if (finUrl.search.indexOf('sacuvano') !== -1) {
-                        // uspeh — prikaži toast, ostani na stranici
+                    var isStiPath = finUrl.pathname === location.pathname;
+                    var imaSacuvano = finUrl.search.indexOf('sacuvano') !== -1;
+                    if (isStiPath && imaSacuvano) {
+                        // uspeh na istoj stranici — prikaži toast, ostani
                         window.ntechToast('Sačuvano', 'uspeh');
                         if (btn) btn.disabled = false;
                         // odmah primeni podešavanja koja menjaju globalne atribute body-ja
@@ -374,7 +376,7 @@
                         // promena teme zahteva reload (menja se ceo CSS fajl)
                         if (f.querySelector('[name="lokalna_tema"]')) location.reload();
                     } else {
-                        // greška ili redirect na drugu stranicu — navigiraj normalno
+                        // redirect na drugu stranicu ili bez sacuvano — navigiraj normalno
                         location.href = res.url;
                     }
                 }).catch(function() {

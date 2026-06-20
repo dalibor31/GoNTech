@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"io/fs"
 	"log/slog"
+	"math"
 	"net/http"
 )
 
@@ -38,13 +39,33 @@ var saSidebar = []string{
 
 // standalone su šabloni bez base layouta
 var standaloneIme = []string{
-	"prijava", "setup", "totp_provera", "prodaja_stampa", "servis_stampa", "servis_otpremnica",
+	"prijava", "setup", "totp_provera", "prodaja_stampa", "servis_stampa", "servis_otpremnica", "servis_status_javni",
 }
 
 // sablonskeFunkcije su pomoćne funkcije dostupne u svim šablonima.
 // dict gradi mapu iz parova ključ/vrednost — koristi se da se jednom partialu
 // prosledi više vrednosti (npr. {{template "x" (dict "ID" .ID "Lista" $.Lista)}}).
 var sablonskeFunkcije = template.FuncMap{
+	// formatBroj formatira float pointer kao ceo broj (zaokružen) — nil vraca ""
+	"formatBroj": func(v *float64) string {
+		if v == nil {
+			return ""
+		}
+		return fmt.Sprintf("%d", int64(math.Round(*v)))
+	},
+	// statusPre vraća true ako je `a` pre `b` u redosledu statusa
+	"statusPre": func(a, b string, statusi []string) bool {
+		ia, ib := -1, -1
+		for i, s := range statusi {
+			if s == a {
+				ia = i
+			}
+			if s == b {
+				ib = i
+			}
+		}
+		return ia >= 0 && ib >= 0 && ia < ib
+	},
 	"dict": func(parovi ...any) (map[string]any, error) {
 		if len(parovi)%2 != 0 {
 			return nil, fmt.Errorf("dict: neparan broj argumenata")
@@ -77,7 +98,8 @@ func KreirajKes(fsys fs.FS) (map[string]*template.Template, error) {
 	}
 
 	for _, ime := range standaloneIme {
-		t, err := template.ParseFS(fsys, "web/templates/stranice/"+ime+".html")
+		// ime+".html" mora biti ime roota da bi Execute() pronašlo sadržaj fajla
+		t, err := template.New(ime+".html").Funcs(sablonskeFunkcije).ParseFS(fsys, "web/templates/stranice/"+ime+".html")
 		if err != nil {
 			return nil, fmt.Errorf("kes: %s: %w", ime, err)
 		}

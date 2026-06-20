@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status popravke — {{.Nalog.BrojNaloga}}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; color: #111; background: #f5f5f7; min-height: 100vh; }
+
+        .omotac { max-width: 480px; margin: 0 auto; padding: 24px 16px 48px; }
+
+        /* zaglavlje firme */
+        .zaglavlje { text-align: center; margin-bottom: 24px; }
+        .firma-naziv { font-size: 18px; font-weight: 700; color: #111; }
+        .firma-info { font-size: 12px; color: #666; margin-top: 4px; line-height: 1.6; }
+
+        /* kartica naloga */
+        .kartica { background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        .kartica-naslov { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: #999; margin-bottom: 12px; }
+
+        .uredjaj { font-size: 22px; font-weight: 700; color: #111; line-height: 1.2; }
+        .broj-naloga { font-size: 13px; color: #888; margin-top: 4px; font-family: monospace; }
+
+        /* status bedž */
+        .status-bedz {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 14px;
+        }
+        .status-primljeno    { background: #e8f0fe; color: #1a56db; }
+        .status-dijagnostika { background: #fef3c7; color: #b45309; }
+        .status-ceka         { background: #fee2e2; color: #dc2626; }
+        .status-popravka     { background: #fef3c7; color: #b45309; }
+        .status-zavrseno     { background: #d1fae5; color: #059669; }
+        .status-preuzeto     { background: #f3f4f6; color: #374151; }
+
+        /* napredak */
+        .napredak { margin: 16px 0 4px; }
+        .napredak-labela { font-size: 11px; color: #999; margin-bottom: 8px; }
+        .koraci { display: flex; gap: 4px; }
+        .korak {
+            flex: 1;
+            height: 5px;
+            border-radius: 3px;
+            background: #e5e7eb;
+        }
+        .korak.aktivan { background: #10b981; }
+        .korak.zavrseno { background: #10b981; }
+        .korak.tekuci { background: #f59e0b; }
+
+        /* red podataka */
+        .red { display: flex; justify-content: space-between; align-items: flex-start; padding: 10px 0; border-bottom: 0.5px solid #f0f0f0; gap: 12px; }
+        .red:last-child { border-bottom: none; }
+        .red-labela { font-size: 12px; color: #888; flex-shrink: 0; }
+        .red-vrednost { font-size: 13px; color: #111; font-weight: 500; text-align: right; }
+
+        /* cena */
+        .cena-blok { background: #f9fafb; border-radius: 10px; padding: 14px 16px; margin-top: 4px; }
+        .cena-od-do { display: flex; gap: 8px; align-items: center; }
+        .cena-od-do .cena-vrednost { font-size: 20px; font-weight: 700; color: #111; }
+        .cena-od-do .cena-sep { color: #bbb; }
+        .cena-labela { font-size: 11px; color: #888; margin-top: 2px; }
+
+        /* kontakt */
+        .kontakt { background: #fff; border-radius: 16px; padding: 18px 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        .kontakt-naslov { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: #999; margin-bottom: 12px; }
+        .kontakt-tel { font-size: 18px; font-weight: 700; color: #1a56db; text-decoration: none; display: block; }
+        .kontakt-adresa { font-size: 13px; color: #666; margin-top: 6px; line-height: 1.5; }
+
+        /* napomena za klijenta */
+        .napomena-blok { background: #fffbeb; border-radius: 10px; padding: 12px 14px; margin-top: 4px; font-size: 13px; color: #555; line-height: 1.5; }
+    </style>
+</head>
+<body>
+    <div class="omotac">
+
+        <!-- zaglavlje firme -->
+        <div class="zaglavlje">
+            <div class="firma-naziv">{{if .NazivFirme}}{{.NazivFirme}}{{else}}Servis{{end}}</div>
+            {{if .Adresa}}<div class="firma-info">{{.Adresa}}</div>{{end}}
+        </div>
+
+        <!-- kartica: uređaj i status -->
+        <div class="kartica">
+            <div class="kartica-naslov">Vaš uređaj</div>
+            <div class="uredjaj">{{.Nalog.Uredjaj}}</div>
+            <div class="broj-naloga">Nalog: {{.Nalog.BrojNaloga}}</div>
+
+            {{$s := .Nalog.Status}}
+            {{if eq $s "Primljeno"}}
+                <span class="status-bedz status-primljeno">Primljeno</span>
+            {{else if eq $s "U dijagnostici"}}
+                <span class="status-bedz status-dijagnostika">U dijagnostici</span>
+            {{else if eq $s "Čeka delove"}}
+                <span class="status-bedz status-ceka">Čeka delove</span>
+            {{else if eq $s "U popravci"}}
+                <span class="status-bedz status-popravka">U popravci</span>
+            {{else if eq $s "Završeno"}}
+                <span class="status-bedz status-zavrseno">Završeno — možete preuzeti</span>
+            {{else if eq $s "Preuzeto"}}
+                <span class="status-bedz status-preuzeto">Preuzeto</span>
+            {{end}}
+
+            <!-- traka napretka -->
+            <div class="napredak">
+                <div class="napredak-labela">Napredak popravke</div>
+                <div class="koraci">
+                    {{range $i, $korak := .SviStatusi}}
+                        {{if eq $korak $s}}
+                            <div class="korak tekuci"></div>
+                        {{else if statusPre $korak $s $.SviStatusi}}
+                            <div class="korak zavrseno"></div>
+                        {{else}}
+                            <div class="korak"></div>
+                        {{end}}
+                    {{end}}
+                </div>
+            </div>
+        </div>
+
+        <!-- kartica: detalji -->
+        <div class="kartica">
+            <div class="kartica-naslov">Detalji</div>
+
+            <div class="red">
+                <span class="red-labela">Datum prijema</span>
+                <span class="red-vrednost">{{.Nalog.DatumPrijema.Format "02.01.2006."}}</span>
+            </div>
+
+            {{if .Nalog.DatumZavrsetka}}
+            <div class="red">
+                <span class="red-labela">Datum završetka</span>
+                <span class="red-vrednost">{{.Nalog.DatumZavrsetka.Format "02.01.2006."}}</span>
+            </div>
+            {{end}}
+
+            {{if .Nalog.SerijskiBroj}}
+            <div class="red">
+                <span class="red-labela">Serijski broj</span>
+                <span class="red-vrednost">{{.Nalog.SerijskiBroj}}</span>
+            </div>
+            {{end}}
+
+            {{if .Nalog.OpisKvara}}
+            <div class="red">
+                <span class="red-labela">Opis kvara</span>
+                <span class="red-vrednost">{{.Nalog.OpisKvara}}</span>
+            </div>
+            {{end}}
+
+            {{if .Nalog.GarancijaDo}}
+            <div class="red">
+                <span class="red-labela">Garancija do</span>
+                <span class="red-vrednost">{{.Nalog.GarancijaDo.Format "02.01.2006."}}</span>
+            </div>
+            {{end}}
+
+            <!-- procenjena cena -->
+            {{if or .Nalog.CenaOd .Nalog.CenaDo .Nalog.CenaKonacna}}
+            <div style="margin-top:12px;">
+                <div class="red-labela" style="margin-bottom:8px;">Procena cene</div>
+                <div class="cena-blok">
+                    {{if .Nalog.CenaKonacna}}
+                        <div class="cena-od-do">
+                            <span class="cena-vrednost">{{formatBroj .Nalog.CenaKonacna}} din</span>
+                        </div>
+                        <div class="cena-labela">Konačna cena popravke</div>
+                    {{else if and .Nalog.CenaOd .Nalog.CenaDo}}
+                        <div class="cena-od-do">
+                            <span class="cena-vrednost">{{formatBroj .Nalog.CenaOd}}</span>
+                            <span class="cena-sep">–</span>
+                            <span class="cena-vrednost">{{formatBroj .Nalog.CenaDo}} din</span>
+                        </div>
+                        <div class="cena-labela">Procenjeni raspon cene</div>
+                    {{else if .Nalog.CenaOd}}
+                        <div class="cena-od-do">
+                            <span class="cena-vrednost">od {{formatBroj .Nalog.CenaOd}} din</span>
+                        </div>
+                        <div class="cena-labela">Procenjena cena od</div>
+                    {{end}}
+                </div>
+            </div>
+            {{end}}
+
+            {{if .Nalog.Napomena}}
+            <div style="margin-top:12px;">
+                <div class="red-labela" style="margin-bottom:6px;">Napomena</div>
+                <div class="napomena-blok">{{.Nalog.Napomena}}</div>
+            </div>
+            {{end}}
+        </div>
+
+        <!-- kontakt -->
+        {{if .Telefon}}
+        <div class="kontakt">
+            <div class="kontakt-naslov">Kontakt</div>
+            <a href="tel:{{.Telefon}}" class="kontakt-tel">{{.Telefon}}</a>
+            {{if .Adresa}}<div class="kontakt-adresa">{{.Adresa}}</div>{{end}}
+        </div>
+        {{end}}
+
+    </div>
+</body>
+</html>

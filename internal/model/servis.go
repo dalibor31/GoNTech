@@ -46,6 +46,7 @@ type ServisniNalog struct {
 	Ostecenja      string
 	PinUredjaja    string
 	Pribor         string
+	JavniToken     string
 }
 
 // ServisniDeo predstavlja jedan artikal ugrađen u servisni nalog

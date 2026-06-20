@@ -99,8 +99,7 @@ func (h *Handler) DodajPdvStopu(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Greška pri čuvanju PDV stope", http.StatusInternalServerError)
 		return
 	}
-	middleware.SetFlash(w, r, h.DB, "uspeh", "PDV stopa je dodata.")
-	http.Redirect(w, r, "/admin/podesavanja/kalkulacija-pdv", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/podesavanja/kalkulacija-pdv?sacuvano=1", http.StatusSeeOther)
 }
 
 // IzmeniPdvStopu prima POST i menja postojeću stopu
@@ -128,8 +127,7 @@ func (h *Handler) IzmeniPdvStopu(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Greška pri izmeni PDV stope", http.StatusInternalServerError)
 		return
 	}
-	middleware.SetFlash(w, r, h.DB, "uspeh", "PDV stopa je izmenjena.")
-	http.Redirect(w, r, "/admin/podesavanja/kalkulacija-pdv", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/podesavanja/kalkulacija-pdv?sacuvano=1", http.StatusSeeOther)
 }
 
 // PromeniAktivnostPdvStope arhivira ili vraća stopu u upotrebu (toggle, bez brisanja)
@@ -151,10 +149,5 @@ func (h *Handler) PromeniAktivnostPdvStope(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "Greška pri promeni statusa PDV stope", http.StatusInternalServerError)
 		return
 	}
-	poruka := "PDV stopa je arhivirana."
-	if !postojeca.Aktivna {
-		poruka = "PDV stopa je vraćena u upotrebu."
-	}
-	middleware.SetFlash(w, r, h.DB, "uspeh", poruka)
-	http.Redirect(w, r, "/admin/podesavanja/kalkulacija-pdv", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/podesavanja/kalkulacija-pdv?sacuvano=1", http.StatusSeeOther)
 }
