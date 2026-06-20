@@ -391,6 +391,21 @@
                             if (brzina.value) document.body.dataset.brzinaAnimacije = brzina.value;
                             else delete document.body.dataset.brzinaAnimacije;
                         }
+                        // posle čuvanja stilova lične pozadine ažuriraj CSS custom properties
+                        var bgBlur = f.querySelector('[name="lokalna_pozadina_blur"]');
+                        if (bgBlur) {
+                            var r = document.documentElement;
+                            var bgBlurBg = parseInt(f.querySelector('[name="lokalna_pozadina_blur_pozadine"]').value) || 0;
+                            var bgOp = parseInt(f.querySelector('[name="lokalna_pozadina_opacity"]').value) || 0;
+                            var bgGlass = parseInt(f.querySelector('[name="lokalna_pozadina_glass_opacity"]').value) || 0;
+                            var bgBlurV = parseInt(bgBlur.value) || 0;
+                            r.style.setProperty('--app-blur-bg', bgBlurBg + 'px');
+                            r.style.setProperty('--app-blur-bg-inset', bgBlurBg > 0 ? '-20px' : '0');
+                            r.style.setProperty('--app-overlay', bgOp + '%');
+                            r.style.setProperty('--app-blur', bgBlurV + 'px');
+                            r.style.setProperty('--app-glass-sb', bgGlass + '%');
+                            r.style.setProperty('--app-glass-el', bgGlass + '%');
+                        }
                         // promena teme zahteva reload (menja se ceo CSS fajl)
                         if (f.querySelector('[name="lokalna_tema"]')) location.reload();
                     } else {
