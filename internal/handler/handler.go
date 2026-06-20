@@ -215,6 +215,7 @@ func (h *Handler) popuniPodaciStranice(r *http.Request, podesavanja map[string]s
 	if korisnik != nil {
 		ps.LokalnaAnimacija = korisnik.LokalnaAnimacija
 		ps.LokalniHover = korisnik.LokalniHover
+		ps.LokalnaBrzinaAnimacije = korisnik.LokalnaBrzinaAnimacije
 	}
 
 	return ps

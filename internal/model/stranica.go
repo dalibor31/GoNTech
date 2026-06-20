@@ -55,6 +55,7 @@ type PodaciStranice struct {
 	AppPozadinaGlassOpacity string // vrednost 0-80 (% zatamnjivanje glass elemenata) — samo za ličnu pozadinu
 	LokalnaAnimacija        string // "" | "fadeInUp" | "fadeIn" | "scaleIn" | "slideLeft"
 	LokalniHover            string // "" | "bez" | "podizanje" | "svetlost"
+	LokalnaBrzinaAnimacije  string // "" | "0.2" | "0.4" | ... | "1.5" (sekunde)
 }
 
 // PodaciDashboarda su podaci specifični za dashboard stranicu
