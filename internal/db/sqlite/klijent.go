@@ -153,6 +153,10 @@ func (r *KlijentRepo) ListaFilter(ctx context.Context, filter db.KlijentFilter) 
 		p := "%" + filter.Pretraga + "%"
 		args = append(args, p, p, p, p, p, p)
 	}
+	if filter.Tip == "fizicko" || filter.Tip == "pravno" {
+		upit += " AND tip = ?"
+		args = append(args, filter.Tip)
+	}
 
 	upit += " ORDER BY datum_unosa DESC"
 
@@ -205,6 +209,10 @@ func (r *KlijentRepo) PrebrojiPoFilteru(ctx context.Context, filter db.KlijentFi
 		upit += " AND (ime LIKE ? OR prezime LIKE ? OR (ime || ' ' || prezime) LIKE ? OR naziv_firme LIKE ? OR telefon LIKE ? OR email LIKE ?)"
 		p := "%" + filter.Pretraga + "%"
 		args = append(args, p, p, p, p, p, p)
+	}
+	if filter.Tip == "fizicko" || filter.Tip == "pravno" {
+		upit += " AND tip = ?"
+		args = append(args, filter.Tip)
 	}
 
 	var broj int

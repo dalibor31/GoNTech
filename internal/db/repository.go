@@ -115,6 +115,7 @@ type DobavljacRepository interface {
 // KlijentFilter definiše parametre za filtriranje liste klijenata
 type KlijentFilter struct {
 	Pretraga string
+	Tip      string // "fizicko", "pravno" ili "" za sve
 	Limit    int
 	Offset   int
 }

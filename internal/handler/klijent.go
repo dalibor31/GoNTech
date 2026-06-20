@@ -18,6 +18,7 @@ type PodaciKlijenata struct {
 	model.PodaciStranice
 	Klijenti         []model.Klijent
 	Pretraga         string
+	TipFilter        string
 	Sacuvano         bool
 	Obrisan          bool
 	StranicaBr       int
@@ -45,6 +46,10 @@ func (h *Handler) Klijenti(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pretraga := r.URL.Query().Get("pretraga")
+	tipFilter := r.URL.Query().Get("tip")
+	if tipFilter != "fizicko" && tipFilter != "pravno" {
+		tipFilter = ""
+	}
 
 	const pageSize = 100
 	stranicaBr := 1
@@ -56,6 +61,7 @@ func (h *Handler) Klijenti(w http.ResponseWriter, r *http.Request) {
 
 	filter := db.KlijentFilter{
 		Pretraga: pretraga,
+		Tip:      tipFilter,
 		Limit:    pageSize,
 		Offset:   (stranicaBr - 1) * pageSize,
 	}
@@ -78,6 +84,9 @@ func (h *Handler) Klijenti(w http.ResponseWriter, r *http.Request) {
 	if pretraga != "" {
 		queryDelići += "&pretraga=" + pretraga
 	}
+	if tipFilter != "" {
+		queryDelići += "&tip=" + tipFilter
+	}
 
 	stranicaPrev := stranicaBr - 1
 	if stranicaPrev < 1 {
@@ -95,6 +104,7 @@ func (h *Handler) Klijenti(w http.ResponseWriter, r *http.Request) {
 		PodaciStranice:   ps,
 		Klijenti:         klijenti,
 		Pretraga:         pretraga,
+		TipFilter:        tipFilter,
 		Sacuvano:         r.URL.Query().Get("sacuvano") == "1",
 		Obrisan:          r.URL.Query().Get("obrisan") == "1",
 		StranicaBr:       stranicaBr,
