@@ -215,7 +215,7 @@
         <div class="naplata-blok">
             <div class="naplata-labela">Procena ukupnog troška:</div>
             {{if .CenaRaspon}}
-            <div class="naplata-iznos">{{printf "%.2f" .UkupnoOd}} – {{dinari .UkupnoDo}} din</div>
+            <div class="naplata-iznos">{{dinari .UkupnoOd}} – {{dinari .UkupnoDo}} din</div>
             {{else}}
             <div class="naplata-iznos">{{dinari .Ukupno}} din</div>
             {{end}}

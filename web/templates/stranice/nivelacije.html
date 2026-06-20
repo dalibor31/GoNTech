@@ -42,10 +42,10 @@
                     <tr style="border-bottom:0.5px solid var(--ivica);">
                         <td style="padding:10px 12px;white-space:nowrap;">{{.Datum.Format "02.01.2006."}}</td>
                         <td style="padding:10px 12px;">{{.ArtikalNaziv}}</td>
-                        <td style="padding:10px 12px;text-align:right;color:var(--tekst-sporedni);">{{printf "%.2f" .StaraCena}}</td>
-                        <td style="padding:10px 12px;text-align:right;font-weight:500;">{{printf "%.2f" .NovaCena}}</td>
+                        <td style="padding:10px 12px;text-align:right;color:var(--tekst-sporedni);">{{dinari .StaraCena}}</td>
+                        <td style="padding:10px 12px;text-align:right;font-weight:500;">{{dinari .NovaCena}}</td>
                         <td style="padding:10px 12px;text-align:right;white-space:nowrap;color:{{if .Poskupljenje}}var(--greska){{else}}var(--uspeh){{end}};">
-                            {{if .Poskupljenje}}+{{end}}{{printf "%.2f" .Razlika}}
+                            {{if .Poskupljenje}}+{{end}}{{dinari .Razlika}}
                             <div style="font-size:11px;">{{if .Poskupljenje}}+{{end}}{{printf "%.1f" .Procenat}}%</div>
                         </td>
                         <td style="padding:10px 12px;">

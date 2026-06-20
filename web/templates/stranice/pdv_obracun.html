@@ -38,23 +38,23 @@
                     </tr>
                     <tr style="border-bottom:0.5px solid var(--ivica);">
                         <td style="padding:10px 12px;padding-left:24px;">Opšta stopa (20%)</td>
-                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .KirSume.OsnovicaOpsta}}</td>
-                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .Obracun.IzlazniPdvOpsta}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{dinari .KirSume.OsnovicaOpsta}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{dinari .Obracun.IzlazniPdvOpsta}}</td>
                     </tr>
                     <tr style="border-bottom:0.5px solid var(--ivica);">
                         <td style="padding:10px 12px;padding-left:24px;">Posebna stopa (10%)</td>
-                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .KirSume.OsnovicaPosebna}}</td>
-                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .Obracun.IzlazniPdvPosebna}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{dinari .KirSume.OsnovicaPosebna}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{dinari .Obracun.IzlazniPdvPosebna}}</td>
                     </tr>
                     <tr style="border-bottom:0.5px solid var(--ivica);">
                         <td style="padding:10px 12px;padding-left:24px;color:var(--tekst-sporedni);">Oslobođen promet</td>
-                        <td style="padding:10px 12px;text-align:right;color:var(--tekst-sporedni);">{{printf "%.2f" .KirSume.OslobodenUkupno}}</td>
+                        <td style="padding:10px 12px;text-align:right;color:var(--tekst-sporedni);">{{dinari .KirSume.OslobodenUkupno}}</td>
                         <td style="padding:10px 12px;text-align:right;color:var(--tekst-sporedni);">—</td>
                     </tr>
                     <tr style="border-bottom:0.5px solid var(--ivica);font-weight:500;background:var(--pozadina);">
                         <td style="padding:10px 12px;">Ukupno izlazni PDV</td>
                         <td style="padding:10px 12px;"></td>
-                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .Obracun.IzlazniPdvUkupno}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{dinari .Obracun.IzlazniPdvUkupno}}</td>
                     </tr>
 
                     <!-- odbitni (prethodni) PDV — iz KPR -->
@@ -63,23 +63,23 @@
                     </tr>
                     <tr style="border-bottom:0.5px solid var(--ivica);">
                         <td style="padding:10px 12px;padding-left:24px;">Opšta stopa (20%)</td>
-                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .KprSume.OsnovicaOpsta}}</td>
-                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .Obracun.OdbitniPdvOpsta}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{dinari .KprSume.OsnovicaOpsta}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{dinari .Obracun.OdbitniPdvOpsta}}</td>
                     </tr>
                     <tr style="border-bottom:0.5px solid var(--ivica);">
                         <td style="padding:10px 12px;padding-left:24px;">Posebna stopa (10%)</td>
-                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .KprSume.OsnovicaPosebna}}</td>
-                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .Obracun.OdbitniPdvPosebna}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{dinari .KprSume.OsnovicaPosebna}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{dinari .Obracun.OdbitniPdvPosebna}}</td>
                     </tr>
                     <tr style="border-bottom:0.5px solid var(--ivica);">
                         <td style="padding:10px 12px;padding-left:24px;color:var(--tekst-sporedni);">PDV bez prava na odbitak</td>
                         <td style="padding:10px 12px;text-align:right;color:var(--tekst-sporedni);">—</td>
-                        <td style="padding:10px 12px;text-align:right;color:var(--tekst-sporedni);">{{printf "%.2f" .KprSume.PdvBezOdbitka}}</td>
+                        <td style="padding:10px 12px;text-align:right;color:var(--tekst-sporedni);">{{dinari .KprSume.PdvBezOdbitka}}</td>
                     </tr>
                     <tr style="font-weight:500;background:var(--pozadina);">
                         <td style="padding:10px 12px;">Ukupno odbitni PDV</td>
                         <td style="padding:10px 12px;"></td>
-                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .Obracun.OdbitniPdvUkupno}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{dinari .Obracun.OdbitniPdvUkupno}}</td>
                     </tr>
                 </tbody>
             </table>
@@ -96,7 +96,7 @@
             <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:2px;">izlazni − odbitni PDV</div>
         </div>
         <div style="font-size:24px;font-weight:600;color:{{if .Obracun.ZaUplatu}}var(--greska){{else}}var(--uspeh){{end}};white-space:nowrap;">
-            {{printf "%.2f" .Obracun.ObavezaApsolutna}} RSD
+            {{dinari .Obracun.ObavezaApsolutna}} RSD
         </div>
     </div>
 
