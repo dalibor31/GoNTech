@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -20,6 +21,10 @@ type PodaciMagacina struct {
 	KategorijaIDStr  string
 	Sacuvano         bool
 	Obrisan          bool
+	Arhiviran        bool
+	Vracen           bool
+	Greska           bool
+	PrikazArhivirani bool // true → lista prikazuje arhivirane umesto aktivnih
 	Premesten        bool
 	StranicaBr       int
 	UkupnoStranica   int
@@ -40,6 +45,7 @@ func (h *Handler) Magacin(w http.ResponseWriter, r *http.Request) {
 	filter := db.ArtikalFilter{
 		Pretraga:     r.URL.Query().Get("pretraga"),
 		SamoKriticni: r.URL.Query().Get("kriticni") == "1",
+		Arhivirani:   r.URL.Query().Get("arhivirani") == "1",
 	}
 
 	katIDStr := ""
@@ -51,7 +57,7 @@ func (h *Handler) Magacin(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	const pageSize = 100
+	const pageSize = 50
 	stranicaBr := 1
 	if p := r.URL.Query().Get("stranica"); p != "" {
 		if v, err := strconv.Atoi(p); err == nil && v > 0 {
@@ -96,6 +102,9 @@ func (h *Handler) Magacin(w http.ResponseWriter, r *http.Request) {
 	if filter.SamoKriticni {
 		queryDelići += "&kriticni=1"
 	}
+	if filter.Arhivirani {
+		queryDelići += "&arhivirani=1"
+	}
 
 	stranicaPrev := stranicaBr - 1
 	if stranicaPrev < 1 {
@@ -114,6 +123,10 @@ func (h *Handler) Magacin(w http.ResponseWriter, r *http.Request) {
 		KategorijaIDStr:  katIDStr,
 		Sacuvano:         r.URL.Query().Get("sacuvano") == "1",
 		Obrisan:          r.URL.Query().Get("obrisan") == "1",
+		Arhiviran:        r.URL.Query().Get("arhiviran") == "1",
+		Vracen:           r.URL.Query().Get("vracen") == "1",
+		Greska:           r.URL.Query().Get("greska") == "1",
+		PrikazArhivirani: filter.Arhivirani,
 		Premesten:        r.URL.Query().Get("premesten") == "1",
 		StranicaBr:       stranicaBr,
 		UkupnoStranica:   ukupnoStranica,
@@ -169,18 +182,46 @@ func (h *Handler) ObrisiArtikal(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Artikli.Obrisi(r.Context(), id); err != nil {
-		http.Error(w, "Greška pri brisanju artikla", http.StatusInternalServerError)
+		// artikal je u prometu — ne brišemo ga, već ga arhiviramo
+		if errors.Is(err, db.ErrArtikalUUpotrebi) {
+			if err := h.Artikli.Arhiviraj(r.Context(), id); err != nil {
+				http.Redirect(w, r, "/magacin?greska=1", http.StatusSeeOther)
+				return
+			}
+			http.Redirect(w, r, "/magacin?arhiviran=1", http.StatusSeeOther)
+			return
+		}
+		http.Redirect(w, r, "/magacin?greska=1", http.StatusSeeOther)
 		return
 	}
 
 	http.Redirect(w, r, "/magacin?obrisan=1", http.StatusSeeOther)
 }
 
+// VratiArtikal poništava arhiviranje i vraća artikal u aktivnu listu
+func (h *Handler) VratiArtikal(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "artikal.obrisi"); !ok {
+		return
+	}
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Neispravan ID artikla", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.Artikli.Vrati(r.Context(), id); err != nil {
+		http.Redirect(w, r, "/magacin?arhivirani=1&greska=1", http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "/magacin?arhivirani=1&vracen=1", http.StatusSeeOther)
+}
+
 // PodaciMagacinskeKartice su podaci za karticu jednog artikla
 type PodaciMagacinskeKartice struct {
 	model.PodaciStranice
-	Artikal  model.Artikal
-	Promene  []model.MagacinskaPromenaSaDetaljem
+	Artikal model.Artikal
+	Promene []model.MagacinskaPromenaSaDetaljem
 }
 
 // MagacinskaKartica prikazuje sve promene stanja za jedan artikal

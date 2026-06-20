@@ -515,6 +515,9 @@ body {
     font-weight: 500;
     cursor: pointer;
     text-decoration: none;
+    /* sitna akciona dugmad ne prelamaju tekst — inače „Promeni cenu" padne u 2 reda
+       pa to dugme postane više od ostalih u istom redu */
+    white-space: nowrap;
     transition: opacity 0.2s;
 }
 .btn-primarno-malo:hover { opacity: 0.85; }
@@ -536,6 +539,10 @@ body {
 .btn-sekundarno:hover { background: var(--pozadina); color: var(--tekst-glavni); }
 
 /* crveno dugme za brisanje u tabelama */
+/* naziv artikla u listi koji vodi na karticu */
+.link-naziv { text-decoration: none; }
+.link-naziv:hover { color: var(--sb-akcent); text-decoration: underline; }
+
 .btn-obrisi-malo {
     display: inline-flex;
     align-items: center;
@@ -548,6 +555,7 @@ body {
     font-weight: 500;
     cursor: pointer;
     text-decoration: none;
+    white-space: nowrap;
     transition: opacity 0.2s;
 }
 .btn-obrisi-malo:hover { opacity: 0.8; }
@@ -1070,6 +1078,16 @@ select {
     animation: none;
 }
 
+/* gasi animaciju redova pri HTMX pretrazi: hx-on:htmx:before-request dodaje ovu klasu
+   na #magacin-rezultati. Pošto pretraga menja samo innerHTML kontejnera, klasa ostaje
+   na njemu i kroz naredne zamene, pa novoubačeni redovi ne animiraju. Pun reload
+   stranice i klik na paginaciju (bez pretrage) ne dodaju klasu, pa animacija ostaje.
+   ID u selektoru je OBAVEZAN: bez njega specifičnost je jednaka pravilima
+   [data-animacija="..."] niže u fajlu, koja bi onda nadjačala ovo i animacija bi
+   se i dalje primenjivala kad korisnik ima izabran stil animacije. */
+#magacin-rezultati.bez-anim .tabela tbody tr,
+#magacin-rezultati.bez-anim .animiraj { animation: none; }
+
 /* korisnikova preferencija animacije: body[data-animacija] nadjačava podrazumevano.
    Kad korisnik odabere stil, animiraju se i redovi tabela i mobilne kartice. */
 [data-animacija="bez"] .animiraj,
@@ -1121,12 +1139,9 @@ select {
 .tabela tbody tr:nth-child(20) { animation-delay: 0.80s; }
 
 /* content-visibility: auto – browser preskače render elemenata van viewport-a.
-   Ovo rešava problem sa 1000+ redova gde skrolovanje postaje prazno
-   dok browser ne stigne da iscrta sve. */
-.tabela tbody tr {
-    content-visibility: auto;
-    contain-intrinsic-size: 48px;
-}
+   Stranica je ograničena na 50 redova, pa redovi tabele ne koriste ovu optimizaciju:
+   procenjena visina (contain-intrinsic-size) se nije poklapala sa stvarnom, pa su
+   redovi „secali" pri skrolu kad ih browser tek tada izmeri. */
 [class*="-kartice"] > .animiraj,
 .klijenti-kartice > .animiraj {
     content-visibility: auto;

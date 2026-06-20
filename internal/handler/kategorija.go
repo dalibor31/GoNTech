@@ -65,6 +65,7 @@ func (h *Handler) DodajKategoriju(w http.ResponseWriter, r *http.Request) {
 	k := &model.Kategorija{
 		Naziv: naziv,
 		Opis:  r.FormValue("opis"),
+		Kod:   normalizujKod(r.FormValue("kod")),
 		Marza: parsirajMarzu(r.FormValue("marza")),
 	}
 
@@ -102,6 +103,7 @@ func (h *Handler) IzmeniKategoriju(w http.ResponseWriter, r *http.Request) {
 		ID:    id,
 		Naziv: naziv,
 		Opis:  r.FormValue("opis"),
+		Kod:   normalizujKod(r.FormValue("kod")),
 		Marza: parsirajMarzu(r.FormValue("marza")),
 	}
 
@@ -124,6 +126,19 @@ func parsirajMarzu(s string) *float64 {
 		return nil
 	}
 	return &v
+}
+
+// normalizujKod čisti kôd kategorije za upotrebu kao prefiks šifre:
+// velika slova, zadržava samo slova i brojeve (bez razmaka i specijalnih znakova).
+func normalizujKod(s string) string {
+	s = strings.ToUpper(strings.TrimSpace(s))
+	var b strings.Builder
+	for _, r := range s {
+		if (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 // ObrisiKategoriju briše kategoriju po ID-u

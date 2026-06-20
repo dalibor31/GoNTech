@@ -11,6 +11,15 @@
     {{if .Obrisan}}
     <div class="poruka-uspeh">Artikal je uspešno obrisan.</div>
     {{end}}
+    {{if .Arhiviran}}
+    <div class="poruka-uspeh">Artikal je u prometu pa je arhiviran umesto obrisan. Možete ga pronaći među arhiviranim artiklima.</div>
+    {{end}}
+    {{if .Vracen}}
+    <div class="poruka-uspeh">Artikal je vraćen u aktivnu listu.</div>
+    {{end}}
+    {{if .Greska}}
+    <div class="poruka-greska">Operacija nije uspela. Pokušajte ponovo.</div>
+    {{end}}
     {{if .Premesten}}
     <div class="poruka-uspeh">Artikal je premešten u drugu kategoriju.</div>
     {{end}}
@@ -26,10 +35,10 @@
     </div>
 
     <!-- pretraga i filteri — interaktivna pretraga (hx-trigger) -->
-    <form method="GET" action="/magacin" class="kolona" style="gap:10px;"
+    <form method="GET" action="/magacin" class="kolona" style="gap:10px;" id="magacin-filteri"
           hx-get="/magacin" hx-target="#magacin-rezultati" hx-select="#magacin-rezultati" hx-swap="innerHTML" hx-push-url="true">
         <input type="text" name="pretraga" value="{{.Filter.Pretraga}}"
-            placeholder="Pretraži artikle..."
+            placeholder="Pretraži po nazivu, šifri, barkodu, lokaciji..."
             style="width:100%;"
             hx-trigger="keyup changed delay:300ms, search"
             hx-get="/magacin" hx-target="#magacin-rezultati" hx-select="#magacin-rezultati" hx-swap="innerHTML" hx-push-url="true">
@@ -48,6 +57,12 @@
                     hx-get="/magacin" hx-target="#magacin-rezultati" hx-select="#magacin-rezultati" hx-swap="innerHTML" hx-push-url="true">
                 Samo kritični
             </label>
+            <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--tekst-sporedni);cursor:pointer;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;background:var(--kartica);white-space:nowrap;">
+                <input type="checkbox" name="arhivirani" value="1" {{if .PrikazArhivirani}}checked{{end}}
+                    hx-trigger="change"
+                    hx-get="/magacin" hx-target="#magacin-rezultati" hx-select="#magacin-rezultati" hx-swap="innerHTML" hx-push-url="true">
+                Arhivirani
+            </label>
             <button type="submit" class="btn-primarno">
                 Traži
             </button>
@@ -63,6 +78,7 @@
             <table class="magacin-tabela tabela">
                 <thead>
                     <tr style="border-bottom:0.5px solid var(--ivica);">
+                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-jak);">Šifra</th>
                         <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-jak);">Naziv</th>
                         <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-jak);">Kategorija</th>
                         <th style="padding:12px 16px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-jak);">Količina</th>
@@ -74,14 +90,19 @@
                 <tbody>
                     {{range .Artikli}}
                     <tr class="animiraj red-tabele">
-                        <td style="padding:12px 16px;font-size:14px;color:var(--tekst-glavni);">{{.Naziv}}</td>
+                        <td style="padding:12px 16px;font-size:13px;font-family:monospace;white-space:nowrap;">{{if .Sifra}}<a href="/magacin/kartica/{{.ID}}" class="link-naziv" style="color:var(--tekst-sporedni);">{{.Sifra}}</a>{{else}}—{{end}}</td>
+                        <td style="padding:12px 16px;font-size:14px;"><a href="/magacin/kartica/{{.ID}}" class="link-naziv" style="color:var(--tekst-glavni);font-weight:500;">{{.Naziv}}</a></td>
                         <td style="padding:12px 16px;font-size:13px;color:var(--tekst-sporedni);">
                             {{if .KategorijaNaziv}}{{.KategorijaNaziv}}{{else}}—{{end}}
                         </td>
                         <td style="padding:12px 16px;text-align:center;">
+                            {{if .PratiLager}}
                             <span style="font-size:14px;font-weight:500;color:{{if .KriticnaZaliha}}#dc2626{{else}}#16a34a{{end}};">
                                 {{.Kolicina}}
                             </span>
+                            {{else}}
+                            <span style="font-size:12px;color:var(--tekst-sporedni);">{{if eq .Tip "usluga"}}usluga{{else}}trošak{{end}}</span>
+                            {{end}}
                         </td>
                         <td style="padding:12px 16px;text-align:right;font-size:14px;color:var(--tekst-glavni);">{{printf "%.0f" .ProdajnaCena}} din</td>
                         <td style="padding:12px 16px;font-size:13px;color:var(--tekst-sporedni);">
@@ -89,9 +110,6 @@
                         </td>
                         <td style="padding:12px 16px;text-align:center;">
                             <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
-                                <a href="/magacin/kartica/{{.ID}}" class="btn-sekundarno-malo">
-                                    Kartica
-                                </a>
                                 {{if index $.Dozvole "artikal.izmeni"}}
                                 <a href="/magacin/izmeni/{{.ID}}" class="btn-primarno-malo">
                                     Izmeni
@@ -102,10 +120,17 @@
                                 {{template "premestiMeni" (dict "ID" .ID "Kategorije" $.Kategorije "Prefiks" "tab")}}
                                 {{end}}{{end}}
                                 {{if index $.Dozvole "artikal.obrisi"}}
+                                {{if $.PrikazArhivirani}}
+                                <a href="/magacin/vrati/{{.ID}}" class="btn-sekundarno-malo"
+                                    data-potvrda="Vratiti ovaj artikal u aktivnu listu?">
+                                    Vrati
+                                </a>
+                                {{else}}
                                 <a href="/magacin/obrisi/{{.ID}}" class="btn-obrisi-malo"
                                     data-potvrda="Da li ste sigurni da želite da obrišete ovaj artikal?">
                                     Obriši
                                 </a>
+                                {{end}}
                                 {{end}}
                             </div>
                         </td>
@@ -128,13 +153,15 @@
         <div class="kartica magacin-kartica animiraj">
             <div class="red-izmedju" style="align-items:flex-start;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
                 <div>
-                    <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">{{.Naziv}}</div>
+                    <a href="/magacin/kartica/{{.ID}}" class="link-naziv" style="display:inline-block;font-size:15px;font-weight:500;color:var(--tekst-glavni);">{{.Naziv}}</a>
+                    {{if .Sifra}}
+                    <div style="font-size:12px;font-family:monospace;color:var(--tekst-sporedni);margin-top:2px;">{{.Sifra}}</div>
+                    {{end}}
                     {{if .KategorijaNaziv}}
                     <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:2px;">{{.KategorijaNaziv}}</div>
                     {{end}}
                 </div>
                 <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">
-                    <a href="/magacin/kartica/{{.ID}}" class="btn-sekundarno-malo">Kartica</a>
                     {{if index $.Dozvole "artikal.izmeni"}}
                     <a href="/magacin/izmeni/{{.ID}}" class="btn-primarno-malo">Izmeni</a>
                     {{template "promeniCenuMeni" (dict "ID" .ID "Cena" .ProdajnaCena)}}
@@ -143,17 +170,29 @@
                     {{template "premestiMeni" (dict "ID" .ID "Kategorije" $.Kategorije "Prefiks" "kart")}}
                     {{end}}{{end}}
                     {{if index $.Dozvole "artikal.obrisi"}}
+                    {{if $.PrikazArhivirani}}
+                    <a href="/magacin/vrati/{{.ID}}" class="btn-sekundarno-malo"
+                        data-potvrda="Vratiti ovaj artikal u aktivnu listu?">
+                        Vrati
+                    </a>
+                    {{else}}
                     <a href="/magacin/obrisi/{{.ID}}" class="btn-obrisi-malo"
                         data-potvrda="Da li ste sigurni da želite da obrišete ovaj artikal?">
                         Obriši
                     </a>
                     {{end}}
+                    {{end}}
                 </div>
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:10px;">
                 <div class="pomocni-tekst">
+                    {{if .PratiLager}}
                     <span style="color:var(--tekst-glavni);font-weight:500;">Količina:</span>
-                    <span style="font-weight:500;color:{{if .KriticnaZaliha}}#dc2626{{else}}#16a34a{{end}};">{{.Kolicina}}</span>
+                    <span style="font-weight:500;color:{{if .KriticnaZaliha}}#dc2626{{else}}#16a34a{{end}};">{{.Kolicina}} {{.JedinicaMere}}</span>
+                    {{else}}
+                    <span style="color:var(--tekst-glavni);font-weight:500;">Tip:</span>
+                    <span style="color:var(--tekst-sporedni);">{{if eq .Tip "usluga"}}usluga{{else}}trošak{{end}}</span>
+                    {{end}}
                 </div>
                 <div class="pomocni-tekst">
                     <span style="color:var(--tekst-glavni);font-weight:500;">Cena:</span> {{printf "%.0f" .ProdajnaCena}} din
@@ -190,6 +229,20 @@
     </div><!-- kraj #magacin-rezultati -->
 
 </div>
+
+<script>
+// Gasi stagger animaciju redova pri pretrazi/filtriranju (ali NE pri paginaciji).
+// hx-on atribut ne radi pouzdano u ovoj htmx verziji, pa koristimo globalni listener:
+// kada zahtev kreće sa elementa unutar #magacin-filteri, dodamo .bez-anim na kontejner
+// rezultata. Pošto se menja samo innerHTML kontejnera, klasa ostaje i kroz naredne zamene.
+document.body.addEventListener('htmx:beforeRequest', function (e) {
+    var elt = e.detail && e.detail.elt;
+    if (elt && elt.closest && elt.closest('#magacin-filteri')) {
+        var rez = document.getElementById('magacin-rezultati');
+        if (rez) rez.classList.add('bez-anim');
+    }
+});
+</script>
 {{end}}
 
 {{/* padajući meni za premeštanje artikla — prima dict {ID, Kategorije}; koristi se i u tabeli i u mobilnoj kartici */}}

@@ -2,10 +2,15 @@ package db
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"ntech/internal/model"
 )
+
+// ErrArtikalUUpotrebi se vraća kad se artikal ne može obrisati jer postoji u prometu
+// (prodaja, nabavka, magacinske promene ili servisni nalozi). Tada se artikal arhivira.
+var ErrArtikalUUpotrebi = errors.New("ntech: artikal je u upotrebi")
 
 // ArtikalRepository definiše operacije nad artiklima
 type ArtikalRepository interface {
@@ -18,8 +23,12 @@ type ArtikalRepository interface {
 	AzurirajCene(ctx context.Context, id int64, nabavna, prodajna float64) error
 	PremestiKategoriju(ctx context.Context, id int64, kategorijaID *int64) error
 	Obrisi(ctx context.Context, id int64) error
-	// SledecaSifra vraća predlog sledeće auto-šifre (npr. ART-00042)
-	SledecaSifra(ctx context.Context) (string, error)
+	// Arhiviraj označava artikal kao arhiviran (skriva ga iz aktivne liste, čuva istoriju)
+	Arhiviraj(ctx context.Context, id int64) error
+	// Vrati poništava arhiviranje i vraća artikal u aktivnu listu
+	Vrati(ctx context.Context, id int64) error
+	// SledecaSifra vraća predlog sledeće auto-šifre (npr. KOMP-0042 ili ART-0042)
+	SledecaSifra(ctx context.Context, kategorijaID *int64) (string, error)
 	// KorigujKolicinu postavlja novu količinu artikla i upisuje korekciju u magacinske_promene
 	KorigujKolicinu(ctx context.Context, artikalID int64, novaKolicina int, korisnikID *int64, napomena string) error
 }
@@ -79,6 +88,7 @@ type ArtikalFilter struct {
 	Pretraga     string
 	KategorijaID *int64
 	SamoKriticni bool
+	Arhivirani   bool // true → vrati samo arhivirane; false (podrazumevano) → samo aktivne
 	Limit        int
 	Offset       int
 }

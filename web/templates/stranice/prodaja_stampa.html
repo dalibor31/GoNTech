@@ -81,7 +81,7 @@
           {{range .Stavke}}
           <tr>
             <td>{{.ArtikalNaziv}}</td>
-            <td>{{.Kolicina}}</td>
+            <td>{{.Kolicina}} {{.JedinicaMere}}</td>
             <td>{{printf "%.2f" .CenaPoKomadu}} din</td>
             <td>{{printf "%.2f" .Ukupno}} din</td>
           </tr>
