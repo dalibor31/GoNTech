@@ -28,6 +28,14 @@
 
     {{if .AppPozadina}}
     <style>
+      :root {
+        --app-blur-bg: {{.AppPozadinaBlurPozadine}}px;
+        --app-blur-bg-inset: {{if ne .AppPozadinaBlurPozadine "0"}}-20px{{else}}0{{end}};
+        --app-overlay: {{.AppPozadinaOpacity}}%;
+        --app-blur: {{.AppPozadinaBlur}}px;
+        --app-glass-sb: {{if .AppPozadinaGlassOpacity}}{{.AppPozadinaGlassOpacity}}%{{else}}30%{{end}};
+        --app-glass-el: {{if .AppPozadinaGlassOpacity}}{{.AppPozadinaGlassOpacity}}%{{else}}8%{{end}};
+      }
       html {
         background: url('{{.AppPozadina}}') center/cover fixed;
         background-color: #1f2228;
@@ -36,9 +44,9 @@
       body::before {
         content: '';
         position: fixed;
-        inset: {{if ne .AppPozadinaBlurPozadine "0"}}-20px{{else}}0{{end}};
+        inset: var(--app-blur-bg-inset);
         background: url('{{.AppPozadina}}') center/cover;
-        filter: blur({{.AppPozadinaBlurPozadine}}px);
+        filter: blur(var(--app-blur-bg));
         z-index: 0;
         pointer-events: none;
       }
@@ -46,18 +54,18 @@
         content: '';
         position: fixed;
         inset: 0;
-        background: rgba(0,0,0,{{.AppPozadinaOpacity}}%);
+        background: rgba(0,0,0,var(--app-overlay));
         z-index: 1;
         pointer-events: none;
       }
       .raspored { position: relative; z-index: 2; }
-      .sidebar { background: rgba(0,0,0,{{if .AppPozadinaGlassOpacity}}{{.AppPozadinaGlassOpacity}}%{{else}}0.3{{end}}) !important; backdrop-filter: blur({{.AppPozadinaBlur}}px); -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px); border-right: 1px solid rgba(255,255,255,0.12) !important; }
+      .sidebar { background: rgba(0,0,0,var(--app-glass-sb)) !important; backdrop-filter: blur(var(--app-blur)); -webkit-backdrop-filter: blur(var(--app-blur)); border-right: 1px solid rgba(255,255,255,0.12) !important; }
       .sidebar .nav-stavka, .sidebar .logo-naziv, .sidebar .logo-podnazlov { text-shadow: 0 1px 3px rgba(0,0,0,0.8); color: rgba(255,255,255,0.95) !important; }
       .sidebar .nav-stavka svg { color: rgba(255,255,255,0.95) !important; stroke: rgba(255,255,255,0.95) !important; }
       .sidebar .nav-oznaka { text-shadow: 0 1px 3px rgba(0,0,0,0.8); color: rgba(255,255,255,0.7) !important; }
-      .topbar { background: rgba(0,0,0,{{if .AppPozadinaGlassOpacity}}{{.AppPozadinaGlassOpacity}}%{{else}}0.08{{end}}) !important; backdrop-filter: blur({{.AppPozadinaBlur}}px); -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px); border-bottom: 1px solid rgba(255,255,255,0.12) !important; }
+      .topbar { background: rgba(0,0,0,var(--app-glass-el)) !important; backdrop-filter: blur(var(--app-blur)); -webkit-backdrop-filter: blur(var(--app-blur)); border-bottom: 1px solid rgba(255,255,255,0.12) !important; }
       .topbar-naslov { color: rgba(255,255,255,0.95) !important; text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.55); }
-      .kartica, .premesti-modal { background: rgba(0,0,0,{{if .AppPozadinaGlassOpacity}}{{.AppPozadinaGlassOpacity}}%{{else}}0.08{{end}}) !important; backdrop-filter: blur({{.AppPozadinaBlur}}px); -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px); border: 1px solid rgba(255,255,255,0.12) !important; }
+      .kartica, .premesti-modal { background: rgba(0,0,0,var(--app-glass-el)) !important; backdrop-filter: blur(var(--app-blur)); -webkit-backdrop-filter: blur(var(--app-blur)); border: 1px solid rgba(255,255,255,0.12) !important; }
       body:not([data-hover]) .kartica:hover { background: rgba(0,0,0,0.38) !important; }
       body:not([data-hover]) .kartica:hover .dash-ikona { filter: brightness(0.55); }
       .kartica p, .kartica span, .kartica h1, .kartica h2, .kartica h3, .kartica h4, .kartica label, .kartica td, .kartica th, .kartica li, .kartica a { color: rgba(255,255,255,0.95) !important; text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.55); }
@@ -75,7 +83,7 @@
          dobijaju sopstvenu staklenu podlogu da se vide bez obzira na sliku ispod */
       .nazad-link, .btn-sekundarno, .btn-obrisi-ghost, .cek-filter {
         background: rgba(0,0,0,0.28) !important;
-        backdrop-filter: blur({{.AppPozadinaBlur}}px); -webkit-backdrop-filter: blur({{.AppPozadinaBlur}}px);
+        backdrop-filter: blur(var(--app-blur)); -webkit-backdrop-filter: blur(var(--app-blur));
         border: 1px solid rgba(255,255,255,0.18) !important;
         color: rgba(255,255,255,0.95) !important; text-shadow: 0 1px 3px rgba(0,0,0,0.8);
       }
