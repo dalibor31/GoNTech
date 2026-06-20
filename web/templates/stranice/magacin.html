@@ -242,11 +242,19 @@ document.body.addEventListener('htmx:beforeRequest', function (e) {
         if (rez) rez.classList.add('bez-anim');
     }
 });
-// Pre nego što HTMX sačuva snapshot stranice u sessionStorage, skloni bez-anim
-// da snapshot ne prikazuje "zamrznutu" tabelu bez animacije pri sledećoj navigaciji.
-document.body.addEventListener('htmx:beforeHistorySave', function () {
+
+// Pri sidebar navigaciji (boost menja ceo #glavni-sadrzaj) browser nakratko
+// prikaže redove pre nego što animacija krene. Forsiramo reflow: prvo ugasimo
+// animaciju, pa je odmah pustimo iz from-stanja → nema bljeska. Pretragu/
+// paginaciju (target = #magacin-rezultati) NE diramo.
+document.body.addEventListener('htmx:afterSwap', function (e) {
+    var t = e.detail && e.detail.target;
+    if (t && t.id === 'magacin-rezultati') return;
     var rez = document.getElementById('magacin-rezultati');
-    if (rez) rez.classList.remove('bez-anim');
+    if (!rez) return;
+    rez.classList.add('bez-anim');
+    void rez.offsetHeight;
+    rez.classList.remove('bez-anim');
 });
 </script>
 {{end}}
