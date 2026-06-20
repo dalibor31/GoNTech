@@ -10,6 +10,7 @@ import (
 // ArtikalRepository definiše operacije nad artiklima
 type ArtikalRepository interface {
 	Lista(ctx context.Context, filter ArtikalFilter) ([]model.ArtikalSaKategorijom, error)
+	PrebrojiPoFilteru(ctx context.Context, filter ArtikalFilter) (int, error)
 	DohvatiID(ctx context.Context, id int64) (*model.Artikal, error)
 	Kreiraj(ctx context.Context, a *model.Artikal) (int64, error)
 	Izmeni(ctx context.Context, a *model.Artikal) error
@@ -78,6 +79,8 @@ type ArtikalFilter struct {
 	Pretraga     string
 	KategorijaID *int64
 	SamoKriticni bool
+	Limit        int
+	Offset       int
 }
 
 // NabavkaRepository definiše operacije nad nabavkama
@@ -99,9 +102,18 @@ type DobavljacRepository interface {
 	Obrisi(ctx context.Context, id int64) error
 }
 
+// KlijentFilter definiše parametre za filtriranje liste klijenata
+type KlijentFilter struct {
+	Pretraga string
+	Limit    int
+	Offset   int
+}
+
 // KlijentRepository definiše operacije nad klijentima
 type KlijentRepository interface {
 	Lista(ctx context.Context, pretraga string) ([]model.Klijent, error)
+	ListaFilter(ctx context.Context, filter KlijentFilter) ([]model.Klijent, error)
+	PrebrojiPoFilteru(ctx context.Context, filter KlijentFilter) (int, error)
 	DohvatiID(ctx context.Context, id int64) (*model.Klijent, error)
 	Kreiraj(ctx context.Context, k *model.Klijent) (int64, error)
 	Izmeni(ctx context.Context, k *model.Klijent) error

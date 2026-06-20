@@ -50,6 +50,15 @@ func (r *ArtikalRepo) Lista(ctx context.Context, filter db.ArtikalFilter) ([]mod
 
 	upit += " ORDER BY a.naziv ASC"
 
+	if filter.Limit > 0 {
+		upit += " LIMIT ?"
+		args = append(args, filter.Limit)
+		if filter.Offset > 0 {
+			upit += " OFFSET ?"
+			args = append(args, filter.Offset)
+		}
+	}
+
 	redovi, err := r.db.QueryContext(ctx, upit, args...)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: ArtikalRepo.Lista: %w", err)
@@ -257,4 +266,37 @@ func (r *ArtikalRepo) KorigujKolicinu(ctx context.Context, artikalID int64, nova
 	}
 
 	return tx.Commit()
+}
+
+// PrebrojiPoFilteru vraća ukupan broj artikala koji zadovoljavaju filter (bez LIMIT/OFFSET)
+func (r *ArtikalRepo) PrebrojiPoFilteru(ctx context.Context, filter db.ArtikalFilter) (int, error) {
+	upit := `
+		SELECT COUNT(*)
+		FROM artikli a
+		LEFT JOIN kategorije k ON a.kategorija_id = k.id
+		WHERE 1=1`
+
+	args := []any{}
+
+	if filter.Pretraga != "" {
+		upit += " AND (a.naziv LIKE ? OR a.sifra LIKE ? OR a.barkod LIKE ? OR a.lokacija LIKE ? OR k.naziv LIKE ?)"
+		t := "%" + filter.Pretraga + "%"
+		args = append(args, t, t, t, t, t)
+	}
+
+	if filter.KategorijaID != nil {
+		upit += " AND a.kategorija_id = ?"
+		args = append(args, *filter.KategorijaID)
+	}
+
+	if filter.SamoKriticni {
+		upit += " AND a.kolicina <= a.kolicina_min"
+	}
+
+	var broj int
+	if err := r.db.QueryRowContext(ctx, upit, args...).Scan(&broj); err != nil {
+		return 0, fmt.Errorf("ntech: ArtikalRepo.PrebrojiPoFilteru: %w", err)
+	}
+
+	return broj, nil
 }

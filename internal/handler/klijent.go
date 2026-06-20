@@ -3,8 +3,10 @@ package handler
 import (
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 
+	"ntech/internal/db"
 	"ntech/internal/db/sqlite"
 	"ntech/internal/model"
 
@@ -14,10 +16,16 @@ import (
 // PodaciKlijenata su podaci za stranicu sa listom klijenata
 type PodaciKlijenata struct {
 	model.PodaciStranice
-	Klijenti []model.Klijent
-	Pretraga string
-	Sacuvano bool
-	Obrisan  bool
+	Klijenti         []model.Klijent
+	Pretraga         string
+	Sacuvano         bool
+	Obrisan          bool
+	StranicaBr       int
+	UkupnoStranica   int
+	UkupnoKlijenata  int
+	StranicaPrev     int
+	StranicaNext     int
+	StranicaQueryUrl string
 }
 
 // PodaciFormeKlijenta su podaci za formu novog/izmenjenog klijenta
@@ -28,7 +36,7 @@ type PodaciFormeKlijenta struct {
 	Izmena  bool
 }
 
-// Klijenti renderuje listu svih klijenata sa opcionom pretragom
+// Klijenti renderuje listu svih klijenata sa opcionom pretragom i paginacijom
 func (h *Handler) Klijenti(w http.ResponseWriter, r *http.Request) {
 	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	if err != nil {
@@ -38,21 +46,63 @@ func (h *Handler) Klijenti(w http.ResponseWriter, r *http.Request) {
 
 	pretraga := r.URL.Query().Get("pretraga")
 
-	klijenti, err := h.KlijentiRepo.Lista(r.Context(), pretraga)
+	const pageSize = 100
+	stranicaBr := 1
+	if p := r.URL.Query().Get("stranica"); p != "" {
+		if v, err := strconv.Atoi(p); err == nil && v > 0 {
+			stranicaBr = v
+		}
+	}
+
+	filter := db.KlijentFilter{
+		Pretraga: pretraga,
+		Limit:    pageSize,
+		Offset:   (stranicaBr - 1) * pageSize,
+	}
+
+	klijenti, err := h.KlijentiRepo.ListaFilter(r.Context(), filter)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju klijenata", http.StatusInternalServerError)
 		return
+	}
+
+	ukupno, err := h.KlijentiRepo.PrebrojiPoFilteru(r.Context(), filter)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju klijenata", http.StatusInternalServerError)
+		return
+	}
+
+	ukupnoStranica := (ukupno + pageSize - 1) / pageSize
+
+	queryDelići := ""
+	if pretraga != "" {
+		queryDelići += "&pretraga=" + pretraga
+	}
+
+	stranicaPrev := stranicaBr - 1
+	if stranicaPrev < 1 {
+		stranicaPrev = 1
+	}
+	stranicaNext := stranicaBr + 1
+	if stranicaNext > ukupnoStranica {
+		stranicaNext = ukupnoStranica
 	}
 
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "klijenti"
 	ps.NaslovStranice = "Klijenti"
 	podaci := PodaciKlijenata{
-		PodaciStranice: ps,
-		Klijenti:       klijenti,
-		Pretraga:       pretraga,
-		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
-		Obrisan:        r.URL.Query().Get("obrisan") == "1",
+		PodaciStranice:   ps,
+		Klijenti:         klijenti,
+		Pretraga:         pretraga,
+		Sacuvano:         r.URL.Query().Get("sacuvano") == "1",
+		Obrisan:          r.URL.Query().Get("obrisan") == "1",
+		StranicaBr:       stranicaBr,
+		UkupnoStranica:   ukupnoStranica,
+		UkupnoKlijenata:  ukupno,
+		StranicaPrev:     stranicaPrev,
+		StranicaNext:     stranicaNext,
+		StranicaQueryUrl: queryDelići,
 	}
 
 	h.renderujTemplate(w, "klijenti", podaci)
