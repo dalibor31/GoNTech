@@ -539,7 +539,7 @@ func (h *Handler) OtpremiLoginPozadinu(w http.ResponseWriter, r *http.Request) {
 	staraPodesavanja, _ := ntechsqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	if stara := staraPodesavanja["login_pozadina"]; stara != "" {
 		// putanja u bazi je oblika /static/uploads/ime.ext?v=..., izvlačimo samo ime fajla
-		deoBezverzije := strings.Split(stara, "?")[0]
+		deoBezverzije, _, _ := strings.Cut(stara, "?")
 		staroIme := filepath.Base(deoBezverzije)
 		os.Remove(filepath.Join("web/static/uploads", staroIme))
 	}
@@ -590,7 +590,7 @@ func (h *Handler) UkloniLoginPozadinu(w http.ResponseWriter, r *http.Request) {
 	podesavanja, err := ntechsqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	if err == nil {
 		if stara := podesavanja["login_pozadina"]; stara != "" {
-			deoBezverzije := strings.Split(stara, "?")[0]
+			deoBezverzije, _, _ := strings.Cut(stara, "?")
 			staroIme := filepath.Base(deoBezverzije)
 			os.Remove(filepath.Join("web/static/uploads", staroIme))
 		}
