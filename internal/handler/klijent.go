@@ -51,7 +51,7 @@ func (h *Handler) Klijenti(w http.ResponseWriter, r *http.Request) {
 		tipFilter = ""
 	}
 
-	const pageSize = 100
+	const pageSize = 50
 	stranicaBr := 1
 	if p := r.URL.Query().Get("stranica"); p != "" {
 		if v, err := strconv.Atoi(p); err == nil && v > 0 {
