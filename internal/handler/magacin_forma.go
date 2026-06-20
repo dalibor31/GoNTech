@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"ntech/internal/db/sqlite"
 	"ntech/internal/middleware"
@@ -88,24 +90,23 @@ func (h *Handler) SacuvajArtikal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ako korisnik nije uneo šifru, auto-generišemo pre Kreiraj
+	// (tako je dodela šifre atomična: ako INSERT padne na UNIQUE constraint,
+	// Kreiraj vraća grešku umesto da šifra ostane NULL bez ikakve poruke)
+	if artikal.Sifra == "" {
+		autoSifra, e := h.Artikli.SledecaSifra(r.Context(), artikal.KategorijaID)
+		if e != nil {
+			autoSifra = fmt.Sprintf("ART-%04d", time.Now().UnixMilli()%10000)
+		}
+		artikal.Sifra = autoSifra
+	}
+
 	id, err := h.Artikli.Kreiraj(r.Context(), &artikal)
 	if err != nil {
 		http.Error(w, "Greška pri čuvanju artikla", http.StatusInternalServerError)
 		return
 	}
-
-	// ako korisnik nije uneo šifru, auto-generišemo po prefiksu kategorije
-	if artikal.Sifra == "" {
-		autoSifra, e := h.Artikli.SledecaSifra(r.Context(), artikal.KategorijaID)
-		if e != nil {
-			autoSifra = fmt.Sprintf("ART-%04d", id)
-		}
-		artikal.ID = id
-		artikal.Sifra = autoSifra
-		if err := h.Artikli.Izmeni(r.Context(), &artikal); err != nil {
-			slog.Error("greška pri upisu auto-šifre", "id", id, "err", err)
-		}
-	}
+	artikal.ID = id
 
 	// fetch zahtev (iz modala) dobija JSON sa ID-em i nazivom novog artikla
 	if r.Header.Get("X-Requested-With") == "fetch" {
@@ -207,6 +208,13 @@ func (h *Handler) SacuvajIzmenuArtikla(w http.ResponseWriter, r *http.Request) {
 	var staraCena float64
 	if stari, e := h.Artikli.DohvatiID(r.Context(), id); e == nil {
 		staraCena = stari.ProdajnaCena
+		// spreči promenu tipa sa proizvoda na uslugu/trošak ako artikal ima zalihu
+		if stari.PratiLager() && stari.Kolicina > 0 && !artikal.PratiLager() {
+			middleware.SetFlash(w, r, h.DB, "greska",
+				fmt.Sprintf("Artikal ima %d %s na stanju. Prvo koriguj količinu na 0 pre promene tipa.", stari.Kolicina, stari.JedinicaMere))
+			http.Redirect(w, r, "/magacin/izmeni/"+idStr, http.StatusSeeOther)
+			return
+		}
 	}
 
 	artikal.ID = id
@@ -257,11 +265,8 @@ func parseFormuArtikla(r *http.Request) (model.Artikal, string) {
 		artikal.Tip = model.TipProizvod
 	}
 
-	// jedinica mere — podrazumevano "kom"
-	artikal.JedinicaMere = r.FormValue("jedinica_mere")
-	if artikal.JedinicaMere == "" {
-		artikal.JedinicaMere = "kom"
-	}
+	// jedinica mere — normalizacija: mala slova, samo slova/brojevi, max 4 karaktera
+	artikal.JedinicaMere = normalizujJM(r.FormValue("jedinica_mere"))
 
 	if k := r.FormValue("kolicina"); k != "" {
 		v, err := strconv.Atoi(k)
@@ -340,4 +345,23 @@ func (h *Handler) PredlogSifre(w http.ResponseWriter, r *http.Request) {
 // renderujFormuArtikla renderuje HTML formu za artikal
 func (h *Handler) renderujFormuArtikla(w http.ResponseWriter, podaci PodaciFormeArtikla) {
 	h.renderujTemplate(w, "magacin_forma", podaci)
+}
+
+// normalizujJM čisti jedinicu mere: mala slova, samo slova i brojevi, max 4 karaktera.
+// Ako je rezultat prazan, vraća "kom" kao podrazumevanu vrednost.
+func normalizujJM(s string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+	var b strings.Builder
+	for _, r := range s {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
+			b.WriteRune(r)
+			if b.Len() >= 4 {
+				break
+			}
+		}
+	}
+	if b.Len() == 0 {
+		return "kom"
+	}
+	return b.String()
 }

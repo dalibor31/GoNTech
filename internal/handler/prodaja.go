@@ -325,13 +325,14 @@ func (h *Handler) ObrisiProdaju(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.zahtevajDozvolu(w, r, "prodaja.obrisi"); !ok {
 		return
 	}
+	k := middleware.KorisnikIzKonteksta(r.Context())
 	id, err := parseID(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
 		return
 	}
 
-	if err := h.ProdajaRepo.Obrisi(r.Context(), id); err != nil {
+	if err := h.ProdajaRepo.Obrisi(r.Context(), id, &k.ID); err != nil {
 		http.Error(w, "Greška pri brisanju naloga", http.StatusInternalServerError)
 		return
 	}

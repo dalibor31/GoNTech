@@ -644,11 +644,7 @@ func (h *Handler) StampaServisa(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// QR kod vodi na javnu status stranicu — dostupnu bez prijave
-	scheme := "http"
-	if r.TLS != nil {
-		scheme = "https"
-	}
-	nalogURL := scheme + "://" + r.Host + "/status/" + nalog.JavniToken
+	nalogURL := qrNalogURL(r, nalog.JavniToken)
 	var qrKod string
 	if png, err := qrcode.Encode(nalogURL, qrcode.Medium, 160); err == nil {
 		qrKod = base64.StdEncoding.EncodeToString(png)
@@ -754,11 +750,7 @@ func (h *Handler) StampaOtpremnice(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	nalogURL := "http"
-	if r.TLS != nil {
-		nalogURL += "s"
-	}
-	nalogURL += "://" + r.Host + "/status/" + nalog.JavniToken
+	nalogURL := qrNalogURL(r, nalog.JavniToken)
 	var qrKodOtpr string
 	if png, err := qrcode.Encode(nalogURL, qrcode.Medium, 160); err == nil {
 		qrKodOtpr = base64.StdEncoding.EncodeToString(png)
@@ -894,11 +886,7 @@ func (h *Handler) StampaPredracuna(w http.ResponseWriter, r *http.Request) {
 	vaziDo := datumIzdavanja.AddDate(0, 0, rok)
 
 	// QR kod vodi na javnu status stranicu — dostupnu bez prijave
-	nalogURL := "http"
-	if r.TLS != nil {
-		nalogURL += "s"
-	}
-	nalogURL += "://" + r.Host + "/status/" + nalog.JavniToken
+	nalogURL := qrNalogURL(r, nalog.JavniToken)
 	var qrKod string
 	if png, err := qrcode.Encode(nalogURL, qrcode.Medium, 160); err == nil {
 		qrKod = base64.StdEncoding.EncodeToString(png)
@@ -990,4 +978,18 @@ func (h *Handler) ServisJavniStatus(w http.ResponseWriter, r *http.Request) {
 		Adresa:     podesavanja["adresa"],
 		SviStatusi: model.SviStatusi,
 	})
+}
+
+// qrNalogURL konstruiše URL za QR kod vodeći računa o reverse proxy-ju.
+// Ako aplikacija radi iza nginx/Caddy/Traefik koji prekida TLS, r.TLS je nil,
+// ali X-Forwarded-Proto header sadrži stvarnu šemu.
+func qrNalogURL(r *http.Request, token string) string {
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	if r.Header.Get("X-Forwarded-Proto") == "https" {
+		scheme = "https"
+	}
+	return scheme + "://" + r.Host + "/status/" + token
 }

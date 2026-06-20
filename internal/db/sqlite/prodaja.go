@@ -328,7 +328,7 @@ func (r *ProdajaRepo) Storno(ctx context.Context, id int64, razlog string, koris
 }
 
 // Obrisi briše prodajni nalog i vraća količine artikala na stanje (u transakciji)
-func (r *ProdajaRepo) Obrisi(ctx context.Context, id int64) error {
+func (r *ProdajaRepo) Obrisi(ctx context.Context, id int64, korisnikID *int64) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("ntech: ProdajaRepo.Obrisi: begin tx: %w", err)
@@ -366,12 +366,30 @@ func (r *ProdajaRepo) Obrisi(ctx context.Context, id int64) error {
 
 		for _, p := range stavke {
 			// usluge i troškovi nemaju stanje — vraćamo samo proizvodima
-			_, err := tx.ExecContext(ctx,
-				"UPDATE artikli SET kolicina = kolicina + ? WHERE id = ? AND (tip = 'proizvod' OR tip = '')",
-				p.kolicina, p.artikalID,
+			var stanjePre int
+			var tip string
+			err := tx.QueryRowContext(ctx,
+				"SELECT kolicina, tip FROM artikli WHERE id = ?", p.artikalID,
+			).Scan(&stanjePre, &tip)
+			if err != nil {
+				return fmt.Errorf("ntech: ProdajaRepo.Obrisi: dohvati stanje: %w", err)
+			}
+			if !(tip == model.TipProizvod || tip == "") {
+				continue
+			}
+
+			stanjePosle := stanjePre + p.kolicina
+			_, err = tx.ExecContext(ctx,
+				"UPDATE artikli SET kolicina = ? WHERE id = ?", stanjePosle, p.artikalID,
 			)
 			if err != nil {
 				return fmt.Errorf("ntech: ProdajaRepo.Obrisi: vrati stanje: %w", err)
+			}
+
+			err = zabeleziMagacinPromenu(ctx, tx, p.artikalID, model.PromenaPovracaj,
+				p.kolicina, stanjePre, stanjePosle, id, korisnikID, "brisanje prodajnog naloga")
+			if err != nil {
+				return fmt.Errorf("ntech: ProdajaRepo.Obrisi: magacin: %w", err)
 			}
 		}
 	}
