@@ -240,11 +240,13 @@ document.addEventListener('alpine:init', () => {
         izaberiArtikal(s) {
             const a = this.artikliOpcije.find(x => String(x.id) === String(s.artikal_id))
             if (a) {
+                if (a.nabavna_cena != null) s.cena = a.nabavna_cena
                 if (a.marza != null) s.marza = a.marza
                 else if (a.kategorija_marza != null) s.marza = a.kategorija_marza
                 else s.marza = this.marzaDefault
             }
             this.izracunajProdajnu(s)
+            this.preracunajSve()
         },
         // ukupan zavisni trošak nabavke
         ukupanTrosak() {
