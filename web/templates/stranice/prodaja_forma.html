@@ -217,7 +217,7 @@
                     font-weight: 500;
                     color: var(--tekst-glavni);
                   ">
-                  <span x-text="ukupnoStavke(stavka) + ' din'"></span>
+                  <span x-text="fmtDin(ukupnoStavke(stavka)) + ' din'"></span>
                 </td>
                 <td style="padding: 8px 10px; text-align: center">
                   <button
@@ -265,7 +265,7 @@
                   font-weight: 600;
                   color: var(--tekst-glavni);
                 ">
-                <span x-text="ukupnoSvega() + ' din'"></span>
+                <span x-text="fmtDin(ukupnoSvega()) + ' din'"></span>
               </td>
               <td></td>
             </tr>
@@ -390,7 +390,7 @@
                   font-weight: 500;
                   color: var(--tekst-glavni);
                 ">
-                Ukupno: <span x-text="ukupnoStavke(stavka) + ' din'"></span>
+                Ukupno: <span x-text="fmtDin(ukupnoStavke(stavka)) + ' din'"></span>
               </div>
             </div>
           </div>
@@ -403,7 +403,7 @@
             color: var(--tekst-glavni);
             padding: 8px 4px;
           ">
-          Ukupno: <span x-text="ukupnoSvega() + ' din'"></span>
+          Ukupno: <span x-text="fmtDin(ukupnoSvega()) + ' din'"></span>
         </div>
       </div>
     </div>

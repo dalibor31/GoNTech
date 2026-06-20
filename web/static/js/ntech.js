@@ -181,6 +181,13 @@ document.addEventListener('alpine:init', () => {
         },
         ukupnoSvega() {
             return this.stavke.reduce((z, s) => z + (parseFloat(s.kolicina) * parseFloat(s.cena) || 0), 0).toFixed(2)
+        },
+        // fmtDin formatira broj sa separatorom hiljada (tačka) i 2 decimale (zarez): 1234567.5 → "1.234.567,50"
+        fmtDin(v) {
+            const n = parseFloat(v) || 0
+            const [ceo, dec] = Math.abs(n).toFixed(2).split('.')
+            const saTackama = ceo.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+            return (n < 0 ? '-' : '') + saTackama + ',' + dec
         }
     }))
 
@@ -326,6 +333,13 @@ document.addEventListener('alpine:init', () => {
         },
         ukupnoSvega() {
             return this.stavke.reduce((z, s) => z + (parseFloat(s.kolicina) * parseFloat(s.cena) || 0), 0).toFixed(2)
+        },
+        // fmtDin formatira broj sa separatorom hiljada (tačka) i 2 decimale (zarez): 1234567.5 → "1.234.567,50"
+        fmtDin(v) {
+            const n = parseFloat(v) || 0
+            const [ceo, dec] = Math.abs(n).toFixed(2).split('.')
+            const saTackama = ceo.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+            return (n < 0 ? '-' : '') + saTackama + ',' + dec
         },
         otvoriModal() {
             this.modal = true
