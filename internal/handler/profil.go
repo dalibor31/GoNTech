@@ -15,6 +15,22 @@ import (
 	"ntech/internal/middleware"
 )
 
+// sacuvanoReferer vraća URL za redirect posle uspešnog čuvanja:
+// koristi Referer zaglavlje (samo putanja, nikad spoljni sajt) i dodaje ?sacuvano=1.
+// AJAX handler u browseru detektuje sacuvano=1 i prikazuje toast bez reloada.
+func sacuvanoReferer(r *http.Request, rezervna string) string {
+	if ref := r.Referer(); ref != "" {
+		if u, err := url.Parse(ref); err == nil {
+			putanja := u.RequestURI()
+			if strings.Contains(putanja, "?") {
+				return putanja + "&sacuvano=1"
+			}
+			return putanja + "?sacuvano=1"
+		}
+	}
+	return rezervna + "?sacuvano=1"
+}
+
 // ProfilTema prikazuje stranicu lične teme i pozadine
 func (h *Handler) ProfilTema(w http.ResponseWriter, r *http.Request) {
 	k := middleware.KorisnikIzKonteksta(r.Context())
@@ -177,8 +193,7 @@ func (h *Handler) ProfilOtpremiPozadinu(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	middleware.SetFlash(w, r, h.DB, "uspeh", "Pozadinska slika je uspešno otpremljena.")
-	http.Redirect(w, r, "/profil/tema", http.StatusSeeOther)
+	http.Redirect(w, r, "/profil/tema?sacuvano=1", http.StatusSeeOther)
 }
 
 // ProfilUkloniPozadinu briše ličnu pozadinsku sliku korisnika
@@ -202,8 +217,7 @@ func (h *Handler) ProfilUkloniPozadinu(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	middleware.SetFlash(w, r, h.DB, "uspeh", "Pozadinska slika je uklonjena.")
-	http.Redirect(w, r, "/profil/tema", http.StatusSeeOther)
+	http.Redirect(w, r, "/profil/tema?sacuvano=1", http.StatusSeeOther)
 }
 
 // ProfilSacuvajPozadinuStilove čuva opacity i blur lične pozadine
@@ -250,8 +264,7 @@ func (h *Handler) ProfilSacuvajPozadinuStilove(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	middleware.SetFlash(w, r, h.DB, "uspeh", "Podešavanja su sačuvana.")
-	http.Redirect(w, r, "/profil/tema", http.StatusSeeOther)
+	http.Redirect(w, r, "/profil/tema?sacuvano=1", http.StatusSeeOther)
 }
 
 // SacuvajLokalnuTemu čuva korisnikovu lokalnu temu
@@ -284,15 +297,7 @@ func (h *Handler) SacuvajLokalnuTemu(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	middleware.SetFlash(w, r, h.DB, "uspeh", "Tema je sačuvana.")
-	// koristimo samo putanju iz Referer zaglavlja — nikad ceo URL jer može biti spoljni sajt
-	if ref := r.Referer(); ref != "" {
-		if u, err := url.Parse(ref); err == nil {
-			http.Redirect(w, r, u.RequestURI(), http.StatusSeeOther)
-			return
-		}
-	}
-	http.Redirect(w, r, "/admin/profil", http.StatusSeeOther)
+	http.Redirect(w, r, sacuvanoReferer(r, "/admin/profil"), http.StatusSeeOther)
 }
 
 // SacuvajLokalnuAnimaciju čuva korisnikovu preferencu animacije tabela
@@ -313,9 +318,15 @@ func (h *Handler) SacuvajLokalnuAnimaciju(w http.ResponseWriter, r *http.Request
 	}
 
 	animacija := r.FormValue("lokalna_animacija")
-	dozvoljene := map[string]bool{"": true, "bez": true, "fadeInUp": true, "fadeIn": true, "scaleIn": true, "slideLeft": true}
+	dozvoljene := map[string]bool{"": true, "bez": true, "fadeInUp": true, "fadeIn": true, "blurIn": true, "slideLeft": true}
 	if !dozvoljene[animacija] {
 		animacija = ""
+	}
+
+	brzina := r.FormValue("lokalna_brzina_animacije")
+	dozvoljenieBrzine := map[string]bool{"": true, "0.1": true, "0.2": true, "0.3": true, "0.4": true, "0.5": true, "0.6": true, "0.7": true, "0.8": true}
+	if !dozvoljenieBrzine[brzina] {
+		brzina = ""
 	}
 
 	if err := h.KorisniciRepo.SacuvajLokalnuAnimaciju(r.Context(), k.ID, animacija); err != nil {
@@ -323,15 +334,13 @@ func (h *Handler) SacuvajLokalnuAnimaciju(w http.ResponseWriter, r *http.Request
 		http.Redirect(w, r, "/admin/profil/tema", http.StatusSeeOther)
 		return
 	}
-
-	middleware.SetFlash(w, r, h.DB, "uspeh", "Animacija je sačuvana.")
-	if ref := r.Referer(); ref != "" {
-		if u, err := url.Parse(ref); err == nil {
-			http.Redirect(w, r, u.RequestURI(), http.StatusSeeOther)
-			return
-		}
+	if err := h.KorisniciRepo.SacuvajLokalnuBrzinuAnimacije(r.Context(), k.ID, brzina); err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju. Pokušajte ponovo.")
+		http.Redirect(w, r, "/admin/profil/tema", http.StatusSeeOther)
+		return
 	}
-	http.Redirect(w, r, "/admin/profil/tema", http.StatusSeeOther)
+
+	http.Redirect(w, r, sacuvanoReferer(r, "/admin/profil/tema"), http.StatusSeeOther)
 }
 
 // SacuvajLokalniHover čuva korisnikovu preferencu hover efekta na karticama
@@ -363,14 +372,39 @@ func (h *Handler) SacuvajLokalniHover(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	middleware.SetFlash(w, r, h.DB, "uspeh", "Hover efekat je sačuvan.")
-	if ref := r.Referer(); ref != "" {
-		if u, err := url.Parse(ref); err == nil {
-			http.Redirect(w, r, u.RequestURI(), http.StatusSeeOther)
-			return
-		}
+	http.Redirect(w, r, sacuvanoReferer(r, "/admin/profil/tema"), http.StatusSeeOther)
+}
+
+// SacuvajLokalnuBrzinuAnimacije čuva korisnikovu preferencu brzine animacije tabela
+func (h *Handler) SacuvajLokalnuBrzinuAnimacije(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil {
+		http.Redirect(w, r, "/prijava", http.StatusSeeOther)
+		return
 	}
-	http.Redirect(w, r, "/admin/profil/tema", http.StatusSeeOther)
+	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "tema.lokalno") {
+		http.Error(w, "Pristup odbijen", http.StatusForbidden)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška. Pokušajte ponovo.")
+		http.Redirect(w, r, "/admin/profil/tema", http.StatusSeeOther)
+		return
+	}
+
+	brzina := r.FormValue("lokalna_brzina_animacije")
+	dozvoljene := map[string]bool{"": true, "0.2": true, "0.4": true, "0.6": true, "0.8": true, "1.0": true, "1.2": true, "1.5": true}
+	if !dozvoljene[brzina] {
+		brzina = ""
+	}
+
+	if err := h.KorisniciRepo.SacuvajLokalnuBrzinuAnimacije(r.Context(), k.ID, brzina); err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju. Pokušajte ponovo.")
+		http.Redirect(w, r, "/admin/profil/tema", http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, sacuvanoReferer(r, "/admin/profil/tema"), http.StatusSeeOther)
 }
 
 // ProfilOtpremiAvatar prima upload lične avatar slike korisnika
@@ -464,8 +498,7 @@ func (h *Handler) ProfilOtpremiAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	middleware.SetFlash(w, r, h.DB, "uspeh", "Avatar je sačuvan.")
-	http.Redirect(w, r, "/profil/tema", http.StatusSeeOther)
+	http.Redirect(w, r, "/profil/tema?sacuvano=1", http.StatusSeeOther)
 }
 
 // ProfilUkloniAvatar briše ličnu avatar sliku korisnika
@@ -489,6 +522,5 @@ func (h *Handler) ProfilUkloniAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	middleware.SetFlash(w, r, h.DB, "uspeh", "Avatar je uklonjen.")
-	http.Redirect(w, r, "/profil/tema", http.StatusSeeOther)
+	http.Redirect(w, r, "/profil/tema?sacuvano=1", http.StatusSeeOther)
 }

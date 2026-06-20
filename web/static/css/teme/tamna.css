@@ -22,3 +22,6 @@
   --poruka-uspeh-bg: rgba(93, 184, 118, 0.15);
   --poruka-uspeh-boja: #5db876;
 }
+
+.toast-uspeh { background: #1a2e22; color: #5db876; border: 0.5px solid #2d5a3d; }
+.toast-greska { background: #2e1a1a; color: #e07070; border: 0.5px solid #5a2d2d; }

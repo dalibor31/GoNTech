@@ -32,6 +32,7 @@ type korisnikOpcije struct {
 	avatarPutanja               sql.NullString
 	lokalnaAnimacija            sql.NullString
 	lokalniHover                sql.NullString
+	lokalnaBrzinaAnimacije      sql.NullString
 }
 
 // dodeliOpcijeKorisnika prenosi vrednosti iz korisnikOpcije na model.Korisnik
@@ -48,6 +49,7 @@ func dodeliOpcijeKorisnika(k *model.Korisnik, o korisnikOpcije) {
 	k.AvatarPutanja = o.avatarPutanja.String
 	k.LokalnaAnimacija = o.lokalnaAnimacija.String
 	k.LokalniHover = o.lokalniHover.String
+	k.LokalnaBrzinaAnimacije = o.lokalnaBrzinaAnimacije.String
 }
 
 // skeniraiKorisnika čita jedan red iz baze i popunjava model.Korisnik
@@ -59,7 +61,7 @@ func skeniraiKorisnika(row interface{ Scan(...any) error }) (*model.Korisnik, er
 		&o.lokalnaTema, &o.koristiLokalnuTemu, &o.datumKreiranja,
 		&o.lokalnaPozadina, &o.lokalnaPozadinaOpacity, &o.lokalnaPozadinaBlur,
 		&o.lokalnaPozadinaBlurPozadine, &o.lokalnaPozadinaGlassOpacity, &o.avatarPutanja,
-		&o.lokalnaAnimacija, &o.lokalniHover,
+		&o.lokalnaAnimacija, &o.lokalniHover, &o.lokalnaBrzinaAnimacije,
 	); err != nil {
 		return nil, err
 	}
@@ -104,7 +106,8 @@ func (r *sqliteKorisniciRepo) DohvatiPoImenu(ctx context.Context, korisnickoIme 
 		        COALESCE(lokalna_pozadina, ''), COALESCE(lokalna_pozadina_opacity, '50'),
 		        COALESCE(lokalna_pozadina_blur, '12'), COALESCE(lokalna_pozadina_blur_pozadine, '0'),
 		        COALESCE(lokalna_pozadina_glass_opacity, '10'), COALESCE(avatar_putanja, ''),
-		        COALESCE(lokalna_animacija, ''), COALESCE(lokalni_hover, '')
+		        COALESCE(lokalna_animacija, ''), COALESCE(lokalni_hover, ''),
+		        COALESCE(lokalna_brzina_animacije, '')
 		 FROM korisnici WHERE korisnicko_ime = ?`, korisnickoIme)
 	k, err := skeniraiKorisnika(row)
 	if err != nil {
@@ -121,7 +124,8 @@ func (r *sqliteKorisniciRepo) DohvatiPoID(ctx context.Context, id int64) (*model
 		        COALESCE(lokalna_pozadina, ''), COALESCE(lokalna_pozadina_opacity, '50'),
 		        COALESCE(lokalna_pozadina_blur, '12'), COALESCE(lokalna_pozadina_blur_pozadine, '0'),
 		        COALESCE(lokalna_pozadina_glass_opacity, '10'), COALESCE(avatar_putanja, ''),
-		        COALESCE(lokalna_animacija, ''), COALESCE(lokalni_hover, '')
+		        COALESCE(lokalna_animacija, ''), COALESCE(lokalni_hover, ''),
+		        COALESCE(lokalna_brzina_animacije, '')
 		 FROM korisnici WHERE id = ?`, id)
 	k, err := skeniraiKorisnika(row)
 	if err != nil {
@@ -138,7 +142,8 @@ func (r *sqliteKorisniciRepo) Lista(ctx context.Context) ([]model.Korisnik, erro
 		        COALESCE(lokalna_pozadina, ''), COALESCE(lokalna_pozadina_opacity, '50'),
 		        COALESCE(lokalna_pozadina_blur, '12'), COALESCE(lokalna_pozadina_blur_pozadine, '0'),
 		        COALESCE(lokalna_pozadina_glass_opacity, '10'), COALESCE(avatar_putanja, ''),
-		        COALESCE(lokalna_animacija, ''), COALESCE(lokalni_hover, '')
+		        COALESCE(lokalna_animacija, ''), COALESCE(lokalni_hover, ''),
+		        COALESCE(lokalna_brzina_animacije, '')
 		 FROM korisnici ORDER BY datum_kreiranja ASC`)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: korisnici.Lista: %w", err)
@@ -153,7 +158,7 @@ func (r *sqliteKorisniciRepo) Lista(ctx context.Context) ([]model.Korisnik, erro
 			&o.lokalnaTema, &o.koristiLokalnuTemu, &o.datumKreiranja,
 			&o.lokalnaPozadina, &o.lokalnaPozadinaOpacity, &o.lokalnaPozadinaBlur,
 			&o.lokalnaPozadinaBlurPozadine, &o.lokalnaPozadinaGlassOpacity, &o.avatarPutanja,
-			&o.lokalnaAnimacija, &o.lokalniHover,
+			&o.lokalnaAnimacija, &o.lokalniHover, &o.lokalnaBrzinaAnimacije,
 		); err != nil {
 			return nil, fmt.Errorf("ntech: korisnici.Lista: %w", err)
 		}
@@ -225,6 +230,19 @@ func (r *sqliteKorisniciRepo) SacuvajLokalniHover(ctx context.Context, id int64,
 		`UPDATE korisnici SET lokalni_hover = ? WHERE id = ?`, val, id)
 	if err != nil {
 		return fmt.Errorf("ntech: korisnici.SacuvajLokalniHover: %w", err)
+	}
+	return nil
+}
+
+func (r *sqliteKorisniciRepo) SacuvajLokalnuBrzinuAnimacije(ctx context.Context, id int64, brzina string) error {
+	var val any
+	if brzina != "" {
+		val = brzina
+	}
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE korisnici SET lokalna_brzina_animacije = ? WHERE id = ?`, val, id)
+	if err != nil {
+		return fmt.Errorf("ntech: korisnici.SacuvajLokalnuBrzinuAnimacije: %w", err)
 	}
 	return nil
 }

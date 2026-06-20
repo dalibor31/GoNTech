@@ -110,7 +110,7 @@
     </script>
     {{end}}
   </head>
-  <body{{if .LokalnaAnimacija}} data-animacija="{{.LokalnaAnimacija}}"{{end}}{{if .LokalniHover}} data-hover="{{.LokalniHover}}"{{end}}>
+  <body{{if .LokalnaAnimacija}} data-animacija="{{.LokalnaAnimacija}}"{{end}}{{if .LokalniHover}} data-hover="{{.LokalniHover}}"{{end}}{{if .LokalnaBrzinaAnimacije}} data-brzina-animacije="{{.LokalnaBrzinaAnimacije}}"{{end}}>
     <div class="raspored">
       <div class="sidebar-overlay" id="sidebar-overlay"></div>
       {{template "sidebar" .}}
@@ -307,6 +307,8 @@
 
     function ntechInicijalizuj() {
         ntechKonvertujPoruke();
+
+
         var m = document.querySelector('meta[name="csrf-token"]');
         if (m && m.content) {
             document.querySelectorAll('form[method="POST"],form[method="post"]').forEach(function(f) {
@@ -323,11 +325,61 @@
                 e.preventDefault();
                 window._ntechPotvrdi(el.getAttribute('data-potvrda')).then(function(ok) {
                     if (!ok) return;
-                    // dugme unutar forme — submit forme
                     var forma = el.closest('form');
                     if (forma) { forma.submit(); return; }
-                    // link
                     if (el.href) { window.location.href = el.href; }
+                });
+            });
+        });
+
+        // AJAX submit — forme koje serveru vraćaju ?sacuvano= ostaju na stranici (scroll se ne gubi)
+        document.querySelectorAll('form[method="POST"],form[method="post"]').forEach(function(f) {
+            if (f._ajaxSave) return;
+            f._ajaxSave = true;
+            f.addEventListener('submit', function(e) {
+                // file upload i forme sa data-full-reload šalju se normalno
+                if (f.enctype === 'multipart/form-data' || f.dataset.fullReload) return;
+                e.preventDefault();
+                // prikazujemo dugme kao zauzeto
+                var btn = f.querySelector('[type="submit"]');
+                if (btn) btn.disabled = true;
+                // URLSearchParams šalje kao application/x-www-form-urlencoded
+                // što Go-ov r.FormValue() (i CSRF middleware) može da pročita
+                fetch(f.action || location.href, {
+                    method: 'POST',
+                    body: new URLSearchParams(new FormData(f)),
+                    redirect: 'follow'
+                }).then(function(res) {
+                    var finUrl = new URL(res.url);
+                    if (finUrl.search.indexOf('sacuvano') !== -1) {
+                        // uspeh — prikaži toast, ostani na stranici
+                        window.ntechToast('Sačuvano', 'uspeh');
+                        if (btn) btn.disabled = false;
+                        // odmah primeni podešavanja koja menjaju globalne atribute body-ja
+                        var anim = f.querySelector('[name="lokalna_animacija"]');
+                        if (anim) {
+                            if (anim.value) document.body.dataset.animacija = anim.value;
+                            else delete document.body.dataset.animacija;
+                        }
+                        var hov = f.querySelector('[name="lokalni_hover"]');
+                        if (hov) {
+                            if (hov.value) document.body.dataset.hover = hov.value;
+                            else delete document.body.dataset.hover;
+                        }
+                        var brzina = f.querySelector('[name="lokalna_brzina_animacije"]');
+                        if (brzina) {
+                            if (brzina.value) document.body.dataset.brzinaAnimacije = brzina.value;
+                            else delete document.body.dataset.brzinaAnimacije;
+                        }
+                        // promena teme zahteva reload (menja se ceo CSS fajl)
+                        if (f.querySelector('[name="lokalna_tema"]')) location.reload();
+                    } else {
+                        // greška ili redirect na drugu stranicu — navigiraj normalno
+                        location.href = res.url;
+                    }
+                }).catch(function() {
+                    // mrežna greška — pošalji formu normalno
+                    f.submit();
                 });
             });
         });

@@ -21,6 +21,7 @@ type Korisnik struct {
 	AvatarPutanja                string
 	LokalnaAnimacija             string // "" | "fadeInUp" | "fadeIn" | "scaleIn" | "slideLeft"
 	LokalniHover                 string // "" | "bez" | "podizanje" | "svetlost"
+	LokalnaBrzinaAnimacije       string // "" | "0.2" | "0.4" | "0.6" | "0.8" | "1.2" (sekunde)
 }
 
 // Sesija predstavlja aktivnu sesiju prijavljenog korisnika

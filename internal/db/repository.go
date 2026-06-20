@@ -156,6 +156,7 @@ type KorisniciRepository interface {
 	SacuvajLokalnuPozadinu(ctx context.Context, id int64, pozadina, opacity, blur, blurPozadine, glassOpacity string) error
 	SacuvajLokalnuAnimaciju(ctx context.Context, id int64, animacija string) error
 	SacuvajLokalniHover(ctx context.Context, id int64, hover string) error
+	SacuvajLokalnuBrzinuAnimacije(ctx context.Context, id int64, brzina string) error
 	SacuvajAvatar(ctx context.Context, id int64, putanja string) error
 	PostojiIjedan(ctx context.Context) (bool, error)
 	Obrisi(ctx context.Context, id int64) error

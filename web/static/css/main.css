@@ -5,6 +5,16 @@
     padding: 0;
 }
 
+:root { --anim-trajanje: 0.4s; }
+[data-brzina-animacije="0.1"] { --anim-trajanje: 0.1s; }
+[data-brzina-animacije="0.2"] { --anim-trajanje: 0.2s; }
+[data-brzina-animacije="0.3"] { --anim-trajanje: 0.3s; }
+[data-brzina-animacije="0.4"] { --anim-trajanje: 0.4s; }
+[data-brzina-animacije="0.5"] { --anim-trajanje: 0.5s; }
+[data-brzina-animacije="0.6"] { --anim-trajanje: 0.6s; }
+[data-brzina-animacije="0.7"] { --anim-trajanje: 0.7s; }
+[data-brzina-animacije="0.8"] { --anim-trajanje: 0.8s; }
+
 html {
     background: var(--pozadina);
 }
@@ -793,8 +803,8 @@ select {
     animation: toastIn 0.3s ease forwards;
     max-width: 340px;
 }
-.toast-greska { background: rgba(207, 87, 87, 0.12); color: var(--greska); border: 0.5px solid var(--greska); }
-.toast-uspeh { background: var(--poruka-uspeh-bg); color: var(--poruka-uspeh-boja); border: 0.5px solid var(--poruka-uspeh-boja); }
+.toast-greska { background: #fef2f2; color: #dc2626; border: 0.5px solid #fecaca; }
+.toast-uspeh { background: #f0fdf4; color: #15803d; border: 0.5px solid #86efac; }
 .toast.nestaje { animation: toastOut 0.3s ease forwards; }
 @keyframes toastIn {
     from { opacity: 0; transform: translateY(12px); }
@@ -1011,7 +1021,7 @@ select {
 
 /* animacije */
 @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(10px); }
+    from { opacity: 0; transform: translateY(16px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -1020,13 +1030,13 @@ select {
     to   { opacity: 1; }
 }
 
-@keyframes scaleIn {
-    from { opacity: 0; transform: scale(0.95); }
-    to   { opacity: 1; transform: scale(1); }
+@keyframes blurIn {
+    from { opacity: 0; filter: blur(8px); }
+    to   { opacity: 1; filter: blur(0); }
 }
 
 @keyframes slideLeft {
-    from { opacity: 0; transform: translateX(-12px); }
+    from { opacity: 0; transform: translateX(-18px); }
     to   { opacity: 1; transform: translateX(0); }
 }
 
@@ -1050,7 +1060,7 @@ select {
 /* backwards (ne both): drži početni frame tokom stagger-delay-a da nema treperenja,
    ali NE zaključava krajnji transform — pa .kartica:hover lift radi i na .animiraj karticama */
 .animiraj {
-    animation: fadeInUp 0.2s ease backwards;
+    animation: fadeInUp var(--anim-trajanje) ease backwards;
 }
 
 /* kartice ne animiramo po defaultu — animacija je samo na redovima tabela */
@@ -1066,26 +1076,26 @@ select {
 
 [data-animacija="fadeInUp"] .animiraj,
 [data-animacija="fadeInUp"] .tabela tbody tr,
-[data-animacija="fadeInUp"] .kartica.animiraj { animation: fadeInUp 0.2s ease backwards; }
+[data-animacija="fadeInUp"] .kartica.animiraj { animation: fadeInUp var(--anim-trajanje) ease backwards; }
 
 [data-animacija="fadeIn"] .animiraj,
 [data-animacija="fadeIn"] .tabela tbody tr,
-[data-animacija="fadeIn"] .kartica.animiraj   { animation: fadeIn 0.2s ease backwards; }
+[data-animacija="fadeIn"] .kartica.animiraj   { animation: fadeIn var(--anim-trajanje) ease backwards; }
 
-[data-animacija="scaleIn"] .animiraj,
-[data-animacija="scaleIn"] .tabela tbody tr,
-[data-animacija="scaleIn"] .kartica.animiraj  { animation: scaleIn 0.2s ease backwards; }
+[data-animacija="blurIn"] .animiraj,
+[data-animacija="blurIn"] .tabela tbody tr,
+[data-animacija="blurIn"] .kartica.animiraj   { animation: blurIn var(--anim-trajanje) ease backwards; }
 
 [data-animacija="slideLeft"] .animiraj,
 [data-animacija="slideLeft"] .tabela tbody tr,
-[data-animacija="slideLeft"] .kartica.animiraj { animation: slideLeft 0.2s ease backwards; }
+[data-animacija="slideLeft"] .kartica.animiraj { animation: slideLeft var(--anim-trajanje) ease backwards; }
 
 /* Stepenasta (stagger) animacija redova u svim listama — JEDNO mesto za sve tabele.
    Animacija se primenjuje direktno na <tr> u .tabela, bez potrebe za .animiraj klasom.
    Mora biti u main.css: HTMX navigacija (hx-select) odbacuje <head>, pa
    stilovi iz page <style> blokova ne bi važili tokom navigacije. */
 .tabela tbody tr {
-    animation: fadeInUp 0.2s ease backwards;
+    animation: fadeInUp var(--anim-trajanje) ease backwards;
 }
 .tabela tbody tr:nth-child(1)  { animation-delay: 0.04s; }
 .tabela tbody tr:nth-child(2)  { animation-delay: 0.08s; }

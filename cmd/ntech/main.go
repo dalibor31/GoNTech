@@ -393,6 +393,7 @@ func main() {
 		r.With(doz("tema.lokalno")).Post("/profil/tema", h.SacuvajLokalnuTemu)
 		r.With(doz("tema.lokalno")).Post("/profil/animacija", h.SacuvajLokalnuAnimaciju)
 		r.With(doz("tema.lokalno")).Post("/profil/hover", h.SacuvajLokalniHover)
+		r.With(doz("tema.lokalno")).Post("/profil/brzina-animacije", h.SacuvajLokalnuBrzinuAnimacije)
 		r.Get("/profil/tema", h.ProfilTema)
 		r.With(doz("tema.lokalno")).Post("/profil/pozadina", h.ProfilOtpremiPozadinu)
 		r.With(doz("tema.lokalno")).Post("/profil/pozadina/ukloni", h.ProfilUkloniPozadinu)
