@@ -40,8 +40,8 @@
         <input type="text" name="pretraga" value="{{.Filter.Pretraga}}"
             placeholder="Pretraži po nazivu, šifri, barkodu, lokaciji..."
             style="width:100%;"
-            hx-trigger="keyup changed delay:300ms, search"
-            hx-get="/magacin" hx-target="#magacin-rezultati" hx-select="#magacin-rezultati" hx-swap="innerHTML" hx-push-url="true">
+            hx-trigger="keyup[target.value.length==0||target.value.length>=3] changed delay:150ms, search"
+            hx-get="/magacin" hx-include="closest form" hx-target="#magacin-rezultati" hx-select="#magacin-rezultati" hx-swap="innerHTML" hx-push-url="true">
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
             <select name="kategorija" style="flex:1;min-width:140px;"
                 hx-trigger="change"
@@ -63,9 +63,6 @@
                     hx-get="/magacin" hx-target="#magacin-rezultati" hx-select="#magacin-rezultati" hx-swap="innerHTML" hx-push-url="true">
                 Arhivirani
             </label>
-            <button type="submit" class="btn-primarno">
-                Traži
-            </button>
         </div>
     </form>
 

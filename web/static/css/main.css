@@ -1088,6 +1088,9 @@ select {
 #magacin-rezultati.bez-anim .tabela tbody tr,
 #magacin-rezultati.bez-anim .animiraj { animation: none; }
 
+#klijenti-rezultati.bez-anim .tabela tbody tr,
+#klijenti-rezultati.bez-anim .animiraj { animation: none; }
+
 /* korisnikova preferencija animacije: body[data-animacija] nadjačava podrazumevano.
    Kad korisnik odabere stil, animiraju se i redovi tabela i mobilne kartice. */
 [data-animacija="bez"] .animiraj,

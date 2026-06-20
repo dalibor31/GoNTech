@@ -21,10 +21,7 @@
                 placeholder="Pretraži po imenu ili nazivu firme..."
                 style="flex:1;"
                 hx-trigger="keyup changed delay:300ms, search"
-                hx-get="/klijenti" hx-target="#klijenti-rezultati" hx-select="#klijenti-rezultati" hx-swap="innerHTML" hx-push-url="true">
-            <button type="submit" class="btn-primarno">
-                Traži
-            </button>
+                hx-get="/klijenti" hx-include="[name='tip']:checked" hx-target="#klijenti-rezultati" hx-select="#klijenti-rezultati" hx-swap="innerHTML" hx-push-url="true">
         </form>
     </div>
 
@@ -34,17 +31,17 @@
     <div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
         <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:14px;">
             <input type="radio" name="tip" value="" {{if eq .TipFilter ""}}checked{{end}}
-                hx-trigger="change" hx-get="/klijenti?pretraga={{.Pretraga}}"
+                hx-trigger="change" hx-get="/klijenti" hx-include="[name='pretraga']"
                 hx-target="#klijenti-rezultati" hx-select="#klijenti-rezultati" hx-swap="innerHTML" hx-push-url="true"> Svi
         </label>
         <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:14px;">
             <input type="radio" name="tip" value="pravno" {{if eq .TipFilter "pravno"}}checked{{end}}
-                hx-trigger="change" hx-get="/klijenti?pretraga={{.Pretraga}}&tip=pravno"
+                hx-trigger="change" hx-get="/klijenti" hx-include="[name='pretraga']"
                 hx-target="#klijenti-rezultati" hx-select="#klijenti-rezultati" hx-swap="innerHTML" hx-push-url="true"> Firme
         </label>
         <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:14px;">
             <input type="radio" name="tip" value="fizicko" {{if eq .TipFilter "fizicko"}}checked{{end}}
-                hx-trigger="change" hx-get="/klijenti?pretraga={{.Pretraga}}&tip=fizicko"
+                hx-trigger="change" hx-get="/klijenti" hx-include="[name='pretraga']"
                 hx-target="#klijenti-rezultati" hx-select="#klijenti-rezultati" hx-swap="innerHTML" hx-push-url="true"> Fizička lica
         </label>
     </div>
@@ -182,4 +179,15 @@
     </div><!-- kraj #klijenti-rezultati -->
 
 </div>
+
+<script>
+// Gasi animaciju redova pri pretrazi i promeni tipa (ali NE pri paginaciji).
+document.body.addEventListener('htmx:beforeRequest', function (e) {
+    var elt = e.detail && e.detail.elt;
+    if (elt && (elt.name === 'pretraga' || elt.name === 'tip')) {
+        var rez = document.getElementById('klijenti-rezultati');
+        if (rez) rez.classList.add('bez-anim');
+    }
+});
+</script>
 {{end}}
