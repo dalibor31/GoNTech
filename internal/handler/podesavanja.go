@@ -23,13 +23,13 @@ import (
 // PodaciPodesavanja su podaci za stranicu podešavanja
 type PodaciPodesavanja struct {
 	model.PodaciStranice
-	NazivFirme  string
-	Podnazlov   string
-	Adresa      string
-	Telefon     string
-	PIB         string
-	LogoPutanja        string
-	TopbarLogoSlika    bool
+	NazivFirme      string
+	Podnazlov       string
+	Adresa          string
+	Telefon         string
+	PIB             string
+	LogoPutanja     string
+	TopbarLogoSlika bool
 	// profil firme — pravni/poreski status (Faza 0); određuje koji se zakonski moduli pale
 	FirmaPravniOblik                string
 	FirmaPdvObveznik                string
@@ -266,11 +266,11 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 
 	// whitelist dozvoljenih redirekcija — vrednost uvek dolazi iz mape, nikad od korisnika
 	dozvoljeniSledeci := map[string]string{
-		"/admin/podesavanja/opste":          "/admin/podesavanja/opste",
-		"/admin/podesavanja/sistem":         "/admin/podesavanja/sistem",
-		"/admin/podesavanja/servis":         "/admin/podesavanja/servis",
+		"/admin/podesavanja/opste":           "/admin/podesavanja/opste",
+		"/admin/podesavanja/sistem":          "/admin/podesavanja/sistem",
+		"/admin/podesavanja/servis":          "/admin/podesavanja/servis",
 		"/admin/podesavanja/kalkulacija-pdv": "/admin/podesavanja/kalkulacija-pdv",
-		"/podesavanja":                      "/podesavanja",
+		"/podesavanja":                       "/podesavanja",
 	}
 	sledeci := "/podesavanja"
 	if v, ok := dozvoljeniSledeci[r.FormValue("_next")]; ok {
