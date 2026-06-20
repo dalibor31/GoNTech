@@ -188,7 +188,7 @@
             <div>
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Ugrađeni delovi</div>
                 <div style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">
-                    {{printf "%.2f" .UkupnoDelovi}} din
+                    {{dinari .UkupnoDelovi}} din
                 </div>
             </div>
             {{end}}
@@ -196,7 +196,7 @@
             <div>
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Ukupno</div>
                 <div style="font-size:20px;font-weight:600;color:var(--sb-akcent);">
-                    {{printf "%.2f" .UkupnoSve}} din
+                    {{dinari .UkupnoSve}} din
                 </div>
             </div>
             {{end}}
@@ -210,7 +210,7 @@
             <div>
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Za naplatu</div>
                 <div style="font-size:20px;font-weight:600;color:#16a34a;">
-                    {{printf "%.2f" .PreostaloSve}} din
+                    {{dinari .PreostaloSve}} din
                 </div>
             </div>
             {{end}}
@@ -269,8 +269,8 @@
                 <tr style="border-bottom:0.5px solid var(--ivica);">
                     <td style="padding:9px 10px;font-size:14px;color:var(--tekst-glavni);">{{.ArtikalNaziv}}</td>
                     <td style="padding:9px 10px;text-align:center;font-size:14px;color:var(--tekst-glavni);">{{.Kolicina}}</td>
-                    <td style="padding:9px 10px;text-align:right;font-size:14px;color:var(--tekst-glavni);">{{printf "%.2f" .CenaKomada}} din</td>
-                    <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{printf "%.2f" .Ukupno}} din</td>
+                    <td style="padding:9px 10px;text-align:right;font-size:14px;color:var(--tekst-glavni);">{{dinari .CenaKomada}} din</td>
+                    <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .Ukupno}} din</td>
                     <td style="padding:9px 10px;text-align:center;">
                         {{if index $.Dozvole "servis.izmeni"}}
                         <form method="POST" action="/servis/{{$.Nalog.ID}}/delovi/{{.ID}}/obrisi" style="display:inline;">

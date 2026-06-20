@@ -53,6 +53,15 @@ var sablonskeFunkcije = template.FuncMap{
 		}
 		return fmt.Sprintf("%d", int64(math.Round(*v)))
 	},
+	// dinari formatira iznos sa separatorom hiljada (tačka) i 2 decimale (zarez):
+	// 1234567.5 → "1.234.567,50"
+	"dinari": func(v float64) string {
+		return formatirajDinare(v, 2)
+	},
+	// dinariCeli formatira iznos sa separatorom hiljada, bez decimala: 1234567 → "1.234.567"
+	"dinariCeli": func(v float64) string {
+		return formatirajDinare(v, 0)
+	},
 	// statusPre vraća true ako je `a` pre `b` u redosledu statusa
 	"statusPre": func(a, b string, statusi []string) bool {
 		ia, ib := -1, -1
@@ -171,4 +180,42 @@ func (h *Handler) renderujStandalone(w http.ResponseWriter, ime string, podaci a
 		slog.Error("greška pri renderovanju šablona", "ime", ime, "error", err)
 		http.Error(w, "Greška pri prikazu stranice", http.StatusInternalServerError)
 	}
+}
+
+// formatirajDinare formatira broj sa tačkom kao separatorom hiljada i zarezom
+// za decimale (srpski format). decimale = broj decimalnih mesta (0 ili 2).
+func formatirajDinare(v float64, decimale int) string {
+	negativan := v < 0
+	if negativan {
+		v = -v
+	}
+
+	var ceoStr, decStr string
+	if decimale == 2 {
+		// radi u stotinkama da zaokruživanje pravilno prenese (npr. 1234567.999 → 1.234.568,00)
+		stotinke := int64(math.Round(v * 100))
+		ceoStr = fmt.Sprintf("%d", stotinke/100)
+		decStr = fmt.Sprintf("%02d", stotinke%100)
+	} else {
+		ceoStr = fmt.Sprintf("%d", int64(math.Round(v)))
+	}
+
+	// ubaci tačke na svake 3 cifre s desna
+	var sb []byte
+	n := len(ceoStr)
+	for i, c := range ceoStr {
+		if i > 0 && (n-i)%3 == 0 {
+			sb = append(sb, '.')
+		}
+		sb = append(sb, byte(c))
+	}
+	rezultat := string(sb)
+
+	if decimale == 2 {
+		rezultat += "," + decStr
+	}
+	if negativan {
+		rezultat = "-" + rezultat
+	}
+	return rezultat
 }

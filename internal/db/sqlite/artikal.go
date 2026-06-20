@@ -309,6 +309,79 @@ func (r *ArtikalRepo) Vrati(ctx context.Context, id int64) error {
 	return nil
 }
 
+// DobavljaciArtikla vraća ID-jeve dobavljača vezanih za artikal
+func (r *ArtikalRepo) DobavljaciArtikla(ctx context.Context, artikalID int64) ([]int64, error) {
+	redovi, err := r.db.QueryContext(ctx,
+		"SELECT dobavljac_id FROM artikal_dobavljac WHERE artikal_id = ? ORDER BY dobavljac_id", artikalID)
+	if err != nil {
+		return nil, fmt.Errorf("ntech: ArtikalRepo.DobavljaciArtikla: %w", err)
+	}
+	defer redovi.Close()
+
+	var ids []int64
+	for redovi.Next() {
+		var id int64
+		if err := redovi.Scan(&id); err != nil {
+			return nil, fmt.Errorf("ntech: ArtikalRepo.DobavljaciArtikla: scan: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
+}
+
+// PostaviDobavljaceArtikla zamenjuje skup dobavljača artikla datim ID-jevima (u transakciji)
+func (r *ArtikalRepo) PostaviDobavljaceArtikla(ctx context.Context, artikalID int64, dobavljaciID []int64) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("ntech: ArtikalRepo.PostaviDobavljaceArtikla: begin tx: %w", err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx, "DELETE FROM artikal_dobavljac WHERE artikal_id = ?", artikalID); err != nil {
+		return fmt.Errorf("ntech: ArtikalRepo.PostaviDobavljaceArtikla: delete: %w", err)
+	}
+	for _, did := range dobavljaciID {
+		if _, err := tx.ExecContext(ctx,
+			"INSERT OR IGNORE INTO artikal_dobavljac (artikal_id, dobavljac_id) VALUES (?, ?)", artikalID, did); err != nil {
+			return fmt.Errorf("ntech: ArtikalRepo.PostaviDobavljaceArtikla: insert: %w", err)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("ntech: ArtikalRepo.PostaviDobavljaceArtikla: commit: %w", err)
+	}
+	return nil
+}
+
+// PoveziDobavljaca dodaje vezu artikal–dobavljač ako ne postoji (auto pri nabavci)
+func (r *ArtikalRepo) PoveziDobavljaca(ctx context.Context, artikalID, dobavljacID int64) error {
+	_, err := r.db.ExecContext(ctx,
+		"INSERT OR IGNORE INTO artikal_dobavljac (artikal_id, dobavljac_id) VALUES (?, ?)", artikalID, dobavljacID)
+	if err != nil {
+		return fmt.Errorf("ntech: ArtikalRepo.PoveziDobavljaca: %w", err)
+	}
+	return nil
+}
+
+// SveDobavljaceArtikala vraća mapu artikal_id → lista dobavljac_id
+func (r *ArtikalRepo) SveDobavljaceArtikala(ctx context.Context) (map[int64][]int64, error) {
+	redovi, err := r.db.QueryContext(ctx,
+		"SELECT artikal_id, dobavljac_id FROM artikal_dobavljac ORDER BY artikal_id")
+	if err != nil {
+		return nil, fmt.Errorf("ntech: ArtikalRepo.SveDobavljaceArtikala: %w", err)
+	}
+	defer redovi.Close()
+
+	mapa := make(map[int64][]int64)
+	for redovi.Next() {
+		var aid, did int64
+		if err := redovi.Scan(&aid, &did); err != nil {
+			return nil, fmt.Errorf("ntech: ArtikalRepo.SveDobavljaceArtikala: scan: %w", err)
+		}
+		mapa[aid] = append(mapa[aid], did)
+	}
+	return mapa, nil
+}
+
 // KorigujKolicinu postavlja novu količinu i upisuje korekciju u magacinske_promene
 func (r *ArtikalRepo) KorigujKolicinu(ctx context.Context, artikalID int64, novaKolicina int, korisnikID *int64, napomena string) error {
 	tx, err := r.db.BeginTx(ctx, nil)

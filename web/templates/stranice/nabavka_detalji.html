@@ -43,7 +43,7 @@
             <div>
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Ukupan iznos</div>
                 <div style="font-size:20px;font-weight:600;color:var(--sb-akcent);">
-                    {{printf "%.2f" .Nabavka.Ukupno}} din
+                    {{dinari .Nabavka.Ukupno}} din
                 </div>
             </div>
         </div>
@@ -71,8 +71,8 @@
                     <tr class="animiraj red-tabele">
                         <td style="padding:10px 16px;font-size:14px;color:var(--tekst-glavni);">{{.ArtikalNaziv}}</td>
                         <td style="padding:10px 16px;text-align:center;font-size:14px;color:var(--tekst-glavni);">{{.Kolicina}}</td>
-                        <td style="padding:10px 16px;text-align:right;font-size:14px;color:var(--tekst-sporedni);">{{printf "%.2f" .CenaPoKomadu}} din</td>
-                        <td style="padding:10px 16px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{printf "%.2f" .Ukupno}} din</td>
+                        <td style="padding:10px 16px;text-align:right;font-size:14px;color:var(--tekst-sporedni);">{{dinari .CenaPoKomadu}} din</td>
+                        <td style="padding:10px 16px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .Ukupno}} din</td>
                     </tr>
                     {{else}}
                     <tr>
@@ -86,7 +86,7 @@
                 <tfoot>
                     <tr style="border-top:0.5px solid var(--ivica);">
                         <td colspan="3" style="padding:10px 16px;text-align:right;font-size:13px;font-weight:500;color:var(--tekst-sporedni);">Ukupno:</td>
-                        <td style="padding:10px 16px;text-align:right;font-size:15px;font-weight:600;color:var(--tekst-glavni);">{{printf "%.2f" .Nabavka.Ukupno}} din</td>
+                        <td style="padding:10px 16px;text-align:right;font-size:15px;font-weight:600;color:var(--tekst-glavni);">{{dinari .Nabavka.Ukupno}} din</td>
                     </tr>
                 </tfoot>
                 {{end}}
@@ -105,18 +105,18 @@
                     </div>
                     <div>
                         <div style="font-size:11px;color:var(--tekst-sporedni);">Cena/kom</div>
-                        <div style="font-size:14px;color:var(--tekst-sporedni);">{{printf "%.2f" .CenaPoKomadu}} din</div>
+                        <div style="font-size:14px;color:var(--tekst-sporedni);">{{dinari .CenaPoKomadu}} din</div>
                     </div>
                     <div style="text-align:right;">
                         <div style="font-size:11px;color:var(--tekst-sporedni);">Ukupno</div>
-                        <div style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{printf "%.2f" .Ukupno}} din</div>
+                        <div style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .Ukupno}} din</div>
                     </div>
                 </div>
             </div>
             {{end}}
             {{if .Stavke}}
             <div style="text-align:right;font-size:15px;font-weight:600;color:var(--tekst-glavni);padding:8px 4px;">
-                Ukupno: {{printf "%.2f" .Nabavka.Ukupno}} din
+                Ukupno: {{dinari .Nabavka.Ukupno}} din
             </div>
             {{end}}
         </div>
@@ -135,12 +135,12 @@
             {{range .Troskovi}}
             <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--ivica);">
                 <span style="font-size:14px;color:var(--tekst-glavni);">{{.Naziv}}</span>
-                <span style="font-size:14px;color:var(--tekst-sporedni);">{{printf "%.2f" .Iznos}} din</span>
+                <span style="font-size:14px;color:var(--tekst-sporedni);">{{dinari .Iznos}} din</span>
             </div>
             {{end}}
             <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;">
                 <span style="font-size:13px;font-weight:500;color:var(--tekst-sporedni);">Ukupno troškovi:</span>
-                <span style="font-size:15px;font-weight:600;color:var(--tekst-glavni);">{{printf "%.2f" .UkupanTrosak}} din</span>
+                <span style="font-size:15px;font-weight:600;color:var(--tekst-glavni);">{{dinari .UkupanTrosak}} din</span>
             </div>
         </div>
     </div>

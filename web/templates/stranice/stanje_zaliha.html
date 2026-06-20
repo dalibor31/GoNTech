@@ -20,7 +20,7 @@
             </div>
             <div style="text-align:right;">
                 <div style="font-size:12px;color:var(--tekst-slabi);">Ukupna vrednost zalihe</div>
-                <div style="font-size:18px;font-weight:600;color:var(--tekst-glavni);">{{printf "%.2f" .UkupnaVrednost}} din</div>
+                <div style="font-size:18px;font-weight:600;color:var(--tekst-glavni);">{{dinari .UkupnaVrednost}} din</div>
             </div>
         </div>
     </div>
@@ -67,7 +67,7 @@
                 <tfoot>
                     <tr style="border-top:1.5px solid var(--ivica);font-weight:600;">
                         <td colspan="7" style="padding:10px 12px;font-size:13px;">Ukupna vrednost zalihe</td>
-                        <td style="text-align:right;padding:10px 12px;font-family:monospace;">{{printf "%.2f" .UkupnaVrednost}} din</td>
+                        <td style="text-align:right;padding:10px 12px;font-family:monospace;">{{dinari .UkupnaVrednost}} din</td>
                     </tr>
                 </tfoot>
             </table>

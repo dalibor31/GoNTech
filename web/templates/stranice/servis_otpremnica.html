@@ -183,13 +183,13 @@
                 <tr>
                     <td>{{.ArtikalNaziv}}</td>
                     <td class="desno">{{.Kolicina}}</td>
-                    <td class="desno">{{printf "%.2f" .CenaKomada}} din</td>
-                    <td class="desno">{{printf "%.2f" .Ukupno}} din</td>
+                    <td class="desno">{{dinari .CenaKomada}} din</td>
+                    <td class="desno">{{dinari .Ukupno}} din</td>
                 </tr>
                 {{end}}
                 <tr class="ukupno-red">
                     <td colspan="3">Ukupno delovi</td>
-                    <td class="desno">{{printf "%.2f" .UkupnoDelovi}} din</td>
+                    <td class="desno">{{dinari .UkupnoDelovi}} din</td>
                 </tr>
             </tbody>
         </table>
@@ -209,7 +209,7 @@
                 {{if gt .UkupnoDelovi 0.0}}
                 <tr>
                     <td>Ugrađeni delovi i materijal</td>
-                    <td class="desno">{{printf "%.2f" .UkupnoDelovi}} din</td>
+                    <td class="desno">{{dinari .UkupnoDelovi}} din</td>
                 </tr>
                 {{end}}
                 {{if .ImaAvans}}
@@ -222,7 +222,7 @@
         </table>
         <div class="naplata-blok">
             <div class="naplata-labela">Za naplatu pri preuzimanju:</div>
-            <div class="naplata-iznos">{{printf "%.2f" .PreostaloSve}} din</div>
+            <div class="naplata-iznos">{{dinari .PreostaloSve}} din</div>
         </div>
     </div>
     {{end}}
