@@ -6,9 +6,16 @@ import (
 	"encoding/base64"
 	"net/http"
 	"os"
+	"strings"
 )
 
 const csrfKolacic = "ntech_csrf"
+
+// maxTeloUpload je gornja granica veličine tela multipart zahteva (upload fajlova).
+// Postavlja se u middleware-u pre parsiranja jer čitanje _csrf polja već parsira
+// telo — bez ovog limita pojedinačni handleri ne mogu da ga efektivno ograniče.
+// Najveći legitiman upload je 5 MB (avatar, pozadina); ostatak je rezerva za form overhead.
+const maxTeloUpload = 6 << 20
 
 type csrfKljucTip struct{}
 
@@ -52,6 +59,11 @@ func CsrfMiddleware(next http.Handler) http.Handler {
 		// validiramo na svim mutabilnim HTTP metodama
 		switch r.Method {
 		case http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
+			// ograničavamo veličinu tela PRE parsiranja — čitanje _csrf polja parsira
+			// celo telo, pa je ovo jedino mesto gde limit za upload stvarno deluje
+			if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
+				r.Body = http.MaxBytesReader(w, r.Body, maxTeloUpload)
+			}
 			// čitamo token iz tela forme ili zaglavlja (za AJAX)
 			submitted := r.FormValue("_csrf")
 			if submitted == "" {

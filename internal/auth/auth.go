@@ -27,6 +27,17 @@ func ProveriLozinku(hash, lozinka string) bool {
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(lozinka)) == nil
 }
 
+// dummyHash je bcrypt heš fiksne vrednosti, izračunat jednom pri pokretanju.
+// Koristi ga IzjednaciVremeProvere kada korisnik ne postoji.
+var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("ntech-dummy-lozinka"), bcryptCost)
+
+// IzjednaciVremeProvere izvršava bcrypt poređenje protiv fiksnog heša da bi vreme
+// odgovora bilo isto kao kod postojećeg korisnika sa pogrešnom lozinkom —
+// time se sprečava enumeracija korisničkih imena merenjem vremena odgovora.
+func IzjednaciVremeProvere(lozinka string) {
+	_ = bcrypt.CompareHashAndPassword(dummyHash, []byte(lozinka))
+}
+
 // GenerisiToken generiše nasumičan UUID token za sesiju
 func GenerisiToken() string {
 	return uuid.New().String()

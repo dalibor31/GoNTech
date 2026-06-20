@@ -98,6 +98,8 @@ func (h *Handler) Prijava(w http.ResponseWriter, r *http.Request) {
 
 	korisnik, err := h.KorisniciRepo.DohvatiPoImenu(r.Context(), korisnickoIme)
 	if err != nil {
+		// izjednačavamo vreme odgovora sa slučajem postojećeg korisnika (anti-enumeracija)
+		auth.IzjednaciVremeProvere(lozinka)
 		_ = h.PokusajiRepo.Zabeleži(r.Context(), ip, korisnickoIme, false)
 		_ = h.LoginIstorijsaRepo.Zabeleži(r.Context(), nil, ip, r.UserAgent(), "korisnik_ne_postoji", false)
 		auth.LogNeuspehPrijave(ip, korisnickoIme, "wrong_user")
