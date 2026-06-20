@@ -2,12 +2,23 @@ package sqlite
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"fmt"
 	"time"
 
 	"ntech/internal/model"
 )
+
+// generisiJavniToken kreira 32-znakovni hex token za javni URL
+func generisiJavniToken() (string, error) {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
+}
 
 // ServisRepo je SQLite implementacija ServisRepository interfejsa
 type ServisRepo struct {
@@ -43,7 +54,7 @@ func (r *ServisRepo) Lista(ctx context.Context, pretraga, status string) ([]mode
 			sn.id, sn.klijent_id, sn.tehnicar_id, sn.broj_naloga, sn.uredjaj, sn.serijski_broj,
 			sn.opis_kvara, sn.status, sn.cena_od, sn.cena_do, sn.cena_konacna,
 			sn.avans, sn.napomena, sn.garancija_do, sn.datum_prijema, sn.datum_zavrsetka,
-			sn.ostecenja, sn.pin_uredjaja, sn.pribor,
+			sn.ostecenja, sn.pin_uredjaja, sn.pribor, sn.javni_token,
 			COALESCE(kp.naziv, '') AS klijent_naziv
 		FROM servisni_nalozi sn
 		LEFT JOIN klijent_prikaz kp ON kp.id = sn.klijent_id
@@ -90,7 +101,7 @@ func (r *ServisRepo) DohvatiID(ctx context.Context, id int64) (*model.ServisniNa
 			id, klijent_id, tehnicar_id, broj_naloga, uredjaj, serijski_broj,
 			opis_kvara, status, cena_od, cena_do, cena_konacna,
 			avans, napomena, garancija_do, datum_prijema, datum_zavrsetka,
-			ostecenja, pin_uredjaja, pribor
+			ostecenja, pin_uredjaja, pribor, javni_token
 		FROM servisni_nalozi WHERE id = ?`, id)
 
 	var n model.ServisniNalog
@@ -102,21 +113,26 @@ func (r *ServisRepo) DohvatiID(ctx context.Context, id int64) (*model.ServisniNa
 	return &n, nil
 }
 
-// Kreiraj upisuje novi servisni nalog u bazu
+// Kreiraj upisuje novi servisni nalog u bazu i generiše javni token
 func (r *ServisRepo) Kreiraj(ctx context.Context, n *model.ServisniNalog) (int64, error) {
+	token, err := generisiJavniToken()
+	if err != nil {
+		return 0, fmt.Errorf("ntech: ServisRepo.Kreiraj: token: %w", err)
+	}
+
 	rezultat, err := r.db.ExecContext(ctx, `
 		INSERT INTO servisni_nalozi
 			(klijent_id, tehnicar_id, broj_naloga, uredjaj, serijski_broj, opis_kvara,
 			 status, cena_od, cena_do, cena_konacna, avans, napomena, garancija_do, datum_zavrsetka,
-			 ostecenja, pin_uredjaja, pribor, datum_prijema)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			 ostecenja, pin_uredjaja, pribor, datum_prijema, javni_token)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		nullInt64(n.KlijentID), nullInt64(n.TehnicarID), n.BrojNaloga, n.Uredjaj,
 		nullString(n.SerijskiBroj), n.OpisKvara, n.Status,
 		nullFloat64(n.CenaOd), nullFloat64(n.CenaDo), nullFloat64(n.CenaKonacna),
 		nullFloat64(n.Avans), nullString(n.Napomena),
 		nullTime(n.GarancijaDo), nullTime(n.DatumZavrsetka),
 		nullString(n.Ostecenja), nullString(n.PinUredjaja), nullString(n.Pribor),
-		n.DatumPrijema,
+		n.DatumPrijema, token,
 	)
 	if err != nil {
 		return 0, fmt.Errorf("ntech: ServisRepo.Kreiraj: %w", err)
@@ -128,6 +144,23 @@ func (r *ServisRepo) Kreiraj(ctx context.Context, n *model.ServisniNalog) (int64
 	}
 
 	return id, nil
+}
+
+// DohvatiJavniToken vraća servisni nalog po javnom tokenu — bez autentifikacije
+func (r *ServisRepo) DohvatiJavniToken(ctx context.Context, token string) (*model.ServisniNalog, error) {
+	red := r.db.QueryRowContext(ctx, `
+		SELECT
+			id, klijent_id, tehnicar_id, broj_naloga, uredjaj, serijski_broj,
+			opis_kvara, status, cena_od, cena_do, cena_konacna,
+			avans, napomena, garancija_do, datum_prijema, datum_zavrsetka,
+			ostecenja, pin_uredjaja, pribor, javni_token
+		FROM servisni_nalozi WHERE javni_token = ?`, token)
+
+	var n model.ServisniNalog
+	if err := scanNalog(red.Scan, &n, nil); err != nil {
+		return nil, fmt.Errorf("ntech: ServisRepo.DohvatiJavniToken: %w", err)
+	}
+	return &n, nil
 }
 
 // Izmeni ažurira postojeći servisni nalog — broj_naloga i datum_prijema se ne menjaju
@@ -184,7 +217,7 @@ func (r *ServisRepo) Obrisi(ctx context.Context, id int64) error {
 // klijentNaziv je opcioni pokazivač, nil kada se čita bez JOIN-a
 func scanNalog(scan func(...any) error, n *model.ServisniNalog, klijentNaziv *string) error {
 	var klijentID, tehnicarID sql.NullInt64
-	var serijskiBroj, napomena, ostecenja, pinUredjaja, pribor sql.NullString
+	var serijskiBroj, napomena, ostecenja, pinUredjaja, pribor, javniToken sql.NullString
 	var cenaOd, cenaDo, cenaKonacna, avans sql.NullFloat64
 	var garancijaDo, datumZavrsetka sql.NullTime
 
@@ -192,7 +225,7 @@ func scanNalog(scan func(...any) error, n *model.ServisniNalog, klijentNaziv *st
 		&n.ID, &klijentID, &tehnicarID, &n.BrojNaloga, &n.Uredjaj, &serijskiBroj,
 		&n.OpisKvara, &n.Status, &cenaOd, &cenaDo, &cenaKonacna,
 		&avans, &napomena, &garancijaDo, &n.DatumPrijema, &datumZavrsetka,
-		&ostecenja, &pinUredjaja, &pribor,
+		&ostecenja, &pinUredjaja, &pribor, &javniToken,
 	}
 
 	if klijentNaziv != nil {
@@ -240,6 +273,7 @@ func scanNalog(scan func(...any) error, n *model.ServisniNalog, klijentNaziv *st
 		v := datumZavrsetka.Time
 		n.DatumZavrsetka = &v
 	}
+	n.JavniToken = javniToken.String
 
 	return nil
 }

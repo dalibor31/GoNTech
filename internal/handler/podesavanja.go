@@ -600,8 +600,7 @@ func (h *Handler) UkloniLoginPozadinu(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	middleware.SetFlash(w, r, h.DB, "uspeh", "Pozadinska slika je uklonjena.")
-	http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/podesavanja/izgled?sacuvano=1", http.StatusSeeOther)
 }
 
 // SacuvajLoginPozadinaStilove čuva vrednosti zamućenja i prozirnosti pozadine login stranice
@@ -659,8 +658,7 @@ func (h *Handler) SacuvajLoginPozadinaStilove(w http.ResponseWriter, r *http.Req
 		}
 	}
 
-	middleware.SetFlash(w, r, h.DB, "uspeh", "Izgled pozadine prijave je sačuvan.")
-	http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/podesavanja/izgled?sacuvano=1", http.StatusSeeOther)
 }
 
 // napuniPodaciPodesavanja učitava sva podešavanja i kreira strukturu za template

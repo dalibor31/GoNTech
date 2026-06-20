@@ -112,6 +112,7 @@ type KlijentRepository interface {
 type ServisRepository interface {
 	Lista(ctx context.Context, pretraga, status string) ([]model.ServisniNalogSaKlijentom, error)
 	DohvatiID(ctx context.Context, id int64) (*model.ServisniNalog, error)
+	DohvatiJavniToken(ctx context.Context, token string) (*model.ServisniNalog, error)
 	Kreiraj(ctx context.Context, n *model.ServisniNalog) (int64, error)
 	Izmeni(ctx context.Context, n *model.ServisniNalog) error
 	AzurirajStatus(ctx context.Context, id int64, status string) error

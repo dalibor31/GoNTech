@@ -444,8 +444,7 @@ func (h *Handler) DodajDeloNalogu(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	middleware.SetFlash(w, r, h.DB, "uspeh", "Deo je dodat.")
-	http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
+	http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10)+"?sacuvano=1", http.StatusSeeOther)
 }
 
 // ObrisiDeloNaloga prima POST zahtev i uklanja deo iz servisnog naloga
@@ -470,10 +469,7 @@ func (h *Handler) ObrisiDeloNaloga(w http.ResponseWriter, r *http.Request) {
 	if err := h.ServisniDeloviRepo.Obrisi(r.Context(), deoID, &k.ID); err != nil {
 		slog.Error("greška pri brisanju dela", "error", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri uklanjanju dela.")
-	} else {
-		middleware.SetFlash(w, r, h.DB, "uspeh", "Deo je uklonjen.")
 	}
-
 	http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
 }
 
@@ -647,12 +643,12 @@ func (h *Handler) StampaServisa(w http.ResponseWriter, r *http.Request) {
 		ukupnoDelovi += d.Ukupno()
 	}
 
-	// QR kod sadrži URL naloga — isti host kao što korisnik koristi
+	// QR kod vodi na javnu status stranicu — dostupnu bez prijave
 	scheme := "http"
 	if r.TLS != nil {
 		scheme = "https"
 	}
-	nalogURL := scheme + "://" + r.Host + "/servis/" + strconv.FormatInt(id, 10)
+	nalogURL := scheme + "://" + r.Host + "/status/" + nalog.JavniToken
 	var qrKod string
 	if png, err := qrcode.Encode(nalogURL, qrcode.Medium, 160); err == nil {
 		qrKod = base64.StdEncoding.EncodeToString(png)
@@ -762,7 +758,7 @@ func (h *Handler) StampaOtpremnice(w http.ResponseWriter, r *http.Request) {
 	if r.TLS != nil {
 		nalogURL += "s"
 	}
-	nalogURL += "://" + r.Host + "/servis/" + strconv.FormatInt(id, 10)
+	nalogURL += "://" + r.Host + "/status/" + nalog.JavniToken
 	var qrKodOtpr string
 	if png, err := qrcode.Encode(nalogURL, qrcode.Medium, 160); err == nil {
 		qrKodOtpr = base64.StdEncoding.EncodeToString(png)
@@ -812,4 +808,38 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)
+}
+
+// PodaciJavnogStatusa su podaci za javnu status stranicu servisnog naloga
+type PodaciJavnogStatusa struct {
+	Nalog      model.ServisniNalog
+	NazivFirme string
+	Telefon    string
+	Adresa     string
+	SviStatusi []string
+}
+
+// ServisJavniStatus prikazuje javnu status stranicu — dostupna bez prijave putem QR koda
+func (h *Handler) ServisJavniStatus(w http.ResponseWriter, r *http.Request) {
+	token := chi.URLParam(r, "token")
+	if token == "" {
+		http.NotFound(w, r)
+		return
+	}
+
+	nalog, err := h.ServisRepo.DohvatiJavniToken(r.Context(), token)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+
+	h.renderujStandalone(w, "servis_status_javni", PodaciJavnogStatusa{
+		Nalog:      *nalog,
+		NazivFirme: podesavanja["naziv_firme"],
+		Telefon:    podesavanja["telefon"],
+		Adresa:     podesavanja["adresa"],
+		SviStatusi: model.SviStatusi,
+	})
 }

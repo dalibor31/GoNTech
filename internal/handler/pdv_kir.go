@@ -169,8 +169,7 @@ func (h *Handler) SacuvajPdvKir(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Greška pri čuvanju zapisa", http.StatusInternalServerError)
 		return
 	}
-	middleware.SetFlash(w, r, h.DB, "uspeh", "Izlazni račun je dodat u KIR.")
-	http.Redirect(w, r, "/pdv/kir", http.StatusSeeOther)
+	http.Redirect(w, r, "/pdv/kir?sacuvano=1", http.StatusSeeOther)
 }
 
 // ObrisiPdvKir briše zapis iz KIR
@@ -187,6 +186,5 @@ func (h *Handler) ObrisiPdvKir(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Greška pri brisanju zapisa", http.StatusInternalServerError)
 		return
 	}
-	middleware.SetFlash(w, r, h.DB, "uspeh", "Zapis je obrisan iz KIR.")
-	http.Redirect(w, r, "/pdv/kir", http.StatusSeeOther)
+	http.Redirect(w, r, "/pdv/kir?obrisan=1", http.StatusSeeOther)
 }
