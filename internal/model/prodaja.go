@@ -4,15 +4,15 @@ import "time"
 
 // ProdajniNalog predstavlja zaglavlje jedne prodaje
 type ProdajniNalog struct {
-	ID                 int64
-	KlijentID          *int64
-	BrojNaloga         string
-	Napomena           string
-	Ukupno             float64
-	NacinPlacanja      string
-	Stornirano         bool
-	RazlogStorniranja  string
-	Datum              time.Time
+	ID                int64
+	KlijentID         *int64
+	BrojNaloga        string
+	Napomena          string
+	Ukupno            float64
+	NacinPlacanja     string
+	Stornirano        bool
+	RazlogStorniranja string
+	Datum             time.Time
 }
 
 // StavkaProdaje predstavlja jednu liniju (artikal) unutar prodaje
@@ -38,4 +38,5 @@ type ProdajniNalogSaDetaljem struct {
 type StavkaProdajeSaArtiklom struct {
 	StavkaProdaje
 	ArtikalNaziv string
+	JedinicaMere string
 }

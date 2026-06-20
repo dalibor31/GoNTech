@@ -782,6 +782,154 @@ func (h *Handler) StampaOtpremnice(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// PodaciPredracuna su podaci za predračun/ponudu koja se šalje klijentu pre rada
+type PodaciPredracuna struct {
+	Nalog          model.ServisniNalog
+	ServisniDelovi []model.ServisniDeoSaArtiklom
+	UkupnoDelovi   float64
+
+	ImaCenuRada bool    // ima li nalog uopšte cenu rada (raspon ili fiksnu)
+	CenaRaspon  bool    // true → prikaži procenu Od–Do; false → fiksnu cenu
+	CenaRadaOd  float64 // donja granica procene
+	CenaRadaDo  float64 // gornja granica procene
+	CenaRada    float64 // fiksna cena rada
+
+	UkupnoOd float64 // delovi + CenaRadaOd (kad je raspon)
+	UkupnoDo float64 // delovi + CenaRadaDo (kad je raspon)
+	Ukupno   float64 // delovi + fiksna cena (ili samo delovi ako nema cene rada)
+
+	DatumIzdavanja time.Time
+	VaziDo         time.Time
+
+	QRKod         string
+	Klijent       *model.Klijent
+	KlijentNaziv  string
+	TehnicarNaziv string
+	NazivFirme    string
+	Podnazlov     string
+	Adresa        string
+	Telefon       string
+	PIB           string
+}
+
+// StampaPredracuna renderuje predračun/ponudu koja se šalje klijentu kada se utvrdi kvar
+func (h *Handler) StampaPredracuna(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+
+	nalog, err := h.ServisRepo.DohvatiID(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Nalog nije pronađen", http.StatusNotFound)
+		return
+	}
+
+	delovi, err := h.ServisniDeloviRepo.DohvatiZaNalog(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju delova", http.StatusInternalServerError)
+		return
+	}
+
+	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
+		return
+	}
+
+	var klijent *model.Klijent
+	klijentNaziv := ""
+	if nalog.KlijentID != nil {
+		k, err := h.KlijentiRepo.DohvatiID(r.Context(), *nalog.KlijentID)
+		if err == nil {
+			klijent = k
+			if k.NazivFirme != "" {
+				klijentNaziv = k.NazivFirme
+			} else {
+				klijentNaziv = strings.TrimSpace(k.Ime + " " + k.Prezime)
+			}
+		}
+	}
+
+	tehnicarNaziv := ""
+	if nalog.TehnicarID != nil {
+		tehnicar, err := h.KorisniciRepo.DohvatiPoID(r.Context(), *nalog.TehnicarID)
+		if err == nil {
+			tehnicarNaziv = tehnicar.KorisnickoIme
+		}
+	}
+
+	var ukupnoDelovi float64
+	for _, d := range delovi {
+		ukupnoDelovi += d.Ukupno()
+	}
+
+	// cena rada: ako postoji procena raspona (Od i Do) prikaži je, inače padni na fiksnu cenu
+	var imaCenuRada, cenaRaspon bool
+	var cenaRadaOd, cenaRadaDo, cenaRada float64
+	var ukupnoOd, ukupnoDo, ukupno float64
+	switch {
+	case nalog.CenaOd != nil && nalog.CenaDo != nil:
+		imaCenuRada = true
+		cenaRaspon = true
+		cenaRadaOd = *nalog.CenaOd
+		cenaRadaDo = *nalog.CenaDo
+		ukupnoOd = ukupnoDelovi + cenaRadaOd
+		ukupnoDo = ukupnoDelovi + cenaRadaDo
+	case nalog.CenaKonacna != nil:
+		imaCenuRada = true
+		cenaRada = *nalog.CenaKonacna
+		ukupno = ukupnoDelovi + cenaRada
+	default:
+		ukupno = ukupnoDelovi
+	}
+
+	// rok važenja iz podešavanja (default 7 dana)
+	rok := 7
+	if v, err := strconv.Atoi(podesavanja["predracun_rok_dana"]); err == nil && v > 0 {
+		rok = v
+	}
+	datumIzdavanja := time.Now()
+	vaziDo := datumIzdavanja.AddDate(0, 0, rok)
+
+	// QR kod vodi na javnu status stranicu — dostupnu bez prijave
+	nalogURL := "http"
+	if r.TLS != nil {
+		nalogURL += "s"
+	}
+	nalogURL += "://" + r.Host + "/status/" + nalog.JavniToken
+	var qrKod string
+	if png, err := qrcode.Encode(nalogURL, qrcode.Medium, 160); err == nil {
+		qrKod = base64.StdEncoding.EncodeToString(png)
+	}
+
+	h.renderujStandalone(w, "servis_predracun", PodaciPredracuna{
+		Nalog:          *nalog,
+		ServisniDelovi: delovi,
+		UkupnoDelovi:   ukupnoDelovi,
+		ImaCenuRada:    imaCenuRada,
+		CenaRaspon:     cenaRaspon,
+		CenaRadaOd:     cenaRadaOd,
+		CenaRadaDo:     cenaRadaDo,
+		CenaRada:       cenaRada,
+		UkupnoOd:       ukupnoOd,
+		UkupnoDo:       ukupnoDo,
+		Ukupno:         ukupno,
+		DatumIzdavanja: datumIzdavanja,
+		VaziDo:         vaziDo,
+		QRKod:          qrKod,
+		Klijent:        klijent,
+		KlijentNaziv:   klijentNaziv,
+		TehnicarNaziv:  tehnicarNaziv,
+		NazivFirme:     podesavanja["naziv_firme"],
+		Podnazlov:      podesavanja["podnazlov"],
+		Adresa:         podesavanja["adresa"],
+		Telefon:        podesavanja["telefon"],
+		PIB:            podesavanja["pib"],
+	})
+}
+
 // PromeniStatus obrađuje POST /servis/{id}/status i menja samo status naloga
 func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(chi.URLParam(r, "id"))

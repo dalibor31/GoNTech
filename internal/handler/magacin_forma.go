@@ -37,10 +37,10 @@ func (h *Handler) NoviArtikal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	predlogSifre, err := h.Artikli.SledecaSifra(r.Context())
+	predlogSifre, err := h.Artikli.SledecaSifra(r.Context(), nil)
 	if err != nil {
 		slog.Error("greška pri generisanju predloga šifre", "err", err)
-		predlogSifre = "ART-00001"
+		predlogSifre = "ART-0001"
 	}
 
 	ps := h.popuniPodaciStranice(r, podesavanja)
@@ -49,7 +49,7 @@ func (h *Handler) NoviArtikal(w http.ResponseWriter, r *http.Request) {
 	h.renderujFormuArtikla(w, PodaciFormeArtikla{
 		PodaciStranice: ps,
 		Kategorije:     kategorije,
-		Artikal:        model.Artikal{Sifra: predlogSifre},
+		Artikal:        model.Artikal{Sifra: predlogSifre, Tip: model.TipProizvod, JedinicaMere: "kom"},
 		Izmena:         false,
 	})
 }
@@ -94,9 +94,12 @@ func (h *Handler) SacuvajArtikal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ako korisnik nije uneo šifru, auto-generišemo po ID-u
+	// ako korisnik nije uneo šifru, auto-generišemo po prefiksu kategorije
 	if artikal.Sifra == "" {
-		autoSifra := fmt.Sprintf("ART-%05d", id)
+		autoSifra, e := h.Artikli.SledecaSifra(r.Context(), artikal.KategorijaID)
+		if e != nil {
+			autoSifra = fmt.Sprintf("ART-%04d", id)
+		}
 		artikal.ID = id
 		artikal.Sifra = autoSifra
 		if err := h.Artikli.Izmeni(r.Context(), &artikal); err != nil {
@@ -244,6 +247,22 @@ func parseFormuArtikla(r *http.Request) (model.Artikal, string) {
 	artikal.Lokacija = r.FormValue("lokacija")
 	artikal.Napomena = r.FormValue("napomena")
 
+	// tip artikla — podrazumevano proizvod; usluga i trošak ne prate lager
+	switch r.FormValue("tip") {
+	case model.TipUsluga:
+		artikal.Tip = model.TipUsluga
+	case model.TipTrosak:
+		artikal.Tip = model.TipTrosak
+	default:
+		artikal.Tip = model.TipProizvod
+	}
+
+	// jedinica mere — podrazumevano "kom"
+	artikal.JedinicaMere = r.FormValue("jedinica_mere")
+	if artikal.JedinicaMere == "" {
+		artikal.JedinicaMere = "kom"
+	}
+
 	if k := r.FormValue("kolicina"); k != "" {
 		v, err := strconv.Atoi(k)
 		if err != nil || v < 0 {
@@ -258,6 +277,12 @@ func parseFormuArtikla(r *http.Request) (model.Artikal, string) {
 			return artikal, "Minimalna količina mora biti pozitivan broj."
 		}
 		artikal.KolicinMin = v
+	}
+
+	// usluge i troškovi nemaju stanje na lageru
+	if !artikal.PratiLager() {
+		artikal.Kolicina = 0
+		artikal.KolicinMin = 0
 	}
 
 	if c := r.FormValue("nabavna_cena"); c != "" {
@@ -293,6 +318,23 @@ func parseFormuArtikla(r *http.Request) (model.Artikal, string) {
 	}
 
 	return artikal, ""
+}
+
+// PredlogSifre vraća predlog auto-šifre za izabranu kategoriju (poziva forma pri promeni kategorije)
+func (h *Handler) PredlogSifre(w http.ResponseWriter, r *http.Request) {
+	var kategorijaID *int64
+	if v := r.URL.Query().Get("kategorija"); v != "" {
+		if id, err := strconv.ParseInt(v, 10, 64); err == nil {
+			kategorijaID = &id
+		}
+	}
+	sifra, err := h.Artikli.SledecaSifra(r.Context(), kategorijaID)
+	if err != nil {
+		http.Error(w, "Greška pri generisanju šifre", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	_, _ = w.Write([]byte(sifra))
 }
 
 // renderujFormuArtikla renderuje HTML formu za artikal

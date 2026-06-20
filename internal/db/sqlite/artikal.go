@@ -3,10 +3,15 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"ntech/internal/db"
 	"ntech/internal/model"
+
+	mosqlite "modernc.org/sqlite"
 )
 
 // ArtikalRepo je SQLite implementacija ArtikalRepository interfejsa
@@ -23,9 +28,9 @@ func NoviArtikalRepo(db *sql.DB) *ArtikalRepo {
 func (r *ArtikalRepo) Lista(ctx context.Context, filter db.ArtikalFilter) ([]model.ArtikalSaKategorijom, error) {
 	upit := `
 		SELECT
-			a.id, a.kategorija_id, a.sifra, a.barkod, a.naziv, a.opis,
+			a.id, a.kategorija_id, a.sifra, a.barkod, a.naziv, a.opis, a.tip, a.jedinica_mere,
 			a.kolicina, a.kolicina_min, a.lokacija,
-			a.nabavna_cena, a.prodajna_cena, a.pdv_stopa, a.marza, a.napomena, a.datum_unosa,
+			a.nabavna_cena, a.prodajna_cena, a.pdv_stopa, a.marza, a.napomena, a.datum_unosa, a.arhiviran,
 			COALESCE(k.naziv, '') as kategorija_naziv, k.marza as kategorija_marza
 		FROM artikli a
 		LEFT JOIN kategorije k ON a.kategorija_id = k.id
@@ -45,7 +50,14 @@ func (r *ArtikalRepo) Lista(ctx context.Context, filter db.ArtikalFilter) ([]mod
 	}
 
 	if filter.SamoKriticni {
-		upit += " AND a.kolicina <= a.kolicina_min"
+		upit += " AND (a.tip = 'proizvod' OR a.tip = '') AND a.kolicina <= a.kolicina_min"
+	}
+
+	// podrazumevano vraćamo samo aktivne; arhivirani se prikazuju samo na izričit zahtev
+	if filter.Arhivirani {
+		upit += " AND a.arhiviran = 1"
+	} else {
+		upit += " AND a.arhiviran = 0"
 	}
 
 	upit += " ORDER BY a.naziv ASC"
@@ -71,16 +83,18 @@ func (r *ArtikalRepo) Lista(ctx context.Context, filter db.ArtikalFilter) ([]mod
 		var kategorijaID sql.NullInt64
 		var sifra, barkod sql.NullString
 		var marza, katMarza sql.NullFloat64
+		var arhiviran int
 
 		err := redovi.Scan(
-			&a.ID, &kategorijaID, &sifra, &barkod, &a.Naziv, &a.Opis,
+			&a.ID, &kategorijaID, &sifra, &barkod, &a.Naziv, &a.Opis, &a.Tip, &a.JedinicaMere,
 			&a.Kolicina, &a.KolicinMin, &a.Lokacija,
-			&a.NabavnaCena, &a.ProdajnaCena, &a.PdvStopa, &marza, &a.Napomena, &a.DatumUnosa,
+			&a.NabavnaCena, &a.ProdajnaCena, &a.PdvStopa, &marza, &a.Napomena, &a.DatumUnosa, &arhiviran,
 			&a.KategorijaNaziv, &katMarza,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("ntech: ArtikalRepo.Lista: scan: %w", err)
 		}
+		a.Arhiviran = arhiviran == 1
 
 		if kategorijaID.Valid {
 			a.KategorijaID = &kategorijaID.Int64
@@ -98,7 +112,8 @@ func (r *ArtikalRepo) Lista(ctx context.Context, filter db.ArtikalFilter) ([]mod
 			a.KategorijaMarza = &katMarza.Float64
 		}
 
-		a.KriticnaZaliha = a.Kolicina <= a.KolicinMin
+		// kritična zaliha važi samo za proizvode (usluge/troškovi nemaju lager)
+		a.KriticnaZaliha = a.PratiLager() && a.Kolicina <= a.KolicinMin
 
 		rezultat = append(rezultat, a)
 	}
@@ -112,18 +127,20 @@ func (r *ArtikalRepo) DohvatiID(ctx context.Context, id int64) (*model.Artikal, 
 	var kategorijaID sql.NullInt64
 	var sifra, barkod sql.NullString
 	var marza sql.NullFloat64
+	var arhiviran int
 
 	err := r.db.QueryRowContext(ctx, `
-		SELECT id, kategorija_id, sifra, barkod, naziv, opis, kolicina, kolicina_min,
-		       lokacija, nabavna_cena, prodajna_cena, pdv_stopa, marza, napomena, datum_unosa
+		SELECT id, kategorija_id, sifra, barkod, naziv, opis, tip, jedinica_mere, kolicina, kolicina_min,
+		       lokacija, nabavna_cena, prodajna_cena, pdv_stopa, marza, napomena, datum_unosa, arhiviran
 		FROM artikli WHERE id = ?`, id).Scan(
-		&a.ID, &kategorijaID, &sifra, &barkod, &a.Naziv, &a.Opis,
+		&a.ID, &kategorijaID, &sifra, &barkod, &a.Naziv, &a.Opis, &a.Tip, &a.JedinicaMere,
 		&a.Kolicina, &a.KolicinMin, &a.Lokacija,
-		&a.NabavnaCena, &a.ProdajnaCena, &a.PdvStopa, &marza, &a.Napomena, &a.DatumUnosa,
+		&a.NabavnaCena, &a.ProdajnaCena, &a.PdvStopa, &marza, &a.Napomena, &a.DatumUnosa, &arhiviran,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: ArtikalRepo.DohvatiID: %w", err)
 	}
+	a.Arhiviran = arhiviran == 1
 
 	if kategorijaID.Valid {
 		a.KategorijaID = &kategorijaID.Int64
@@ -153,10 +170,10 @@ func (r *ArtikalRepo) Kreiraj(ctx context.Context, a *model.Artikal) (int64, err
 
 	rezultat, err := r.db.ExecContext(ctx, `
 		INSERT INTO artikli
-			(kategorija_id, sifra, barkod, naziv, opis, kolicina, kolicina_min, lokacija,
+			(kategorija_id, sifra, barkod, naziv, opis, tip, jedinica_mere, kolicina, kolicina_min, lokacija,
 			 nabavna_cena, prodajna_cena, pdv_stopa, marza, napomena)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		a.KategorijaID, sifra, barkod, a.Naziv, a.Opis, a.Kolicina, a.KolicinMin,
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		a.KategorijaID, sifra, barkod, a.Naziv, a.Opis, a.Tip, a.JedinicaMere, a.Kolicina, a.KolicinMin,
 		a.Lokacija, a.NabavnaCena, a.ProdajnaCena, a.PdvStopa, a.Marza, a.Napomena,
 	)
 	if err != nil {
@@ -183,12 +200,12 @@ func (r *ArtikalRepo) Izmeni(ctx context.Context, a *model.Artikal) error {
 
 	_, err := r.db.ExecContext(ctx, `
 		UPDATE artikli SET
-			kategorija_id = ?, sifra = ?, barkod = ?, naziv = ?, opis = ?, kolicina = ?,
-			kolicina_min = ?, lokacija = ?,
+			kategorija_id = ?, sifra = ?, barkod = ?, naziv = ?, opis = ?, tip = ?, jedinica_mere = ?,
+			kolicina = ?, kolicina_min = ?, lokacija = ?,
 			nabavna_cena = ?, prodajna_cena = ?, pdv_stopa = ?, marza = ?, napomena = ?
 		WHERE id = ?`,
-		a.KategorijaID, sifra, barkod, a.Naziv, a.Opis, a.Kolicina,
-		a.KolicinMin, a.Lokacija,
+		a.KategorijaID, sifra, barkod, a.Naziv, a.Opis, a.Tip, a.JedinicaMere,
+		a.Kolicina, a.KolicinMin, a.Lokacija,
 		a.NabavnaCena, a.ProdajnaCena, a.PdvStopa, a.Marza, a.Napomena, a.ID,
 	)
 	if err != nil {
@@ -198,14 +215,43 @@ func (r *ArtikalRepo) Izmeni(ctx context.Context, a *model.Artikal) error {
 	return nil
 }
 
-// SledecaSifra vraća predlog sledeće auto-šifre u formatu ART-XXXXX
-func (r *ArtikalRepo) SledecaSifra(ctx context.Context) (string, error) {
-	var n int64
-	err := r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM artikli").Scan(&n)
+// SledecaSifra vraća predlog sledeće auto-šifre u formatu PREFIKS-NNNN.
+// Prefiks je kôd kategorije (npr. KOMP) ili "ART" ako kategorija nema kôd ili nije zadata.
+// Brojač je najveći postojeći broj za taj prefiks + 1 (otporno na brisanje artikala).
+func (r *ArtikalRepo) SledecaSifra(ctx context.Context, kategorijaID *int64) (string, error) {
+	prefiks := "ART"
+	if kategorijaID != nil {
+		var kod sql.NullString
+		if err := r.db.QueryRowContext(ctx,
+			"SELECT kod FROM kategorije WHERE id = ?", *kategorijaID).Scan(&kod); err == nil {
+			if kod.Valid && kod.String != "" {
+				prefiks = kod.String
+			}
+		}
+	}
+
+	redovi, err := r.db.QueryContext(ctx, "SELECT sifra FROM artikli WHERE sifra LIKE ?", prefiks+"-%")
 	if err != nil {
 		return "", fmt.Errorf("ntech: ArtikalRepo.SledecaSifra: %w", err)
 	}
-	return fmt.Sprintf("ART-%05d", n+1), nil
+	defer redovi.Close()
+
+	maxBroj := 0
+	for redovi.Next() {
+		var s string
+		if err := redovi.Scan(&s); err != nil {
+			continue
+		}
+		i := strings.LastIndex(s, "-")
+		if i < 0 {
+			continue
+		}
+		if n, err := strconv.Atoi(s[i+1:]); err == nil && n > maxBroj {
+			maxBroj = n
+		}
+	}
+
+	return fmt.Sprintf("%s-%04d", prefiks, maxBroj+1), nil
 }
 
 // AzurirajCene menja samo nabavnu i prodajnu cenu artikla (kalkulacija pri prijemu robe).
@@ -229,13 +275,37 @@ func (r *ArtikalRepo) PremestiKategoriju(ctx context.Context, id int64, kategori
 	return nil
 }
 
-// Obrisi briše artikal po ID-u
+// Obrisi briše artikal po ID-u. Ako je artikal u prometu (FK RESTRICT), vraća
+// db.ErrArtikalUUpotrebi kako bi pozivalac mogao da ga arhivira umesto da ga obriše.
 func (r *ArtikalRepo) Obrisi(ctx context.Context, id int64) error {
 	_, err := r.db.ExecContext(ctx, "DELETE FROM artikli WHERE id = ?", id)
 	if err != nil {
+		// SQLITE_CONSTRAINT_FOREIGNKEY (787) — artikal je referenciran iz druge tabele
+		var sqliteErr *mosqlite.Error
+		if errors.As(err, &sqliteErr) && sqliteErr.Code() == 787 {
+			return db.ErrArtikalUUpotrebi
+		}
 		return fmt.Errorf("ntech: ArtikalRepo.Obrisi: %w", err)
 	}
 
+	return nil
+}
+
+// Arhiviraj označava artikal kao arhiviran (soft delete za artikle u prometu)
+func (r *ArtikalRepo) Arhiviraj(ctx context.Context, id int64) error {
+	_, err := r.db.ExecContext(ctx, "UPDATE artikli SET arhiviran = 1 WHERE id = ?", id)
+	if err != nil {
+		return fmt.Errorf("ntech: ArtikalRepo.Arhiviraj: %w", err)
+	}
+	return nil
+}
+
+// Vrati poništava arhiviranje i vraća artikal u aktivnu listu
+func (r *ArtikalRepo) Vrati(ctx context.Context, id int64) error {
+	_, err := r.db.ExecContext(ctx, "UPDATE artikli SET arhiviran = 0 WHERE id = ?", id)
+	if err != nil {
+		return fmt.Errorf("ntech: ArtikalRepo.Vrati: %w", err)
+	}
 	return nil
 }
 
@@ -290,7 +360,13 @@ func (r *ArtikalRepo) PrebrojiPoFilteru(ctx context.Context, filter db.ArtikalFi
 	}
 
 	if filter.SamoKriticni {
-		upit += " AND a.kolicina <= a.kolicina_min"
+		upit += " AND (a.tip = 'proizvod' OR a.tip = '') AND a.kolicina <= a.kolicina_min"
+	}
+
+	if filter.Arhivirani {
+		upit += " AND a.arhiviran = 1"
+	} else {
+		upit += " AND a.arhiviran = 0"
 	}
 
 	var broj int

@@ -123,7 +123,7 @@ func (r *ProdajaRepo) DohvatiID(ctx context.Context, id int64) (*model.ProdajniN
 func (r *ProdajaRepo) DohvatiStavke(ctx context.Context, nalogID int64) ([]model.StavkaProdajeSaArtiklom, error) {
 	redovi, err := r.db.QueryContext(ctx, `
 		SELECT sp.id, sp.nalog_id, sp.artikal_id, sp.kolicina, sp.cena_po_komadu, sp.ukupno,
-		       sp.pdv_stopa, sp.pdv_iznos, sp.cena_bez_pdv, a.naziv
+		       sp.pdv_stopa, sp.pdv_iznos, sp.cena_bez_pdv, a.naziv, a.jedinica_mere
 		FROM stavke_prodaje sp
 		JOIN artikli a ON a.id = sp.artikal_id
 		WHERE sp.nalog_id = ?
@@ -140,7 +140,7 @@ func (r *ProdajaRepo) DohvatiStavke(ctx context.Context, nalogID int64) ([]model
 			&s.ID, &s.NalogID, &s.ArtikalID, &s.Kolicina,
 			&s.CenaPoKomadu, &s.Ukupno,
 			&s.PdvStopa, &s.PdvIznos, &s.CenaBezPdv,
-			&s.ArtikalNaziv,
+			&s.ArtikalNaziv, &s.JedinicaMere,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("ntech: ProdajaRepo.DohvatiStavke: scan: %w", err)
@@ -182,25 +182,29 @@ func (r *ProdajaRepo) Kreiraj(ctx context.Context, n *model.ProdajniNalog, stavk
 
 	// provera stanja, smanjenje i insert stavki
 	for _, s := range stavke {
-		var naziv string
+		var naziv, tip string
 		var stanjePre int
 		err := tx.QueryRowContext(ctx,
-			"SELECT naziv, kolicina FROM artikli WHERE id = ?", s.ArtikalID,
-		).Scan(&naziv, &stanjePre)
+			"SELECT naziv, kolicina, tip FROM artikli WHERE id = ?", s.ArtikalID,
+		).Scan(&naziv, &stanjePre, &tip)
 		if err != nil {
 			return 0, fmt.Errorf("ntech: ProdajaRepo.Kreiraj: dohvati artikal: %w", err)
 		}
 
-		if stanjePre < s.Kolicina {
-			return 0, &db.ErrNedovoljnoKolicine{ArtikalNaziv: naziv}
-		}
-
-		stanjePosle := stanjePre - s.Kolicina
-		_, err = tx.ExecContext(ctx,
-			"UPDATE artikli SET kolicina = ? WHERE id = ?", stanjePosle, s.ArtikalID,
-		)
-		if err != nil {
-			return 0, fmt.Errorf("ntech: ProdajaRepo.Kreiraj: update stanje: %w", err)
+		// usluge i troškovi ne prate lager — ne proveravaju se i ne umanjuju
+		pratiLager := tip == model.TipProizvod || tip == ""
+		stanjePosle := stanjePre
+		if pratiLager {
+			if stanjePre < s.Kolicina {
+				return 0, &db.ErrNedovoljnoKolicine{ArtikalNaziv: naziv}
+			}
+			stanjePosle = stanjePre - s.Kolicina
+			_, err = tx.ExecContext(ctx,
+				"UPDATE artikli SET kolicina = ? WHERE id = ?", stanjePosle, s.ArtikalID,
+			)
+			if err != nil {
+				return 0, fmt.Errorf("ntech: ProdajaRepo.Kreiraj: update stanje: %w", err)
+			}
 		}
 
 		// PDV računamo iz cene ako nije eksplicitno postavljeno
@@ -223,10 +227,13 @@ func (r *ProdajaRepo) Kreiraj(ctx context.Context, n *model.ProdajniNalog, stavk
 			return 0, fmt.Errorf("ntech: ProdajaRepo.Kreiraj: insert stavka: %w", err)
 		}
 
-		err = zabeleziMagacinPromenu(ctx, tx, s.ArtikalID, model.PromenaIzlazProdaja,
-			-s.Kolicina, stanjePre, stanjePosle, nalogID, korisnikID, "")
-		if err != nil {
-			return 0, fmt.Errorf("ntech: ProdajaRepo.Kreiraj: magacin: %w", err)
+		// magacinsku promenu beležimo samo za artikle koji prate lager
+		if pratiLager {
+			err = zabeleziMagacinPromenu(ctx, tx, s.ArtikalID, model.PromenaIzlazProdaja,
+				-s.Kolicina, stanjePre, stanjePosle, nalogID, korisnikID, "")
+			if err != nil {
+				return 0, fmt.Errorf("ntech: ProdajaRepo.Kreiraj: magacin: %w", err)
+			}
 		}
 	}
 
@@ -279,9 +286,15 @@ func (r *ProdajaRepo) Storno(ctx context.Context, id int64, razlog string, koris
 
 	for _, p := range stavke {
 		var stanjePre int
-		err := tx.QueryRowContext(ctx, "SELECT kolicina FROM artikli WHERE id = ?", p.artikalID).Scan(&stanjePre)
+		var tip string
+		err := tx.QueryRowContext(ctx, "SELECT kolicina, tip FROM artikli WHERE id = ?", p.artikalID).Scan(&stanjePre, &tip)
 		if err != nil {
 			return fmt.Errorf("ntech: ProdajaRepo.Storno: dohvati stanje: %w", err)
+		}
+
+		// usluge i troškovi nemaju stanje na lageru — preskačemo povraćaj
+		if !(tip == model.TipProizvod || tip == "") {
+			continue
 		}
 
 		stanjePosle := stanjePre + p.kolicina
@@ -352,8 +365,9 @@ func (r *ProdajaRepo) Obrisi(ctx context.Context, id int64) error {
 		redovi.Close()
 
 		for _, p := range stavke {
+			// usluge i troškovi nemaju stanje — vraćamo samo proizvodima
 			_, err := tx.ExecContext(ctx,
-				"UPDATE artikli SET kolicina = kolicina + ? WHERE id = ?",
+				"UPDATE artikli SET kolicina = kolicina + ? WHERE id = ? AND (tip = 'proizvod' OR tip = '')",
 				p.kolicina, p.artikalID,
 			)
 			if err != nil {
