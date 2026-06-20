@@ -334,6 +334,8 @@ body {
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .topbar-logo { height: 34px; width: auto; border-radius: 6px; flex-shrink: 0; }
+/* sakrivanje preko klase (ne inline display) da mobilni @media koji gasi logo ostane nadređen */
+.topbar-logo.skriven { display: none; }
 
 /* sadržaj stranice */
 .sadrzaj {

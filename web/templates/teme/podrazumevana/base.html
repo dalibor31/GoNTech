@@ -391,6 +391,12 @@
                             if (brzina.value) document.body.dataset.brzinaAnimacije = brzina.value;
                             else delete document.body.dataset.brzinaAnimacije;
                         }
+                        // toggle „Prikaži logo u gornjoj traci" — pokaži/sakrij logo u topbaru bez reloda
+                        var logoToggle = f.querySelector('[name="topbar_logo_slika"]');
+                        if (logoToggle) {
+                            var logoImg = document.querySelector('.topbar-logo');
+                            if (logoImg) logoImg.classList.toggle('skriven', !logoToggle.checked);
+                        }
                         // posle čuvanja stilova lične pozadine ažuriraj CSS custom properties
                         var bgBlur = f.querySelector('[name="lokalna_pozadina_blur"]');
                         if (bgBlur) {
