@@ -48,7 +48,7 @@
                             {{if .KontaktOsoba}}{{.KontaktOsoba}}{{else}}—{{end}}
                         </td>
                         <td style="padding:12px 16px;font-size:13px;color:var(--tekst-sporedni);">
-                            {{if .Telefon}}{{.Telefon}}{{else}}—{{end}}
+                            {{if .Telefon}}{{telefon .Telefon}}{{else}}—{{end}}
                         </td>
                         <td style="padding:12px 16px;font-size:13px;color:var(--tekst-sporedni);">
                             {{if .Email}}{{.Email}}{{else}}—{{end}}
@@ -109,7 +109,7 @@
                 {{end}}
                 {{if .Telefon}}
                 <div class="pomocni-tekst">
-                    <span style="color:var(--tekst-glavni);font-weight:500;">Telefon:</span> {{.Telefon}}
+                    <span style="color:var(--tekst-glavni);font-weight:500;">Telefon:</span> {{telefon .Telefon}}
                 </div>
                 {{end}}
                 {{if .Email}}

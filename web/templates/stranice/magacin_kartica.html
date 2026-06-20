@@ -39,6 +39,55 @@
         </div>
     </div>
 
+    <!-- dobavljači artikla -->
+    <div class="kartica animiraj">
+        <div style="font-size:14px;font-weight:500;color:var(--tekst-glavni);margin-bottom:14px;padding-bottom:10px;border-bottom:0.5px solid var(--ivica);">
+            Dobavljači
+            <span style="font-size:12px;font-weight:400;color:var(--tekst-slabi);margin-left:8px;">{{len .Dobavljaci}}</span>
+        </div>
+
+        {{if .Dobavljaci}}
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+            {{range .Dobavljaci}}
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;">
+                <div>
+                    <div style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{.Naziv}}</div>
+                    {{if or .Telefon .KontaktOsoba}}
+                    <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:2px;">
+                        {{if .KontaktOsoba}}{{.KontaktOsoba}}{{end}}{{if and .KontaktOsoba .Telefon}} · {{end}}{{if .Telefon}}{{telefon .Telefon}}{{end}}
+                    </div>
+                    {{end}}
+                </div>
+                {{if index $.Dozvole "artikal.izmeni"}}
+                <form method="POST" action="/magacin/kartica/{{$.Artikal.ID}}/dobavljac/obrisi" style="margin:0;">
+                    <input type="hidden" name="dobavljac_id" value="{{.ID}}">
+                    <button type="submit" class="btn-obrisi-malo" data-potvrda="Ukloniti dobavljača {{.Naziv}} sa ovog artikla?">Ukloni</button>
+                </form>
+                {{end}}
+            </div>
+            {{end}}
+        </div>
+        {{else}}
+        <div style="font-size:13px;color:var(--tekst-sporedni);margin-bottom:16px;">Nijedan dobavljač nije vezan za ovaj artikal.</div>
+        {{end}}
+
+        {{if index .Dozvole "artikal.izmeni"}}
+        {{if .DostupniDobavljaci}}
+        <form method="POST" action="/magacin/kartica/{{.Artikal.ID}}/dobavljac/dodaj" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <select name="dobavljac_id" required style="flex:1;min-width:200px;">
+                <option value="">— izaberi dobavljača —</option>
+                {{range .DostupniDobavljaci}}
+                <option value="{{.ID}}">{{.Naziv}}</option>
+                {{end}}
+            </select>
+            <button type="submit" class="btn-primarno">+ Dodaj dobavljača</button>
+        </form>
+        {{else}}
+        <div style="font-size:12px;color:var(--tekst-slabi);">Svi dobavljači su već vezani za ovaj artikal.</div>
+        {{end}}
+        {{end}}
+    </div>
+
     <!-- tabela promena -->
     <div class="kartica animiraj">
         <div style="font-size:14px;font-weight:500;color:var(--tekst-glavni);margin-bottom:14px;padding-bottom:10px;border-bottom:0.5px solid var(--ivica);">

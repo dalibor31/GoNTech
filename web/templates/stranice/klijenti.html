@@ -73,7 +73,7 @@
                             {{end}}
                         </td>
                         <td class="pomocni-tekst">
-                            {{if .Telefon}}{{.Telefon}}{{else}}—{{end}}
+                            {{if .Telefon}}{{telefon .Telefon}}{{else}}—{{end}}
                         </td>
                         <td class="pomocni-tekst">
                             {{if .Email}}{{.Email}}{{else}}—{{end}}
@@ -141,7 +141,7 @@
             <div class="kolona" style="gap:6px;">
                 {{if .Telefon}}
                 <div class="pomocni-tekst">
-                    <span style="color:var(--tekst-glavni);font-weight:500;">Telefon:</span> {{.Telefon}}
+                    <span style="color:var(--tekst-glavni);font-weight:500;">Telefon:</span> {{telefon .Telefon}}
                 </div>
                 {{end}}
                 {{if .Email}}

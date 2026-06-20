@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -220,8 +221,10 @@ func (h *Handler) VratiArtikal(w http.ResponseWriter, r *http.Request) {
 // PodaciMagacinskeKartice su podaci za karticu jednog artikla
 type PodaciMagacinskeKartice struct {
 	model.PodaciStranice
-	Artikal model.Artikal
-	Promene []model.MagacinskaPromenaSaDetaljem
+	Artikal           model.Artikal
+	Promene           []model.MagacinskaPromenaSaDetaljem
+	Dobavljaci        []model.Dobavljac // dobavljači vezani za artikal
+	DostupniDobavljaci []model.Dobavljac // dobavljači koji još nisu vezani (za dodavanje)
 }
 
 // MagacinskaKartica prikazuje sve promene stanja za jedan artikal
@@ -250,13 +253,67 @@ func (h *Handler) MagacinskaKartica(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// dobavljači: vezani za artikal i oni koji još nisu vezani (za padajući izbor)
+	sviDobavljaci, _ := h.DobavljaciRepo.Lista(r.Context(), "")
+	vezaniIDs, _ := h.Artikli.DobavljaciArtikla(r.Context(), id)
+	vezanSet := map[int64]bool{}
+	for _, did := range vezaniIDs {
+		vezanSet[did] = true
+	}
+	var vezani, dostupni []model.Dobavljac
+	for _, d := range sviDobavljaci {
+		if vezanSet[d.ID] {
+			vezani = append(vezani, d)
+		} else {
+			dostupni = append(dostupni, d)
+		}
+	}
+
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "magacin"
 	ps.NaslovStranice = "Kartica: " + artikal.Naziv
 
 	h.renderujTemplate(w, "magacin_kartica", PodaciMagacinskeKartice{
-		PodaciStranice: ps,
-		Artikal:        *artikal,
-		Promene:        promene,
+		PodaciStranice:     ps,
+		Artikal:            *artikal,
+		Promene:            promene,
+		Dobavljaci:         vezani,
+		DostupniDobavljaci: dostupni,
 	})
+}
+
+// DodajDobavljacaArtiklu veže izabranog dobavljača za artikal
+func (h *Handler) DodajDobavljacaArtiklu(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Neispravan ID artikla", http.StatusBadRequest)
+		return
+	}
+	dobID, err := strconv.ParseInt(r.FormValue("dobavljac_id"), 10, 64)
+	if err != nil {
+		http.Redirect(w, r, "/magacin/kartica/"+chi.URLParam(r, "id"), http.StatusSeeOther)
+		return
+	}
+	if e := h.Artikli.PoveziDobavljaca(r.Context(), id, dobID); e != nil {
+		slog.Error("vezivanje dobavljača nije uspelo", "artikal_id", id, "error", e)
+	}
+	http.Redirect(w, r, "/magacin/kartica/"+chi.URLParam(r, "id"), http.StatusSeeOther)
+}
+
+// ObrisiDobavljacaArtikla uklanja vezu dobavljača sa artiklom
+func (h *Handler) ObrisiDobavljacaArtikla(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Neispravan ID artikla", http.StatusBadRequest)
+		return
+	}
+	dobID, err := strconv.ParseInt(r.FormValue("dobavljac_id"), 10, 64)
+	if err != nil {
+		http.Redirect(w, r, "/magacin/kartica/"+chi.URLParam(r, "id"), http.StatusSeeOther)
+		return
+	}
+	if e := h.Artikli.OdveziDobavljaca(r.Context(), id, dobID); e != nil {
+		slog.Error("uklanjanje dobavljača nije uspelo", "artikal_id", id, "error", e)
+	}
+	http.Redirect(w, r, "/magacin/kartica/"+chi.URLParam(r, "id"), http.StatusSeeOther)
 }
