@@ -46,7 +46,7 @@ type PodaciDetaljiNabavke struct {
 }
 
 // artikalUJSON pretvara listu artikala u template.JS vrednost bezbednu za umetanje u <script> tag
-func artikalUJSON(artikli []model.ArtikalSaKategorijom) template.JS {
+func artikalUJSON(artikli []model.ArtikalSaKategorijom, vezeDobavljaca map[int64][]int64) template.JS {
 	type stavka struct {
 		ID              int64    `json:"id"`
 		Naziv           string   `json:"naziv"`
@@ -54,13 +54,19 @@ func artikalUJSON(artikli []model.ArtikalSaKategorijom) template.JS {
 		NabavnaCena     float64  `json:"nabavna_cena"`     // poslednja nabavna cena — predlog za Cena/kom
 		Marza           *float64 `json:"marza"`            // marža artikla; null = nije postavljeno
 		KategorijaMarza *float64 `json:"kategorija_marza"` // marža kategorije; fallback ako artikal nema
+		Dobavljaci      []int64  `json:"dobavljaci"`       // ID-jevi dobavljača koji isporučuju artikal
 	}
 	lista := make([]stavka, 0, len(artikli))
 	for _, a := range artikli {
+		dob := vezeDobavljaca[a.ID]
+		if dob == nil {
+			dob = []int64{}
+		}
 		lista = append(lista, stavka{
 			ID: a.ID, Naziv: a.Naziv, PdvStopa: a.PdvStopa,
 			NabavnaCena: a.NabavnaCena,
 			Marza:       a.Marza, KategorijaMarza: a.KategorijaMarza,
+			Dobavljaci:  dob,
 		})
 	}
 	b, _ := json.Marshal(lista)
@@ -120,13 +126,15 @@ func (h *Handler) NovaNabavka(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	veze, _ := h.Artikli.SveDobavljaceArtikala(r.Context())
+
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "nabavke"
 	ps.NaslovStranice = "Nova nabavka"
 	h.renderujFormuNabavke(w, PodaciFormeNabavke{
 		PodaciStranice: ps,
 		Artikli:        artikli,
-		ArtikliJSON:    artikalUJSON(artikli),
+		ArtikliJSON:    artikalUJSON(artikli, veze),
 		Dobavljaci:     dobavljaci,
 		Kategorije:     kategorije,
 		Marza:          vrednostIliDefault(podesavanja, "kalkulacija_marza", "20"),
@@ -151,13 +159,14 @@ func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
 		artikli, _ := h.Artikli.Lista(r.Context(), db.ArtikalFilter{})
 		dobavljaci, _ := h.DobavljaciRepo.Lista(r.Context(), "")
 		kategorije, _ := h.KategorijeRepo.Lista(r.Context())
+		veze, _ := h.Artikli.SveDobavljaceArtikala(r.Context())
 		ps := h.popuniPodaciStranice(r, podesavanja)
 		ps.Stranica = "nabavke"
 		ps.NaslovStranice = "Nova nabavka"
 		h.renderujFormuNabavke(w, PodaciFormeNabavke{
 			PodaciStranice: ps,
 			Artikli:        artikli,
-			ArtikliJSON:    artikalUJSON(artikli),
+			ArtikliJSON:    artikalUJSON(artikli, veze),
 			Dobavljaci:     dobavljaci,
 			Kategorije:     kategorije,
 			Marza:          vrednostIliDefault(podesavanja, "kalkulacija_marza", "20"),
@@ -239,6 +248,15 @@ func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
 				KorisnikID: korisnikID,
 			}); e != nil {
 				slog.Error("kalkulacija: nivelacija nije upisana", "artikal_id", s.ArtikalID, "error", e)
+			}
+		}
+	}
+
+	// auto-veza artikal–dobavljač: svaki nabavljeni artikal se veže za dobavljača nabavke
+	if nabavka.DobavljacID != nil {
+		for _, s := range stavke {
+			if e := h.Artikli.PoveziDobavljaca(r.Context(), s.ArtikalID, *nabavka.DobavljacID); e != nil {
+				slog.Error("auto-veza dobavljača nije upisana", "artikal_id", s.ArtikalID, "error", e)
 			}
 		}
 	}

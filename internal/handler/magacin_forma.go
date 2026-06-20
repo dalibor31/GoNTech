@@ -18,11 +18,13 @@ import (
 // PodaciFormeArtikla su podaci za formu novog/izmenjenog artikla
 type PodaciFormeArtikla struct {
 	model.PodaciStranice
-	Artikal         model.Artikal
-	Kategorije      []model.Kategorija
-	KategorijaIDStr string
-	Greska          string
-	Izmena          bool
+	Artikal            model.Artikal
+	Kategorije         []model.Kategorija
+	KategorijaIDStr    string
+	Dobavljaci         []model.Dobavljac // svi dobavljači za izbor
+	IzabraniDobavljaci map[int64]bool    // dobavljači vezani za artikal (za checked stanje)
+	Greska             string
+	Izmena             bool
 }
 
 // NoviArtikal prikazuje formu za unos novog artikla
@@ -45,12 +47,15 @@ func (h *Handler) NoviArtikal(w http.ResponseWriter, r *http.Request) {
 		predlogSifre = "ART-0001"
 	}
 
+	dobavljaci, _ := h.DobavljaciRepo.Lista(r.Context(), "")
+
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "magacin"
 	ps.NaslovStranice = "Novi artikal"
 	h.renderujFormuArtikla(w, PodaciFormeArtikla{
 		PodaciStranice: ps,
 		Kategorije:     kategorije,
+		Dobavljaci:     dobavljaci,
 		Artikal:        model.Artikal{Sifra: predlogSifre, Tip: model.TipProizvod, JedinicaMere: "kom"},
 		Izmena:         false,
 	})
@@ -72,6 +77,7 @@ func (h *Handler) SacuvajArtikal(w http.ResponseWriter, r *http.Request) {
 	if greska != "" {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		kategorije, _ := h.KategorijeRepo.Lista(r.Context())
+		dobavljaci, _ := h.DobavljaciRepo.Lista(r.Context(), "")
 		katIDStr := ""
 		if artikal.KategorijaID != nil {
 			katIDStr = strconv.FormatInt(*artikal.KategorijaID, 10)
@@ -80,12 +86,14 @@ func (h *Handler) SacuvajArtikal(w http.ResponseWriter, r *http.Request) {
 		ps.Stranica = "magacin"
 		ps.NaslovStranice = "Novi artikal"
 		h.renderujFormuArtikla(w, PodaciFormeArtikla{
-			PodaciStranice:  ps,
-			Artikal:         artikal,
-			Kategorije:      kategorije,
-			KategorijaIDStr: katIDStr,
-			Greska:          greska,
-			Izmena:          false,
+			PodaciStranice:     ps,
+			Artikal:            artikal,
+			Kategorije:         kategorije,
+			KategorijaIDStr:    katIDStr,
+			Dobavljaci:         dobavljaci,
+			IzabraniDobavljaci: mapaDobavljaca(citajDobavljaceForme(r)),
+			Greska:             greska,
+			Izmena:             false,
 		})
 		return
 	}
@@ -107,6 +115,11 @@ func (h *Handler) SacuvajArtikal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	artikal.ID = id
+
+	// veži izabrane dobavljače (forma); modal nema to polje pa ostaje prazno
+	if e := h.Artikli.PostaviDobavljaceArtikla(r.Context(), id, citajDobavljaceForme(r)); e != nil {
+		slog.Error("čuvanje dobavljača artikla nije uspelo", "artikal_id", id, "error", e)
+	}
 
 	// fetch zahtev (iz modala) dobija JSON sa ID-em i nazivom novog artikla
 	if r.Header.Get("X-Requested-With") == "fetch" {
@@ -150,15 +163,25 @@ func (h *Handler) IzmeniArtikal(w http.ResponseWriter, r *http.Request) {
 		katIDStr = strconv.FormatInt(*artikal.KategorijaID, 10)
 	}
 
+	dobavljaci, _ := h.DobavljaciRepo.Lista(r.Context(), "")
+	izabrani := map[int64]bool{}
+	if ids, e := h.Artikli.DobavljaciArtikla(r.Context(), id); e == nil {
+		for _, did := range ids {
+			izabrani[did] = true
+		}
+	}
+
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "magacin"
 	ps.NaslovStranice = "Izmeni artikal"
 	h.renderujFormuArtikla(w, PodaciFormeArtikla{
-		PodaciStranice:  ps,
-		Artikal:         *artikal,
-		Kategorije:      kategorije,
-		KategorijaIDStr: katIDStr,
-		Izmena:          true,
+		PodaciStranice:     ps,
+		Artikal:            *artikal,
+		Kategorije:         kategorije,
+		KategorijaIDStr:    katIDStr,
+		Dobavljaci:         dobavljaci,
+		IzabraniDobavljaci: izabrani,
+		Izmena:             true,
 	})
 }
 
@@ -185,6 +208,7 @@ func (h *Handler) SacuvajIzmenuArtikla(w http.ResponseWriter, r *http.Request) {
 	if greska != "" {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		kategorije, _ := h.KategorijeRepo.Lista(r.Context())
+		dobavljaci, _ := h.DobavljaciRepo.Lista(r.Context(), "")
 		artikal.ID = id
 		katIDStr := ""
 		if artikal.KategorijaID != nil {
@@ -194,12 +218,14 @@ func (h *Handler) SacuvajIzmenuArtikla(w http.ResponseWriter, r *http.Request) {
 		ps.Stranica = "magacin"
 		ps.NaslovStranice = "Izmeni artikal"
 		h.renderujFormuArtikla(w, PodaciFormeArtikla{
-			PodaciStranice:  ps,
-			Artikal:         artikal,
-			Kategorije:      kategorije,
-			KategorijaIDStr: katIDStr,
-			Greska:          greska,
-			Izmena:          true,
+			PodaciStranice:     ps,
+			Artikal:            artikal,
+			Kategorije:         kategorije,
+			KategorijaIDStr:    katIDStr,
+			Dobavljaci:         dobavljaci,
+			IzabraniDobavljaci: mapaDobavljaca(citajDobavljaceForme(r)),
+			Greska:             greska,
+			Izmena:             true,
 		})
 		return
 	}
@@ -223,6 +249,11 @@ func (h *Handler) SacuvajIzmenuArtikla(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ažuriraj dobavljače artikla prema formi
+	if e := h.Artikli.PostaviDobavljaceArtikla(r.Context(), id, citajDobavljaceForme(r)); e != nil {
+		slog.Error("čuvanje dobavljača artikla nije uspelo", "artikal_id", id, "error", e)
+	}
+
 	// ako se prodajna cena promenila, automatski upiši nivelacioni zapis (izvor "izmena")
 	if razlika := artikal.ProdajnaCena - staraCena; razlika > 0.005 || razlika < -0.005 {
 		korisnikID := &k.ID
@@ -238,6 +269,26 @@ func (h *Handler) SacuvajIzmenuArtikla(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/magacin?sacuvano=1", http.StatusSeeOther)
+}
+
+// mapaDobavljaca pretvara listu ID-jeva u mapu za checked stanje u formi
+func mapaDobavljaca(ids []int64) map[int64]bool {
+	m := make(map[int64]bool, len(ids))
+	for _, id := range ids {
+		m[id] = true
+	}
+	return m
+}
+
+// citajDobavljaceForme čita izabrane dobavljače (checkbox dobavljaci[]) iz forme
+func citajDobavljaceForme(r *http.Request) []int64 {
+	var ids []int64
+	for _, v := range r.Form["dobavljaci"] {
+		if id, e := strconv.ParseInt(strings.TrimSpace(v), 10, 64); e == nil {
+			ids = append(ids, id)
+		}
+	}
+	return ids
 }
 
 // parseFormuArtikla čita polja iz forme i vraća artikal i eventualnu grešku

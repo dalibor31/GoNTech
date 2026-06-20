@@ -121,7 +121,7 @@
       <div>
         <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Ukupno</div>
         <div style="font-size:20px;font-weight:600;color:var(--sb-akcent);">
-          {{printf "%.2f" .Nalog.Ukupno}} din
+          {{dinari .Nalog.Ukupno}} din
         </div>
       </div>
       {{if .Nalog.RazlogStorniranja}}
@@ -205,18 +205,18 @@
           <tr style="border-bottom: 0.5px solid var(--ivica)">
             <td style="padding:10px 20px;font-size:14px;color:var(--tekst-glavni);">{{.ArtikalNaziv}}</td>
             <td style="padding:10px 20px;text-align:center;font-size:14px;color:var(--tekst-glavni);">{{.Kolicina}}</td>
-            <td style="padding:10px 20px;text-align:right;font-size:14px;color:var(--tekst-sporedni);">{{printf "%.2f" .CenaPoKomadu}} din</td>
+            <td style="padding:10px 20px;text-align:right;font-size:14px;color:var(--tekst-sporedni);">{{dinari .CenaPoKomadu}} din</td>
             <td style="padding:10px 20px;text-align:center;font-size:13px;color:var(--tekst-sporedni);">
               {{if .PdvStopa}}{{printf "%.0f" .PdvStopa}}%{{else}}—{{end}}
             </td>
-            <td style="padding:10px 20px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{printf "%.2f" .Ukupno}} din</td>
+            <td style="padding:10px 20px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .Ukupno}} din</td>
           </tr>
           {{end}}
         </tbody>
         <tfoot>
           <tr style="border-top: 0.5px solid var(--ivica)">
             <td colspan="4" style="padding:12px 20px;text-align:right;font-size:13px;font-weight:500;color:var(--tekst-sporedni);">Ukupno:</td>
-            <td style="padding:12px 20px;text-align:right;font-size:16px;font-weight:600;color:var(--sb-akcent);">{{printf "%.2f" .Nalog.Ukupno}} din</td>
+            <td style="padding:12px 20px;text-align:right;font-size:16px;font-weight:600;color:var(--sb-akcent);">{{dinari .Nalog.Ukupno}} din</td>
           </tr>
         </tfoot>
       </table>

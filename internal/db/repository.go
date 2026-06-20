@@ -31,6 +31,14 @@ type ArtikalRepository interface {
 	SledecaSifra(ctx context.Context, kategorijaID *int64) (string, error)
 	// KorigujKolicinu postavlja novu količinu artikla i upisuje korekciju u magacinske_promene
 	KorigujKolicinu(ctx context.Context, artikalID int64, novaKolicina int, korisnikID *int64, napomena string) error
+	// DobavljaciArtikla vraća ID-jeve dobavljača vezanih za artikal
+	DobavljaciArtikla(ctx context.Context, artikalID int64) ([]int64, error)
+	// PostaviDobavljaceArtikla zamenjuje skup dobavljača artikla datim ID-jevima
+	PostaviDobavljaceArtikla(ctx context.Context, artikalID int64, dobavljaciID []int64) error
+	// PoveziDobavljaca dodaje vezu artikal–dobavljač ako ne postoji (auto pri nabavci)
+	PoveziDobavljaca(ctx context.Context, artikalID, dobavljacID int64) error
+	// SveDobavljaceArtikala vraća mapu artikal_id → lista dobavljac_id (za filter u nabavci)
+	SveDobavljaceArtikala(ctx context.Context) (map[int64][]int64, error)
 }
 
 // KategorijaRepository definiše operacije nad kategorijama

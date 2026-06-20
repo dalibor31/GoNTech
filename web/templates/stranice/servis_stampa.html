@@ -188,13 +188,13 @@
                 <tr>
                     <td>{{.ArtikalNaziv}}</td>
                     <td class="desno">{{.Kolicina}}</td>
-                    <td class="desno">{{printf "%.2f" .CenaKomada}} din</td>
-                    <td class="desno">{{printf "%.2f" .Ukupno}} din</td>
+                    <td class="desno">{{dinari .CenaKomada}} din</td>
+                    <td class="desno">{{dinari .Ukupno}} din</td>
                 </tr>
                 {{end}}
                 <tr class="ukupno-red">
                     <td colspan="3">Ukupno delovi</td>
-                    <td class="desno">{{printf "%.2f" .UkupnoDelovi}} din</td>
+                    <td class="desno">{{dinari .UkupnoDelovi}} din</td>
                 </tr>
             </tbody>
         </table>

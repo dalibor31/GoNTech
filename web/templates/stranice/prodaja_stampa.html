@@ -82,15 +82,15 @@
           <tr>
             <td>{{.ArtikalNaziv}}</td>
             <td>{{.Kolicina}} {{.JedinicaMere}}</td>
-            <td>{{printf "%.2f" .CenaPoKomadu}} din</td>
-            <td>{{printf "%.2f" .Ukupno}} din</td>
+            <td>{{dinari .CenaPoKomadu}} din</td>
+            <td>{{dinari .Ukupno}} din</td>
           </tr>
           {{end}}
         </tbody>
         <tfoot>
           <tr>
             <td colspan="3" class="ukupno-label">Ukupno za naplatu:</td>
-            <td class="ukupno-iznos">{{printf "%.2f" .Nalog.Ukupno}} din</td>
+            <td class="ukupno-iznos">{{dinari .Nalog.Ukupno}} din</td>
           </tr>
         </tfoot>
       </table>

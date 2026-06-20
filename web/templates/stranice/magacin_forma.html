@@ -128,6 +128,22 @@
                         placeholder="prazno = po kategoriji / globalna">
                 </div>
 
+                <!-- dobavljači koji isporučuju artikal -->
+                {{if .Dobavljaci}}
+                <div>
+                    <label class="polje-labela">Dobavljači</label>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;padding:10px 12px;border:0.5px solid var(--ivica);border-radius:8px;">
+                        {{range .Dobavljaci}}
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;padding:4px 2px;">
+                            <input type="checkbox" name="dobavljaci" value="{{.ID}}" {{if index $.IzabraniDobavljaci .ID}}checked{{end}} style="flex-shrink:0;">
+                            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{.Naziv}}</span>
+                        </label>
+                        {{end}}
+                    </div>
+                    <div class="pomocni-tekst" style="margin-top:4px;">Određuje koje artikle dobavljač nudi pri nabavci.</div>
+                </div>
+                {{end}}
+
                 <!-- lokacija (samo za proizvode) -->
                 <div data-lager>
                     <label class="polje-labela">Lokacija u magacinu</label>

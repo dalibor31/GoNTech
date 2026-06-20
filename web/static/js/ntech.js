@@ -188,6 +188,8 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('nabavkaForma', () => ({
         stavke: [{artikal_id: '', kolicina: 1, cena: 0, marza: 0, prodajna: 0}],
         artikliOpcije: [],
+        dobavljacId: '',         // izabrani dobavljač nabavke — filtrira listu artikala
+        prikaziSveArtikle: false, // true = prikaži sve artikle, ne samo dobavljačeve
         marzaDefault: 0,
         troskovi: [],            // zavisni troškovi {naziv, iznos}
         metodRaspodele: 'vrednost', // 'vrednost' ili 'kolicina'
@@ -226,8 +228,20 @@ document.addEventListener('alpine:init', () => {
             })
         },
         dodajStavku() {
+            // ne dozvoli novu stavku dok poslednja nema izabran artikal
+            const poslednja = this.stavke[this.stavke.length - 1]
+            if (poslednja && !poslednja.artikal_id) {
+                if (window.ntechToast) window.ntechToast('Prvo izaberi artikal u poslednjoj stavci.', 'greska')
+                return
+            }
             this.stavke.push({artikal_id: '', kolicina: 1, cena: 0, marza: this.marzaDefault, prodajna: 0})
             this.preracunajSve()
+        },
+        // artikli za prikaz u stavkama: bez dobavljača (ili uz "prikaži sve") svi, inače samo njegovi
+        artikliZaDobavljaca() {
+            if (!this.dobavljacId || this.prikaziSveArtikle) return this.artikliOpcije
+            const did = Number(this.dobavljacId)
+            return this.artikliOpcije.filter(a => Array.isArray(a.dobavljaci) && a.dobavljaci.includes(did))
         },
         // PDV stopa izabranog artikla (iz JSON liste) — za obračun prodajne cene.
         // Ako firma nije PDV obveznik, PDV se ne dodaje na prodajnu cenu (stopa = 0).
@@ -299,7 +313,12 @@ document.addEventListener('alpine:init', () => {
             this.preracunajSve()
         },
         ukloniStavku(i) {
-            if (this.stavke.length > 1) this.stavke.splice(i, 1)
+            if (this.stavke.length > 1) {
+                this.stavke.splice(i, 1)
+            } else {
+                // poslednja stavka — ne brišemo red nego ga resetujemo na prazno
+                this.stavke[0] = {artikal_id: '', kolicina: 1, cena: 0, marza: this.marzaDefault, prodajna: 0}
+            }
             this.preracunajSve()
         },
         ukupnoStavke(s) {
@@ -354,7 +373,10 @@ document.addEventListener('alpine:init', () => {
                     return
                 }
                 const noviArtikal = await odgovor.json()
-                this.artikliOpcije.push({id: noviArtikal.id, naziv: noviArtikal.naziv})
+                // veži novi artikal za izabranog dobavljača da se odmah prikaže u filtriranoj listi
+                // (veza se trajno upisuje u bazu pri čuvanju nabavke — auto-veza)
+                const dob = this.dobavljacId ? [Number(this.dobavljacId)] : []
+                this.artikliOpcije.push({id: noviArtikal.id, naziv: noviArtikal.naziv, dobavljaci: dob})
                 this.zatvoriModal()
             } catch {
                 this.modalGreska = 'Greška pri komunikaciji sa serverom.'

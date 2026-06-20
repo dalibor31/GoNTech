@@ -37,7 +37,7 @@
                         <td style="padding: 12px 16px; font-size: 13px; font-family: monospace; color: var(--tekst-glavni)">{{.BrojNaloga}}</td>
                         <td style="padding: 12px 16px; font-size: 13px; color: var(--tekst-sporedni); white-space: nowrap">{{.Datum.Format "02.01.2006."}}</td>
                         <td style="padding: 12px 16px; font-size: 14px; font-weight: 500; color: var(--tekst-glavni)">{{if .KlijentNaziv}}{{.KlijentNaziv}}{{else}}—{{end}}</td>
-                        <td style="padding: 12px 16px; text-align: right; font-size: 14px; font-weight: 500; color: var(--tekst-glavni)">{{printf "%.2f" .Ukupno}} din</td>
+                        <td style="padding: 12px 16px; text-align: right; font-size: 14px; font-weight: 500; color: var(--tekst-glavni)">{{dinari .Ukupno}} din</td>
                         <td style="padding: 12px 16px; text-align: center">
                             <div style="display: flex; align-items: center; justify-content: center; gap: 8px">
                                 <a href="/prodaja/{{.ID}}" class="btn-primarno-malo">Detalji</a>
@@ -74,7 +74,7 @@
                     <div style="font-size: 14px; font-weight: 500; color: var(--tekst-glavni); margin-top: 2px">{{if .KlijentNaziv}}{{.KlijentNaziv}}{{else}}Bez klijenta{{end}}</div>
                     <div style="font-size: 12px; color: var(--tekst-sporedni); margin-top: 2px">{{.Datum.Format "02.01.2006."}}</div>
                 </div>
-                <div style="font-size: 15px; font-weight: 500; color: var(--tekst-glavni); white-space: nowrap">{{printf "%.2f" .Ukupno}} din</div>
+                <div style="font-size: 15px; font-weight: 500; color: var(--tekst-glavni); white-space: nowrap">{{dinari .Ukupno}} din</div>
             </div>
             <a href="/prodaja/{{.ID}}" class="btn-primarno-malo" style="justify-content: center; width: 100%; box-sizing: border-box">Detalji</a>
         </div>

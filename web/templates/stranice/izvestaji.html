@@ -61,13 +61,13 @@
                     <tr style="border-bottom:0.5px solid var(--ivica);">
                         <td style="padding:8px 12px;font-size:13px;color:var(--tekst-glavni);">{{.MesecPrikaz}}</td>
                         <td style="padding:8px 12px;text-align:right;font-size:13px;color:var(--tekst-sporedni);">
-                            {{if gt .Prodaja 0.0}}{{printf "%.0f" .Prodaja}} din{{else}}—{{end}}
+                            {{if gt .Prodaja 0.0}}{{dinariCeli .Prodaja}} din{{else}}—{{end}}
                         </td>
                         <td style="padding:8px 12px;text-align:right;font-size:13px;color:var(--tekst-sporedni);">
-                            {{if gt .Servis 0.0}}{{printf "%.0f" .Servis}} din{{else}}—{{end}}
+                            {{if gt .Servis 0.0}}{{dinariCeli .Servis}} din{{else}}—{{end}}
                         </td>
                         <td style="padding:8px 12px;text-align:right;font-size:13px;font-weight:500;color:var(--tekst-glavni);">
-                            {{if gt .Ukupno 0.0}}{{printf "%.0f" .Ukupno}} din{{else}}—{{end}}
+                            {{if gt .Ukupno 0.0}}{{dinariCeli .Ukupno}} din{{else}}—{{end}}
                         </td>
                     </tr>
                     {{end}}
@@ -145,7 +145,7 @@
                             <div style="font-size:11px;color:var(--tekst-sporedni);margin-top:1px;">{{.Kategorija}}</div>
                         </td>
                         <td style="padding:7px 8px;text-align:right;font-size:13px;color:var(--tekst-glavni);">{{.UkupnoKolicina}}</td>
-                        <td style="padding:7px 8px;text-align:right;font-size:13px;font-weight:500;color:var(--tekst-glavni);">{{printf "%.0f" .UkupnoPrihod}} din</td>
+                        <td style="padding:7px 8px;text-align:right;font-size:13px;font-weight:500;color:var(--tekst-glavni);">{{dinariCeli .UkupnoPrihod}} din</td>
                     </tr>
                     {{end}}
                 </tbody>
@@ -176,7 +176,7 @@
                         </td>
                         <td style="padding:7px 8px;font-size:13px;color:var(--tekst-glavni);">{{.Naziv}}</td>
                         <td style="padding:7px 8px;text-align:right;font-size:13px;color:var(--tekst-sporedni);">{{.BrojNaloga}}</td>
-                        <td style="padding:7px 8px;text-align:right;font-size:13px;font-weight:500;color:var(--tekst-glavni);">{{printf "%.0f" .UkupnoVrednost}} din</td>
+                        <td style="padding:7px 8px;text-align:right;font-size:13px;font-weight:500;color:var(--tekst-glavni);">{{dinariCeli .UkupnoVrednost}} din</td>
                     </tr>
                     {{end}}
                 </tbody>

@@ -174,13 +174,13 @@
                 <tr>
                     <td>{{.ArtikalNaziv}}</td>
                     <td class="desno">{{.Kolicina}}</td>
-                    <td class="desno">{{printf "%.2f" .CenaKomada}} din</td>
-                    <td class="desno">{{printf "%.2f" .Ukupno}} din</td>
+                    <td class="desno">{{dinari .CenaKomada}} din</td>
+                    <td class="desno">{{dinari .Ukupno}} din</td>
                 </tr>
                 {{end}}
                 <tr class="ukupno-red">
                     <td colspan="3">Ukupno delovi</td>
-                    <td class="desno">{{printf "%.2f" .UkupnoDelovi}} din</td>
+                    <td class="desno">{{dinari .UkupnoDelovi}} din</td>
                 </tr>
             </tbody>
         </table>
@@ -196,18 +196,18 @@
                 {{if .CenaRaspon}}
                 <tr>
                     <td>Cena rada (procena)</td>
-                    <td class="desno" style="width:200px;">{{printf "%.2f" .CenaRadaOd}} – {{printf "%.2f" .CenaRadaDo}} din</td>
+                    <td class="desno" style="width:200px;">{{dinari .CenaRadaOd}} – {{dinari .CenaRadaDo}} din</td>
                 </tr>
                 {{else}}
                 <tr>
                     <td>Cena rada</td>
-                    <td class="desno" style="width:200px;">{{printf "%.2f" .CenaRada}} din</td>
+                    <td class="desno" style="width:200px;">{{dinari .CenaRada}} din</td>
                 </tr>
                 {{end}}
                 {{if gt .UkupnoDelovi 0.0}}
                 <tr>
                     <td>Predloženi delovi i materijal</td>
-                    <td class="desno">{{printf "%.2f" .UkupnoDelovi}} din</td>
+                    <td class="desno">{{dinari .UkupnoDelovi}} din</td>
                 </tr>
                 {{end}}
             </tbody>
@@ -215,9 +215,9 @@
         <div class="naplata-blok">
             <div class="naplata-labela">Procena ukupnog troška:</div>
             {{if .CenaRaspon}}
-            <div class="naplata-iznos">{{printf "%.2f" .UkupnoOd}} – {{printf "%.2f" .UkupnoDo}} din</div>
+            <div class="naplata-iznos">{{printf "%.2f" .UkupnoOd}} – {{dinari .UkupnoDo}} din</div>
             {{else}}
-            <div class="naplata-iznos">{{printf "%.2f" .Ukupno}} din</div>
+            <div class="naplata-iznos">{{dinari .Ukupno}} din</div>
             {{end}}
         </div>
     </div>
