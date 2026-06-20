@@ -14,13 +14,19 @@ import (
 // PodaciMagacina su podaci za stranicu magacina
 type PodaciMagacina struct {
 	model.PodaciStranice
-	Artikli         []model.ArtikalSaKategorijom
-	Kategorije      []model.Kategorija
-	Filter          db.ArtikalFilter
-	KategorijaIDStr string
-	Sacuvano        bool
-	Obrisan         bool
-	Premesten       bool
+	Artikli          []model.ArtikalSaKategorijom
+	Kategorije       []model.Kategorija
+	Filter           db.ArtikalFilter
+	KategorijaIDStr  string
+	Sacuvano         bool
+	Obrisan          bool
+	Premesten        bool
+	StranicaBr       int
+	UkupnoStranica   int
+	UkupnoArtikala   int
+	StranicaPrev     int
+	StranicaNext     int
+	StranicaQueryUrl string // čuva filtere za linkove paginacije
 }
 
 // Magacin renderuje listu artikala
@@ -45,11 +51,29 @@ func (h *Handler) Magacin(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	const pageSize = 100
+	stranicaBr := 1
+	if p := r.URL.Query().Get("stranica"); p != "" {
+		if v, err := strconv.Atoi(p); err == nil && v > 0 {
+			stranicaBr = v
+		}
+	}
+	filter.Limit = pageSize
+	filter.Offset = (stranicaBr - 1) * pageSize
+
 	artikli, err := h.Artikli.Lista(r.Context(), filter)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju artikala", http.StatusInternalServerError)
 		return
 	}
+
+	ukupno, err := h.Artikli.PrebrojiPoFilteru(r.Context(), filter)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju artikala", http.StatusInternalServerError)
+		return
+	}
+
+	ukupnoStranica := (ukupno + pageSize - 1) / pageSize
 
 	kategorije, err := h.KategorijeRepo.Lista(r.Context())
 	if err != nil {
@@ -60,15 +84,43 @@ func (h *Handler) Magacin(w http.ResponseWriter, r *http.Request) {
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "magacin"
 	ps.NaslovStranice = "Magacin"
+
+	// izgradi query string za paginaciju (čuva filtere)
+	queryDelići := ""
+	if v := filter.Pretraga; v != "" {
+		queryDelići += "&pretraga=" + v
+	}
+	if katIDStr != "" {
+		queryDelići += "&kategorija=" + katIDStr
+	}
+	if filter.SamoKriticni {
+		queryDelići += "&kriticni=1"
+	}
+
+	stranicaPrev := stranicaBr - 1
+	if stranicaPrev < 1 {
+		stranicaPrev = 1
+	}
+	stranicaNext := stranicaBr + 1
+	if stranicaNext > ukupnoStranica {
+		stranicaNext = ukupnoStranica
+	}
+
 	podaci := PodaciMagacina{
-		PodaciStranice:  ps,
-		Artikli:         artikli,
-		Kategorije:      kategorije,
-		Filter:          filter,
-		KategorijaIDStr: katIDStr,
-		Sacuvano:        r.URL.Query().Get("sacuvano") == "1",
-		Obrisan:         r.URL.Query().Get("obrisan") == "1",
-		Premesten:       r.URL.Query().Get("premesten") == "1",
+		PodaciStranice:   ps,
+		Artikli:          artikli,
+		Kategorije:       kategorije,
+		Filter:           filter,
+		KategorijaIDStr:  katIDStr,
+		Sacuvano:         r.URL.Query().Get("sacuvano") == "1",
+		Obrisan:          r.URL.Query().Get("obrisan") == "1",
+		Premesten:        r.URL.Query().Get("premesten") == "1",
+		StranicaBr:       stranicaBr,
+		UkupnoStranica:   ukupnoStranica,
+		UkupnoArtikala:   ukupno,
+		StranicaPrev:     stranicaPrev,
+		StranicaNext:     stranicaNext,
+		StranicaQueryUrl: queryDelići,
 	}
 
 	h.renderujTemplate(w, "magacin", podaci)

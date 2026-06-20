@@ -25,20 +25,27 @@
         {{end}}
     </div>
 
-    <!-- pretraga i filteri -->
-    <form method="GET" action="/magacin" class="kolona" style="gap:10px;">
+    <!-- pretraga i filteri — interaktivna pretraga (hx-trigger) -->
+    <form method="GET" action="/magacin" class="kolona" style="gap:10px;"
+          hx-get="/magacin" hx-target="#magacin-rezultati" hx-select="#magacin-rezultati" hx-swap="innerHTML" hx-push-url="true">
         <input type="text" name="pretraga" value="{{.Filter.Pretraga}}"
             placeholder="Pretraži artikle..."
-            style="width:100%;">
+            style="width:100%;"
+            hx-trigger="keyup changed delay:300ms, search"
+            hx-get="/magacin" hx-target="#magacin-rezultati" hx-select="#magacin-rezultati" hx-swap="innerHTML" hx-push-url="true">
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-            <select name="kategorija" style="flex:1;min-width:140px;">
+            <select name="kategorija" style="flex:1;min-width:140px;"
+                hx-trigger="change"
+                hx-get="/magacin" hx-target="#magacin-rezultati" hx-select="#magacin-rezultati" hx-swap="innerHTML" hx-push-url="true">
                 <option value="">Sve kategorije</option>
                 {{range .Kategorije}}
                 <option value="{{.ID}}" {{if eq (printf "%d" .ID) $.KategorijaIDStr}}selected{{end}}>{{.Naziv}}</option>
                 {{end}}
             </select>
             <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--tekst-sporedni);cursor:pointer;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;background:var(--kartica);white-space:nowrap;">
-                <input type="checkbox" name="kriticni" value="1" {{if .Filter.SamoKriticni}}checked{{end}}>
+                <input type="checkbox" name="kriticni" value="1" {{if .Filter.SamoKriticni}}checked{{end}}
+                    hx-trigger="change"
+                    hx-get="/magacin" hx-target="#magacin-rezultati" hx-select="#magacin-rezultati" hx-swap="innerHTML" hx-push-url="true">
                 Samo kritični
             </label>
             <button type="submit" class="btn-primarno">
@@ -46,6 +53,9 @@
             </button>
         </div>
     </form>
+
+    <!-- rezultati pretrage — HTMX zamenjuje samo ovo, polje za pretragu ostaje u fokusu -->
+    <div id="magacin-rezultati">
 
     <!-- tabela artikala -->
     <div class="kartica animiraj" style="padding:0;overflow:hidden;">
@@ -161,6 +171,23 @@
         </div>
         {{end}}
     </div>
+
+    <!-- paginacija -->
+    {{if gt .UkupnoStranica 1}}
+    <div class="paginacija" style="display:flex;align-items:center;justify-content:center;gap:12px;padding:12px 0;flex-wrap:wrap;">
+        <span style="font-size:13px;color:var(--tekst-sporedni);">{{.UkupnoArtikala}} artikala — {{.StranicaBr}}/{{.UkupnoStranica}}</span>
+        <div style="display:flex;gap:4px;">
+            {{if gt .StranicaBr 1}}
+            <a href="?stranica={{.StranicaPrev}}{{.StranicaQueryUrl}}" class="btn-sekundarno-malo" hx-target="#magacin-rezultati" hx-select="#magacin-rezultati" hx-swap="innerHTML" hx-push-url="true">← Prethodna</a>
+            {{end}}
+            {{if lt .StranicaBr .UkupnoStranica}}
+            <a href="?stranica={{.StranicaNext}}{{.StranicaQueryUrl}}" class="btn-primarno-malo" hx-target="#magacin-rezultati" hx-select="#magacin-rezultati" hx-swap="innerHTML" hx-push-url="true">Sledeća →</a>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
+
+    </div><!-- kraj #magacin-rezultati -->
 
 </div>
 {{end}}

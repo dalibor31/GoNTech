@@ -12,18 +12,23 @@
     <div class="poruka-uspeh poruka-animacija">Klijent je uspešno obrisan.</div>
     {{end}}
 
-    <!-- gornja traka: dugme + pretraga -->
+    <!-- gornja traka: dugme + interaktivna pretraga -->
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
         <a href="/klijenti/novi" class="btn-primarno">+ Novi klijent</a>
-        <form method="GET" action="/klijenti" style="display:flex;gap:8px;flex:1;min-width:200px;">
+        <form method="GET" action="/klijenti" style="display:flex;gap:8px;flex:1;min-width:200px;"
+              hx-get="/klijenti" hx-target="#klijenti-rezultati" hx-select="#klijenti-rezultati" hx-swap="innerHTML" hx-push-url="true">
             <input type="text" name="pretraga" value="{{.Pretraga}}"
                 placeholder="Pretraži po imenu ili nazivu firme..."
-                style="flex:1;">
+                style="flex:1;"
+                hx-trigger="keyup changed delay:300ms, search"
+                hx-get="/klijenti" hx-target="#klijenti-rezultati" hx-select="#klijenti-rezultati" hx-swap="innerHTML" hx-push-url="true">
             <button type="submit" class="btn-primarno">
                 Traži
             </button>
         </form>
     </div>
+
+    <div id="klijenti-rezultati">
 
     <!-- desktop tabela -->
     <div class="kartica klijenti-tabela kartica-tabela animiraj">
@@ -139,6 +144,23 @@
         </div>
         {{end}}
     </div>
+
+    <!-- paginacija -->
+    {{if gt .UkupnoStranica 1}}
+    <div class="paginacija" style="display:flex;align-items:center;justify-content:center;gap:12px;padding:12px 0;flex-wrap:wrap;">
+        <span style="font-size:13px;color:var(--tekst-sporedni);">{{.UkupnoKlijenata}} klijenata — {{.StranicaBr}}/{{.UkupnoStranica}}</span>
+        <div style="display:flex;gap:4px;">
+            {{if gt .StranicaBr 1}}
+            <a href="?stranica={{.StranicaPrev}}{{.StranicaQueryUrl}}" class="btn-sekundarno-malo" hx-target="#klijenti-rezultati" hx-select="#klijenti-rezultati" hx-swap="innerHTML" hx-push-url="true">← Prethodna</a>
+            {{end}}
+            {{if lt .StranicaBr .UkupnoStranica}}
+            <a href="?stranica={{.StranicaNext}}{{.StranicaQueryUrl}}" class="btn-primarno-malo" hx-target="#klijenti-rezultati" hx-select="#klijenti-rezultati" hx-swap="innerHTML" hx-push-url="true">Sledeća →</a>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
+
+    </div><!-- kraj #klijenti-rezultati -->
 
 </div>
 {{end}}

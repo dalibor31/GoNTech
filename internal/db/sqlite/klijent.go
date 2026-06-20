@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"ntech/internal/db"
 	"ntech/internal/model"
 )
 
@@ -28,9 +29,9 @@ func (r *KlijentRepo) Lista(ctx context.Context, pretraga string) ([]model.Klije
 	args := []any{}
 
 	if pretraga != "" {
-		upit += " AND (ime LIKE ? OR prezime LIKE ? OR naziv_firme LIKE ?)"
-		p := "%" + pretraga + "%"
-		args = append(args, p, p, p)
+upit += " AND (ime LIKE ? OR prezime LIKE ? OR (ime || ' ' || prezime) LIKE ? OR naziv_firme LIKE ? OR telefon LIKE ? OR email LIKE ?)"
+	p := "%" + pretraga + "%"
+		args = append(args, p, p, p, p, p, p)
 	}
 
 	upit += " ORDER BY datum_unosa DESC"
@@ -136,6 +137,81 @@ func (r *KlijentRepo) Izmeni(ctx context.Context, k *model.Klijent) error {
 	}
 
 	return nil
+}
+
+// ListaFilter vraća listu klijenata sa limitom i offsetom (paginacija)
+func (r *KlijentRepo) ListaFilter(ctx context.Context, filter db.KlijentFilter) ([]model.Klijent, error) {
+	upit := `
+		SELECT id, tip, ime, prezime, jmbg, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
+		FROM klijenti
+		WHERE 1=1`
+
+	args := []any{}
+
+	if filter.Pretraga != "" {
+		upit += " AND (ime LIKE ? OR prezime LIKE ? OR (ime || ' ' || prezime) LIKE ? OR naziv_firme LIKE ? OR telefon LIKE ? OR email LIKE ?)"
+		p := "%" + filter.Pretraga + "%"
+		args = append(args, p, p, p, p, p, p)
+	}
+
+	upit += " ORDER BY datum_unosa DESC"
+
+	if filter.Limit > 0 {
+		upit += " LIMIT ?"
+		args = append(args, filter.Limit)
+		if filter.Offset > 0 {
+			upit += " OFFSET ?"
+			args = append(args, filter.Offset)
+		}
+	}
+
+	redovi, err := r.db.QueryContext(ctx, upit, args...)
+	if err != nil {
+		return nil, fmt.Errorf("ntech: KlijentRepo.ListaFilter: %w", err)
+	}
+	defer redovi.Close()
+
+	var rezultat []model.Klijent
+	for redovi.Next() {
+		var k model.Klijent
+		var ime, prezime, jmbg, nazivFirme, pib, telefon, email, mesto, napomena sql.NullString
+		err := redovi.Scan(
+			&k.ID, &k.Tip, &ime, &prezime, &jmbg, &nazivFirme, &pib, &telefon, &email, &mesto, &napomena, &k.DatumUnosa,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("ntech: KlijentRepo.ListaFilter: scan: %w", err)
+		}
+		k.Ime = ime.String
+		k.Prezime = prezime.String
+		k.JMBG = jmbg.String
+		k.NazivFirme = nazivFirme.String
+		k.PIB = pib.String
+		k.Telefon = telefon.String
+		k.Email = email.String
+		k.Mesto = mesto.String
+		k.Napomena = napomena.String
+		rezultat = append(rezultat, k)
+	}
+
+	return rezultat, nil
+}
+
+// PrebrojiPoFilteru vraća broj klijenata koji zadovoljavaju filter
+func (r *KlijentRepo) PrebrojiPoFilteru(ctx context.Context, filter db.KlijentFilter) (int, error) {
+	upit := `SELECT COUNT(*) FROM klijenti WHERE 1=1`
+	args := []any{}
+
+	if filter.Pretraga != "" {
+		upit += " AND (ime LIKE ? OR prezime LIKE ? OR (ime || ' ' || prezime) LIKE ? OR naziv_firme LIKE ? OR telefon LIKE ? OR email LIKE ?)"
+		p := "%" + filter.Pretraga + "%"
+		args = append(args, p, p, p, p, p, p)
+	}
+
+	var broj int
+	if err := r.db.QueryRowContext(ctx, upit, args...).Scan(&broj); err != nil {
+		return 0, fmt.Errorf("ntech: KlijentRepo.PrebrojiPoFilteru: %w", err)
+	}
+	return broj, nil
 }
 
 // Obrisi briše klijenta po ID-u
