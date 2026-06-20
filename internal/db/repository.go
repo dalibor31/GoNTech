@@ -149,7 +149,7 @@ type ProdajaRepository interface {
 	DohvatiStavke(ctx context.Context, nalogID int64) ([]model.StavkaProdajeSaArtiklom, error)
 	Kreiraj(ctx context.Context, n *model.ProdajniNalog, stavke []model.StavkaProdaje, korisnikID *int64) (int64, error)
 	Storno(ctx context.Context, id int64, razlog string, korisnikID *int64) error
-	Obrisi(ctx context.Context, id int64) error
+	Obrisi(ctx context.Context, id int64, korisnikID *int64) error
 	SledeciBroj(ctx context.Context) (string, error)
 }
 

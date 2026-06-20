@@ -112,6 +112,7 @@
                         <input type="text" name="kod" value="{{.Kod}}" maxlength="10"
                             placeholder="npr. MEM"
                             style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;text-transform:uppercase;">
+                        {{if not .Kod}}<div class="pomocni-tekst" style="margin-top:4px;color:#f59e0b;">Kôd nije postavljen — artikli će koristiti prefiks ART-.</div>{{end}}
                     </div>
                     <div>
                         <label class="polje-labela">Opis</label>

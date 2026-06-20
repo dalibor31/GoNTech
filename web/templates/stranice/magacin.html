@@ -242,6 +242,12 @@ document.body.addEventListener('htmx:beforeRequest', function (e) {
         if (rez) rez.classList.add('bez-anim');
     }
 });
+// Pre nego što HTMX sačuva snapshot stranice u sessionStorage, skloni bez-anim
+// da snapshot ne prikazuje "zamrznutu" tabelu bez animacije pri sledećoj navigaciji.
+document.body.addEventListener('htmx:beforeHistorySave', function () {
+    var rez = document.getElementById('magacin-rezultati');
+    if (rez) rez.classList.remove('bez-anim');
+});
 </script>
 {{end}}
 
