@@ -266,8 +266,11 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 
 	// whitelist dozvoljenih redirekcija — vrednost uvek dolazi iz mape, nikad od korisnika
 	dozvoljeniSledeci := map[string]string{
-		"/admin/podesavanja/opste": "/admin/podesavanja/opste",
-		"/podesavanja":             "/podesavanja",
+		"/admin/podesavanja/opste":          "/admin/podesavanja/opste",
+		"/admin/podesavanja/sistem":         "/admin/podesavanja/sistem",
+		"/admin/podesavanja/servis":         "/admin/podesavanja/servis",
+		"/admin/podesavanja/kalkulacija-pdv": "/admin/podesavanja/kalkulacija-pdv",
+		"/podesavanja":                      "/podesavanja",
 	}
 	sledeci := "/podesavanja"
 	if v, ok := dozvoljeniSledeci[r.FormValue("_next")]; ok {
