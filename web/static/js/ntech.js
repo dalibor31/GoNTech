@@ -113,20 +113,6 @@ document.addEventListener('alpine:init', () => {
             this.opacity = this.broj(this.$el.dataset.opacity, 50)
             this.blurPozadine = this.broj(this.$el.dataset.blurPozadine, 0)
             this.glassOpacity = this.broj(this.$el.dataset.glassOpacity, 10)
-            // ažuriraj CSS custom properties kad se slajder pomera — promena se vidi odmah
-            this.$watch('blur', () => this.primeniBg())
-            this.$watch('opacity', () => this.primeniBg())
-            this.$watch('blurPozadine', () => this.primeniBg())
-            this.$watch('glassOpacity', () => this.primeniBg())
-        },
-        primeniBg() {
-            const r = document.documentElement
-            r.style.setProperty('--app-blur-bg', this.blurPozadine + 'px')
-            r.style.setProperty('--app-blur-bg-inset', this.blurPozadine > 0 ? '-20px' : '0')
-            r.style.setProperty('--app-overlay', this.opacity + '%')
-            r.style.setProperty('--app-blur', this.blur + 'px')
-            r.style.setProperty('--app-glass-sb', this.glassOpacity + '%')
-            r.style.setProperty('--app-glass-el', this.glassOpacity + '%')
         },
         // vraća ceo broj iz vrednosti; ako nije broj, vraća podrazumevano (0 ostaje 0)
         broj(vrednost, podrazumevano) {
