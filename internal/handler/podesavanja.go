@@ -362,20 +362,20 @@ func (h *Handler) OtpremiLogo(w http.ResponseWriter, r *http.Request) {
 	// ograničavamo telo zahteva na 2MB + malo za zaglavlja forme
 	r.Body = http.MaxBytesReader(w, r.Body, 2<<20+4096)
 	if err := r.ParseMultipartForm(2 << 20); err != nil {
-		http.Redirect(w, r, "/podesavanja?logo_greska=Fajl+je+prevelik+%28maksimum+2+MB%29", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/opste?logo_greska=Fajl+je+prevelik+%28maksimum+2+MB%29", http.StatusSeeOther)
 		return
 	}
 
 	fajl, zaglavlje, err := r.FormFile("logo")
 	if err != nil {
-		http.Redirect(w, r, "/podesavanja?logo_greska=Nije+odabran+fajl", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/opste?logo_greska=Nije+odabran+fajl", http.StatusSeeOther)
 		return
 	}
 	defer fajl.Close()
 
 	// eksplicitna provera veličine (zaglavlje.Size je postavljeno od strane browsera)
 	if zaglavlje.Size > 2<<20 {
-		http.Redirect(w, r, "/podesavanja?logo_greska=Fajl+je+prevelik+%28maksimum+2+MB%29", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/opste?logo_greska=Fajl+je+prevelik+%28maksimum+2+MB%29", http.StatusSeeOther)
 		return
 	}
 
@@ -389,7 +389,7 @@ func (h *Handler) OtpremiLogo(w http.ResponseWriter, r *http.Request) {
 	}
 	ocekivaniMime, ok := dozvoljenoExt[ext]
 	if !ok {
-		http.Redirect(w, r, "/podesavanja?logo_greska=Dozvoljeni+formati+su+PNG%2C+JPG+i+SVG", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/opste?logo_greska=Dozvoljeni+formati+su+PNG%2C+JPG+i+SVG", http.StatusSeeOther)
 		return
 	}
 
@@ -399,12 +399,12 @@ func (h *Handler) OtpremiLogo(w http.ResponseWriter, r *http.Request) {
 		n, _ := fajl.Read(buf)
 		stvarniMime := http.DetectContentType(buf[:n])
 		if !strings.HasPrefix(stvarniMime, ocekivaniMime) {
-			http.Redirect(w, r, "/podesavanja?logo_greska=Sadržaj+fajla+ne+odgovara+odabranoj+ekstenziji", http.StatusSeeOther)
+			http.Redirect(w, r, "/admin/podesavanja/opste?logo_greska=Sadržaj+fajla+ne+odgovara+odabranoj+ekstenziji", http.StatusSeeOther)
 			return
 		}
 		// vraćamo kursor na početak
 		if _, err := fajl.Seek(0, io.SeekStart); err != nil {
-			http.Redirect(w, r, "/podesavanja?logo_greska=Greška+pri+obradi+fajla", http.StatusSeeOther)
+			http.Redirect(w, r, "/admin/podesavanja/opste?logo_greska=Greška+pri+obradi+fajla", http.StatusSeeOther)
 			return
 		}
 	}
@@ -419,14 +419,14 @@ func (h *Handler) OtpremiLogo(w http.ResponseWriter, r *http.Request) {
 	dst, err := os.Create(odrediste)
 	if err != nil {
 		slog.Error("upload loga: ne mogu kreirati fajl", "error", err)
-		http.Redirect(w, r, "/podesavanja?logo_greska=Greška+pri+čuvanju+fajla", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/opste?logo_greska=Greška+pri+čuvanju+fajla", http.StatusSeeOther)
 		return
 	}
 	defer dst.Close()
 
 	if _, err := io.Copy(dst, fajl); err != nil {
 		slog.Error("upload loga: greška pri kopiranju", "error", err)
-		http.Redirect(w, r, "/podesavanja?logo_greska=Greška+pri+čuvanju+fajla", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/opste?logo_greska=Greška+pri+čuvanju+fajla", http.StatusSeeOther)
 		return
 	}
 
@@ -434,11 +434,11 @@ func (h *Handler) OtpremiLogo(w http.ResponseWriter, r *http.Request) {
 	putanja := fmt.Sprintf("/static/uploads/logo%s?v=%d", ext, time.Now().Unix())
 	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "logo_putanja", putanja); err != nil {
 		slog.Error("upload loga: greška pri čuvanju putanje", "error", err)
-		http.Redirect(w, r, "/podesavanja?logo_greska=Greška+pri+čuvanju+podešavanja", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/podesavanja/opste?logo_greska=Greška+pri+čuvanju+podešavanja", http.StatusSeeOther)
 		return
 	}
 
-	http.Redirect(w, r, "/podesavanja?sacuvano=1", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/podesavanja/opste?sacuvano=1", http.StatusSeeOther)
 }
 
 // UkloniLogo briše logo fajl i čisti putanju iz podešavanja
