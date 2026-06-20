@@ -48,12 +48,12 @@
                         <td style="padding:10px 12px;white-space:nowrap;">{{.DatumPrometa.Format "02.01.2006."}}</td>
                         <td style="padding:10px 12px;">{{.BrojDokumenta}}</td>
                         <td style="padding:10px 12px;">{{.KupacNaziv}}{{if .KupacPib}}<div style="font-size:11px;color:var(--tekst-sporedni);">{{.OznakaPoreskogBroja}}: {{.KupacPib}}</div>{{end}}</td>
-                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .OsnovicaOpsta}}</td>
-                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .PdvOpsta}}</td>
-                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .OsnovicaPosebna}}</td>
-                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .PdvPosebna}}</td>
-                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .OslobodenUkupno}}</td>
-                        <td style="padding:10px 12px;text-align:right;font-weight:500;">{{printf "%.2f" .Ukupno}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{dinari .OsnovicaOpsta}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{dinari .PdvOpsta}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{dinari .OsnovicaPosebna}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{dinari .PdvPosebna}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{dinari .OslobodenUkupno}}</td>
+                        <td style="padding:10px 12px;text-align:right;font-weight:500;">{{dinari .Ukupno}}</td>
                         <td style="padding:10px 12px;text-align:right;white-space:nowrap;">
                             {{if eq .Izvor "rucno"}}
                             <form method="POST" action="/pdv/kir/obrisi/{{.ID}}" style="display:inline;">
@@ -72,12 +72,12 @@
                 <tfoot>
                     <tr style="border-top:0.5px solid var(--ivica);font-weight:500;background:var(--pozadina);">
                         <td style="padding:10px 12px;" colspan="3">UKUPNO ({{len .Zapisi}})</td>
-                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .Sume.OsnovicaOpsta}}</td>
-                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .Sume.PdvOpsta}}</td>
-                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .Sume.OsnovicaPosebna}}</td>
-                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .Sume.PdvPosebna}}</td>
-                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .Sume.OslobodenUkupno}}</td>
-                        <td style="padding:10px 12px;text-align:right;">{{printf "%.2f" .Sume.Ukupno}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{dinari .Sume.OsnovicaOpsta}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{dinari .Sume.PdvOpsta}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{dinari .Sume.OsnovicaPosebna}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{dinari .Sume.PdvPosebna}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{dinari .Sume.OslobodenUkupno}}</td>
+                        <td style="padding:10px 12px;text-align:right;">{{dinari .Sume.Ukupno}}</td>
                         <td></td>
                     </tr>
                 </tfoot>
