@@ -37,6 +37,8 @@ type ArtikalRepository interface {
 	PostaviDobavljaceArtikla(ctx context.Context, artikalID int64, dobavljaciID []int64) error
 	// PoveziDobavljaca dodaje vezu artikal–dobavljač ako ne postoji (auto pri nabavci)
 	PoveziDobavljaca(ctx context.Context, artikalID, dobavljacID int64) error
+	// OdveziDobavljaca uklanja vezu artikal–dobavljač
+	OdveziDobavljaca(ctx context.Context, artikalID, dobavljacID int64) error
 	// SveDobavljaceArtikala vraća mapu artikal_id → lista dobavljac_id (za filter u nabavci)
 	SveDobavljaceArtikala(ctx context.Context) (map[int64][]int64, error)
 }

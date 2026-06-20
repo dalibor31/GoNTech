@@ -362,6 +362,16 @@ func (r *ArtikalRepo) PoveziDobavljaca(ctx context.Context, artikalID, dobavljac
 	return nil
 }
 
+// OdveziDobavljaca uklanja vezu artikal–dobavljač
+func (r *ArtikalRepo) OdveziDobavljaca(ctx context.Context, artikalID, dobavljacID int64) error {
+	_, err := r.db.ExecContext(ctx,
+		"DELETE FROM artikal_dobavljac WHERE artikal_id = ? AND dobavljac_id = ?", artikalID, dobavljacID)
+	if err != nil {
+		return fmt.Errorf("ntech: ArtikalRepo.OdveziDobavljaca: %w", err)
+	}
+	return nil
+}
+
 // SveDobavljaceArtikala vraća mapu artikal_id → lista dobavljac_id
 func (r *ArtikalRepo) SveDobavljaceArtikala(ctx context.Context) (map[int64][]int64, error) {
 	redovi, err := r.db.QueryContext(ctx,

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"math"
 	"net/http"
+	"strings"
 )
 
 var bazniSabloni = []string{
@@ -62,6 +63,8 @@ var sablonskeFunkcije = template.FuncMap{
 	"dinariCeli": func(v float64) string {
 		return formatirajDinare(v, 0)
 	},
+	// telefon formatira srpski broj telefona radi lakšeg čitanja: "0641234567" → "064 123 4567"
+	"telefon": formatirajTelefon,
 	// statusPre vraća true ako je `a` pre `b` u redosledu statusa
 	"statusPre": func(a, b string, statusi []string) bool {
 		ia, ib := -1, -1
@@ -218,4 +221,61 @@ func formatirajDinare(v float64, decimale int) string {
 		rezultat = "-" + rezultat
 	}
 	return rezultat
+}
+
+// formatirajTelefon formatira srpski broj telefona radi lakšeg čitanja:
+// pozivni broj odvojen kosom crtom, ostatak grupisan crticom.
+// Primeri: "0641234567" → "064/123-4567", "+381641234567" → "+381 64/123-4567".
+// Ako format nije prepoznat, vraća original.
+func formatirajTelefon(s string) string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return ""
+	}
+
+	// izdvoj cifre i zapamti da li je međunarodni (+)
+	medjunarodni := strings.HasPrefix(s, "+") || strings.HasPrefix(s, "00")
+	var cifre []rune
+	for _, c := range s {
+		if c >= '0' && c <= '9' {
+			cifre = append(cifre, c)
+		}
+	}
+	d := string(cifre)
+
+	// međunarodni srpski prefiks (381): "+381 64/123-4567"
+	if medjunarodni {
+		d = strings.TrimPrefix(d, "00")
+		if strings.HasPrefix(d, "381") {
+			ostatak := d[3:] // bez vodeće nule, npr. "641234567"
+			if len(ostatak) < 7 || len(ostatak) > 9 {
+				return s
+			}
+			return "+381 " + ostatak[:2] + "/" + grupisiTelefon(ostatak[2:])
+		}
+		return s // strani broj — ne diramo
+	}
+
+	// lokalni format: očekujemo vodeću nulu i 8–10 cifara ukupno
+	if !strings.HasPrefix(d, "0") || len(d) < 8 || len(d) > 10 {
+		return s
+	}
+	// pozivni (3 cifre, npr. 064/011) "/" ostatak grupisan crticom
+	return d[:3] + "/" + grupisiTelefon(d[3:])
+}
+
+// grupisiTelefon deli niz cifara u grupe od po 3 crticom (poslednja može 4) — "1234567" → "123-4567"
+func grupisiTelefon(d string) string {
+	if len(d) <= 4 {
+		return d
+	}
+	var delovi []string
+	delovi = append(delovi, d[:3])
+	ostatak := d[3:]
+	for len(ostatak) > 4 {
+		delovi = append(delovi, ostatak[:3])
+		ostatak = ostatak[3:]
+	}
+	delovi = append(delovi, ostatak)
+	return strings.Join(delovi, "-")
 }

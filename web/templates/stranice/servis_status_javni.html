@@ -198,7 +198,7 @@
         {{if .Telefon}}
         <div class="kontakt">
             <div class="kontakt-naslov">Kontakt</div>
-            <a href="tel:{{.Telefon}}" class="kontakt-tel">{{.Telefon}}</a>
+            <a href="tel:{{.Telefon}}" class="kontakt-tel">{{telefon .Telefon}}</a>
             {{if .Adresa}}<div class="kontakt-adresa">{{.Adresa}}</div>{{end}}
         </div>
         {{end}}

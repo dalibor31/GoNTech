@@ -83,7 +83,7 @@
             <div class="firma-info">
                 {{if .Podnazlov}}{{.Podnazlov}}<br>{{end}}
                 {{if .Adresa}}{{.Adresa}}<br>{{end}}
-                {{if .Telefon}}Tel: {{.Telefon}}<br>{{end}}
+                {{if .Telefon}}Tel: {{telefon .Telefon}}<br>{{end}}
                 {{if .PIB}}PIB: {{.PIB}}{{end}}
             </div>
         </div>
@@ -109,7 +109,7 @@
             <div class="strana-naziv">{{if .NazivFirme}}{{.NazivFirme}}{{else}}—{{end}}</div>
             <div class="strana-info">
                 {{if .Adresa}}{{.Adresa}}<br>{{end}}
-                {{if .Telefon}}{{.Telefon}}{{end}}
+                {{if .Telefon}}{{telefon .Telefon}}{{end}}
             </div>
         </div>
         <div class="strana-kartica">
@@ -118,7 +118,7 @@
             <div class="strana-naziv">{{.KlijentNaziv}}</div>
             <div class="strana-info">
                 {{if .Klijent}}
-                    {{if .Klijent.Telefon}}Tel: {{.Klijent.Telefon}}<br>{{end}}
+                    {{if .Klijent.Telefon}}Tel: {{telefon .Klijent.Telefon}}<br>{{end}}
                     {{if .Klijent.Email}}{{.Klijent.Email}}<br>{{end}}
                     {{if .Klijent.Mesto}}{{.Klijent.Mesto}}{{end}}
                 {{end}}
