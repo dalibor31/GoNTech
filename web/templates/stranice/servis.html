@@ -94,7 +94,7 @@
                     {{else}}
                     <tr>
                         <td colspan="6" style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
-                            Nema servisnih naloga. <a href="/servis/novi" style="color:var(--sb-akcent);">Dodaj prvi nalog.</a>
+                            {{if or $.Pretraga $.FilterStatus}}Za datu pretragu nema servisnih naloga u bazi.{{else}}Nema servisnih naloga. <a href="/servis/novi" style="color:var(--sb-akcent);">Dodaj prvi nalog.</a>{{end}}
                         </td>
                     </tr>
                     {{end}}
@@ -145,7 +145,7 @@
         </div>
         {{else}}
         <div style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
-            Nema servisnih naloga. <a href="/servis/novi" style="color:var(--sb-akcent);">Dodaj prvi nalog.</a>
+            {{if or $.Pretraga $.FilterStatus}}Za datu pretragu nema servisnih naloga u bazi.{{else}}Nema servisnih naloga. <a href="/servis/novi" style="color:var(--sb-akcent);">Dodaj prvi nalog.</a>{{end}}
         </div>
         {{end}}
     </div>
