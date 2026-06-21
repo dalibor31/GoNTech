@@ -138,7 +138,13 @@ func normalizujKod(s string) string {
 			b.WriteRune(r)
 		}
 	}
-	return b.String()
+	kod := b.String()
+	// USL i TRO su rezervisani prefiksi (usluge i troškovi) — ne dozvoljavamo ih
+	// kao kôd kategorije da auto-šifra artikla ne bi pala u rezervisani prostor
+	if kod == "USL" || kod == "TRO" {
+		return ""
+	}
+	return kod
 }
 
 // ObrisiKategoriju briše kategoriju po ID-u

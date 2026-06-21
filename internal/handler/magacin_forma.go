@@ -306,7 +306,14 @@ func parseFormuArtikla(r *http.Request) (model.Artikal, string) {
 
 	var artikal model.Artikal
 	artikal.Naziv = naziv
-	artikal.Sifra = r.FormValue("sifra")
+	artikal.Sifra = strings.TrimSpace(r.FormValue("sifra"))
+	// prefiksi USL- i TRO- su rezervisani za šifre usluga i troškova
+	if artikal.Sifra != "" {
+		velika := strings.ToUpper(artikal.Sifra)
+		if strings.HasPrefix(velika, "USL-") || strings.HasPrefix(velika, "TRO-") {
+			return artikal, "Šifre sa prefiksom USL- i TRO- su rezervisane za usluge i troškove."
+		}
+	}
 	artikal.Barkod = r.FormValue("barkod")
 	artikal.Opis = r.FormValue("opis")
 	artikal.Lokacija = r.FormValue("lokacija")
