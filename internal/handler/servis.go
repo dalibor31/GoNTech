@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/base64"
 	"log/slog"
 	"net/http"
@@ -162,6 +163,26 @@ func (h *Handler) SacuvajNalog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ako nije izabran postojeći klijent, eventualno kreiraj novog iz polja forme
+	if greska := h.mozdaKreirajKlijenta(r.Context(), r, &nalog); greska != "" {
+		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+		klijenti, _ := h.KlijentiRepo.Lista(r.Context(), "")
+		tehnicari, _ := h.KorisniciRepo.Lista(r.Context())
+		ps := h.popuniPodaciStranice(r, podesavanja)
+		ps.Stranica = "servis"
+		ps.NaslovStranice = "Novi nalog"
+		h.renderujFormuNaloga(w, PodaciFormeNaloga{
+			PodaciStranice: ps,
+			Nalog:          nalog,
+			Klijenti:       klijenti,
+			Tehnicari:      tehnicari,
+			SviStatusi:     model.SviStatusi,
+			Greska:         greska,
+			Izmena:         false,
+		})
+		return
+	}
+
 	id, err := h.ServisRepo.Kreiraj(r.Context(), &nalog)
 	if err != nil {
 		slog.Error("greška pri čuvanju naloga", "error", err)
@@ -272,6 +293,27 @@ func (h *Handler) SacuvajIzmenaNaloga(w http.ResponseWriter, r *http.Request) {
 	}
 
 	nalog.ID = id
+
+	// ako nije izabran postojeći klijent, eventualno kreiraj novog iz polja forme
+	if greska := h.mozdaKreirajKlijenta(r.Context(), r, &nalog); greska != "" {
+		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+		klijenti, _ := h.KlijentiRepo.Lista(r.Context(), "")
+		tehnicari, _ := h.KorisniciRepo.Lista(r.Context())
+		ps := h.popuniPodaciStranice(r, podesavanja)
+		ps.Stranica = "servis"
+		ps.NaslovStranice = "Izmeni nalog"
+		h.renderujFormuNaloga(w, PodaciFormeNaloga{
+			PodaciStranice: ps,
+			Nalog:          nalog,
+			Klijenti:       klijenti,
+			Tehnicari:      tehnicari,
+			SviStatusi:     model.SviStatusi,
+			Greska:         greska,
+			Izmena:         true,
+		})
+		return
+	}
+
 	if err := h.ServisRepo.Izmeni(r.Context(), &nalog); err != nil {
 		slog.Error("greška pri čuvanju izmene naloga", "error", err)
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
@@ -546,6 +588,56 @@ func parseFormuNaloga(r *http.Request) (model.ServisniNalog, string) {
 	}
 
 	return nalog, ""
+}
+
+// mozdaKreirajKlijenta kreira novog klijenta iz polja forme naloga kada nije
+// izabran postojeći (klijent_id prazno), a uneto je ime (fizičko) ili naziv firme
+// (pravno). Klijent je opcioni — ako nema dovoljno podataka, nalog ostaje bez njega.
+// Vraća srpsku poruku o grešci za prikaz, ili prazan string ako je sve u redu.
+func (h *Handler) mozdaKreirajKlijenta(ctx context.Context, r *http.Request, nalog *model.ServisniNalog) string {
+	if nalog.KlijentID != nil {
+		return "" // izabran postojeći klijent — ništa ne kreiramo
+	}
+
+	tip := r.FormValue("tip")
+	if tip != "fizicko" && tip != "pravno" {
+		tip = "fizicko"
+	}
+	ime := strings.TrimSpace(r.FormValue("ime"))
+	nazivFirme := strings.TrimSpace(r.FormValue("naziv_firme"))
+
+	// bez minimalnih podataka nalog ostaje bez klijenta
+	if tip == "fizicko" && ime == "" {
+		return ""
+	}
+	if tip == "pravno" && nazivFirme == "" {
+		return ""
+	}
+
+	email := strings.TrimSpace(r.FormValue("email"))
+	if email != "" && !strings.Contains(email, "@") {
+		return "Adresa e-pošte nije ispravna."
+	}
+
+	klijent := model.Klijent{
+		Tip:        tip,
+		Ime:        ime,
+		Prezime:    strings.TrimSpace(r.FormValue("prezime")),
+		JMBG:       strings.TrimSpace(r.FormValue("jmbg")),
+		NazivFirme: nazivFirme,
+		PIB:        strings.TrimSpace(r.FormValue("pib")),
+		Telefon:    strings.TrimSpace(r.FormValue("telefon")),
+		Email:      email,
+		Mesto:      strings.TrimSpace(r.FormValue("mesto")),
+	}
+
+	id, err := h.KlijentiRepo.Kreiraj(ctx, &klijent)
+	if err != nil {
+		slog.Error("greška pri kreiranju klijenta iz naloga", "error", err)
+		return "Došlo je do greške pri čuvanju klijenta. Pokušajte ponovo."
+	}
+	nalog.KlijentID = &id
+	return ""
 }
 
 // defaultGarancija vraća datum garancije na osnovu datuma prijema i podešavanja;

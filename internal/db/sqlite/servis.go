@@ -30,11 +30,15 @@ func NoviServisRepo(db *sql.DB) *ServisRepo {
 	return &ServisRepo{db: db}
 }
 
-// SledeciBroj generiše sledeći broj naloga u formatu SN-GGGG-NNNN
+// SledeciBroj generiše sledeći broj naloga u formatu SN-MMGG-NNN
+// (MM mesec, GG dvocifrena godina); brojač NNN se resetuje svakog meseca
 func (r *ServisRepo) SledeciBroj(ctx context.Context) (string, error) {
-	godina := time.Now().Year()
-	uzorak := fmt.Sprintf("SN-%d-%%", godina)
+	sada := time.Now()
+	// prefiks "SN-MMGG-" je dug 8 karaktera, pa brojač počinje od 9. karaktera
+	prefiks := fmt.Sprintf("SN-%02d%02d-", int(sada.Month()), sada.Year()%100)
+	uzorak := prefiks + "%"
 
+	// COALESCE(MAX, 0)+1 → prvi nalog u mesecu dobija 001
 	var sledeci int
 	err := r.db.QueryRowContext(ctx, `
 		SELECT COALESCE(MAX(CAST(SUBSTR(broj_naloga, 9) AS INTEGER)), 0) + 1
@@ -44,7 +48,7 @@ func (r *ServisRepo) SledeciBroj(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("ntech: ServisRepo.SledeciBroj: %w", err)
 	}
 
-	return fmt.Sprintf("SN-%d-%04d", godina, sledeci), nil
+	return fmt.Sprintf("%s%03d", prefiks, sledeci), nil
 }
 
 // Lista vraća listu servisnih naloga sa imenom klijenta, opcionim filterima

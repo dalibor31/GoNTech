@@ -5,230 +5,340 @@
 {{define "sadrzaj"}}
 <div style="width:100%;">
 
+    <!-- podaci za Alpine: lista klijenata i eventualno već vezani klijent (kod izmene) -->
+    <script>
+        window.__klijentiNaloga = {{json .Klijenti}};
+        window.__izabraniKlijentId = {{.Nalog.KlijentIDVrednost}};
+    </script>
+
     <!-- nazad dugme -->
     <a href="/servis" class="nazad-link">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
         Nazad na servis
     </a>
 
-    <div class="kartica forma-kartica animiraj">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin:-16px -16px 20px -16px;padding:12px 16px;background:var(--pozadina);border-radius:12px 12px 0 0;flex-wrap:wrap;gap:10px;">
-            <span style="font-size:15px;font-weight:600;color:var(--tekst-glavni);">
-                {{if .Izmena}}Izmeni nalog{{else}}Novi nalog{{end}}
-            </span>
-            <span style="font-size:13px;font-weight:500;color:var(--tekst-sporedni);font-family:monospace;">
-                {{.Nalog.BrojNaloga}}
-            </span>
+    {{if .Greska}}
+    <div class="poruka-greska greska-animacija" style="margin-bottom:16px;">{{.Greska}}</div>
+    {{end}}
+
+    <form method="POST" action="{{if .Izmena}}/servis/izmeni/{{.Nalog.ID}}{{else}}/servis/novi{{end}}">
+
+        <!-- broj naloga ide kao hidden — server ga je generisao, vraćamo ga pri POST-u -->
+        <input type="hidden" name="broj_naloga" value="{{.Nalog.BrojNaloga}}">
+        <!-- CSRF token — bez njega middleware odbija POST sa 403 -->
+        <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+
+        <!-- ===================== KARTICA: UREĐAJ ===================== -->
+        <div class="kartica forma-kartica animiraj">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin:-16px -16px 20px -16px;padding:12px 16px;background:var(--pozadina);border-radius:12px 12px 0 0;flex-wrap:wrap;gap:10px;">
+                <span style="font-size:15px;font-weight:600;color:var(--tekst-glavni);">
+                    {{if .Izmena}}Izmeni nalog{{else}}Novi nalog{{end}}
+                </span>
+                <span style="font-size:13px;font-weight:500;color:var(--tekst-sporedni);font-family:monospace;">
+                    {{.Nalog.BrojNaloga}}
+                </span>
+            </div>
+
+            <div class="sekcija-naslov">Uređaj</div>
+            <div class="kolona" style="gap:12px;">
+                <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div>
+                        <label class="polje-labela">
+                            Uređaj <span style="color:#dc2626;">*</span>
+                        </label>
+                        <input type="text" name="uredjaj" value="{{.Nalog.Uredjaj}}"
+                            placeholder="npr. Laptop HP EliteBook 840"
+                            style="width:100%;">
+                    </div>
+                    <div>
+                        <label class="polje-labela">Serijski broj</label>
+                        <input type="text" name="serijski_broj" value="{{.Nalog.SerijskiBroj}}"
+                            placeholder="npr. 5CD1234XYZ"
+                            style="width:100%;">
+                    </div>
+                </div>
+                <div>
+                    <label class="polje-labela">
+                        Opis kvara <span style="color:#dc2626;">*</span>
+                    </label>
+                    <textarea name="opis_kvara" rows="3"
+                        placeholder="Opišite problem koji je klijent prijavio..."
+                        style="width:100%;resize:vertical;">{{.Nalog.OpisKvara}}</textarea>
+                </div>
+                <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div>
+                        <label class="polje-labela">Oštećenja pri prijemu</label>
+                        <input type="text" name="ostecenja" value="{{.Nalog.Ostecenja}}"
+                            placeholder="npr. ogrebotina na ekranu"
+                            style="width:100%;">
+                    </div>
+                    <div>
+                        <label class="polje-labela">PIN / lozinka uređaja</label>
+                        <input type="text" name="pin_uredjaja" value="{{.Nalog.PinUredjaja}}"
+                            placeholder="npr. 1234"
+                            style="width:100%;">
+                    </div>
+                </div>
+                <div>
+                    <label class="polje-labela">Pribor i oprema</label>
+                    <input type="text" name="pribor" value="{{.Nalog.Pribor}}"
+                        placeholder="npr. punjač, torbica, miš"
+                        style="width:100%;">
+                </div>
+            </div>
         </div>
 
-        {{if .Greska}}
-        <div class="poruka-greska greska-animacija">{{.Greska}}</div>
-        {{end}}
+        <!-- ===================== KARTICA: KLIJENT I TEHNIČAR ===================== -->
+        <div class="kartica forma-kartica animiraj" x-data="klijentNalog">
+            <div class="sekcija-naslov">Klijent</div>
+            <div class="kolona" style="gap:12px;">
 
-        <form method="POST" action="{{if .Izmena}}/servis/izmeni/{{.Nalog.ID}}{{else}}/servis/novi{{end}}">
+                <!-- tip klijenta: fizičko / pravno -->
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                    <label class="tip-opcija" :class="klasaTip('fizicko')">
+                        <input type="radio" name="tip" value="fizicko" :checked="jeTip('fizicko')"
+                            @change="promeniTip('fizicko')" style="accent-color:var(--akcentna);">
+                        Fizičko lice
+                    </label>
+                    <label class="tip-opcija" :class="klasaTip('pravno')">
+                        <input type="radio" name="tip" value="pravno" :checked="jeTip('pravno')"
+                            @change="promeniTip('pravno')" style="accent-color:var(--akcentna);">
+                        Pravno lice (firma)
+                    </label>
+                </div>
 
-            <!-- broj naloga ide kao hidden — server ga je generisao, vraćamo ga pri POST-u -->
-            <input type="hidden" name="broj_naloga" value="{{.Nalog.BrojNaloga}}">
+                <!-- vezani klijent_id: prazno ako se kreira novi -->
+                <input type="hidden" name="klijent_id" :value="vrednostKlijentId">
 
-            <div class="kolona" style="gap:20px;">
-
-                <!-- uređaj -->
-                <div>
-                    <div class="sekcija-naslov">Uređaj</div>
-                    <div class="kolona" style="gap:12px;">
-                        <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                            <div>
-                                <label class="polje-labela">
-                                    Uređaj <span style="color:#dc2626;">*</span>
-                                </label>
-                                <input type="text" name="uredjaj" value="{{.Nalog.Uredjaj}}"
-                                    placeholder="npr. Laptop HP EliteBook 840"
-                                    style="width:100%;">
-                            </div>
-                            <div>
-                                <label class="polje-labela">Serijski broj</label>
-                                <input type="text" name="serijski_broj" value="{{.Nalog.SerijskiBroj}}"
-                                    placeholder="npr. 5CD1234XYZ"
-                                    style="width:100%;">
-                            </div>
-                        </div>
+                <!-- prikaz izabranog postojećeg klijenta -->
+                <template x-if="izabrani">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:var(--pozadina);border:1px solid var(--ivica);border-radius:10px;">
                         <div>
-                            <label class="polje-labela">
-                                Opis kvara <span style="color:#dc2626;">*</span>
-                            </label>
-                            <textarea name="opis_kvara" rows="3"
-                                placeholder="Opišite problem koji je klijent prijavio..."
-                                style="width:100%;resize:vertical;">{{.Nalog.OpisKvara}}</textarea>
+                            <div style="font-weight:600;color:var(--tekst-glavni);" x-text="naziv(izabrani)"></div>
+                            <div style="font-size:12px;color:var(--tekst-sporedni);"
+                                x-text="detalj(izabrani)"></div>
                         </div>
-                        <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                            <div>
-                                <label class="polje-labela">Oštećenja pri prijemu</label>
-                                <input type="text" name="ostecenja" value="{{.Nalog.Ostecenja}}"
-                                    placeholder="npr. ogrebotina na ekranu"
-                                    style="width:100%;">
+                        <button type="button" class="btn-sekundarno" @click="ocisti()" style="padding:4px 10px;">Promeni</button>
+                    </div>
+                </template>
+
+                <!-- pretraga postojećeg (kad nijedan nije izabran) -->
+                <div x-show="nijeIzabran" style="position:relative;" @click.outside="prikaziListu=false">
+                    <label class="polje-labela">Pretraži postojećeg klijenta</label>
+                    <input type="text" x-model="pretraga" autocomplete="off"
+                        @focus="prikaziListu=true" @input="prikaziListu=true"
+                        @keydown.enter.prevent="potvrdiNovog()"
+                        placeholder="Ukucajte početak imena ili naziva..." style="width:100%;">
+                    <div x-show="prikaziListu && filtrirani.length" x-cloak
+                        style="position:absolute;z-index:30;left:0;right:0;margin-top:4px;background:var(--pozadina-kartica,var(--pozadina));border:1px solid var(--ivica);border-radius:10px;max-height:240px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.14);">
+                        <template x-for="k in filtrirani" :key="k.ID">
+                            <div @click="izaberi(k)" class="klijent-stavka"
+                                style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--ivica);">
+                                <div style="font-weight:500;color:var(--tekst-glavni);" x-text="naziv(k)"></div>
+                                <div style="font-size:12px;color:var(--tekst-sporedni);"
+                                    x-text="detalj(k)"></div>
                             </div>
-                            <div>
-                                <label class="polje-labela">PIN / lozinka uređaja</label>
-                                <input type="text" name="pin_uredjaja" value="{{.Nalog.PinUredjaja}}"
-                                    placeholder="npr. 1234"
-                                    style="width:100%;">
-                            </div>
-                        </div>
-                        <div>
-                            <label class="polje-labela">Pribor i oprema</label>
-                            <input type="text" name="pribor" value="{{.Nalog.Pribor}}"
-                                placeholder="npr. punjač, torbica, miš"
-                                style="width:100%;">
-                        </div>
+                        </template>
                     </div>
                 </div>
 
-                <!-- klijent i tehničar -->
-                <div>
-                    <div class="sekcija-naslov">Klijent i tehničar</div>
+                <!-- polja za NOVOG klijenta (kad nijedan postojeći nije izabran) -->
+                <div x-show="nijeIzabran" class="kolona" style="gap:12px;">
+                    <div style="font-size:12px;color:var(--tekst-sporedni);">
+                        Ako klijent ne postoji, popunite polja — biće sačuvan zajedno sa nalogom.
+                    </div>
+
+                    <!-- fizičko lice -->
+                    <template x-if="tip==='fizicko'">
+                        <div class="kolona" style="gap:12px;">
+                            <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                                <div>
+                                    <label class="polje-labela">Ime</label>
+                                    <input type="text" name="ime" x-model="noviIme" style="width:100%;">
+                                </div>
+                                <div>
+                                    <label class="polje-labela">Prezime</label>
+                                    <input type="text" name="prezime" x-model="noviPrezime" style="width:100%;">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="polje-labela">JMBG</label>
+                                <input type="text" name="jmbg" style="width:100%;">
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- pravno lice -->
+                    <template x-if="tip==='pravno'">
+                        <div class="kolona" style="gap:12px;">
+                            <div>
+                                <label class="polje-labela">Naziv firme</label>
+                                <input type="text" name="naziv_firme" x-model="noviNaziv" style="width:100%;">
+                            </div>
+                            <div>
+                                <label class="polje-labela">PIB</label>
+                                <input type="text" name="pib" style="width:100%;">
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- zajednička polja -->
                     <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                         <div>
-                            <label class="polje-labela">Klijent</label>
-                            <select name="klijent_id" style="width:100%;">
-                                <option value="">— bez klijenta —</option>
-                                {{range .Klijenti}}
-                                <option value="{{.ID}}"
-                                    {{if eq .ID $.Nalog.KlijentIDVrednost}}selected{{end}}>
-                                    {{.PunoIme}}
-                                </option>
-                                {{end}}
-                            </select>
+                            <label class="polje-labela">Telefon</label>
+                            <input type="text" name="telefon" style="width:100%;">
                         </div>
                         <div>
-                            <label class="polje-labela">Tehničar</label>
-                            <select name="tehnicar_id" style="width:100%;">
-                                <option value="">— nedodeljen —</option>
-                                {{range .Tehnicari}}
-                                <option value="{{.ID}}"
-                                    {{if eq .ID $.Nalog.TehnicarIDVrednost}}selected{{end}}>
-                                    {{.KorisnickoIme}}
-                                </option>
-                                {{end}}
-                            </select>
+                            <label class="polje-labela">Mesto</label>
+                            <input type="text" name="mesto" style="width:100%;">
                         </div>
+                    </div>
+                    <div>
+                        <label class="polje-labela">E-pošta</label>
+                        <input type="text" name="email" style="width:100%;">
                     </div>
                 </div>
 
-                <!-- status i datumi -->
+                <!-- tehničar -->
                 <div>
-                    <div class="sekcija-naslov">Status i datumi</div>
-                    <div class="kolona" style="gap:12px;">
-                        <div>
-                            <label class="polje-labela">Status naloga</label>
-                            <select name="status" style="width:100%;">
-                                {{range .SviStatusi}}
-                                <option value="{{.}}" {{if eq . $.Nalog.Status}}selected{{end}}>{{.}}</option>
-                                {{end}}
-                            </select>
-                        </div>
-                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
-                            <div>
-                                <label class="polje-labela">Datum prijema</label>
-                                <input type="date" name="datum_prijema"
-                                    value="{{.Nalog.DatumPrijema.Format "2006-01-02"}}"
-                                    style="width:100%;">
-                            </div>
-                            <div>
-                                <label class="polje-labela">Datum završetka</label>
-                                <input type="date" name="datum_zavrsetka"
-                                    value="{{if .Nalog.DatumZavrsetka}}{{.Nalog.DatumZavrsetka.Format "2006-01-02"}}{{end}}"
-                                    style="width:100%;">
-                            </div>
-                        </div>
-                        <div>
-                            <label class="polje-labela">Garancija do</label>
-                            <input type="date" name="garancija_do" id="garancija_do_input"
-                                value="{{if .Nalog.GarancijaDo}}{{.Nalog.GarancijaDo.Format "2006-01-02"}}{{end}}"
-                                {{if not .Nalog.GarancijaDo}}disabled{{end}}
-                                style="width:100%;{{if not .Nalog.GarancijaDo}}opacity:0.4;{{end}}">
-                        </div>
-                        <!-- svič bez garancije -->
-                        <div style="display:flex;align-items:center;gap:10px;">
-                            <label class="toggl" style="flex-shrink:0;">
-                                <input type="checkbox" id="bez_garancije_chk"
-                                    {{if not .Nalog.GarancijaDo}}checked{{end}}
-                                    onchange="toggleGarancija(this)">
-                                <span class="toggl-klizac"></span>
-                            </label>
-                            <input type="hidden" name="bez_garancije" id="bez_garancije_val"
-                                value="{{if not .Nalog.GarancijaDo}}1{{else}}0{{end}}">
-                            <span style="font-size:13px;color:var(--tekst-sporedni);">Bez garancije</span>
-                        </div>
-                    </div>
+                    <label class="polje-labela">Tehničar</label>
+                    <select name="tehnicar_id" style="width:100%;">
+                        <option value="">— nedodeljen —</option>
+                        {{range .Tehnicari}}
+                        <option value="{{.ID}}"
+                            {{if eq .ID $.Nalog.TehnicarIDVrednost}}selected{{end}}>
+                            {{.KorisnickoIme}}
+                        </option>
+                        {{end}}
+                    </select>
                 </div>
-
-                <!-- cene -->
-                <div>
-                    <div class="sekcija-naslov">Cene (din)</div>
-                    <div class="forma-grid-4" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;">
-                        <div>
-                            <label class="polje-labela">Procena od</label>
-                            <input type="number" name="cena_od" min="0" step="0.01"
-                                value="{{if .Nalog.CenaOd}}{{.Nalog.CenaOd}}{{end}}"
-                                placeholder="0" style="width:100%;">
-                        </div>
-                        <div>
-                            <label class="polje-labela">Procena do</label>
-                            <input type="number" name="cena_do" min="0" step="0.01"
-                                value="{{if .Nalog.CenaDo}}{{.Nalog.CenaDo}}{{end}}"
-                                placeholder="0" style="width:100%;">
-                        </div>
-                        <div>
-                            <label class="polje-labela">Cena rada</label>
-                            <input type="number" name="cena_konacna" min="0" step="0.01"
-                                value="{{if .Nalog.CenaKonacna}}{{.Nalog.CenaKonacna}}{{end}}"
-                                placeholder="0" style="width:100%;">
-                        </div>
-                        <div>
-                            <label class="polje-labela">Avans</label>
-                            <input type="number" name="avans" min="0" step="0.01"
-                                value="{{if .Nalog.Avans}}{{.Nalog.Avans}}{{end}}"
-                                placeholder="0" style="width:100%;">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- napomena -->
-                <div>
-                    <label class="polje-labela">Napomena</label>
-                    <textarea name="napomena" rows="2"
-                        placeholder="Interna napomena o nalogu..."
-                        style="width:100%;resize:vertical;">{{.Nalog.Napomena}}</textarea>
-                </div>
-
-                <!-- dugmad -->
-                <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:6px;">
-                    <a href="/servis" class="btn-sekundarno">Odustani</a>
-                    <button type="submit" class="btn-primarno">
-                        {{if .Izmena}}Sačuvaj izmene{{else}}Sačuvaj nalog{{end}}
-                    </button>
-                </div>
-
             </div>
-        </form>
-    </div>
+        </div>
+
+        <!-- ===================== KARTICA: STATUS I DATUMI ===================== -->
+        <div class="kartica forma-kartica animiraj">
+            <div class="sekcija-naslov">Status i datumi</div>
+            <div class="kolona" style="gap:12px;">
+                <div>
+                    <label class="polje-labela">Status naloga</label>
+                    <select name="status" style="width:100%;">
+                        {{range .SviStatusi}}
+                        <option value="{{.}}" {{if eq . $.Nalog.Status}}selected{{end}}>{{.}}</option>
+                        {{end}}
+                    </select>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
+                    <div>
+                        <label class="polje-labela">Datum prijema</label>
+                        <input type="date" name="datum_prijema"
+                            value="{{.Nalog.DatumPrijema.Format "2006-01-02"}}"
+                            style="width:100%;">
+                    </div>
+                    <div>
+                        <label class="polje-labela">Datum završetka</label>
+                        <input type="date" name="datum_zavrsetka"
+                            value="{{if .Nalog.DatumZavrsetka}}{{.Nalog.DatumZavrsetka.Format "2006-01-02"}}{{end}}"
+                            style="width:100%;">
+                    </div>
+                </div>
+                <div>
+                    <label class="polje-labela">Garancija do</label>
+                    <input type="date" name="garancija_do" id="garancija_do_input"
+                        value="{{if .Nalog.GarancijaDo}}{{.Nalog.GarancijaDo.Format "2006-01-02"}}{{end}}"
+                        {{if not .Nalog.GarancijaDo}}disabled{{end}}
+                        style="width:100%;{{if not .Nalog.GarancijaDo}}opacity:0.4;{{end}}">
+                </div>
+                <!-- svič bez garancije -->
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <label class="toggl" style="flex-shrink:0;">
+                        <input type="checkbox" id="bez_garancije_chk"
+                            {{if not .Nalog.GarancijaDo}}checked{{end}}
+                            onchange="toggleGarancija(this)">
+                        <span class="toggl-klizac"></span>
+                    </label>
+                    <input type="hidden" name="bez_garancije" id="bez_garancije_val"
+                        value="{{if not .Nalog.GarancijaDo}}1{{else}}0{{end}}">
+                    <span style="font-size:13px;color:var(--tekst-sporedni);">Bez garancije</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================== KARTICA: CENE I NAPOMENA ===================== -->
+        <div class="kartica forma-kartica animiraj">
+            <div class="sekcija-naslov">Cene (din)</div>
+            <div class="forma-grid-4" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;">
+                <div>
+                    <label class="polje-labela">Procena od</label>
+                    <input type="number" name="cena_od" min="0" step="0.01"
+                        value="{{if .Nalog.CenaOd}}{{.Nalog.CenaOd}}{{end}}"
+                        placeholder="0" style="width:100%;">
+                </div>
+                <div>
+                    <label class="polje-labela">Procena do</label>
+                    <input type="number" name="cena_do" min="0" step="0.01"
+                        value="{{if .Nalog.CenaDo}}{{.Nalog.CenaDo}}{{end}}"
+                        placeholder="0" style="width:100%;">
+                </div>
+                <div>
+                    <label class="polje-labela">Cena rada</label>
+                    <input type="number" name="cena_konacna" min="0" step="0.01"
+                        value="{{if .Nalog.CenaKonacna}}{{.Nalog.CenaKonacna}}{{end}}"
+                        placeholder="0" style="width:100%;">
+                </div>
+                <div>
+                    <label class="polje-labela">Avans</label>
+                    <input type="number" name="avans" min="0" step="0.01"
+                        value="{{if .Nalog.Avans}}{{.Nalog.Avans}}{{end}}"
+                        placeholder="0" style="width:100%;">
+                </div>
+            </div>
+            <div style="margin-top:16px;">
+                <label class="polje-labela">Napomena</label>
+                <textarea name="napomena" rows="2"
+                    placeholder="Interna napomena o nalogu..."
+                    style="width:100%;resize:vertical;">{{.Nalog.Napomena}}</textarea>
+            </div>
+
+            <!-- dugmad -->
+            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;">
+                <a href="/servis" class="btn-sekundarno">Odustani</a>
+                <button type="submit" class="btn-primarno">
+                    {{if .Izmena}}Sačuvaj izmene{{else}}Sačuvaj nalog{{end}}
+                </button>
+            </div>
+        </div>
+
+    </form>
 </div>
-<script>
-function toggleGarancija(chk) {
-    var input = document.getElementById('garancija_do_input');
-    var hidden = document.getElementById('bez_garancije_val');
-    if (chk.checked) {
-        if (input.value) input.dataset.sacuvano = input.value;
-        input.value = '';
-        input.disabled = true;
-        input.style.opacity = '0.4';
-        hidden.value = '1';
-    } else {
-        input.disabled = false;
-        input.style.opacity = '1';
-        if (input.dataset.sacuvano) input.value = input.dataset.sacuvano;
-        hidden.value = '0';
+
+<style>
+    .tip-opcija {
+        display: flex; align-items: center; gap: 8px;
+        padding: 8px 14px; border: 1px solid var(--ivica); border-radius: 10px;
+        cursor: pointer; font-size: 14px; color: var(--tekst-glavni); user-select: none;
     }
-}
+    .tip-opcija-akt { border-color: var(--akcentna); background: var(--pozadina); }
+    .klijent-stavka:last-child { border-bottom: none; }
+    .klijent-stavka:hover { background: var(--pozadina); }
+    [x-cloak] { display: none !important; }
+</style>
+
+<script>
+    function toggleGarancija(chk) {
+        var input = document.getElementById('garancija_do_input');
+        var hidden = document.getElementById('bez_garancije_val');
+        if (chk.checked) {
+            if (input.value) input.dataset.sacuvano = input.value;
+            input.value = '';
+            input.disabled = true;
+            input.style.opacity = '0.4';
+            hidden.value = '1';
+        } else {
+            input.disabled = false;
+            input.style.opacity = '1';
+            if (input.dataset.sacuvano) input.value = input.dataset.sacuvano;
+            hidden.value = '0';
+        }
+    }
 </script>
 {{end}}

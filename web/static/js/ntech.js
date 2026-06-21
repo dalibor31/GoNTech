@@ -191,6 +191,105 @@ document.addEventListener('alpine:init', () => {
         }
     }))
 
+    // forma servisnog naloga — izbor postojećeg ili unos novog klijenta.
+    // Pisano CSP-safe (bez složenih izraza u atributima): uslovi idu kroz metode/gettere.
+    Alpine.data('klijentNalog', () => ({
+        klijenti: [],
+        tip: 'fizicko',
+        pretraga: '',
+        izabrani: null,
+        izabraniId: 0,
+        prikaziListu: false,
+        // polja novog klijenta (vezana x-model-om na inpute)
+        noviIme: '',
+        noviPrezime: '',
+        noviNaziv: '',
+        init() {
+            this.klijenti = window.__klijentiNaloga || []
+            // kod izmene naloga pretpopuni već vezanog klijenta
+            const id = window.__izabraniKlijentId || 0
+            if (id) {
+                const k = this.klijenti.find(x => x.ID === id)
+                if (k) {
+                    this.izabrani = k
+                    this.izabraniId = k.ID
+                    this.tip = k.Tip || 'fizicko'
+                }
+            }
+        },
+        get nijeIzabran() {
+            return !this.izabrani
+        },
+        get vrednostKlijentId() {
+            return this.izabraniId || ''
+        },
+        // filtrira klijente po tipu i početnim karakterima unosa (najviše 8)
+        get filtrirani() {
+            const q = this.pretraga.trim().toLowerCase()
+            const tip = this.tip
+            return this.klijenti.filter(k => {
+                if ((k.Tip || 'fizicko') !== tip) return false
+                if (q === '') return true
+                // za fizičko proveravamo i puno ime ("Ivan Lazić") da bi radio unos
+                // tipa "Ivan L", a i samo ime ili samo prezime zasebno
+                const punoIme = ((k.Ime || '') + ' ' + (k.Prezime || '')).trim()
+                const polja = (tip === 'pravno') ? [k.NazivFirme] : [punoIme, k.Ime, k.Prezime]
+                return polja.some(p => (p || '').toLowerCase().startsWith(q))
+            }).slice(0, 8)
+        },
+        jeTip(t) {
+            return this.tip === t
+        },
+        klasaTip(t) {
+            return this.tip === t ? 'tip-opcija-akt' : ''
+        },
+        naziv(k) {
+            if (!k) return ''
+            return (k.Tip === 'pravno')
+                ? (k.NazivFirme || '')
+                : ((k.Ime || '') + ' ' + (k.Prezime || '')).trim()
+        },
+        detalj(k) {
+            if (!k) return ''
+            const d = []
+            if (k.Mesto) d.push(k.Mesto)
+            if (k.Telefon) d.push(k.Telefon)
+            return d.join(' · ')
+        },
+        izaberi(k) {
+            this.izabrani = k
+            this.izabraniId = k.ID
+            this.pretraga = ''
+            this.prikaziListu = false
+        },
+        ocisti() {
+            this.izabrani = null
+            this.izabraniId = 0
+        },
+        // Enter u pretrazi kad ništa nije izabrano → priprema unos novog klijenta:
+        // prvu reč upisuje kao ime, ostatak kao prezime (za firmu ceo tekst kao naziv)
+        potvrdiNovog() {
+            const q = this.pretraga.trim()
+            this.prikaziListu = false
+            if (!q) return
+            if (this.tip === 'pravno') {
+                this.noviNaziv = q
+            } else {
+                const delovi = q.split(/\s+/)
+                this.noviIme = delovi[0] || ''
+                this.noviPrezime = delovi.slice(1).join(' ')
+            }
+        },
+        promeniTip(t) {
+            this.tip = t
+            this.ocisti()
+            this.pretraga = ''
+            this.noviIme = ''
+            this.noviPrezime = ''
+            this.noviNaziv = ''
+        }
+    }))
+
     // forma za nabavku
     Alpine.data('nabavkaForma', () => ({
         stavke: [{artikal_id: '', kolicina: 1, cena: 0, marza: 0, prodajna: 0}],
