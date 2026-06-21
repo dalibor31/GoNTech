@@ -296,6 +296,29 @@ func validirajJMBG(broj string) string {
 	return ""
 }
 
+// odrediTipIdentifikacije prepoznaje da li je uneti broj JMBG (13 cifara) ili broj
+// lične karte (9 cifara — registarski broj na novoj srpskoj ličnoj karti) i vraća
+// odgovarajući tip ("jmbg" ili "licna_karta"). Prazan unos je dozvoljen i vraća
+// prazan tip bez greške. Vraća (tip, poruka o grešci).
+func odrediTipIdentifikacije(broj string) (string, string) {
+	if broj == "" {
+		return "", ""
+	}
+	for _, c := range broj {
+		if c < '0' || c > '9' {
+			return "", "Identifikacioni broj sme sadržati samo cifre."
+		}
+	}
+	switch len(broj) {
+	case 13:
+		return "jmbg", ""
+	case 9:
+		return "licna_karta", ""
+	default:
+		return "", "Unesite JMBG (13 cifara) ili broj lične karte (9 cifara)."
+	}
+}
+
 // parseFormuKlijenta čita polja iz HTTP forme, validira ih i vraća model i eventualnu grešku
 func parseFormuKlijenta(r *http.Request) (model.Klijent, string) {
 	tip := r.FormValue("tip")
