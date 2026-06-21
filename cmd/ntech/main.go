@@ -361,6 +361,8 @@ func main() {
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/status", h.PromeniStatus)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/delovi", h.DodajDeloNalogu)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/delovi/{deo_id}/obrisi", h.ObrisiDeloNaloga)
+		r.With(doz("servis.izmeni")).Post("/servis/{id}/radovi", h.DodajRadNalogu)
+		r.With(doz("servis.izmeni")).Post("/servis/{id}/radovi/{rad_id}/obrisi", h.ObrisiRadNaloga)
 		r.Get("/izvestaji", h.Izvestaji)
 		r.Get("/izvestaji/prometni-list", h.PrometniListMagacina)
 		r.Get("/izvestaji/stanje-zaliha", h.StanjeZalihaIzvestaj)

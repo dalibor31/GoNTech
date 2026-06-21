@@ -349,7 +349,13 @@
                 window._ntechPotvrdi(el.getAttribute('data-potvrda')).then(function(ok) {
                     if (!ok) return;
                     var forma = el.closest('form');
-                    if (forma) { forma.submit(); return; }
+                    // requestSubmit() okida 'submit' event (za razliku od submit()),
+                    // pa prolazi kroz AJAX/ data-refresh logiku umesto pune navigacije
+                    if (forma) {
+                        if (forma.requestSubmit) forma.requestSubmit();
+                        else forma.submit();
+                        return;
+                    }
                     if (el.href) { window.location.href = el.href; }
                 });
             });
@@ -376,6 +382,24 @@
                     var finUrl = new URL(res.url);
                     var isStiPath = finUrl.pathname === location.pathname;
                     var imaSacuvano = finUrl.search.indexOf('sacuvano') !== -1;
+                    // forme sa data-refresh osvežavaju samo navedeni deo stranice (npr.
+                    // tabelu radova/delova) — bez skoka na vrh i bez treptaja. Važi i za
+                    // dodavanje i za brisanje stavki (dovoljno je da ostanemo na istoj stranici).
+                    var ciljSel = f.getAttribute('data-refresh');
+                    if (ciljSel && isStiPath) {
+                        fetch(res.url, { credentials: 'same-origin' })
+                            .then(function (rr) { return rr.text(); })
+                            .then(function (html) {
+                                var doc = new DOMParser().parseFromString(html, 'text/html');
+                                var novi = doc.querySelector(ciljSel);
+                                var stari = document.querySelector(ciljSel);
+                                if (novi && stari) stari.replaceWith(novi);
+                                f.reset();
+                                if (btn) btn.disabled = false;
+                            })
+                            .catch(function () { location.href = res.url; });
+                        return;
+                    }
                     if (isStiPath && imaSacuvano) {
                         // uspeh na istoj stranici — prikaži toast, ostani
                         window.ntechToast('Sačuvano', 'uspeh');
