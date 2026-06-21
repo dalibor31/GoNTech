@@ -525,6 +525,18 @@ func (h *Handler) DodajDeloNalogu(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ako tražena količina prelazi magacinsko stanje, deo se NE ugrađuje (da lager
+	// ne ode u minus), a nalog se automatski prebacuje u „Čeka delove" radi nabavke
+	if art, e := h.Artikli.DohvatiID(r.Context(), artikalID); e == nil && art != nil && kolicina > art.Kolicina {
+		if e := h.ServisRepo.AzurirajStatus(r.Context(), nalogID, model.StatusCekaDelove); e != nil {
+			slog.Error("greška pri prebacivanju naloga u Čeka delove", "error", e)
+		}
+		middleware.SetFlash(w, r, h.DB, "greska",
+			"Nema dovoljno „"+art.Naziv+"\" na stanju (ima "+strconv.Itoa(art.Kolicina)+"). Nalog je prebačen u „Čeka delove\" — naručite deo.")
+		http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
+		return
+	}
+
 	if _, err := h.ServisniDeloviRepo.Dodaj(r.Context(), nalogID, artikalID, kolicina, cena, &k.ID); err != nil {
 		slog.Error("greška pri dodavanju dela", "error", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri dodavanju dela. Proverite stanje na magacinu.")
