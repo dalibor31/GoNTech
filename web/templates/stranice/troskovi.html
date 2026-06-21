@@ -1,0 +1,110 @@
+{{template "base" .}}
+
+{{define "naslov"}}Troškovi — NTech{{end}}
+
+{{define "sadrzaj"}}
+<div class="kolona" style="gap:16px;">
+
+    {{if .Sacuvano}}
+    <div class="poruka-uspeh poruka-animacija">Trošak je uspešno sačuvan.</div>
+    {{end}}
+    {{if .Obrisan}}
+    <div class="poruka-uspeh poruka-animacija">Trošak je uspešno obrisan.</div>
+    {{end}}
+
+    <div style="font-size:13px;color:var(--tekst-sporedni);">
+        Šifrarnik vrsta troškova (npr. Prevoz, Carina, Ambalaža) koji se vezuju za radni nalog kao dodatni trošak.
+    </div>
+
+    <!-- dugme nov -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        {{if index .Dozvole "artikal.dodaj"}}
+        <a href="/troskovi/novi" class="btn-primarno">+ Nov trošak</a>
+        {{end}}
+    </div>
+
+    <!-- pretraga -->
+    <form method="GET" action="/troskovi" class="kolona" style="gap:10px;">
+        <input type="text" name="pretraga" value="{{.Pretraga}}"
+            placeholder="Pretraži troškove po nazivu ili šifri..."
+            style="width:100%;"
+            hx-get="/troskovi" hx-trigger="keyup[target.value.length==0||target.value.length>=3] changed delay:150ms, search"
+            hx-target="#troskovi-rezultati" hx-select="#troskovi-rezultati" hx-swap="innerHTML" hx-push-url="true">
+    </form>
+
+    <div id="troskovi-rezultati">
+
+    <!-- desktop tabela -->
+    <div class="kartica troskovi-tabela animiraj" style="padding:0;overflow:hidden;">
+        <div style="overflow-x:auto;">
+            <table class="tabela">
+                <thead>
+                    <tr style="border-bottom:0.5px solid var(--ivica);">
+                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Šifra</th>
+                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Naziv</th>
+                        <th style="padding:12px 16px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Podrazumevana cena</th>
+                        <th style="padding:12px 16px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Akcije</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Troskovi}}
+                    <tr class="animiraj red-tabele">
+                        <td style="padding:12px 16px;font-size:13px;font-family:monospace;white-space:nowrap;color:var(--tekst-sporedni);">{{if .Sifra}}{{.Sifra}}{{else}}—{{end}}</td>
+                        <td style="padding:12px 16px;font-size:14px;color:var(--tekst-glavni);font-weight:500;">{{.Naziv}}</td>
+                        <td style="padding:12px 16px;text-align:right;font-size:14px;color:var(--tekst-glavni);">{{dinari .Cena}} din</td>
+                        <td style="padding:12px 16px;text-align:center;">
+                            <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+                                <a href="/troskovi/izmeni/{{.ID}}" class="btn-primarno-malo">Izmeni</a>
+                                {{if index $.Dozvole "artikal.obrisi"}}
+                                <form method="POST" action="/troskovi/obrisi/{{.ID}}" style="display:inline;">
+                                    <input type="hidden" name="_csrf" value="{{$.CsrfToken}}">
+                                    <button type="submit" class="btn-obrisi-malo"
+                                        data-potvrda="Obrisati trošak '{{.Naziv}}'?">Obriši</button>
+                                </form>
+                                {{end}}
+                            </div>
+                        </td>
+                    </tr>
+                    {{else}}
+                    <tr>
+                        <td colspan="4" style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
+                            {{if $.Pretraga}}Za datu pretragu nema troškova u bazi.{{else}}Nema troškova. <a href="/troskovi/novi" style="color:var(--sb-akcent);">Dodaj prvi trošak.</a>{{end}}
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- mobilne kartice -->
+    <div class="troskovi-kartice">
+        {{range .Troskovi}}
+        <div class="kartica animiraj">
+            <div class="red-izmedju" style="align-items:flex-start;gap:12px;margin-bottom:8px;">
+                <div>
+                    <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">{{.Naziv}}</div>
+                    {{if .Sifra}}<div style="font-size:12px;color:var(--tekst-sporedni);margin-top:2px;font-family:monospace;">{{.Sifra}}</div>{{end}}
+                </div>
+                <div style="font-size:15px;font-weight:600;color:var(--sb-akcent);white-space:nowrap;">{{dinari .Cena}} din</div>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <a href="/troskovi/izmeni/{{.ID}}" class="btn-primarno-malo">Izmeni</a>
+                {{if index $.Dozvole "artikal.obrisi"}}
+                <form method="POST" action="/troskovi/obrisi/{{.ID}}" style="display:inline;">
+                    <input type="hidden" name="_csrf" value="{{$.CsrfToken}}">
+                    <button type="submit" class="btn-obrisi-malo" data-potvrda="Obrisati trošak '{{.Naziv}}'?">Obriši</button>
+                </form>
+                {{end}}
+            </div>
+        </div>
+        {{else}}
+        <div style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
+            {{if $.Pretraga}}Za datu pretragu nema troškova u bazi.{{else}}Nema troškova. <a href="/troskovi/novi" style="color:var(--sb-akcent);">Dodaj prvi trošak.</a>{{end}}
+        </div>
+        {{end}}
+    </div>
+
+    </div>
+</div>
+{{end}}

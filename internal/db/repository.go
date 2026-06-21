@@ -126,6 +126,25 @@ type UslugaRepository interface {
 	SledecaSifra(ctx context.Context) (string, error)
 }
 
+// TrosakFilter su parametri za listanje troškova
+type TrosakFilter struct {
+	Pretraga   string
+	Arhivirani bool
+	Limit      int
+	Offset     int
+}
+
+// TrosakRepository definiše operacije nad šifrarnikom vrsta troškova
+type TrosakRepository interface {
+	Lista(ctx context.Context, filter TrosakFilter) ([]model.Trosak, error)
+	DohvatiID(ctx context.Context, id int64) (*model.Trosak, error)
+	Kreiraj(ctx context.Context, t *model.Trosak) (int64, error)
+	Izmeni(ctx context.Context, t *model.Trosak) error
+	Obrisi(ctx context.Context, id int64) error
+	// SledecaSifra vraća predlog sledeće auto-šifre troška (TRO-001 … TRO-999)
+	SledecaSifra(ctx context.Context) (string, error)
+}
+
 // NabavkaRepository definiše operacije nad nabavkama
 type NabavkaRepository interface {
 	Lista(ctx context.Context) ([]model.NabavkaSaDetaljem, error)
