@@ -393,8 +393,20 @@
                                 var doc = new DOMParser().parseFromString(html, 'text/html');
                                 var novi = doc.querySelector(ciljSel);
                                 var stari = document.querySelector(ciljSel);
-                                if (novi && stari) stari.replaceWith(novi);
-                                f.reset();
+                                if (novi && stari) {
+                                    // bez-anim spречava treptaj re-animacije kartica pri zameni
+                                    novi.classList.add('bez-anim');
+                                    stari.replaceWith(novi);
+                                    void novi.offsetHeight;
+                                    novi.classList.remove('bez-anim');
+                                    // replaceWith ne pokreće <script> iz fragmenta — re-izvrši ih
+                                    // ručno (npr. da se combobox/pretrage ponovo povežu)
+                                    novi.querySelectorAll('script').forEach(function (old) {
+                                        var s = document.createElement('script');
+                                        if (old.src) s.src = old.src; else s.textContent = old.textContent;
+                                        old.parentNode.replaceChild(s, old);
+                                    });
+                                }
                                 if (btn) btn.disabled = false;
                             })
                             .catch(function () { location.href = res.url; });

@@ -45,7 +45,7 @@
                 </span>
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                     {{template "status-badge-detalji" .Nalog.Status}}
-                    <form method="post" action="/servis/{{.Nalog.ID}}/status" style="display:flex;align-items:center;gap:6px;" data-full-reload>
+                    <form method="post" action="/servis/{{.Nalog.ID}}/status" style="display:flex;align-items:center;gap:6px;" data-refresh="#glavni-sadrzaj">
                         <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
                         <select name="status" style="font-size:13px;padding:4px 8px;border-radius:6px;border:0.5px solid var(--ivica);background:var(--kartica-pozadina);color:var(--tekst-glavni);cursor:pointer;">
                             {{range .SviStatusi}}
@@ -168,7 +168,7 @@
 
         <!-- forma za dodavanje rada iz cenovnika usluga -->
         {{if index .Dozvole "servis.izmeni"}}
-        <form method="POST" action="/servis/{{.Nalog.ID}}/radovi" style="margin-bottom:16px;" data-refresh="#radovi-spisak">
+        <form method="POST" action="/servis/{{.Nalog.ID}}/radovi" style="margin-bottom:16px;" data-refresh="#glavni-sadrzaj">
             <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
             <div style="display:grid;grid-template-columns:1fr 80px 120px auto;gap:10px;align-items:flex-end;">
                 <div>
@@ -217,7 +217,7 @@
                     <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .Ukupno}} din</td>
                     <td style="padding:9px 10px;text-align:center;">
                         {{if index $.Dozvole "servis.izmeni"}}
-                        <form method="POST" action="/servis/{{$.Nalog.ID}}/radovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#radovi-spisak">
+                        <form method="POST" action="/servis/{{$.Nalog.ID}}/radovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#glavni-sadrzaj">
                             <input type="hidden" name="_csrf" value="{{$.CsrfToken}}">
                             <button type="submit"
                                 data-potvrda="Ukloniti rad '{{.Naziv}}'?"
@@ -247,21 +247,27 @@
 
         <!-- forma za dodavanje dela -->
         {{if index .Dozvole "servis.izmeni"}}
-        <form method="POST" action="/servis/{{.Nalog.ID}}/delovi" style="margin-bottom:16px;" data-refresh="#delovi-spisak">
+        <form method="POST" action="/servis/{{.Nalog.ID}}/delovi" style="margin-bottom:16px;" data-refresh="#glavni-sadrzaj">
             <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
-            <div style="display:grid;grid-template-columns:1fr 80px 120px auto;gap:10px;align-items:flex-end;">
+            <div style="margin-bottom:10px;">
+                <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Kategorija</label>
+                <select id="deo-kategorija" style="width:100%;"></select>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 70px 80px 120px auto;gap:10px;align-items:flex-end;">
                 <div>
                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Artikal</label>
                     <input type="text" id="deo-artikal-pretraga" list="artikli-datalist" autocomplete="off"
                         placeholder="Pretraži artikal..." style="width:100%;">
-                    <datalist id="artikli-datalist">
-                        {{range .Artikli}}<option value="{{.Naziv}} ({{.Kolicina}} kom)" data-id="{{.ID}}" data-cena="{{.ProdajnaCena}}">{{end}}
-                    </datalist>
+                    <datalist id="artikli-datalist"></datalist>
                     <input type="hidden" name="artikal_id" id="deo-artikal">
                 </div>
                 <div>
+                    <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">U magacinu</label>
+                    <div id="deo-umagacinu" style="font-size:14px;font-weight:500;color:var(--tekst-glavni);text-align:center;padding:8px 0;">—</div>
+                </div>
+                <div>
                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Kol.</label>
-                    <input type="number" name="kolicina" min="1" value="1" style="width:100%;" required>
+                    <input type="number" name="kolicina" id="deo-kol" min="1" value="1" style="width:100%;" required>
                 </div>
                 <div>
                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Cena/kom (din)</label>
@@ -296,7 +302,7 @@
                     <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .Ukupno}} din</td>
                     <td style="padding:9px 10px;text-align:center;">
                         {{if index $.Dozvole "servis.izmeni"}}
-                        <form method="POST" action="/servis/{{$.Nalog.ID}}/delovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#delovi-spisak">
+                        <form method="POST" action="/servis/{{$.Nalog.ID}}/delovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#glavni-sadrzaj">
                             <input type="hidden" name="_csrf" value="{{$.CsrfToken}}">
                             <button type="submit"
                                 data-potvrda="Ukloniti deo '{{.ArtikalNaziv}}'?"
@@ -368,6 +374,70 @@ function vežiCombobox(pretragaId, datalistId, hiddenId, cenaId) {
     pretraga.addEventListener('change', uskladi);
 }
 vežiCombobox('rad-usluga-pretraga', 'usluge-datalist', 'rad-usluga', 'rad-cena');
-vežiCombobox('deo-artikal-pretraga', 'artikli-datalist', 'deo-artikal', 'deo-cena');
+
+// Delovi: kategorija filter + ograničenje količine na magacinsko stanje.
+// Datalist se gradi iz JSON-a po izabranoj kategoriji; pri izboru artikla
+// postavljamo cenu, max količine = stanje, i prikaz dostupne količine.
+(function () {
+    var ARTIKLI = {{json .Artikli}} || [];
+    var kategSel = document.getElementById('deo-kategorija');
+    var pretraga = document.getElementById('deo-artikal-pretraga');
+    var datalist = document.getElementById('artikli-datalist');
+    var hidden = document.getElementById('deo-artikal');
+    var cena = document.getElementById('deo-cena');
+    var umagacinu = document.getElementById('deo-umagacinu');
+    if (!pretraga || !datalist) return;
+
+    function labela(a) { return a.Naziv + ' (' + a.Kolicina + ' kom)'; }
+
+    if (kategSel) {
+        var kategs = [];
+        ARTIKLI.forEach(function (a) {
+            var k = a.KategorijaNaziv || '';
+            if (k && kategs.indexOf(k) < 0) kategs.push(k);
+        });
+        kategs.sort();
+        kategSel.innerHTML = '<option value="">Sve kategorije</option>' +
+            kategs.map(function (k) { return '<option value="' + k + '">' + k + '</option>'; }).join('');
+    }
+
+    function popuniDatalist() {
+        var izabrana = kategSel ? kategSel.value : '';
+        datalist.innerHTML = ARTIKLI
+            .filter(function (a) { return !izabrana || (a.KategorijaNaziv || '') === izabrana; })
+            .map(function (a) {
+                return '<option value="' + labela(a) + '" data-id="' + a.ID +
+                    '" data-cena="' + a.ProdajnaCena + '" data-stanje="' + a.Kolicina + '">';
+            }).join('');
+    }
+    popuniDatalist();
+
+    if (kategSel) kategSel.addEventListener('change', function () {
+        popuniDatalist();
+        pretraga.value = '';
+        hidden.value = '';
+        if (umagacinu) umagacinu.textContent = '—';
+    });
+
+    function uskladi() {
+        var opt = null, opts = datalist.options;
+        for (var i = 0; i < opts.length; i++) {
+            if (opts[i].value === pretraga.value) { opt = opts[i]; break; }
+        }
+        if (opt) {
+            hidden.value = opt.dataset.id || '';
+            if (cena) {
+                var c = parseFloat(opt.dataset.cena);
+                cena.value = (!isNaN(c) && c > 0) ? c.toFixed(2) : '0';
+            }
+            if (umagacinu) umagacinu.textContent = (parseInt(opt.dataset.stanje, 10) || 0);
+        } else {
+            hidden.value = '';
+            if (umagacinu) umagacinu.textContent = '—';
+        }
+    }
+    pretraga.addEventListener('input', uskladi);
+    pretraga.addEventListener('change', uskladi);
+})();
 </script>
 {{end}}
