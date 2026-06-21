@@ -625,11 +625,18 @@ func (h *Handler) mozdaKreirajKlijenta(ctx context.Context, r *http.Request, nal
 		tipIdent = "jmbg"
 	}
 
+	jmbg := strings.TrimSpace(r.FormValue("jmbg"))
+	if tipIdent == "jmbg" {
+		if greska := validirajJMBG(jmbg); greska != "" {
+			return greska
+		}
+	}
+
 	klijent := model.Klijent{
 		Tip:               tip,
 		Ime:               ime,
 		Prezime:           strings.TrimSpace(r.FormValue("prezime")),
-		JMBG:              strings.TrimSpace(r.FormValue("jmbg")),
+		JMBG:              jmbg,
 		TipIdentifikacije: tipIdent,
 		NazivFirme:        nazivFirme,
 		PIB:               strings.TrimSpace(r.FormValue("pib")),

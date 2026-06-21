@@ -278,6 +278,24 @@ func (h *Handler) ObrisiKlijenta(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/klijenti?obrisan=1", http.StatusSeeOther)
 }
 
+// validirajJMBG proverava da li uneti JMBG ima tačno 13 cifara. Prazan broj je
+// dozvoljen (polje nije obavezno). Vraća srpsku poruku o grešci ili prazan string.
+// Broj lične karte se ne proverava jer mu se format razlikuje između izdanja.
+func validirajJMBG(broj string) string {
+	if broj == "" {
+		return ""
+	}
+	if len(broj) != 13 {
+		return "JMBG mora imati tačno 13 cifara."
+	}
+	for _, c := range broj {
+		if c < '0' || c > '9' {
+			return "JMBG sme sadržati samo cifre."
+		}
+	}
+	return ""
+}
+
 // parseFormuKlijenta čita polja iz HTTP forme, validira ih i vraća model i eventualnu grešku
 func parseFormuKlijenta(r *http.Request) (model.Klijent, string) {
 	tip := r.FormValue("tip")
@@ -306,11 +324,18 @@ func parseFormuKlijenta(r *http.Request) (model.Klijent, string) {
 		tipIdent = "jmbg"
 	}
 
+	jmbg := strings.TrimSpace(r.FormValue("jmbg"))
+	if tipIdent == "jmbg" {
+		if greska := validirajJMBG(jmbg); greska != "" {
+			return model.Klijent{Tip: tip}, greska
+		}
+	}
+
 	return model.Klijent{
 		Tip:               tip,
 		Ime:               ime,
 		Prezime:           strings.TrimSpace(r.FormValue("prezime")),
-		JMBG:              strings.TrimSpace(r.FormValue("jmbg")),
+		JMBG:              jmbg,
 		TipIdentifikacije: tipIdent,
 		NazivFirme:        nazivFirme,
 		PIB:               strings.TrimSpace(r.FormValue("pib")),

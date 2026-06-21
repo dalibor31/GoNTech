@@ -182,7 +182,8 @@ func (h *Handler) renderujStandalone(w http.ResponseWriter, ime string, podaci a
 		tmpl = t
 	} else {
 		var err error
-		if tmpl, err = template.ParseFS(h.TemplatesFS, "web/templates/stranice/"+ime+".html"); err != nil {
+		// kao u kreirajKes: root mora biti ime+".html" i moraju biti registrovane šablonske funkcije
+		if tmpl, err = template.New(ime+".html").Funcs(sablonskeFunkcije).ParseFS(h.TemplatesFS, "web/templates/stranice/"+ime+".html"); err != nil {
 			slog.Error("greška pri parsiranju šablona", "ime", ime, "error", err)
 			http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
 			return
