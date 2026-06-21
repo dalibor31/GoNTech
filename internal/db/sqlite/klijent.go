@@ -22,15 +22,15 @@ func NoviKlijentRepo(db *sql.DB) *KlijentRepo {
 // Lista vraća listu klijenata sa opcionom pretragom po imenu, prezimenu ili nazivu firme
 func (r *KlijentRepo) Lista(ctx context.Context, pretraga string) ([]model.Klijent, error) {
 	upit := `
-		SELECT id, tip, ime, prezime, jmbg, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
+		SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
 		FROM klijenti
 		WHERE 1=1`
 
 	args := []any{}
 
 	if pretraga != "" {
-upit += " AND (ime LIKE ? OR prezime LIKE ? OR (ime || ' ' || prezime) LIKE ? OR naziv_firme LIKE ? OR telefon LIKE ? OR email LIKE ?)"
-	p := "%" + pretraga + "%"
+		upit += " AND (ime LIKE ? OR prezime LIKE ? OR (ime || ' ' || prezime) LIKE ? OR naziv_firme LIKE ? OR telefon LIKE ? OR email LIKE ?)"
+		p := "%" + pretraga + "%"
 		args = append(args, p, p, p, p, p, p)
 	}
 
@@ -45,9 +45,9 @@ upit += " AND (ime LIKE ? OR prezime LIKE ? OR (ime || ' ' || prezime) LIKE ? OR
 	var rezultat []model.Klijent
 	for redovi.Next() {
 		var k model.Klijent
-		var ime, prezime, jmbg, nazivFirme, pib, telefon, email, mesto, napomena sql.NullString
+		var ime, prezime, jmbg, tipIdent, nazivFirme, pib, telefon, email, mesto, napomena sql.NullString
 		err := redovi.Scan(
-			&k.ID, &k.Tip, &ime, &prezime, &jmbg, &nazivFirme, &pib, &telefon, &email, &mesto, &napomena, &k.DatumUnosa,
+			&k.ID, &k.Tip, &ime, &prezime, &jmbg, &tipIdent, &nazivFirme, &pib, &telefon, &email, &mesto, &napomena, &k.DatumUnosa,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("ntech: KlijentRepo.Lista: scan: %w", err)
@@ -55,6 +55,7 @@ upit += " AND (ime LIKE ? OR prezime LIKE ? OR (ime || ' ' || prezime) LIKE ? OR
 		k.Ime = ime.String
 		k.Prezime = prezime.String
 		k.JMBG = jmbg.String
+		k.TipIdentifikacije = tipIdent.String
 		k.NazivFirme = nazivFirme.String
 		k.PIB = pib.String
 		k.Telefon = telefon.String
@@ -70,12 +71,12 @@ upit += " AND (ime LIKE ? OR prezime LIKE ? OR (ime || ' ' || prezime) LIKE ? OR
 // DohvatiID vraća jednog klijenta po ID-u
 func (r *KlijentRepo) DohvatiID(ctx context.Context, id int64) (*model.Klijent, error) {
 	var k model.Klijent
-	var ime, prezime, jmbg, nazivFirme, pib, telefon, email, mesto, napomena sql.NullString
+	var ime, prezime, jmbg, tipIdent, nazivFirme, pib, telefon, email, mesto, napomena sql.NullString
 
 	err := r.db.QueryRowContext(ctx, `
-		SELECT id, tip, ime, prezime, jmbg, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
+		SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
 		FROM klijenti WHERE id = ?`, id).Scan(
-		&k.ID, &k.Tip, &ime, &prezime, &jmbg, &nazivFirme, &pib, &telefon, &email, &mesto, &napomena, &k.DatumUnosa,
+		&k.ID, &k.Tip, &ime, &prezime, &jmbg, &tipIdent, &nazivFirme, &pib, &telefon, &email, &mesto, &napomena, &k.DatumUnosa,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: KlijentRepo.DohvatiID: %w", err)
@@ -84,6 +85,7 @@ func (r *KlijentRepo) DohvatiID(ctx context.Context, id int64) (*model.Klijent, 
 	k.Ime = ime.String
 	k.Prezime = prezime.String
 	k.JMBG = jmbg.String
+	k.TipIdentifikacije = tipIdent.String
 	k.NazivFirme = nazivFirme.String
 	k.PIB = pib.String
 	k.Telefon = telefon.String
@@ -99,10 +101,13 @@ func (r *KlijentRepo) Kreiraj(ctx context.Context, k *model.Klijent) (int64, err
 	if k.Tip == "" {
 		k.Tip = "fizicko"
 	}
+	if k.TipIdentifikacije == "" {
+		k.TipIdentifikacije = "jmbg"
+	}
 	rezultat, err := r.db.ExecContext(ctx, `
-		INSERT INTO klijenti (tip, ime, prezime, jmbg, naziv_firme, pib, telefon, email, mesto, napomena)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		k.Tip, nullString(k.Ime), nullString(k.Prezime), nullString(k.JMBG),
+		INSERT INTO klijenti (tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, napomena)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		k.Tip, nullString(k.Ime), nullString(k.Prezime), nullString(k.JMBG), k.TipIdentifikacije,
 		nullString(k.NazivFirme), nullString(k.PIB), nullString(k.Telefon),
 		nullString(k.Email), nullString(k.Mesto), nullString(k.Napomena),
 	)
@@ -123,12 +128,15 @@ func (r *KlijentRepo) Izmeni(ctx context.Context, k *model.Klijent) error {
 	if k.Tip == "" {
 		k.Tip = "fizicko"
 	}
+	if k.TipIdentifikacije == "" {
+		k.TipIdentifikacije = "jmbg"
+	}
 	_, err := r.db.ExecContext(ctx, `
 		UPDATE klijenti SET
-			tip = ?, ime = ?, prezime = ?, jmbg = ?, naziv_firme = ?,
+			tip = ?, ime = ?, prezime = ?, jmbg = ?, tip_identifikacije = ?, naziv_firme = ?,
 			pib = ?, telefon = ?, email = ?, mesto = ?, napomena = ?
 		WHERE id = ?`,
-		k.Tip, nullString(k.Ime), nullString(k.Prezime), nullString(k.JMBG),
+		k.Tip, nullString(k.Ime), nullString(k.Prezime), nullString(k.JMBG), k.TipIdentifikacije,
 		nullString(k.NazivFirme), nullString(k.PIB), nullString(k.Telefon),
 		nullString(k.Email), nullString(k.Mesto), nullString(k.Napomena), k.ID,
 	)
@@ -142,7 +150,7 @@ func (r *KlijentRepo) Izmeni(ctx context.Context, k *model.Klijent) error {
 // ListaFilter vraća listu klijenata sa limitom i offsetom (paginacija)
 func (r *KlijentRepo) ListaFilter(ctx context.Context, filter db.KlijentFilter) ([]model.Klijent, error) {
 	upit := `
-		SELECT id, tip, ime, prezime, jmbg, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
+		SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
 		FROM klijenti
 		WHERE 1=1`
 
@@ -178,9 +186,9 @@ func (r *KlijentRepo) ListaFilter(ctx context.Context, filter db.KlijentFilter) 
 	var rezultat []model.Klijent
 	for redovi.Next() {
 		var k model.Klijent
-		var ime, prezime, jmbg, nazivFirme, pib, telefon, email, mesto, napomena sql.NullString
+		var ime, prezime, jmbg, tipIdent, nazivFirme, pib, telefon, email, mesto, napomena sql.NullString
 		err := redovi.Scan(
-			&k.ID, &k.Tip, &ime, &prezime, &jmbg, &nazivFirme, &pib, &telefon, &email, &mesto, &napomena, &k.DatumUnosa,
+			&k.ID, &k.Tip, &ime, &prezime, &jmbg, &tipIdent, &nazivFirme, &pib, &telefon, &email, &mesto, &napomena, &k.DatumUnosa,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("ntech: KlijentRepo.ListaFilter: scan: %w", err)
@@ -188,6 +196,7 @@ func (r *KlijentRepo) ListaFilter(ctx context.Context, filter db.KlijentFilter) 
 		k.Ime = ime.String
 		k.Prezime = prezime.String
 		k.JMBG = jmbg.String
+		k.TipIdentifikacije = tipIdent.String
 		k.NazivFirme = nazivFirme.String
 		k.PIB = pib.String
 		k.Telefon = telefon.String

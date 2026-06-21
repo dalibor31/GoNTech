@@ -619,16 +619,23 @@ func (h *Handler) mozdaKreirajKlijenta(ctx context.Context, r *http.Request, nal
 		return "Adresa e-pošte nije ispravna."
 	}
 
+	// tip identifikacionog broja: 'jmbg' ili 'licna_karta' (podrazumevano jmbg)
+	tipIdent := r.FormValue("tip_identifikacije")
+	if tipIdent != "jmbg" && tipIdent != "licna_karta" {
+		tipIdent = "jmbg"
+	}
+
 	klijent := model.Klijent{
-		Tip:        tip,
-		Ime:        ime,
-		Prezime:    strings.TrimSpace(r.FormValue("prezime")),
-		JMBG:       strings.TrimSpace(r.FormValue("jmbg")),
-		NazivFirme: nazivFirme,
-		PIB:        strings.TrimSpace(r.FormValue("pib")),
-		Telefon:    strings.TrimSpace(r.FormValue("telefon")),
-		Email:      email,
-		Mesto:      strings.TrimSpace(r.FormValue("mesto")),
+		Tip:               tip,
+		Ime:               ime,
+		Prezime:           strings.TrimSpace(r.FormValue("prezime")),
+		JMBG:              strings.TrimSpace(r.FormValue("jmbg")),
+		TipIdentifikacije: tipIdent,
+		NazivFirme:        nazivFirme,
+		PIB:               strings.TrimSpace(r.FormValue("pib")),
+		Telefon:           strings.TrimSpace(r.FormValue("telefon")),
+		Email:             email,
+		Mesto:             strings.TrimSpace(r.FormValue("mesto")),
 	}
 
 	id, err := h.KlijentiRepo.Kreiraj(ctx, &klijent)

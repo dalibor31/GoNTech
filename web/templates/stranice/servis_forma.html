@@ -161,9 +161,18 @@
                                     <input type="text" name="prezime" x-model="noviPrezime" style="width:100%;">
                                 </div>
                             </div>
-                            <div>
-                                <label class="polje-labela">JMBG</label>
-                                <input type="text" name="jmbg" style="width:100%;">
+                            <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                                <div>
+                                    <label class="polje-labela">Vrsta dokumenta</label>
+                                    <select name="tip_identifikacije" style="width:100%;">
+                                        <option value="jmbg">JMBG</option>
+                                        <option value="licna_karta">Br. lične karte</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="polje-labela">JMBG / Br. lične karte</label>
+                                    <input type="text" name="jmbg" style="width:100%;">
+                                </div>
                             </div>
                         </div>
                     </template>
@@ -171,13 +180,26 @@
                     <!-- pravno lice -->
                     <template x-if="tip==='pravno'">
                         <div class="kolona" style="gap:12px;">
-                            <div>
-                                <label class="polje-labela">Naziv firme</label>
-                                <input type="text" name="naziv_firme" x-model="noviNaziv" style="width:100%;">
+                            <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                                <div>
+                                    <label class="polje-labela">Naziv firme</label>
+                                    <input type="text" name="naziv_firme" x-model="noviNaziv" style="width:100%;">
+                                </div>
+                                <div>
+                                    <label class="polje-labela">PIB</label>
+                                    <input type="text" name="pib" style="width:100%;">
+                                </div>
                             </div>
-                            <div>
-                                <label class="polje-labela">PIB</label>
-                                <input type="text" name="pib" style="width:100%;">
+                            <!-- kontakt osoba u firmi — čuva se u poljima Ime/Prezime klijenta -->
+                            <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                                <div>
+                                    <label class="polje-labela">Kontakt osoba — ime</label>
+                                    <input type="text" name="ime" x-model="noviIme" style="width:100%;">
+                                </div>
+                                <div>
+                                    <label class="polje-labela">Kontakt osoba — prezime</label>
+                                    <input type="text" name="prezime" x-model="noviPrezime" style="width:100%;">
+                                </div>
                             </div>
                         </div>
                     </template>
