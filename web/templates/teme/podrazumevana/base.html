@@ -396,6 +396,10 @@
                                 if (novi && stari) {
                                     // bez-anim spречava treptaj re-animacije kartica pri zameni
                                     novi.classList.add('bez-anim');
+                                    var sc = document.scrollingElement || document.documentElement;
+                                    var syDoc = sc ? sc.scrollTop : 0;
+                                    var gsStari = document.getElementById('sadrzaj');
+                                    var syGs = gsStari ? gsStari.scrollTop : 0;
                                     stari.replaceWith(novi);
                                     void novi.offsetHeight;
                                     novi.classList.remove('bez-anim');
@@ -406,6 +410,9 @@
                                         if (old.src) s.src = old.src; else s.textContent = old.textContent;
                                         old.parentNode.replaceChild(s, old);
                                     });
+                                    if (sc) sc.scrollTop = syDoc;
+                                    var gsNovi = document.getElementById('sadrzaj');
+                                    if (gsNovi) gsNovi.scrollTop = syGs;
                                 }
                                 if (btn) btn.disabled = false;
                             })

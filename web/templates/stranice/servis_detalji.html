@@ -173,12 +173,10 @@
             <div style="display:grid;grid-template-columns:1fr 80px 120px auto;gap:10px;align-items:flex-end;">
                 <div>
                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Usluga</label>
-                    <input type="text" id="rad-usluga-pretraga" list="usluge-datalist" autocomplete="off"
-                        placeholder="Pretraži uslugu..." style="width:100%;">
-                    <datalist id="usluge-datalist">
-                        {{range .Usluge}}<option value="{{.Naziv}}" data-id="{{.ID}}" data-cena="{{.Cena}}">{{end}}
-                    </datalist>
-                    <input type="hidden" name="usluga_id" id="rad-usluga">
+                    <select name="usluga_id" id="rad-usluga" style="width:100%;" required>
+                        <option value="">— odaberi uslugu —</option>
+                        {{range .Usluge}}<option value="{{.ID}}" data-cena="{{.Cena}}">{{.Naziv}}</option>{{end}}
+                    </select>
                 </div>
                 <div>
                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Kol.</label>
@@ -256,14 +254,13 @@
             <div style="display:grid;grid-template-columns:1fr 70px 80px 120px auto;gap:10px;align-items:flex-end;">
                 <div>
                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Artikal</label>
-                    <input type="text" id="deo-artikal-pretraga" list="artikli-datalist" autocomplete="off"
-                        placeholder="Pretraži artikal..." style="width:100%;">
-                    <datalist id="artikli-datalist"></datalist>
-                    <input type="hidden" name="artikal_id" id="deo-artikal">
+                    <select name="artikal_id" id="deo-artikal" style="width:100%;" required>
+                        <option value="">— odaberi artikal —</option>
+                    </select>
                 </div>
                 <div>
                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">U magacinu</label>
-                    <div id="deo-umagacinu" style="font-size:14px;font-weight:500;color:var(--tekst-glavni);text-align:center;padding:8px 0;">—</div>
+                    <div id="deo-umagacinu" style="font-size:14px;font-weight:500;color:var(--tekst-glavni);text-align:center;padding:8px 0;border:0.5px solid transparent;">—</div>
                 </div>
                 <div>
                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Kol.</label>
@@ -345,50 +342,28 @@
 </div>
 
 <script>
-// veže pretraživo polje (datalist) na skriveni ID + auto-popunu cene.
-// Korisnik kuca i bira stavku iz padajuće liste; iz izabrane opcije čitamo
-// data-id (pravi ID za server) i data-cena (predlog cene).
-function vežiCombobox(pretragaId, datalistId, hiddenId, cenaId) {
-    var pretraga = document.getElementById(pretragaId);
-    var datalist = document.getElementById(datalistId);
-    var hidden = document.getElementById(hiddenId);
-    var cena = document.getElementById(cenaId);
-    if (!pretraga || !datalist || !hidden) return;
-    function uskladi() {
-        var izbor = null;
-        var opcije = datalist.options;
-        for (var i = 0; i < opcije.length; i++) {
-            if (opcije[i].value === pretraga.value) { izbor = opcije[i]; break; }
-        }
-        if (izbor) {
-            hidden.value = izbor.dataset.id || '';
-            if (cena) {
-                var c = parseFloat(izbor.dataset.cena);
-                cena.value = (!isNaN(c) && c > 0) ? c.toFixed(2) : '0';
-            }
-        } else {
-            hidden.value = '';
-        }
-    }
-    pretraga.addEventListener('input', uskladi);
-    pretraga.addEventListener('change', uskladi);
-}
-vežiCombobox('rad-usluga-pretraga', 'usluge-datalist', 'rad-usluga', 'rad-cena');
+// Radovi: pri izboru usluge iz <select>-a popuni predloženu cenu (data-cena).
+(function () {
+    var sel = document.getElementById('rad-usluga');
+    var cena = document.getElementById('rad-cena');
+    if (!sel || !cena) return;
+    sel.addEventListener('change', function () {
+        var opt = sel.options[sel.selectedIndex];
+        var c = parseFloat(opt.getAttribute('data-cena'));
+        cena.value = (!isNaN(c) && c > 0) ? c.toFixed(2) : '0';
+    });
+})();
 
-// Delovi: kategorija filter + ograničenje količine na magacinsko stanje.
-// Datalist se gradi iz JSON-a po izabranoj kategoriji; pri izboru artikla
-// postavljamo cenu, max količine = stanje, i prikaz dostupne količine.
+// Delovi: kategorija filtrira <select> artikala; izborom artikla popunjavamo
+// cenu i prikaz „U magacinu". Običan <select> ima native pretragu kucanjem
+// i otvara se jednim klikom (za razliku od datalist-a).
 (function () {
     var ARTIKLI = {{json .Artikli}} || [];
     var kategSel = document.getElementById('deo-kategorija');
-    var pretraga = document.getElementById('deo-artikal-pretraga');
-    var datalist = document.getElementById('artikli-datalist');
-    var hidden = document.getElementById('deo-artikal');
+    var artikalSel = document.getElementById('deo-artikal');
     var cena = document.getElementById('deo-cena');
     var umagacinu = document.getElementById('deo-umagacinu');
-    if (!pretraga || !datalist) return;
-
-    function labela(a) { return a.Naziv + ' (' + a.Kolicina + ' kom)'; }
+    if (!artikalSel) return;
 
     if (kategSel) {
         var kategs = [];
@@ -401,43 +376,26 @@ vežiCombobox('rad-usluga-pretraga', 'usluge-datalist', 'rad-usluga', 'rad-cena'
             kategs.map(function (k) { return '<option value="' + k + '">' + k + '</option>'; }).join('');
     }
 
-    function popuniDatalist() {
+    function popuniArtikle() {
         var izabrana = kategSel ? kategSel.value : '';
-        datalist.innerHTML = ARTIKLI
-            .filter(function (a) { return !izabrana || (a.KategorijaNaziv || '') === izabrana; })
-            .map(function (a) {
-                return '<option value="' + labela(a) + '" data-id="' + a.ID +
-                    '" data-cena="' + a.ProdajnaCena + '" data-stanje="' + a.Kolicina + '">';
-            }).join('');
-    }
-    popuniDatalist();
-
-    if (kategSel) kategSel.addEventListener('change', function () {
-        popuniDatalist();
-        pretraga.value = '';
-        hidden.value = '';
+        artikalSel.innerHTML = '<option value="">— odaberi artikal —</option>' +
+            ARTIKLI.filter(function (a) { return !izabrana || (a.KategorijaNaziv || '') === izabrana; })
+                .map(function (a) {
+                    return '<option value="' + a.ID + '" data-cena="' + a.ProdajnaCena +
+                        '" data-stanje="' + a.Kolicina + '">' + a.Naziv + '</option>';
+                }).join('');
         if (umagacinu) umagacinu.textContent = '—';
-    });
-
-    function uskladi() {
-        var opt = null, opts = datalist.options;
-        for (var i = 0; i < opts.length; i++) {
-            if (opts[i].value === pretraga.value) { opt = opts[i]; break; }
-        }
-        if (opt) {
-            hidden.value = opt.dataset.id || '';
-            if (cena) {
-                var c = parseFloat(opt.dataset.cena);
-                cena.value = (!isNaN(c) && c > 0) ? c.toFixed(2) : '0';
-            }
-            if (umagacinu) umagacinu.textContent = (parseInt(opt.dataset.stanje, 10) || 0);
-        } else {
-            hidden.value = '';
-            if (umagacinu) umagacinu.textContent = '—';
-        }
     }
-    pretraga.addEventListener('input', uskladi);
-    pretraga.addEventListener('change', uskladi);
+    popuniArtikle();
+    if (kategSel) kategSel.addEventListener('change', popuniArtikle);
+
+    artikalSel.addEventListener('change', function () {
+        var opt = artikalSel.options[artikalSel.selectedIndex];
+        var c = parseFloat(opt.getAttribute('data-cena'));
+        if (cena) cena.value = (!isNaN(c) && c > 0) ? c.toFixed(2) : '0';
+        var st = parseInt(opt.getAttribute('data-stanje'), 10);
+        if (umagacinu) umagacinu.textContent = isNaN(st) ? '—' : st;
+    });
 })();
 </script>
 {{end}}
