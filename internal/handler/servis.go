@@ -88,6 +88,35 @@ func (h *Handler) Servis(w http.ResponseWriter, r *http.Request) {
 	h.renderujTemplate(w, "servis", podaci)
 }
 
+// ArhivaServisa prikazuje preuzete naloge — oni napuštaju kanban tablu i ovde se
+// pretražuju, da tabla ostane pregledna i pokazuje samo aktivan rad
+func (h *Handler) ArhivaServisa(w http.ResponseWriter, r *http.Request) {
+	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
+		return
+	}
+
+	pretraga := r.URL.Query().Get("pretraga")
+	nalozi, err := h.ServisRepo.Lista(r.Context(), pretraga, model.StatusPreuzeto)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju naloga", http.StatusInternalServerError)
+		return
+	}
+
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "servis"
+	ps.NaslovStranice = "Arhiva servisa"
+	podaci := PodaciServisa{
+		PodaciStranice: ps,
+		Nalozi:         nalozi,
+		Pretraga:       pretraga,
+		SviStatusi:     model.SviStatusi,
+	}
+
+	h.renderujTemplate(w, "servis_arhiva", podaci)
+}
+
 // NoviNalog generiše broj naloga i prikazuje praznu formu za unos
 func (h *Handler) NoviNalog(w http.ResponseWriter, r *http.Request) {
 	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)

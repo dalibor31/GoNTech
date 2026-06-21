@@ -29,126 +29,49 @@
             <input type="text" name="pretraga" value="{{.Pretraga}}"
                 placeholder="Pretraži po broju naloga ili uređaju..."
                 style="flex:1;min-width:160px;">
-            <select name="status" style="min-width:160px;">
-                <option value="">— svi statusi —</option>
-                {{range .SviStatusi}}
-                <option value="{{.}}" {{if eq . $.FilterStatus}}selected{{end}}>{{.}}</option>
-                {{end}}
-            </select>
+            <button type="submit" class="btn-primarno" style="flex-shrink:0;">Traži</button>
+            <a href="/servis/arhiva" class="btn-sekundarno" style="white-space:nowrap;flex-shrink:0;">Arhiva</a>
             <a href="/servis/novi" class="btn-primarno" style="white-space:nowrap;flex-shrink:0;">+ Novi nalog</a>
-        </div>
-        <div>
-            <button type="submit" class="btn-primarno">Traži</button>
         </div>
     </form>
 
-    <!-- desktop tabela -->
-    <div class="kartica servis-tabela animiraj" style="padding:0;overflow:hidden;">
-        <div style="overflow-x:auto;">
-            <table class="tabela">
-                <thead>
-                    <tr style="border-bottom:0.5px solid var(--ivica);">
-                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Broj naloga</th>
-                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Klijent</th>
-                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Uređaj</th>
-                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Status</th>
-                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Datum prijema</th>
-                        <th style="padding:12px 16px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Akcije</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {{range .Nalozi}}
-                    <tr class="animiraj red-tabele">
-                        <td style="padding:12px 16px;">
-                            <a href="/servis/{{.ID}}"
-                                style="font-size:14px;font-weight:500;color:var(--sb-akcent);text-decoration:none;font-family:monospace;">
-                                {{.BrojNaloga}}
-                            </a>
-                        </td>
-                        <td style="padding:12px 16px;font-size:13px;color:var(--tekst-sporedni);">
-                            {{if .KlijentNaziv}}{{.KlijentNaziv}}{{else}}—{{end}}
-                        </td>
-                        <td style="padding:12px 16px;font-size:14px;color:var(--tekst-glavni);">{{.Uredjaj}}</td>
-                        <td style="padding:12px 16px;">
-                            {{template "status-badge" .Status}}
-                        </td>
-                        <td style="padding:12px 16px;font-size:13px;color:var(--tekst-sporedni);">
-                            {{.DatumPrijema.Format "02.01.2006."}}
-                        </td>
-                        <td style="padding:12px 16px;text-align:center;">
-                            <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
-                                <a href="/servis/izmeni/{{.ID}}" class="btn-primarno-malo">
-                                    Izmeni
-                                </a>
-                                {{if index $.Dozvole "servis.obrisi"}}
-                                <form method="POST" action="/servis/obrisi/{{.ID}}" style="display:inline;">
-                                    <button type="submit" class="btn-obrisi-malo"
-                                        data-potvrda="Da li ste sigurni da želite da obrišete nalog {{.BrojNaloga}}?">
-                                        Obriši
-                                    </button>
-                                </form>
-                                {{end}}
-                            </div>
-                        </td>
-                    </tr>
-                    {{else}}
-                    <tr>
-                        <td colspan="6" style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
-                            {{if or $.Pretraga $.FilterStatus}}Za datu pretragu nema servisnih naloga u bazi.{{else}}Nema servisnih naloga. <a href="/servis/novi" style="color:var(--sb-akcent);">Dodaj prvi nalog.</a>{{end}}
-                        </td>
-                    </tr>
-                    {{end}}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- mobilne kartice -->
-    <div class="servis-kartice">
-        {{range .Nalozi}}
-        <div class="kartica servis-kartica animiraj">
-            <div class="red-izmedju" style="align-items:flex-start;gap:12px;margin-bottom:10px;">
-                <div>
-                    <a href="/servis/{{.ID}}"
-                        style="font-size:15px;font-weight:500;color:var(--sb-akcent);text-decoration:none;font-family:monospace;">
+    <!-- kanban tabla: kolona po statusu; nalog je kartica u koloni svog statusa.
+         Klik na karticu otvara detalj naloga. Horizontalni scroll na užim ekranima. -->
+    {{if .Nalozi}}
+    <div class="servis-kanban animiraj">
+        {{range $status := .SviStatusi}}
+        {{if ne $status "Preuzeto"}}
+        <div class="kanban-kolona">
+            <div class="kanban-naslov">
+                {{template "status-badge" $status}}
+            </div>
+            <div class="kanban-kartice">
+                {{range $.Nalozi}}
+                {{if eq .Status $status}}
+                <a href="/servis/{{.ID}}" class="kartica kanban-karta">
+                    <div style="font-size:14px;font-weight:500;color:var(--sb-akcent);font-family:monospace;">
                         {{.BrojNaloga}}
-                    </a>
-                    <div style="font-size:13px;color:var(--tekst-glavni);margin-top:2px;">{{.Uredjaj}}</div>
-                </div>
-                <div style="display:flex;gap:8px;flex-shrink:0;align-items:center;">
-                    {{template "status-badge" .Status}}
-                </div>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">
-                {{if .KlijentNaziv}}
-                <div class="pomocni-tekst">
-                    <span style="color:var(--tekst-glavni);font-weight:500;">Klijent:</span> {{.KlijentNaziv}}
-                </div>
-                {{end}}
-                <div style="font-size:12px;color:var(--tekst-sporedni);">
-                    Primljeno: {{.DatumPrijema.Format "02.01.2006."}}
-                </div>
-            </div>
-            <div style="display:flex;gap:8px;">
-                <a href="/servis/izmeni/{{.ID}}" class="btn-primarno-malo">
-                    Izmeni
+                    </div>
+                    <div style="font-size:13px;color:var(--tekst-glavni);margin-top:4px;">{{.Uredjaj}}</div>
+                    {{if .KlijentNaziv}}
+                    <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:4px;">{{.KlijentNaziv}}</div>
+                    {{end}}
+                    <div style="font-size:11px;color:var(--tekst-sporedni);margin-top:6px;">
+                        {{.DatumPrijema.Format "02.01.2006."}}
+                    </div>
                 </a>
-                {{if index $.Dozvole "servis.obrisi"}}
-                <form method="POST" action="/servis/obrisi/{{.ID}}" style="display:inline;">
-                    <button type="submit" class="btn-obrisi-malo"
-                        data-potvrda="Da li ste sigurni da želite da obrišete nalog {{.BrojNaloga}}?">
-                        Obriši
-                    </button>
-                </form>
+                {{end}}
                 {{end}}
             </div>
-        </div>
-        {{else}}
-        <div style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
-            {{if or $.Pretraga $.FilterStatus}}Za datu pretragu nema servisnih naloga u bazi.{{else}}Nema servisnih naloga. <a href="/servis/novi" style="color:var(--sb-akcent);">Dodaj prvi nalog.</a>{{end}}
         </div>
         {{end}}
+        {{end}}
     </div>
+    {{else}}
+    <div class="kartica animiraj" style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
+        {{if .Pretraga}}Za datu pretragu nema servisnih naloga u bazi.{{else}}Nema servisnih naloga. <a href="/servis/novi" style="color:var(--sb-akcent);">Dodaj prvi nalog.</a>{{end}}
+    </div>
+    {{end}}
 
 </div>
 {{end}}

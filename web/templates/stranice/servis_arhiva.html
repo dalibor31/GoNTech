@@ -1,0 +1,107 @@
+{{template "base" .}}
+
+{{define "naslov"}}Arhiva servisa — NTech{{end}}
+
+{{define "status-badge"}}
+{{if eq . "Primljeno"}}<span class="status-badge status-primljeno">{{.}}</span>
+{{else if eq . "U dijagnostici"}}<span class="status-badge status-dijagnostika">{{.}}</span>
+{{else if eq . "Čeka delove"}}<span class="status-badge status-ceka">{{.}}</span>
+{{else if eq . "U popravci"}}<span class="status-badge status-popravka">{{.}}</span>
+{{else if eq . "Završeno"}}<span class="status-badge status-zavrseno">{{.}}</span>
+{{else if eq . "Preuzeto"}}<span class="status-badge status-preuzeto">{{.}}</span>
+{{else}}<span class="status-badge status-primljeno">{{.}}</span>
+{{end}}
+{{end}}
+
+{{define "sadrzaj"}}
+<div class="kolona" style="gap:16px;">
+
+    <!-- gornja traka: pretraga + povratak na kanban tablu -->
+    <form method="GET" action="/servis/arhiva" class="kolona" style="gap:8px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <input type="text" name="pretraga" value="{{.Pretraga}}"
+                placeholder="Pretraži preuzete naloge po broju ili uređaju..."
+                style="flex:1;min-width:160px;">
+            <button type="submit" class="btn-primarno" style="flex-shrink:0;">Traži</button>
+            <a href="/servis" class="btn-sekundarno" style="white-space:nowrap;flex-shrink:0;">← Tabla</a>
+        </div>
+    </form>
+
+    <!-- desktop tabela -->
+    <div class="kartica servis-tabela animiraj" style="padding:0;overflow:hidden;">
+        <div style="overflow-x:auto;">
+            <table class="tabela">
+                <thead>
+                    <tr style="border-bottom:0.5px solid var(--ivica);">
+                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Broj naloga</th>
+                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Klijent</th>
+                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Uređaj</th>
+                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Primljeno</th>
+                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Završeno</th>
+                        <th style="padding:12px 16px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Akcije</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Nalozi}}
+                    <tr class="animiraj red-tabele">
+                        <td style="padding:12px 16px;">
+                            <a href="/servis/{{.ID}}"
+                                style="font-size:14px;font-weight:500;color:var(--sb-akcent);text-decoration:none;font-family:monospace;">
+                                {{.BrojNaloga}}
+                            </a>
+                        </td>
+                        <td style="padding:12px 16px;font-size:13px;color:var(--tekst-sporedni);">
+                            {{if .KlijentNaziv}}{{.KlijentNaziv}}{{else}}—{{end}}
+                        </td>
+                        <td style="padding:12px 16px;font-size:14px;color:var(--tekst-glavni);">{{.Uredjaj}}</td>
+                        <td style="padding:12px 16px;font-size:13px;color:var(--tekst-sporedni);">
+                            {{.DatumPrijema.Format "02.01.2006."}}
+                        </td>
+                        <td style="padding:12px 16px;font-size:13px;color:var(--tekst-sporedni);">
+                            {{if .DatumZavrsetka}}{{.DatumZavrsetka.Format "02.01.2006."}}{{else}}—{{end}}
+                        </td>
+                        <td style="padding:12px 16px;text-align:center;">
+                            <a href="/servis/{{.ID}}" class="btn-primarno-malo">Otvori</a>
+                        </td>
+                    </tr>
+                    {{else}}
+                    <tr>
+                        <td colspan="6" style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
+                            {{if .Pretraga}}Za datu pretragu nema preuzetih naloga u bazi.{{else}}Još nema preuzetih naloga u arhivi.{{end}}
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- mobilne kartice -->
+    <div class="servis-kartice">
+        {{range .Nalozi}}
+        <a href="/servis/{{.ID}}" class="kartica servis-kartica animiraj kartica-link">
+            <div class="red-izmedju" style="align-items:flex-start;gap:12px;margin-bottom:10px;">
+                <div>
+                    <div style="font-size:15px;font-weight:500;color:var(--sb-akcent);font-family:monospace;">{{.BrojNaloga}}</div>
+                    <div style="font-size:13px;color:var(--tekst-glavni);margin-top:2px;">{{.Uredjaj}}</div>
+                </div>
+                <div style="flex-shrink:0;">{{template "status-badge" .Status}}</div>
+            </div>
+            {{if .KlijentNaziv}}
+            <div class="pomocni-tekst" style="margin-bottom:6px;">
+                <span style="color:var(--tekst-glavni);font-weight:500;">Klijent:</span> {{.KlijentNaziv}}
+            </div>
+            {{end}}
+            <div style="font-size:12px;color:var(--tekst-sporedni);">
+                Primljeno: {{.DatumPrijema.Format "02.01.2006."}}{{if .DatumZavrsetka}} · Završeno: {{.DatumZavrsetka.Format "02.01.2006."}}{{end}}
+            </div>
+        </a>
+        {{else}}
+        <div style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
+            {{if .Pretraga}}Za datu pretragu nema preuzetih naloga u bazi.{{else}}Još nema preuzetih naloga u arhivi.{{end}}
+        </div>
+        {{end}}
+    </div>
+
+</div>
+{{end}}

@@ -36,7 +36,7 @@ var saSidebar = []string{
 	"podsetnici", "podsetnik_forma",
 	"profil_tema",
 	"prodaja", "prodaja_detalji", "prodaja_forma",
-	"servis", "servis_forma", "servis_detalji",
+	"servis", "servis_arhiva", "servis_forma", "servis_detalji",
 }
 
 // standalone su šabloni bez base layouta

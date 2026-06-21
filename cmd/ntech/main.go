@@ -336,6 +336,7 @@ func main() {
 		r.With(doz("klijent.izmeni")).Post("/klijenti/izmeni/{id}", h.SacuvajIzmenuKlijenta)
 		r.With(doz("klijent.obrisi")).Post("/klijenti/obrisi/{id}", h.ObrisiKlijenta)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "servis.pregled")).Get("/servis", h.Servis)
+		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "servis.pregled")).Get("/servis/arhiva", h.ArhivaServisa)
 		r.Get("/servis/novi", h.NoviNalog)
 		r.With(doz("servis.dodaj")).Post("/servis/novi", h.SacuvajNalog)
 		r.Get("/servis/izmeni/{id}", h.IzmeniNalog)
