@@ -29,6 +29,15 @@ web/static/uploads/
 *.kate-swp
 .*.kate-swp
 
+# Fiskalni test server — kod ide u repo, ali ne i runtime artefakti
+Fisk/__pycache__/
+Fisk/data/invoices/
+Fisk/data/qr/
+Fisk/data/receipts/
+Fisk/data/*.log
+Fisk/data/*.pid
+Fisk/data/counter.txt
+
 # IDE podešavanja
 .vscode/
 .idea/
