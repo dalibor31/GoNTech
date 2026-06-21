@@ -70,6 +70,23 @@ type ServisniDeoSaArtiklom struct {
 	ArtikalNaziv string
 }
 
+// ServisniRad predstavlja jednu stavku rada (uslugu) na servisnom nalogu.
+// Naziv i cena su snapshot iz cenovnika usluga; cena se može menjati po nalogu.
+type ServisniRad struct {
+	ID         int64
+	NalogID    int64
+	UslugaID   int64 // 0 ako je usluga u međuvremenu obrisana iz cenovnika
+	Naziv      string
+	Kolicina   float64
+	CenaKomada float64
+	Datum      string
+}
+
+// Ukupno vraća ukupnu vrednost rada (kolicina × cena)
+func (r ServisniRad) Ukupno() float64 {
+	return r.Kolicina * r.CenaKomada
+}
+
 // ServisniNalogSaKlijentom proširuje ServisniNalog sa nazivom klijenta za prikaz u listi
 type ServisniNalogSaKlijentom struct {
 	ServisniNalog

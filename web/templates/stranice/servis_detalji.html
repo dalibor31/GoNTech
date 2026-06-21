@@ -45,7 +45,7 @@
                 </span>
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                     {{template "status-badge-detalji" .Nalog.Status}}
-                    <form method="post" action="/servis/{{.Nalog.ID}}/status" style="display:flex;align-items:center;gap:6px;">
+                    <form method="post" action="/servis/{{.Nalog.ID}}/status" style="display:flex;align-items:center;gap:6px;" data-full-reload>
                         <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
                         <select name="status" style="font-size:13px;padding:4px 8px;border-radius:6px;border:0.5px solid var(--ivica);background:var(--kartica-pozadina);color:var(--tekst-glavni);cursor:pointer;">
                             {{range .SviStatusi}}
@@ -160,60 +160,82 @@
         </div>
     </div>
 
-    <!-- cene -->
+    <!-- radovi (usluge) -->
     <div class="kartica detalji-kartica animiraj">
-        <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);">
-            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Cene</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);flex-wrap:wrap;gap:10px;">
+            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Radovi (usluge)</span>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:16px;">
-            <div>
-                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Procena od</div>
-                <div style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">
-                    {{if .Nalog.CenaOd}}{{.Nalog.CenaOdStr}} din{{else}}—{{end}}
+
+        <!-- forma za dodavanje rada iz cenovnika usluga -->
+        {{if index .Dozvole "servis.izmeni"}}
+        <form method="POST" action="/servis/{{.Nalog.ID}}/radovi" style="margin-bottom:16px;" data-refresh="#radovi-spisak">
+            <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+            <div style="display:grid;grid-template-columns:1fr 80px 120px auto;gap:10px;align-items:flex-end;">
+                <div>
+                    <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Usluga</label>
+                    <input type="text" id="rad-usluga-pretraga" list="usluge-datalist" autocomplete="off"
+                        placeholder="Pretraži uslugu..." style="width:100%;">
+                    <datalist id="usluge-datalist">
+                        {{range .Usluge}}<option value="{{.Naziv}}" data-id="{{.ID}}" data-cena="{{.Cena}}">{{end}}
+                    </datalist>
+                    <input type="hidden" name="usluga_id" id="rad-usluga">
+                </div>
+                <div>
+                    <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Kol.</label>
+                    <input type="number" name="kolicina" id="rad-kolicina" min="0.01" step="0.01" value="1" style="width:100%;" required>
+                </div>
+                <div>
+                    <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Cena/kom (din)</label>
+                    <input type="number" name="cena_komada" id="rad-cena" min="0" step="0.01" value="0" style="width:100%;" required>
+                </div>
+                <div>
+                    <button type="submit" class="btn-primarno" style="font-size:13px;padding:8px 14px;white-space:nowrap;">+ Dodaj</button>
                 </div>
             </div>
-            <div>
-                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Procena do</div>
-                <div style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">
-                    {{if .Nalog.CenaDo}}{{.Nalog.CenaDoStr}} din{{else}}—{{end}}
-                </div>
-            </div>
-            <div>
-                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Cena rada</div>
-                <div style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">
-                    {{if .Nalog.CenaKonacna}}{{.Nalog.CenaKonacnaStr}} din{{else}}—{{end}}
-                </div>
-            </div>
-            {{if gt .UkupnoDelovi 0.0}}
-            <div>
-                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Ugrađeni delovi</div>
-                <div style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">
-                    {{dinari .UkupnoDelovi}} din
-                </div>
-            </div>
-            {{end}}
-            {{if .Nalog.CenaKonacna}}
-            <div>
-                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Ukupno</div>
-                <div style="font-size:20px;font-weight:600;color:var(--sb-akcent);">
-                    {{dinari .UkupnoSve}} din
-                </div>
-            </div>
-            {{end}}
-            <div>
-                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Avans</div>
-                <div style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">
-                    {{if .Nalog.Avans}}{{.Nalog.AvansStr}} din{{else}}—{{end}}
-                </div>
-            </div>
-            {{if .Nalog.CenaKonacna}}
-            <div>
-                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Za naplatu</div>
-                <div style="font-size:20px;font-weight:600;color:#16a34a;">
-                    {{dinari .PreostaloSve}} din
-                </div>
-            </div>
-            {{end}}
+        </form>
+        {{end}}
+
+        <!-- lista radova -->
+        <div id="radovi-spisak">
+        {{if .ServisniRadovi}}
+        <table class="tabela">
+            <thead>
+                <tr style="border-bottom:0.5px solid var(--ivica);">
+                    <th style="padding:8px 10px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Usluga</th>
+                    <th style="padding:8px 10px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:80px;">Kol.</th>
+                    <th style="padding:8px 10px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:130px;">Cena/kom</th>
+                    <th style="padding:8px 10px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:130px;">Ukupno</th>
+                    <th style="width:50px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .ServisniRadovi}}
+                <tr style="border-bottom:0.5px solid var(--ivica);">
+                    <td style="padding:9px 10px;font-size:14px;color:var(--tekst-glavni);">{{.Naziv}}</td>
+                    <td style="padding:9px 10px;text-align:center;font-size:14px;color:var(--tekst-glavni);">{{.Kolicina}}</td>
+                    <td style="padding:9px 10px;text-align:right;font-size:14px;color:var(--tekst-glavni);">{{dinari .CenaKomada}} din</td>
+                    <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .Ukupno}} din</td>
+                    <td style="padding:9px 10px;text-align:center;">
+                        {{if index $.Dozvole "servis.izmeni"}}
+                        <form method="POST" action="/servis/{{$.Nalog.ID}}/radovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#radovi-spisak">
+                            <input type="hidden" name="_csrf" value="{{$.CsrfToken}}">
+                            <button type="submit"
+                                data-potvrda="Ukloniti rad '{{.Naziv}}'?"
+                                style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px;padding:2px 6px;border-radius:4px;">
+                                ×
+                            </button>
+                        </form>
+                        {{end}}
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+        {{else}}
+        <div style="font-size:13px;color:var(--tekst-sporedni);text-align:center;padding:16px 0;">
+            Nema unetih radova. Dodaj uslugu iz cenovnika.
+        </div>
+        {{end}}
         </div>
     </div>
 
@@ -225,17 +247,17 @@
 
         <!-- forma za dodavanje dela -->
         {{if index .Dozvole "servis.izmeni"}}
-        <form method="POST" action="/servis/{{.Nalog.ID}}/delovi" style="margin-bottom:16px;">
-            <input type="hidden" name="csrf_token" value="{{.CsrfToken}}">
+        <form method="POST" action="/servis/{{.Nalog.ID}}/delovi" style="margin-bottom:16px;" data-refresh="#delovi-spisak">
+            <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
             <div style="display:grid;grid-template-columns:1fr 80px 120px auto;gap:10px;align-items:flex-end;">
                 <div>
                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Artikal</label>
-                    <select name="artikal_id" style="width:100%;" required>
-                        <option value="">— odaberi —</option>
-                        {{range .Artikli}}
-                        <option value="{{.ID}}" data-cena="{{.ProdajnaCena}}">{{.Naziv}} ({{.Kolicina}} kom)</option>
-                        {{end}}
-                    </select>
+                    <input type="text" id="deo-artikal-pretraga" list="artikli-datalist" autocomplete="off"
+                        placeholder="Pretraži artikal..." style="width:100%;">
+                    <datalist id="artikli-datalist">
+                        {{range .Artikli}}<option value="{{.Naziv}} ({{.Kolicina}} kom)" data-id="{{.ID}}" data-cena="{{.ProdajnaCena}}">{{end}}
+                    </datalist>
+                    <input type="hidden" name="artikal_id" id="deo-artikal">
                 </div>
                 <div>
                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Kol.</label>
@@ -243,7 +265,7 @@
                 </div>
                 <div>
                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Cena/kom (din)</label>
-                    <input type="number" name="cena_komada" min="0" step="0.01" value="0" style="width:100%;" required>
+                    <input type="number" name="cena_komada" id="deo-cena" min="0" step="0.01" value="0" style="width:100%;" required>
                 </div>
                 <div>
                     <button type="submit" class="btn-primarno" style="font-size:13px;padding:8px 14px;white-space:nowrap;">+ Dodaj</button>
@@ -253,6 +275,7 @@
         {{end}}
 
         <!-- lista delova -->
+        <div id="delovi-spisak">
         {{if .ServisniDelovi}}
         <table class="tabela">
             <thead>
@@ -273,8 +296,8 @@
                     <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .Ukupno}} din</td>
                     <td style="padding:9px 10px;text-align:center;">
                         {{if index $.Dozvole "servis.izmeni"}}
-                        <form method="POST" action="/servis/{{$.Nalog.ID}}/delovi/{{.ID}}/obrisi" style="display:inline;">
-                            <input type="hidden" name="csrf_token" value="{{$.CsrfToken}}">
+                        <form method="POST" action="/servis/{{$.Nalog.ID}}/delovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#delovi-spisak">
+                            <input type="hidden" name="_csrf" value="{{$.CsrfToken}}">
                             <button type="submit"
                                 data-potvrda="Ukloniti deo '{{.ArtikalNaziv}}'?"
                                 style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px;padding:2px 6px;border-radius:4px;">
@@ -292,6 +315,7 @@
             Nema ugrađenih delova za ovaj nalog.
         </div>
         {{end}}
+        </div>
     </div>
 
     <!-- zona za brisanje -->
@@ -315,19 +339,35 @@
 </div>
 
 <script>
-(function() {
-    var sel = document.querySelector('select[name="artikal_id"]');
-    var cenaInput = document.querySelector('input[name="cena_komada"]');
-    if (!sel || !cenaInput) return;
-    sel.addEventListener('change', function() {
-        var opt = sel.options[sel.selectedIndex];
-        var cena = parseFloat(opt.dataset.cena);
-        if (!isNaN(cena) && cena > 0) {
-            cenaInput.value = cena.toFixed(2);
-        } else {
-            cenaInput.value = '0';
+// veže pretraživo polje (datalist) na skriveni ID + auto-popunu cene.
+// Korisnik kuca i bira stavku iz padajuće liste; iz izabrane opcije čitamo
+// data-id (pravi ID za server) i data-cena (predlog cene).
+function vežiCombobox(pretragaId, datalistId, hiddenId, cenaId) {
+    var pretraga = document.getElementById(pretragaId);
+    var datalist = document.getElementById(datalistId);
+    var hidden = document.getElementById(hiddenId);
+    var cena = document.getElementById(cenaId);
+    if (!pretraga || !datalist || !hidden) return;
+    function uskladi() {
+        var izbor = null;
+        var opcije = datalist.options;
+        for (var i = 0; i < opcije.length; i++) {
+            if (opcije[i].value === pretraga.value) { izbor = opcije[i]; break; }
         }
-    });
-})();
+        if (izbor) {
+            hidden.value = izbor.dataset.id || '';
+            if (cena) {
+                var c = parseFloat(izbor.dataset.cena);
+                cena.value = (!isNaN(c) && c > 0) ? c.toFixed(2) : '0';
+            }
+        } else {
+            hidden.value = '';
+        }
+    }
+    pretraga.addEventListener('input', uskladi);
+    pretraga.addEventListener('change', uskladi);
+}
+vežiCombobox('rad-usluga-pretraga', 'usluge-datalist', 'rad-usluga', 'rad-cena');
+vežiCombobox('deo-artikal-pretraga', 'artikli-datalist', 'deo-artikal', 'deo-cena');
 </script>
 {{end}}

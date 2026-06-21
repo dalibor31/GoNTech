@@ -47,9 +47,12 @@ type PodaciDetaljiNaloga struct {
 	KlijentNaziv   string
 	TehnicarNaziv  string
 	ServisniDelovi []model.ServisniDeoSaArtiklom
+	ServisniRadovi []model.ServisniRad
 	Artikli        []model.ArtikalSaKategorijom
+	Usluge         []model.Usluga
 	Sacuvano       bool
 	UkupnoDelovi   float64
+	UkupnoRadovi   float64
 	UkupnoSve      float64
 	PreostaloSve   float64
 	SviStatusi     []string
@@ -426,27 +429,38 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 		slog.Error("greška pri učitavanju delova", "error", err)
 	}
 
+	radovi, err := h.ServisniRadoviRepo.DohvatiZaNalog(r.Context(), id)
+	if err != nil {
+		slog.Error("greška pri učitavanju radova", "error", err)
+	}
+
 	appdb := appdbPkg.ArtikalFilter{}
 	artikli, err := h.Artikli.Lista(r.Context(), appdb)
 	if err != nil {
 		slog.Error("greška pri učitavanju artikala", "error", err)
 	}
 
-	var ukupnoDelovi float64
+	usluge, err := h.UslugeRepo.Lista(r.Context(), appdbPkg.UslugaFilter{})
+	if err != nil {
+		slog.Error("greška pri učitavanju usluga", "error", err)
+	}
+
+	var ukupnoDelovi, ukupnoRadovi float64
 	for _, d := range delovi {
 		ukupnoDelovi += d.Ukupno()
 	}
-	var ukupnoSve, preostaloSve float64
-	if nalog.CenaKonacna != nil {
-		ukupnoSve = *nalog.CenaKonacna + ukupnoDelovi
-		avans := 0.0
-		if nalog.Avans != nil {
-			avans = *nalog.Avans
-		}
-		preostaloSve = ukupnoSve - avans
-		if preostaloSve < 0 {
-			preostaloSve = 0
-		}
+	for _, rad := range radovi {
+		ukupnoRadovi += rad.Ukupno()
+	}
+	// cena rada = zbir radova (usluga); ukupno za klijenta = radovi + delovi
+	ukupnoSve := ukupnoRadovi + ukupnoDelovi
+	avans := 0.0
+	if nalog.Avans != nil {
+		avans = *nalog.Avans
+	}
+	preostaloSve := ukupnoSve - avans
+	if preostaloSve < 0 {
+		preostaloSve = 0
 	}
 
 	ps := h.popuniPodaciStranice(r, podesavanja)
@@ -458,9 +472,12 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 		KlijentNaziv:   klijentNaziv,
 		TehnicarNaziv:  tehnicarNaziv,
 		ServisniDelovi: delovi,
+		ServisniRadovi: radovi,
 		Artikli:        artikli,
+		Usluge:         usluge,
 		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
 		UkupnoDelovi:   ukupnoDelovi,
+		UkupnoRadovi:   ukupnoRadovi,
 		UkupnoSve:      ukupnoSve,
 		PreostaloSve:   preostaloSve,
 		SviStatusi:     model.SviStatusi,
@@ -540,6 +557,86 @@ func (h *Handler) ObrisiDeloNaloga(w http.ResponseWriter, r *http.Request) {
 	if err := h.ServisniDeloviRepo.Obrisi(r.Context(), deoID, &k.ID); err != nil {
 		slog.Error("greška pri brisanju dela", "error", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri uklanjanju dela.")
+	}
+	http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
+}
+
+// DodajRadNalogu dodaje stavku rada (uslugu) na nalog; naziv i cena se snapshot-uju
+func (h *Handler) DodajRadNalogu(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "servis.izmeni"); !ok {
+		return
+	}
+
+	nalogID, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
+		return
+	}
+
+	uslugaID, err := strconv.ParseInt(r.FormValue("usluga_id"), 10, 64)
+	if err != nil || uslugaID <= 0 {
+		middleware.SetFlash(w, r, h.DB, "greska", "Izaberite uslugu.")
+		http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
+		return
+	}
+
+	usluga, err := h.UslugeRepo.DohvatiID(r.Context(), uslugaID)
+	if err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Izabrana usluga nije pronađena.")
+		http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
+		return
+	}
+
+	kolicina, err := strconv.ParseFloat(r.FormValue("kolicina"), 64)
+	if err != nil || kolicina <= 0 {
+		middleware.SetFlash(w, r, h.DB, "greska", "Količina mora biti pozitivan broj.")
+		http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
+		return
+	}
+
+	cena, err := strconv.ParseFloat(r.FormValue("cena_komada"), 64)
+	if err != nil || cena < 0 {
+		middleware.SetFlash(w, r, h.DB, "greska", "Cena mora biti pozitivan broj.")
+		http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
+		return
+	}
+
+	if _, err := h.ServisniRadoviRepo.Dodaj(r.Context(), nalogID, uslugaID, usluga.Naziv, kolicina, cena); err != nil {
+		slog.Error("greška pri dodavanju rada", "error", err)
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri dodavanju rada.")
+		http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10)+"?sacuvano=1", http.StatusSeeOther)
+}
+
+// ObrisiRadNaloga uklanja stavku rada sa naloga
+func (h *Handler) ObrisiRadNaloga(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "servis.izmeni"); !ok {
+		return
+	}
+
+	nalogID, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+
+	radID, err := parseID(chi.URLParam(r, "rad_id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID rada", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.ServisniRadoviRepo.Obrisi(r.Context(), radID); err != nil {
+		slog.Error("greška pri brisanju rada", "error", err)
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri uklanjanju rada.")
 	}
 	http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
 }

@@ -213,6 +213,13 @@ type ServisniDeloviRepository interface {
 	Obrisi(ctx context.Context, id int64, korisnikID *int64) error
 }
 
+// ServisniRadoviRepository definiše operacije nad radovima (uslugama) na nalogu
+type ServisniRadoviRepository interface {
+	DohvatiZaNalog(ctx context.Context, nalogID int64) ([]model.ServisniRad, error)
+	Dodaj(ctx context.Context, nalogID, uslugaID int64, naziv string, kolicina, cenaKomada float64) (int64, error)
+	Obrisi(ctx context.Context, id int64) error
+}
+
 // MagacinskePromeneRepository definiše operacije nad revizijskim tragom magacina
 type MagacinskePromeneRepository interface {
 	Lista(ctx context.Context, artikalID *int64, limit int) ([]model.MagacinskaPromenaSaDetaljem, error)
