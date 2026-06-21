@@ -37,7 +37,7 @@
     </a>
 
     <!-- zaglavlje naloga -->
-    <div class="kartica detalji-kartica animiraj">
+    <div class="kartica detalji-kartica animiraj" id="nalog-zaglavlje">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);">
             <div class="kolona" style="gap:8px;">
                 <span style="font-size:20px;font-weight:600;color:var(--tekst-glavni);font-family:monospace;">
@@ -45,7 +45,7 @@
                 </span>
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                     {{template "status-badge-detalji" .Nalog.Status}}
-                    <form method="post" action="/servis/{{.Nalog.ID}}/status" style="display:flex;align-items:center;gap:6px;" data-refresh="#glavni-sadrzaj">
+                    <form method="post" action="/servis/{{.Nalog.ID}}/status" style="display:flex;align-items:center;gap:6px;" data-refresh="#nalog-zaglavlje">
                         <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
                         <select name="status" style="font-size:13px;padding:4px 8px;border-radius:6px;border:0.5px solid var(--ivica);background:var(--kartica-pozadina);color:var(--tekst-glavni);cursor:pointer;">
                             {{range .SviStatusi}}
@@ -168,7 +168,7 @@
 
         <!-- forma za dodavanje rada iz cenovnika usluga -->
         {{if index .Dozvole "servis.izmeni"}}
-        <form method="POST" action="/servis/{{.Nalog.ID}}/radovi" style="margin-bottom:16px;" data-refresh="#glavni-sadrzaj">
+        <form method="POST" action="/servis/{{.Nalog.ID}}/radovi" style="margin-bottom:16px;" data-refresh="#radovi-spisak">
             <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
             <div style="display:grid;grid-template-columns:1fr 80px 120px auto;gap:10px;align-items:flex-end;">
                 <div>
@@ -215,7 +215,7 @@
                     <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .Ukupno}} din</td>
                     <td style="padding:9px 10px;text-align:center;">
                         {{if index $.Dozvole "servis.izmeni"}}
-                        <form method="POST" action="/servis/{{$.Nalog.ID}}/radovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#glavni-sadrzaj">
+                        <form method="POST" action="/servis/{{$.Nalog.ID}}/radovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#radovi-spisak">
                             <input type="hidden" name="_csrf" value="{{$.CsrfToken}}">
                             <button type="submit"
                                 data-potvrda="Ukloniti rad '{{.Naziv}}'?"
@@ -245,7 +245,7 @@
 
         <!-- forma za dodavanje dela -->
         {{if index .Dozvole "servis.izmeni"}}
-        <form method="POST" action="/servis/{{.Nalog.ID}}/delovi" style="margin-bottom:16px;" data-refresh="#glavni-sadrzaj">
+        <form method="POST" action="/servis/{{.Nalog.ID}}/delovi" style="margin-bottom:16px;" data-refresh="#delovi-spisak">
             <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
             <div style="margin-bottom:10px;">
                 <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Kategorija</label>
@@ -299,7 +299,7 @@
                     <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .Ukupno}} din</td>
                     <td style="padding:9px 10px;text-align:center;">
                         {{if index $.Dozvole "servis.izmeni"}}
-                        <form method="POST" action="/servis/{{$.Nalog.ID}}/delovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#glavni-sadrzaj">
+                        <form method="POST" action="/servis/{{$.Nalog.ID}}/delovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#delovi-spisak">
                             <input type="hidden" name="_csrf" value="{{$.CsrfToken}}">
                             <button type="submit"
                                 data-potvrda="Ukloniti deo '{{.ArtikalNaziv}}'?"
