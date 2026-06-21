@@ -110,6 +110,20 @@
                                 placeholder="npr. 123456789">
                         </div>
                     </div>
+                    <!-- kontakt osoba u firmi — čuva se u poljima Ime/Prezime klijenta -->
+                    <div class="sekcija-naslov">Kontakt osoba</div>
+                    <div class="forma-grid-2">
+                        <div>
+                            <label class="polje-labela">Ime</label>
+                            <input type="text" name="ime" value="{{.Klijent.Ime}}"
+                                placeholder="npr. Marko">
+                        </div>
+                        <div>
+                            <label class="polje-labela">Prezime</label>
+                            <input type="text" name="prezime" value="{{.Klijent.Prezime}}"
+                                placeholder="npr. Petrović">
+                        </div>
+                    </div>
                 </div>
 
                 <!-- kontakt -->
@@ -158,13 +172,13 @@
 function promenaTipa(tip) {
     var secFiz = document.getElementById('sec-fizicko');
     var secPrav = document.getElementById('sec-pravno');
-    if (tip === 'pravno') {
-        secFiz.style.display = 'none';
-        secPrav.style.display = 'flex';
-    } else {
-        secFiz.style.display = 'flex';
-        secPrav.style.display = 'none';
-    }
+    var pravno = tip === 'pravno';
+    secFiz.style.display = pravno ? 'none' : 'flex';
+    secPrav.style.display = pravno ? 'flex' : 'none';
+    // skrivena polja se i dalje šalju; pošto obe sekcije imaju name="ime"/"prezime",
+    // onemogućavamo polja neaktivne sekcije da server ne dobije pogrešnu vrednost
+    secFiz.querySelectorAll('input,select').forEach(function (el) { el.disabled = pravno; });
+    secPrav.querySelectorAll('input,select').forEach(function (el) { el.disabled = !pravno; });
 }
 // pri učitavanju prikazujemo ispravnu sekciju
 (function() {
