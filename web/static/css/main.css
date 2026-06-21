@@ -1101,12 +1101,15 @@ select {
 #dobavljaci-rezultati.bez-anim .animiraj { animation: none; }
 
 /* osvežavanje dela stranice preko data-refresh (npr. detalji naloga) ne sme da
-   re-animira kartice — sprečava treptaj pri dodavanju/brisanju i promeni statusa */
-#glavni-sadrzaj.bez-anim .tabela tbody tr,
-#glavni-sadrzaj.bez-anim .animiraj,
+   re-animira kartice ni redove — sprečava treptaj pri dodavanju/brisanju i promeni
+   statusa. Pokriva i sam osveženi element (.bez-anim) i sve unutar njega. */
+.bez-anim,
 .bez-anim.kartica,
+.bez-anim.animiraj,
+.bez-anim .kartica,
+.bez-anim .animiraj,
 .bez-anim .tabela tbody tr,
-.bez-anim .animiraj { animation: none; }
+.bez-anim.tabela tbody tr { animation: none !important; }
 
 /* korisnikova preferencija animacije: body[data-animacija] nadjačava podrazumevano.
    Kad korisnik odabere stil, animiraju se i redovi tabela i mobilne kartice. */

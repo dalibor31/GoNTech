@@ -413,7 +413,15 @@
                                     if (sc) sc.scrollTop = syDoc;
                                     var gsNovi = document.getElementById('sadrzaj');
                                     if (gsNovi) gsNovi.scrollTop = syGs;
+                                    // re-veži event handlere (AJAX submit, potvrda brisanja...)
+                                    // na sveže umetnute elemente — inače bi nove forme išle
+                                    // punim POST-om (skok na vrh), a × bez potvrde
+                                    ntechInicijalizuj();
                                 }
+                                // forma koja nije deo osveženog dela ostaje u DOM-u —
+                                // isprazni je za sledeći unos (za one koje osvežavaju sebe
+                                // ovo je bezuspešno jer su zamenjene, što je u redu)
+                                if (document.body.contains(f)) f.reset();
                                 if (btn) btn.disabled = false;
                             })
                             .catch(function () { location.href = res.url; });
