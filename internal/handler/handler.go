@@ -21,6 +21,7 @@ type Handler struct {
 	PutanjaBaze           string
 	Artikli               db.ArtikalRepository
 	UslugeRepo            db.UslugaRepository
+	TroskoviRepo          db.TrosakRepository
 	KategorijeRepo        db.KategorijaRepository
 	DobavljaciRepo        db.DobavljacRepository
 	NabavkeRepo           db.NabavkaRepository
@@ -86,6 +87,7 @@ func Novi(baza *sql.DB, totpKljuc []byte) *Handler {
 		totpKljuc:             totpKljuc,
 		Artikli:               sqlite.NoviArtikalRepo(baza),
 		UslugeRepo:            sqlite.NoviUslugaRepo(baza),
+		TroskoviRepo:          sqlite.NoviTrosakRepo(baza),
 		KategorijeRepo:        sqlite.NovaKategorijaRepo(baza),
 		DobavljaciRepo:        sqlite.NoviDobavljacRepo(baza),
 		NabavkeRepo:           sqlite.NoviNabavkaRepo(baza),
@@ -116,6 +118,7 @@ func (h *Handler) reinicijalizujRepozitorijume(novaDB *sql.DB) {
 	h.DB = novaDB
 	h.Artikli = sqlite.NoviArtikalRepo(novaDB)
 	h.UslugeRepo = sqlite.NoviUslugaRepo(novaDB)
+	h.TroskoviRepo = sqlite.NoviTrosakRepo(novaDB)
 	h.KategorijeRepo = sqlite.NovaKategorijaRepo(novaDB)
 	h.DobavljaciRepo = sqlite.NoviDobavljacRepo(novaDB)
 	h.NabavkeRepo = sqlite.NoviNabavkaRepo(novaDB)

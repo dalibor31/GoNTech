@@ -42,11 +42,6 @@ func (h *Handler) Magacin(w http.ResponseWriter, r *http.Request) {
 	h.magacinPrikaz(w, r, model.TipProizvod, "magacin", "Magacin", "/magacin")
 }
 
-// Troskovi renderuje listu troškova (tip 'trosak')
-func (h *Handler) Troskovi(w http.ResponseWriter, r *http.Request) {
-	h.magacinPrikaz(w, r, model.TipTrosak, "troskovi", "Troškovi", "/troskovi")
-}
-
 // magacinPrikaz je zajednička logika liste artikala, parametrizovana tipom; isti
 // šablon služi za proizvode, usluge i troškove (razlikuju se samo tip i bazna ruta)
 func (h *Handler) magacinPrikaz(w http.ResponseWriter, r *http.Request, tip, stranica, naslov, osnovniUrl string) {
