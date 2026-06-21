@@ -301,6 +301,8 @@ func main() {
 		r.With(modul("pdv"), doz("pdv.obrisi")).Post("/pdv/kpr/obrisi/{id}", h.ObrisiPdvKpr)
 		r.With(modul("pdv")).Get("/pdv/obracun", h.PdvObracunStranica)
 		r.Get("/magacin", h.Magacin)
+		r.Get("/usluge", h.Usluge)
+		r.Get("/troskovi", h.Troskovi)
 		r.Get("/magacin/kartica/{id}", h.MagacinskaKartica)
 		r.Get("/magacin/novi", h.NoviArtikal)
 		r.With(doz("artikal.dodaj")).Post("/magacin/novi", h.SacuvajArtikal)

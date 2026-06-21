@@ -97,6 +97,7 @@ type NivelacijaRepository interface {
 type ArtikalFilter struct {
 	Pretraga     string
 	KategorijaID *int64
+	Tip          string // 'proizvod' | 'usluga' | 'trosak'; prazno → svi tipovi
 	SamoKriticni bool
 	Arhivirani   bool // true → vrati samo arhivirane; false (podrazumevano) → samo aktivne
 	Limit        int

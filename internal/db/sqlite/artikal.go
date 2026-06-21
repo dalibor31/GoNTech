@@ -49,6 +49,11 @@ func (r *ArtikalRepo) Lista(ctx context.Context, filter db.ArtikalFilter) ([]mod
 		args = append(args, *filter.KategorijaID)
 	}
 
+	if filter.Tip != "" {
+		upit += " AND a.tip = ?"
+		args = append(args, filter.Tip)
+	}
+
 	if filter.SamoKriticni {
 		upit += " AND (a.tip = 'proizvod' OR a.tip = '') AND a.kolicina <= a.kolicina_min"
 	}
@@ -440,6 +445,11 @@ func (r *ArtikalRepo) PrebrojiPoFilteru(ctx context.Context, filter db.ArtikalFi
 	if filter.KategorijaID != nil {
 		upit += " AND a.kategorija_id = ?"
 		args = append(args, *filter.KategorijaID)
+	}
+
+	if filter.Tip != "" {
+		upit += " AND a.tip = ?"
+		args = append(args, filter.Tip)
 	}
 
 	if filter.SamoKriticni {
