@@ -619,17 +619,15 @@ func (h *Handler) mozdaKreirajKlijenta(ctx context.Context, r *http.Request, nal
 		return "Adresa e-pošte nije ispravna."
 	}
 
-	// tip identifikacionog broja: 'jmbg' ili 'licna_karta' (podrazumevano jmbg)
-	tipIdent := r.FormValue("tip_identifikacije")
-	if tipIdent != "jmbg" && tipIdent != "licna_karta" {
-		tipIdent = "jmbg"
-	}
-
+	// tip identifikacionog broja se prepoznaje iz dužine unosa:
+	// 13 cifara → JMBG, 9 cifara → broj lične karte
 	jmbg := strings.TrimSpace(r.FormValue("jmbg"))
-	if tipIdent == "jmbg" {
-		if greska := validirajJMBG(jmbg); greska != "" {
-			return greska
-		}
+	tipIdent, greska := odrediTipIdentifikacije(jmbg)
+	if greska != "" {
+		return greska
+	}
+	if tipIdent == "" {
+		tipIdent = "jmbg" // prazan unos — podrazumevani tip radi konzistentnosti baze
 	}
 
 	klijent := model.Klijent{

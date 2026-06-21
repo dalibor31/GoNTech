@@ -163,15 +163,23 @@
                             </div>
                             <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                                 <div>
-                                    <label class="polje-labela">Vrsta dokumenta</label>
-                                    <select name="tip_identifikacije" style="width:100%;">
-                                        <option value="jmbg">JMBG</option>
-                                        <option value="licna_karta">Br. lične karte</option>
-                                    </select>
+                                    <label class="polje-labela">JMBG ili broj lične karte</label>
+                                    <input type="text" name="jmbg" style="width:100%;"
+                                        placeholder="13 cifara (JMBG) ili 9 (br. lk)">
                                 </div>
                                 <div>
-                                    <label class="polje-labela">JMBG / Br. lične karte</label>
-                                    <input type="text" name="jmbg" style="width:100%;">
+                                    <label class="polje-labela">Telefon</label>
+                                    <input type="text" name="telefon" style="width:100%;">
+                                </div>
+                            </div>
+                            <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                                <div>
+                                    <label class="polje-labela">Mesto</label>
+                                    <input type="text" name="mesto" style="width:100%;">
+                                </div>
+                                <div>
+                                    <label class="polje-labela">E-pošta</label>
+                                    <input type="text" name="email" style="width:100%;">
                                 </div>
                             </div>
                         </div>
@@ -201,24 +209,22 @@
                                     <input type="text" name="prezime" x-model="noviPrezime" style="width:100%;">
                                 </div>
                             </div>
+                            <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                                <div>
+                                    <label class="polje-labela">Telefon</label>
+                                    <input type="text" name="telefon" style="width:100%;">
+                                </div>
+                                <div>
+                                    <label class="polje-labela">Mesto</label>
+                                    <input type="text" name="mesto" style="width:100%;">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="polje-labela">E-pošta</label>
+                                <input type="text" name="email" style="width:100%;">
+                            </div>
                         </div>
                     </template>
-
-                    <!-- zajednička polja -->
-                    <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                        <div>
-                            <label class="polje-labela">Telefon</label>
-                            <input type="text" name="telefon" style="width:100%;">
-                        </div>
-                        <div>
-                            <label class="polje-labela">Mesto</label>
-                            <input type="text" name="mesto" style="width:100%;">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="polje-labela">E-pošta</label>
-                        <input type="text" name="email" style="width:100%;">
-                    </div>
                 </div>
 
                 <!-- tehničar -->
