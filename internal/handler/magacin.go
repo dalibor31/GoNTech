@@ -42,11 +42,6 @@ func (h *Handler) Magacin(w http.ResponseWriter, r *http.Request) {
 	h.magacinPrikaz(w, r, model.TipProizvod, "magacin", "Magacin", "/magacin")
 }
 
-// Usluge renderuje listu usluga (tip 'usluga')
-func (h *Handler) Usluge(w http.ResponseWriter, r *http.Request) {
-	h.magacinPrikaz(w, r, model.TipUsluga, "usluge", "Usluge", "/usluge")
-}
-
 // Troskovi renderuje listu troškova (tip 'trosak')
 func (h *Handler) Troskovi(w http.ResponseWriter, r *http.Request) {
 	h.magacinPrikaz(w, r, model.TipTrosak, "troskovi", "Troškovi", "/troskovi")

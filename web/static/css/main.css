@@ -1223,6 +1223,7 @@ select {
 .klijenti-kartice { display: none; flex-direction: column; gap: 12px; }
 .magacin-kartice  { display: none; flex-direction: column; gap: 12px; }
 .servis-kartice   { display: none; flex-direction: column; gap: 12px; }
+.usluge-kartice   { display: none; flex-direction: column; gap: 12px; }
 .prodaja-kartice  { display: none; flex-direction: column; gap: 12px; }
 .pod-kartice      { display: none; flex-direction: column; gap: 12px; }
 .stavke-kartice   { display: none; flex-direction: column; gap: 10px; }
@@ -1276,6 +1277,7 @@ select {
     .klijenti-tabela    { display: none; } .klijenti-kartice { display: flex; }
     .magacin-tabela     { display: none; } .magacin-kartice  { display: flex; }
     .servis-tabela      { display: none; } .servis-kartice   { display: flex; }
+    .usluge-tabela      { display: none; } .usluge-kartice   { display: flex; }
     .prodaja-tabela     { display: none; } .prodaja-kartice  { display: flex; }
     .pod-tabela         { display: none; } .pod-kartice      { display: flex; }
     .stavke-tabela-wrapper { display: none; } .stavke-kartice { display: flex; }
