@@ -1227,6 +1227,49 @@ select {
 .pod-kartice      { display: none; flex-direction: column; gap: 12px; }
 .stavke-kartice   { display: none; flex-direction: column; gap: 10px; }
 
+/* === servis kanban tabla === */
+.servis-kanban {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    align-items: flex-start;
+}
+.kanban-kolona {
+    flex: 0 0 250px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--pozadina-hover);
+    border: 0.5px solid var(--ivica);
+    border-radius: 12px;
+    padding: 10px;
+}
+.kanban-naslov {
+    display: flex;
+    align-items: center;
+    padding: 2px 2px 8px;
+    border-bottom: 0.5px solid var(--ivica);
+}
+.kanban-kartice {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 16px;
+}
+/* kartica naloga u koloni — nasleđuje .kartica, dodaje kompaktan padding i hover */
+.kanban-karta {
+    display: block;
+    text-decoration: none;
+    padding: 12px;
+    cursor: pointer;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.kanban-karta:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+}
+
 @media (max-width: 768px) {
     .nabavke-tabela     { display: none; } .nabavke-kartice  { display: flex; }
     .dobavljaci-tabela  { display: none; } .dobavljaci-kartice { display: flex; }
@@ -1237,6 +1280,10 @@ select {
     .pod-tabela         { display: none; } .pod-kartice      { display: flex; }
     .stavke-tabela-wrapper { display: none; } .stavke-kartice { display: flex; }
     .forma-grid-4       { grid-template-columns: 1fr 1fr !important; }
+
+    /* kanban: na telefonu kolone idu vertikalno (jedna ispod druge), bez scrola */
+    .servis-kanban { flex-direction: column; overflow-x: visible; }
+    .kanban-kolona { flex: 1 1 auto; width: 100%; }
 }
 
 /* podešavanja — raspored pozadine */
