@@ -104,6 +104,28 @@ type ArtikalFilter struct {
 	Offset       int
 }
 
+// UslugaFilter su parametri za listanje usluga
+type UslugaFilter struct {
+	Pretraga   string
+	Arhivirani bool
+	Limit      int
+	Offset     int
+}
+
+// UslugaRepository definiše operacije nad uslugama (zaseban entitet od artikala)
+type UslugaRepository interface {
+	Lista(ctx context.Context, filter UslugaFilter) ([]model.Usluga, error)
+	PrebrojiPoFilteru(ctx context.Context, filter UslugaFilter) (int, error)
+	DohvatiID(ctx context.Context, id int64) (*model.Usluga, error)
+	Kreiraj(ctx context.Context, u *model.Usluga) (int64, error)
+	Izmeni(ctx context.Context, u *model.Usluga) error
+	Obrisi(ctx context.Context, id int64) error
+	// Kategorije vraća postojeće (distinct) kategorije usluga za predlog pri unosu
+	Kategorije(ctx context.Context) ([]string, error)
+	// SledecaSifra vraća predlog sledeće auto-šifre usluge (USL-001 … USL-999)
+	SledecaSifra(ctx context.Context) (string, error)
+}
+
 // NabavkaRepository definiše operacije nad nabavkama
 type NabavkaRepository interface {
 	Lista(ctx context.Context) ([]model.NabavkaSaDetaljem, error)

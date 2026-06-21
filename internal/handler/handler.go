@@ -20,6 +20,7 @@ type Handler struct {
 	DB                    *sql.DB
 	PutanjaBaze           string
 	Artikli               db.ArtikalRepository
+	UslugeRepo            db.UslugaRepository
 	KategorijeRepo        db.KategorijaRepository
 	DobavljaciRepo        db.DobavljacRepository
 	NabavkeRepo           db.NabavkaRepository
@@ -41,7 +42,7 @@ type Handler struct {
 	PdvKprRepo            db.PdvKprRepository
 	NivelacijaRepo        db.NivelacijaRepository
 	Verzija               string
-	JelDemo              bool
+	JelDemo               bool
 	AssetV                string // verzija statičkih fajlova za cache-busting (postavlja se pri pokretanju)
 	Templates             map[string]*template.Template
 	TemplatesFS           fs.FS
@@ -84,6 +85,7 @@ func Novi(baza *sql.DB, totpKljuc []byte) *Handler {
 		DB:                    baza,
 		totpKljuc:             totpKljuc,
 		Artikli:               sqlite.NoviArtikalRepo(baza),
+		UslugeRepo:            sqlite.NoviUslugaRepo(baza),
 		KategorijeRepo:        sqlite.NovaKategorijaRepo(baza),
 		DobavljaciRepo:        sqlite.NoviDobavljacRepo(baza),
 		NabavkeRepo:           sqlite.NoviNabavkaRepo(baza),
@@ -113,6 +115,7 @@ func Novi(baza *sql.DB, totpKljuc []byte) *Handler {
 func (h *Handler) reinicijalizujRepozitorijume(novaDB *sql.DB) {
 	h.DB = novaDB
 	h.Artikli = sqlite.NoviArtikalRepo(novaDB)
+	h.UslugeRepo = sqlite.NoviUslugaRepo(novaDB)
 	h.KategorijeRepo = sqlite.NovaKategorijaRepo(novaDB)
 	h.DobavljaciRepo = sqlite.NoviDobavljacRepo(novaDB)
 	h.NabavkeRepo = sqlite.NoviNabavkaRepo(novaDB)

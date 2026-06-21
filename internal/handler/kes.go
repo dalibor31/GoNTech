@@ -37,6 +37,7 @@ var saSidebar = []string{
 	"profil_tema",
 	"prodaja", "prodaja_detalji", "prodaja_forma",
 	"servis", "servis_arhiva", "servis_forma", "servis_detalji",
+	"usluge", "usluge_forma",
 }
 
 // standalone su šabloni bez base layouta
