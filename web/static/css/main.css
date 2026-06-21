@@ -873,6 +873,11 @@ select {
     grid-template-columns: 1fr 1fr;
     gap: 12px;
 }
+.forma-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+}
 .forma-grid-4 {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr 1fr;
@@ -1000,6 +1005,7 @@ select {
 
     /* forme */
     .forma-grid-2 { grid-template-columns: 1fr !important; }
+    .forma-grid-3 { grid-template-columns: 1fr !important; }
 
     /* magacin traka */
     .magacin-traka { flex-direction: column; align-items: stretch; }

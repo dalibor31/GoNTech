@@ -23,11 +23,17 @@ import (
 // PodaciPodesavanja su podaci za stranicu podešavanja
 type PodaciPodesavanja struct {
 	model.PodaciStranice
-	NazivFirme      string
-	Podnazlov       string
-	Adresa          string
-	Telefon         string
-	PIB             string
+	NazivFirme  string
+	Podnazlov   string
+	Adresa      string
+	Telefon     string
+	PIB         string
+	MaticniBroj string
+	// poslovna jedinica — za fiskalizaciju (oznaka PJ se šalje uz svaki račun)
+	NazivPJ         string
+	OznakaPJ        string
+	Opstina         string
+	Grad            string
 	LogoPutanja     string
 	TopbarLogoSlika bool
 	// profil firme — pravni/poreski status (Faza 0); određuje koji se zakonski moduli pale
@@ -83,6 +89,11 @@ func (h *Handler) Podesavanja(w http.ResponseWriter, r *http.Request) {
 		Adresa:                          podesavanja["adresa"],
 		Telefon:                         podesavanja["telefon"],
 		PIB:                             podesavanja["pib"],
+		MaticniBroj:                     podesavanja["maticni_broj"],
+		NazivPJ:                         podesavanja["poslovna_jedinica_naziv"],
+		OznakaPJ:                        podesavanja["poslovna_jedinica_oznaka"],
+		Opstina:                         podesavanja["opstina"],
+		Grad:                            podesavanja["grad"],
 		LogoPutanja:                     podesavanja["logo_putanja"],
 		TopbarLogoSlika:                 podesavanja["topbar_logo_slika"] == "1",
 		Sacuvano:                        r.URL.Query().Get("sacuvano") == "1",
@@ -225,6 +236,24 @@ func kopiraFajl(izvor, odrediste string) error {
 	return err
 }
 
+// validirajMaticniBroj proverava da li uneti matični broj ima tačno 8 cifara.
+// Prazan broj je dozvoljen (polje nije obavezno). Vraća srpsku poruku o grešci
+// ili prazan string ako je broj ispravan.
+func validirajMaticniBroj(broj string) string {
+	if broj == "" {
+		return ""
+	}
+	if len(broj) != 8 {
+		return "Matični broj mora imati tačno 8 cifara."
+	}
+	for _, c := range broj {
+		if c < '0' || c > '9' {
+			return "Matični broj sme sadržati samo cifre."
+		}
+	}
+	return ""
+}
+
 // SacuvajPodesavanja prima POST i čuva podešavanja u bazu
 func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.zahtevajDozvolu(w, r, "podesavanja.izmeni"); !ok {
@@ -241,13 +270,30 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 		topbarLogoSlika = "1"
 	}
 
+	// matični broj — 8 cifara; prazno je dozvoljeno (polje nije obavezno)
+	maticniBroj := strings.TrimSpace(r.FormValue("maticni_broj"))
+	if greska := validirajMaticniBroj(maticniBroj); greska != "" {
+		middleware.SetFlash(w, r, h.DB, "greska", greska)
+		sledeci := "/podesavanja"
+		if r.FormValue("_next") == "/admin/podesavanja/opste" {
+			sledeci = "/admin/podesavanja/opste"
+		}
+		http.Redirect(w, r, sledeci, http.StatusSeeOther)
+		return
+	}
+
 	polja := map[string]string{
-		"naziv_firme":       r.FormValue("naziv_firme"),
-		"podnazlov":         r.FormValue("podnazlov"),
-		"adresa":            r.FormValue("adresa"),
-		"telefon":           r.FormValue("telefon"),
-		"pib":               r.FormValue("pib"),
-		"topbar_logo_slika": topbarLogoSlika,
+		"naziv_firme":              r.FormValue("naziv_firme"),
+		"podnazlov":                r.FormValue("podnazlov"),
+		"adresa":                   r.FormValue("adresa"),
+		"telefon":                  r.FormValue("telefon"),
+		"pib":                      r.FormValue("pib"),
+		"maticni_broj":             maticniBroj,
+		"poslovna_jedinica_naziv":  r.FormValue("poslovna_jedinica_naziv"),
+		"poslovna_jedinica_oznaka": r.FormValue("poslovna_jedinica_oznaka"),
+		"opstina":                  r.FormValue("opstina"),
+		"grad":                     r.FormValue("grad"),
+		"topbar_logo_slika":        topbarLogoSlika,
 		// profil firme (Faza 0) — radio dugmad uvek šalju vrednost, pa se uredno čuvaju
 		"firma_pravni_oblik":  r.FormValue("firma_pravni_oblik"),
 		"firma_pdv_obveznik":  r.FormValue("firma_pdv_obveznik"),
@@ -695,6 +741,11 @@ func (h *Handler) napuniPodaciPodesavanja(r *http.Request, naslov string) (Podac
 		Adresa:                          podesavanja["adresa"],
 		Telefon:                         podesavanja["telefon"],
 		PIB:                             podesavanja["pib"],
+		MaticniBroj:                     podesavanja["maticni_broj"],
+		NazivPJ:                         podesavanja["poslovna_jedinica_naziv"],
+		OznakaPJ:                        podesavanja["poslovna_jedinica_oznaka"],
+		Opstina:                         podesavanja["opstina"],
+		Grad:                            podesavanja["grad"],
 		LogoPutanja:                     podesavanja["logo_putanja"],
 		TopbarLogoSlika:                 podesavanja["topbar_logo_slika"] == "1",
 		FirmaPravniOblik:                vrednostIliDefault(podesavanja, "firma_pravni_oblik", "pausalac"),
