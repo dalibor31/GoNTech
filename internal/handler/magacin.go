@@ -33,10 +33,28 @@ type PodaciMagacina struct {
 	StranicaPrev     int
 	StranicaNext     int
 	StranicaQueryUrl string // čuva filtere za linkove paginacije
+	Tip              string // tip prikaza: 'proizvod' | 'usluga' | 'trosak'
+	OsnovniUrl       string // bazna ruta liste ('/magacin' | '/usluge' | '/troskovi') — za HTMX i forme
 }
 
-// Magacin renderuje listu artikala
+// Magacin renderuje listu artikala (proizvoda)
 func (h *Handler) Magacin(w http.ResponseWriter, r *http.Request) {
+	h.magacinPrikaz(w, r, model.TipProizvod, "magacin", "Magacin", "/magacin")
+}
+
+// Usluge renderuje listu usluga (tip 'usluga')
+func (h *Handler) Usluge(w http.ResponseWriter, r *http.Request) {
+	h.magacinPrikaz(w, r, model.TipUsluga, "usluge", "Usluge", "/usluge")
+}
+
+// Troskovi renderuje listu troškova (tip 'trosak')
+func (h *Handler) Troskovi(w http.ResponseWriter, r *http.Request) {
+	h.magacinPrikaz(w, r, model.TipTrosak, "troskovi", "Troškovi", "/troskovi")
+}
+
+// magacinPrikaz je zajednička logika liste artikala, parametrizovana tipom; isti
+// šablon služi za proizvode, usluge i troškove (razlikuju se samo tip i bazna ruta)
+func (h *Handler) magacinPrikaz(w http.ResponseWriter, r *http.Request, tip, stranica, naslov, osnovniUrl string) {
 	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
@@ -45,6 +63,7 @@ func (h *Handler) Magacin(w http.ResponseWriter, r *http.Request) {
 
 	filter := db.ArtikalFilter{
 		Pretraga:     r.URL.Query().Get("pretraga"),
+		Tip:          tip,
 		SamoKriticni: r.URL.Query().Get("kriticni") == "1",
 		Arhivirani:   r.URL.Query().Get("arhivirani") == "1",
 	}
@@ -89,8 +108,8 @@ func (h *Handler) Magacin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ps := h.popuniPodaciStranice(r, podesavanja)
-	ps.Stranica = "magacin"
-	ps.NaslovStranice = "Magacin"
+	ps.Stranica = stranica
+	ps.NaslovStranice = naslov
 
 	// izgradi query string za paginaciju (čuva filtere)
 	queryDelići := ""
@@ -135,6 +154,8 @@ func (h *Handler) Magacin(w http.ResponseWriter, r *http.Request) {
 		StranicaPrev:     stranicaPrev,
 		StranicaNext:     stranicaNext,
 		StranicaQueryUrl: queryDelići,
+		Tip:              tip,
+		OsnovniUrl:       osnovniUrl,
 	}
 
 	h.renderujTemplate(w, "magacin", podaci)
@@ -221,9 +242,9 @@ func (h *Handler) VratiArtikal(w http.ResponseWriter, r *http.Request) {
 // PodaciMagacinskeKartice su podaci za karticu jednog artikla
 type PodaciMagacinskeKartice struct {
 	model.PodaciStranice
-	Artikal           model.Artikal
-	Promene           []model.MagacinskaPromenaSaDetaljem
-	Dobavljaci        []model.Dobavljac // dobavljači vezani za artikal
+	Artikal            model.Artikal
+	Promene            []model.MagacinskaPromenaSaDetaljem
+	Dobavljaci         []model.Dobavljac // dobavljači vezani za artikal
 	DostupniDobavljaci []model.Dobavljac // dobavljači koji još nisu vezani (za dodavanje)
 }
 

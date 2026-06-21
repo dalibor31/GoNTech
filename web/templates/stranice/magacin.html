@@ -27,25 +27,25 @@
     <!-- dugmad -->
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
         {{if index .Dozvole "artikal.dodaj"}}
-        <a href="/magacin/novi" class="btn-primarno">+ Novi artikal</a>
+        <a href="/magacin/novi?tip={{.Tip}}" class="btn-primarno">+ {{if eq .Tip "usluga"}}Nova usluga{{else if eq .Tip "trosak"}}Novi trošak{{else}}Novi artikal{{end}}</a>
         {{end}}
-        {{if index .Dozvole "kategorija.pregled"}}
+        {{if and (eq .Tip "proizvod") (index .Dozvole "kategorija.pregled")}}
         <a href="/magacin/kategorije" class="btn-primarno">Kategorije</a>
         {{end}}
     </div>
 
     <!-- pretraga i filteri — interaktivna pretraga (hx-trigger) -->
-    <form method="GET" action="/magacin" class="kolona" style="gap:10px;" id="magacin-filteri"
-          hx-get="/magacin" hx-target="#magacin-rezultati" hx-select="#magacin-rezultati" hx-swap="innerHTML" hx-push-url="true">
+    <form method="GET" action="{{.OsnovniUrl}}" class="kolona" style="gap:10px;" id="magacin-filteri"
+          hx-get="{{.OsnovniUrl}}" hx-target="#magacin-rezultati" hx-select="#magacin-rezultati" hx-swap="innerHTML" hx-push-url="true">
         <input type="text" name="pretraga" value="{{.Filter.Pretraga}}"
             placeholder="Pretraži po nazivu, šifri, barkodu, lokaciji..."
             style="width:100%;"
             hx-trigger="keyup[target.value.length==0||target.value.length>=3] changed delay:150ms, search"
-            hx-get="/magacin" hx-include="closest form" hx-target="#magacin-rezultati" hx-select="#magacin-rezultati" hx-swap="innerHTML" hx-push-url="true">
+            hx-get="{{.OsnovniUrl}}" hx-include="closest form" hx-target="#magacin-rezultati" hx-select="#magacin-rezultati" hx-swap="innerHTML" hx-push-url="true">
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
             <select name="kategorija" style="flex:1;min-width:140px;"
                 hx-trigger="change"
-                hx-get="/magacin" hx-target="#magacin-rezultati" hx-select="#magacin-rezultati" hx-swap="innerHTML" hx-push-url="true">
+                hx-get="{{.OsnovniUrl}}" hx-target="#magacin-rezultati" hx-select="#magacin-rezultati" hx-swap="innerHTML" hx-push-url="true">
                 <option value="">Sve kategorije</option>
                 {{range .Kategorije}}
                 <option value="{{.ID}}" {{if eq (printf "%d" .ID) $.KategorijaIDStr}}selected{{end}}>{{.Naziv}}</option>
@@ -54,13 +54,13 @@
             <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--tekst-sporedni);cursor:pointer;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;background:var(--kartica);white-space:nowrap;">
                 <input type="checkbox" name="kriticni" value="1" {{if .Filter.SamoKriticni}}checked{{end}}
                     hx-trigger="change"
-                    hx-get="/magacin" hx-target="#magacin-rezultati" hx-select="#magacin-rezultati" hx-swap="innerHTML" hx-push-url="true">
+                    hx-get="{{.OsnovniUrl}}" hx-target="#magacin-rezultati" hx-select="#magacin-rezultati" hx-swap="innerHTML" hx-push-url="true">
                 Samo kritični
             </label>
             <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--tekst-sporedni);cursor:pointer;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;background:var(--kartica);white-space:nowrap;">
                 <input type="checkbox" name="arhivirani" value="1" {{if .PrikazArhivirani}}checked{{end}}
                     hx-trigger="change"
-                    hx-get="/magacin" hx-target="#magacin-rezultati" hx-select="#magacin-rezultati" hx-swap="innerHTML" hx-push-url="true">
+                    hx-get="{{.OsnovniUrl}}" hx-target="#magacin-rezultati" hx-select="#magacin-rezultati" hx-swap="innerHTML" hx-push-url="true">
                 Arhivirani
             </label>
         </div>
@@ -135,7 +135,7 @@
                     {{else}}
                     <tr>
                         <td colspan="7" style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
-                            {{if or $.Filter.Pretraga $.KategorijaIDStr $.Filter.SamoKriticni}}Za datu pretragu nema artikala u bazi.{{else}}Nema artikala. <a href="/magacin/novi" style="color:var(--sb-akcent);">Dodaj prvi artikal.</a>{{end}}
+                            {{if or $.Filter.Pretraga $.KategorijaIDStr $.Filter.SamoKriticni}}Za datu pretragu nema stavki u bazi.{{else}}Nema stavki. <a href="/magacin/novi?tip={{$.Tip}}" style="color:var(--sb-akcent);">Dodaj prvu.</a>{{end}}
                         </td>
                     </tr>
                     {{end}}
@@ -203,7 +203,7 @@
         </div>
         {{else}}
         <div style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
-            {{if or $.Filter.Pretraga $.KategorijaIDStr $.Filter.SamoKriticni}}Za datu pretragu nema artikala u bazi.{{else}}Nema artikala. <a href="/magacin/novi" style="color:var(--sb-akcent);">Dodaj prvi artikal.</a>{{end}}
+            {{if or $.Filter.Pretraga $.KategorijaIDStr $.Filter.SamoKriticni}}Za datu pretragu nema stavki u bazi.{{else}}Nema stavki. <a href="/magacin/novi?tip={{$.Tip}}" style="color:var(--sb-akcent);">Dodaj prvu.</a>{{end}}
         </div>
         {{end}}
     </div>

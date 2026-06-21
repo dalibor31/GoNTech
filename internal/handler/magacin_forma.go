@@ -49,6 +49,12 @@ func (h *Handler) NoviArtikal(w http.ResponseWriter, r *http.Request) {
 
 	dobavljaci, _ := h.DobavljaciRepo.Lista(r.Context(), "")
 
+	// tip se može predodabrati iz query-ja (dolazak sa stranice Usluge/Troškovi)
+	tip := r.URL.Query().Get("tip")
+	if tip != model.TipUsluga && tip != model.TipTrosak {
+		tip = model.TipProizvod
+	}
+
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "magacin"
 	ps.NaslovStranice = "Novi artikal"
@@ -56,7 +62,7 @@ func (h *Handler) NoviArtikal(w http.ResponseWriter, r *http.Request) {
 		PodaciStranice: ps,
 		Kategorije:     kategorije,
 		Dobavljaci:     dobavljaci,
-		Artikal:        model.Artikal{Sifra: predlogSifre, Tip: model.TipProizvod, JedinicaMere: "kom"},
+		Artikal:        model.Artikal{Sifra: predlogSifre, Tip: tip, JedinicaMere: "kom"},
 		Izmena:         false,
 	})
 }

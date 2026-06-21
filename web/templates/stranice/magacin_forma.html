@@ -53,30 +53,23 @@
                         style="width:100%;">
                 </div>
 
-                <!-- tip i jedinica mere -->
-                <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                    <div>
-                        <label class="polje-labela">Tip artikla</label>
-                        <select name="tip" id="tip-artikla" style="width:100%;">
-                            <option value="proizvod" {{if eq .Artikal.Tip "proizvod"}}selected{{end}}>Proizvod (prati lager)</option>
-                            <option value="usluga" {{if eq .Artikal.Tip "usluga"}}selected{{end}}>Usluga</option>
-                            <option value="trosak" {{if eq .Artikal.Tip "trosak"}}selected{{end}}>Trošak</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="polje-labela">Jedinica mere</label>
-                        {{$jm := .Artikal.JedinicaMere}}
-                        <select name="jedinica_mere" style="width:100%;">
-                            <option value="kom" {{if eq $jm "kom"}}selected{{end}}>kom</option>
-                            <option value="sat" {{if eq $jm "sat"}}selected{{end}}>sat</option>
-                            <option value="set" {{if eq $jm "set"}}selected{{end}}>set</option>
-                            <option value="m" {{if eq $jm "m"}}selected{{end}}>m</option>
-                            <option value="m2" {{if eq $jm "m2"}}selected{{end}}>m²</option>
-                            <option value="l" {{if eq $jm "l"}}selected{{end}}>l</option>
-                            <option value="kg" {{if eq $jm "kg"}}selected{{end}}>kg</option>
-                            <option value="pak" {{if eq $jm "pak"}}selected{{end}}>pak</option>
-                        </select>
-                    </div>
+                <!-- Magacin je isključivo za proizvode (prate lager); usluge i troškovi
+                     imaju svoje module, zato ovde tip više nije izbor -->
+                <input type="hidden" name="tip" value="proizvod">
+                <!-- jedinica mere -->
+                <div>
+                    <label class="polje-labela">Jedinica mere</label>
+                    {{$jm := .Artikal.JedinicaMere}}
+                    <select name="jedinica_mere" style="width:100%;">
+                        <option value="kom" {{if eq $jm "kom"}}selected{{end}}>kom</option>
+                        <option value="sat" {{if eq $jm "sat"}}selected{{end}}>sat</option>
+                        <option value="set" {{if eq $jm "set"}}selected{{end}}>set</option>
+                        <option value="m" {{if eq $jm "m"}}selected{{end}}>m</option>
+                        <option value="m2" {{if eq $jm "m2"}}selected{{end}}>m²</option>
+                        <option value="l" {{if eq $jm "l"}}selected{{end}}>l</option>
+                        <option value="kg" {{if eq $jm "kg"}}selected{{end}}>kg</option>
+                        <option value="pak" {{if eq $jm "pak"}}selected{{end}}>pak</option>
+                    </select>
                 </div>
 
                 <!-- kategorija -->
@@ -175,16 +168,6 @@
 
 <script>
 (function () {
-    // sakrivanje polja lagera za usluge i troškove
-    var tip = document.getElementById('tip-artikla');
-    var lager = document.querySelectorAll('[data-lager]');
-    function azurirajLager() {
-        var prati = tip.value === 'proizvod';
-        lager.forEach(function (el) { el.style.display = prati ? '' : 'none'; });
-    }
-    tip.addEventListener('change', azurirajLager);
-    azurirajLager();
-
     // auto-predlog šifre pri promeni kategorije (samo za nov artikal i ako šifra nije ručno menjana)
     var kat = document.querySelector('select[name="kategorija_id"]');
     var sifra = document.getElementById('sifra-input');
