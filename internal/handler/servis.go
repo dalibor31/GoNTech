@@ -43,19 +43,20 @@ type PodaciFormeNaloga struct {
 // PodaciDetaljiNaloga su podaci za pregled jednog servisnog naloga
 type PodaciDetaljiNaloga struct {
 	model.PodaciStranice
-	Nalog          model.ServisniNalog
-	KlijentNaziv   string
-	TehnicarNaziv  string
-	ServisniDelovi []model.ServisniDeoSaArtiklom
-	ServisniRadovi []model.ServisniRad
-	Artikli        []model.ArtikalSaKategorijom
-	Usluge         []model.Usluga
-	Sacuvano       bool
-	UkupnoDelovi   float64
-	UkupnoRadovi   float64
-	UkupnoSve      float64
-	PreostaloSve   float64
-	SviStatusi     []string
+	Nalog           model.ServisniNalog
+	KlijentNaziv    string
+	TehnicarNaziv   string
+	ServisniDelovi  []model.ServisniDeoSaArtiklom
+	ServisniRadovi  []model.ServisniRad
+	Artikli         []model.ArtikalSaKategorijom
+	Usluge          []model.Usluga
+	Sacuvano        bool
+	UkupnoDelovi    float64
+	UkupnoRadovi    float64
+	UkupnoSve       float64
+	PreostaloSve    float64
+	ZakljucanStatus bool // onemogući promenu statusa dok ima potraživanih delova
+	SviStatusi      []string
 }
 
 // Servis renderuje listu servisnih naloga sa opcionom pretragom i filterom statusa
@@ -424,7 +425,7 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	delovi, err := h.ServisniDeloviRepo.DohvatiZaNalog(r.Context(), id)
+	delovi, err := h.deloviSaPotrazivanima(r.Context(), id)
 	if err != nil {
 		slog.Error("greška pri učitavanju delova", "error", err)
 	}
@@ -463,24 +464,33 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 		preostaloSve = 0
 	}
 
+	zakljucanStatus := false
+	for _, d := range delovi {
+		if d.Potrazivano > 0 {
+			zakljucanStatus = true
+			break
+		}
+	}
+
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "servis"
 	ps.NaslovStranice = "Detalji naloga"
 	podaci := PodaciDetaljiNaloga{
-		PodaciStranice: ps,
-		Nalog:          *nalog,
-		KlijentNaziv:   klijentNaziv,
-		TehnicarNaziv:  tehnicarNaziv,
-		ServisniDelovi: delovi,
-		ServisniRadovi: radovi,
-		Artikli:        artikli,
-		Usluge:         usluge,
-		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
-		UkupnoDelovi:   ukupnoDelovi,
-		UkupnoRadovi:   ukupnoRadovi,
-		UkupnoSve:      ukupnoSve,
-		PreostaloSve:   preostaloSve,
-		SviStatusi:     model.SviStatusi,
+		PodaciStranice:  ps,
+		Nalog:           *nalog,
+		KlijentNaziv:    klijentNaziv,
+		TehnicarNaziv:   tehnicarNaziv,
+		ServisniDelovi:  delovi,
+		ServisniRadovi:  radovi,
+		Artikli:         artikli,
+		Usluge:          usluge,
+		Sacuvano:        r.URL.Query().Get("sacuvano") == "1",
+		UkupnoDelovi:    ukupnoDelovi,
+		UkupnoRadovi:    ukupnoRadovi,
+		UkupnoSve:       ukupnoSve,
+		PreostaloSve:    preostaloSve,
+		ZakljucanStatus: zakljucanStatus,
+		SviStatusi:      model.SviStatusi,
 	}
 
 	h.renderujTemplate(w, "servis_detalji", podaci)
@@ -525,32 +535,86 @@ func (h *Handler) DodajDeloNalogu(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// prepoznaj prekoračenje magacinskog stanja PRE dodavanja (posle dodavanja
-	// lager se smanji); deo se svejedno ugrađuje (dozvoljen backorder/minus lager)
-	prekoraceno := false
+	// proveri stanje na magacinu: ako tražimo više nego što ima, ugrađujemo samo
+	// ono što je na stanju, a razliku beležimo u potraživane delove (ne skida se
+	// sa lagera dok ne stigne); lager NIKAD ne ide u minus
+	ugradjeno := kolicina
+	nedostaje := 0
 	imeArtikla := ""
 	if art, e := h.Artikli.DohvatiID(r.Context(), artikalID); e == nil && art != nil {
-		prekoraceno = kolicina > art.Kolicina
 		imeArtikla = art.Naziv
+		if kolicina > art.Kolicina {
+			ugradjeno = art.Kolicina
+			nedostaje = kolicina - art.Kolicina
+		}
 	}
 
-	if _, err := h.ServisniDeloviRepo.Dodaj(r.Context(), nalogID, artikalID, kolicina, cena, &k.ID); err != nil {
-		slog.Error("greška pri dodavanju dela", "error", err)
-		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri dodavanju dela.")
-		http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
-		return
+	// ugrađujemo samo ono što fizički imamo (ako ima > 0)
+	if ugradjeno > 0 {
+		if _, err := h.ServisniDeloviRepo.Dodaj(r.Context(), nalogID, artikalID, ugradjeno, cena, &k.ID); err != nil {
+			slog.Error("greška pri dodavanju dela", "error", err)
+			middleware.SetFlash(w, r, h.DB, "greska", "Greška pri dodavanju dela.")
+			http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
+			return
+		}
 	}
 
-	// prekoračenje → nalog automatski u „Čeka delove" (signal da treba nabavka)
-	if prekoraceno {
+	// višak → potraživani delovi (ne skidamo sa lagera)
+	if nedostaje > 0 {
+		if _, err := h.ServisniPotrazivaniDeloviRepo.DodajIliUvecaj(r.Context(), nalogID, artikalID, nedostaje); err != nil {
+			slog.Error("greška pri beleženju potraživanog dela", "error", err)
+		}
+		// automatski prebaci nalog u „Čeka delove"
 		if e := h.ServisRepo.AzurirajStatus(r.Context(), nalogID, model.StatusCekaDelove); e != nil {
 			slog.Error("greška pri prebacivanju naloga u Čeka delove", "error", e)
 		}
-		middleware.SetFlash(w, r, h.DB, "greska",
-			"Deo „"+imeArtikla+"\" je dodat iznad stanja na magacinu — nalog je prebačen u „Čeka delove\". Naručite deo.")
+		if ugradjeno > 0 {
+			middleware.SetFlash(w, r, h.DB, "greska",
+				"Ugrađeno "+strconv.Itoa(ugradjeno)+" kom. artikla „"+imeArtikla+
+					"\", nedostaje još "+strconv.Itoa(nedostaje)+" — nalog je prebačen u „Čeka delove\".")
+		} else {
+			middleware.SetFlash(w, r, h.DB, "greska",
+				"Nema „"+imeArtikla+"\" na stanju — potrebno "+strconv.Itoa(nedostaje)+
+					" kom. Nalog je prebačen u „Čeka delove\".")
+		}
 	}
 
 	http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10)+"?sacuvano=1", http.StatusSeeOther)
+}
+
+// deloviSaPotrazivanima vraća ugrađene delove spojene sa potraživanima (ista tabela).
+// Potraživani delovi bez ugrađenog (stanje bilo 0) se dodaju sa Kolicina=0.
+func (h *Handler) deloviSaPotrazivanima(ctx context.Context, nalogID int64) ([]model.ServisniDeoSaArtiklom, error) {
+	delovi, err := h.ServisniDeloviRepo.DohvatiZaNalog(ctx, nalogID)
+	if err != nil {
+		return nil, err
+	}
+	potrazivani, err := h.ServisniPotrazivaniDeloviRepo.DohvatiZaNalog(ctx, nalogID)
+	if err != nil {
+		return delovi, nil // ne prekidamo ako potraživani nisu dostupni
+	}
+	potrMap := make(map[int64]int)
+	for _, p := range potrazivani {
+		potrMap[p.ArtikalID] += p.Kolicina
+	}
+	for i := range delovi {
+		if kol, ok := potrMap[delovi[i].ArtikalID]; ok {
+			delovi[i].Potrazivano = kol
+			delete(potrMap, delovi[i].ArtikalID)
+		}
+	}
+	for artikalID, kol := range potrMap {
+		naziv := ""
+		if art, e := h.Artikli.DohvatiID(ctx, artikalID); e == nil && art != nil {
+			naziv = art.Naziv
+		}
+		delovi = append(delovi, model.ServisniDeoSaArtiklom{
+			ArtikalNaziv: naziv,
+			ServisniDeo:  model.ServisniDeo{ArtikalID: artikalID},
+			Potrazivano:  kol,
+		})
+	}
+	return delovi, nil
 }
 
 // ObrisiDeloNaloga prima POST zahtev i uklanja deo iz servisnog naloga
@@ -570,6 +634,13 @@ func (h *Handler) ObrisiDeloNaloga(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Neispravan ID dela", http.StatusBadRequest)
 		return
+	}
+
+	// obriši i potraživane delove za isti artikal (inače ostaju blokirani u tabeli)
+	if artikalID, err := h.ServisniDeloviRepo.DohvatiArtikalID(r.Context(), deoID); err == nil {
+		if err := h.ServisniPotrazivaniDeloviRepo.ObrisiZaArtikal(r.Context(), nalogID, artikalID); err != nil {
+			slog.Error("greška pri brisanju potraživanih delova", "error", err)
+		}
 	}
 
 	if err := h.ServisniDeloviRepo.Obrisi(r.Context(), deoID, &k.ID); err != nil {
@@ -854,7 +925,7 @@ func (h *Handler) StampaServisa(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	delovi, err := h.ServisniDeloviRepo.DohvatiZaNalog(r.Context(), id)
+	delovi, err := h.deloviSaPotrazivanima(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju delova", http.StatusInternalServerError)
 		return
@@ -945,7 +1016,7 @@ func (h *Handler) StampaOtpremnice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	delovi, err := h.ServisniDeloviRepo.DohvatiZaNalog(r.Context(), id)
+	delovi, err := h.deloviSaPotrazivanima(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju delova", http.StatusInternalServerError)
 		return
@@ -1066,7 +1137,7 @@ func (h *Handler) StampaPredracuna(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	delovi, err := h.ServisniDeloviRepo.DohvatiZaNalog(r.Context(), id)
+	delovi, err := h.deloviSaPotrazivanima(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju delova", http.StatusInternalServerError)
 		return
@@ -1187,17 +1258,14 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// zabrana izlaska iz „Čeka delove" dok god neki ugrađeni deo nema pokriće na
-	// zalihama (lager u minusu / backorder) — deo prvo treba nabaviti
+	// zabrana izlaska iz „Čeka delove" dok postoje potraživani delovi —
+	// prvo nabaviti delove, pa obrisati iz potraživanih (ili kroz nabavku)
 	if nalog, e := h.ServisRepo.DohvatiID(r.Context(), id); e == nil &&
 		nalog.Status == model.StatusCekaDelove && noviStatus != model.StatusCekaDelove {
-		var bezPokrica int
-		_ = h.DB.QueryRowContext(r.Context(),
-			`SELECT COUNT(*) FROM servisni_delovi sd JOIN artikli a ON a.id = sd.artikal_id
-			 WHERE sd.nalog_id = ? AND a.kolicina < 0`, id).Scan(&bezPokrica)
-		if bezPokrica > 0 {
+		potrazivani, err := h.ServisniPotrazivaniDeloviRepo.DohvatiZaNalog(r.Context(), id)
+		if err == nil && len(potrazivani) > 0 {
 			middleware.SetFlash(w, r, h.DB, "greska",
-				"Nalog ne može da napusti „Čeka delove\" dok ima ugrađenih delova kojih nema na stanju (lager u minusu). Dopunite zalihe nabavkom.")
+				"Nalog ne može da napusti „Čeka delove\" dok ima delova koji nedostaju. Obrišite ih iz tabele ili dopunite zalihe.")
 			http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
 			return
 		}
@@ -1209,6 +1277,52 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)
+}
+
+// AzurirajGaranciju ažurira datum garancije na servisnom nalogu
+func (h *Handler) AzurirajGaranciju(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "servis.izmeni"); !ok {
+		return
+	}
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
+		return
+	}
+	var garancijaDo *time.Time
+	if r.FormValue("bez_garancije") != "1" {
+		if gd := strings.TrimSpace(r.FormValue("garancija_do")); gd != "" {
+			t, err := time.Parse("2006-01-02", gd)
+			if err != nil {
+				http.Error(w, "Neispravan datum garancije", http.StatusBadRequest)
+				return
+			}
+			garancijaDo = &t
+		} else {
+			// odštiklirano „bez garancije" bez izabranog datuma → vrati default
+			nalog, err := h.ServisRepo.DohvatiID(r.Context(), id)
+			if err != nil {
+				slog.Error("greška pri dohvatanju naloga za garanciju", "id", id, "error", err)
+			} else {
+				podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+				if err != nil {
+					slog.Error("greška pri učitavanju podešavanja za garanciju", "error", err)
+				} else {
+					garancijaDo = defaultGarancija(nalog.DatumPrijema, podesavanja)
+				}
+			}
+		}
+	}
+	if err := h.ServisRepo.AzurirajGaranciju(r.Context(), id, garancijaDo); err != nil {
+		slog.Error("greška pri ažuriranju garancije", "id", id, "error", err)
+		http.Error(w, "Greška pri ažuriranju garancije", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
 }
 
 // PodaciJavnogStatusa su podaci za javnu status stranicu servisnog naloga

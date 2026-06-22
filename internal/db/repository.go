@@ -191,6 +191,7 @@ type ServisRepository interface {
 	Kreiraj(ctx context.Context, n *model.ServisniNalog) (int64, error)
 	Izmeni(ctx context.Context, n *model.ServisniNalog) error
 	AzurirajStatus(ctx context.Context, id int64, status string) error
+	AzurirajGaranciju(ctx context.Context, id int64, garancijaDo *time.Time) error
 	Obrisi(ctx context.Context, id int64) error
 	SledeciBroj(ctx context.Context) (string, error)
 }
@@ -210,7 +211,16 @@ type ProdajaRepository interface {
 type ServisniDeloviRepository interface {
 	DohvatiZaNalog(ctx context.Context, nalogID int64) ([]model.ServisniDeoSaArtiklom, error)
 	Dodaj(ctx context.Context, nalogID, artikalID int64, kolicina int, cenaKomada float64, korisnikID *int64) (int64, error)
+	DohvatiArtikalID(ctx context.Context, deoID int64) (int64, error)
 	Obrisi(ctx context.Context, id int64, korisnikID *int64) error
+}
+
+// ServisniPotrazivaniDeloviRepository definiše operacije nad delovima koji nedostaju
+type ServisniPotrazivaniDeloviRepository interface {
+	DohvatiZaNalog(ctx context.Context, nalogID int64) ([]model.ServisniPotrazivaniDeo, error)
+	DodajIliUvecaj(ctx context.Context, nalogID, artikalID int64, kolicina int) (int64, error)
+	Obrisi(ctx context.Context, id int64) error
+	ObrisiZaArtikal(ctx context.Context, nalogID, artikalID int64) error
 }
 
 // ServisniRadoviRepository definiše operacije nad radovima (uslugama) na nalogu

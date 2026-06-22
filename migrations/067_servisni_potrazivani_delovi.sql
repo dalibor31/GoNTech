@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS servisni_potrazivani_delovi (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nalog_id INTEGER NOT NULL REFERENCES servisni_nalozi(id),
+    artikal_id INTEGER NOT NULL REFERENCES artikli(id),
+    kolicina INTEGER NOT NULL DEFAULT 0,
+    datum TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

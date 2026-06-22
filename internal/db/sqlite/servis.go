@@ -207,6 +207,28 @@ func (r *ServisRepo) AzurirajStatus(ctx context.Context, id int64, status string
 	return nil
 }
 
+// AzurirajGaranciju postavlja ili briše datum garancije na servisnom nalogu.
+// garancijaDo == nil → bez garancije.
+func (r *ServisRepo) AzurirajGaranciju(ctx context.Context, id int64, garancijaDo *time.Time) error {
+	if garancijaDo != nil {
+		_, err := r.db.ExecContext(ctx,
+			"UPDATE servisni_nalozi SET garancija_do = ? WHERE id = ?",
+			garancijaDo.Format("2006-01-02"), id,
+		)
+		if err != nil {
+			return fmt.Errorf("ntech: ServisRepo.AzurirajGaranciju: %w", err)
+		}
+	} else {
+		_, err := r.db.ExecContext(ctx,
+			"UPDATE servisni_nalozi SET garancija_do = NULL WHERE id = ?", id,
+		)
+		if err != nil {
+			return fmt.Errorf("ntech: ServisRepo.AzurirajGaranciju: %w", err)
+		}
+	}
+	return nil
+}
+
 // Obrisi briše servisni nalog po ID-u
 func (r *ServisRepo) Obrisi(ctx context.Context, id int64) error {
 	_, err := r.db.ExecContext(ctx, "DELETE FROM servisni_nalozi WHERE id = ?", id)
