@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 
-	"ntech/internal/db"
 	"ntech/internal/model"
 )
 
@@ -66,10 +65,9 @@ func (r *ServisniDeloviRepo) Dodaj(ctx context.Context, nalogID, artikalID int64
 		return 0, fmt.Errorf("ntech: ServisniDeloviRepo.Dodaj: dohvati artikal: %w", err)
 	}
 
-	if stanjePre < kolicina {
-		return 0, &db.ErrNedovoljnoKolicine{ArtikalNaziv: naziv}
-	}
-
+	// dozvoljavamo backorder: deo se može ugraditi i kad nema dovoljno na stanju
+	// (lager tada ide u minus kao signal da treba nabavka); handler nalog prebacuje
+	// u „Čeka delove". Zato ovde NE odbijamo prekoračenje.
 	stanjePosle := stanjePre - kolicina
 	_, err = tx.ExecContext(ctx,
 		"UPDATE artikli SET kolicina = ? WHERE id = ?", stanjePosle, artikalID,
@@ -156,4 +154,3 @@ func (r *ServisniDeloviRepo) Obrisi(ctx context.Context, id int64, korisnikID *i
 
 	return nil
 }
-

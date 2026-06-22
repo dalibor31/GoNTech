@@ -260,11 +260,11 @@
                 </div>
                 <div>
                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">U magacinu</label>
-                    <div id="deo-umagacinu" style="font-size:14px;font-weight:500;color:var(--tekst-glavni);text-align:center;padding:8px 0;border:0.5px solid transparent;">—</div>
+                    <div id="deo-umagacinu" style="width:100%;box-sizing:border-box;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;font-weight:500;text-align:center;background:var(--pozadina);color:var(--tekst-glavni);">—</div>
                 </div>
                 <div>
                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Kol.</label>
-                    <input type="number" name="kolicina" id="deo-kol" min="1" value="1" style="width:100%;" required>
+                    <input type="number" name="kolicina" id="deo-kol" min="1" value="1" style="width:100%;box-sizing:border-box;" required>
                 </div>
                 <div>
                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Cena/kom (din)</label>
@@ -363,7 +363,18 @@
     var artikalSel = document.getElementById('deo-artikal');
     var cena = document.getElementById('deo-cena');
     var umagacinu = document.getElementById('deo-umagacinu');
+    var kol = document.getElementById('deo-kol');
+    var stanjeIzabrano = 0;
     if (!artikalSel) return;
+
+    // boji „U magacinu" i polje količine crveno kada tražimo više nego što ima na
+    // stanju (dozvoljeno — backorder; nalog će preći u „Čeka delove" pri čuvanju);
+    // koristi CSS klasu .prekoraceno umesto inline stilova (main.css)
+    function osveziPrekoracenje() {
+        var preko = (parseInt(kol && kol.value, 10) || 0) > stanjeIzabrano && artikalSel.value;
+        if (umagacinu) umagacinu.classList.toggle('prekoraceno', preko);
+        if (kol) kol.classList.toggle('prekoraceno', preko);
+    }
 
     if (kategSel) {
         var kategs = [];
@@ -394,8 +405,11 @@
         var c = parseFloat(opt.getAttribute('data-cena'));
         if (cena) cena.value = (!isNaN(c) && c > 0) ? c.toFixed(2) : '0';
         var st = parseInt(opt.getAttribute('data-stanje'), 10);
-        if (umagacinu) umagacinu.textContent = isNaN(st) ? '—' : st;
+        stanjeIzabrano = isNaN(st) ? 0 : st;
+        if (umagacinu) umagacinu.textContent = artikalSel.value ? stanjeIzabrano : '—';
+        osveziPrekoracenje();
     });
+    if (kol) kol.addEventListener('input', osveziPrekoracenje);
 })();
 </script>
 {{end}}
