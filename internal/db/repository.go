@@ -223,7 +223,8 @@ type ServisniPotrazivaniDeloviRepository interface {
 	ObrisiZaArtikal(ctx context.Context, nalogID, artikalID int64) error
 	// ProveriIPocistiZaArtikal proverava potraživane redove za dati artikal nakon
 	// povećanja stanja i briše/smanjuje redove koji se mogu pokriti (FIFO).
-	ProveriIPocistiZaArtikal(ctx context.Context, artikalID int64) error
+	// Vraća ID-eve naloga čiji je poslednji potraživani red obrisan.
+	ProveriIPocistiZaArtikal(ctx context.Context, artikalID int64) ([]int64, error)
 }
 
 // ServisniRadoviRepository definiše operacije nad radovima (uslugama) na nalogu

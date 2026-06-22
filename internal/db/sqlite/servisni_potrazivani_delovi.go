@@ -109,38 +109,43 @@ func (r *ServisniPotrazivaniDeloviRepo) ObrisiZaArtikal(ctx context.Context, nal
 // ProveriIPocistiZaArtikal poziva se nakon što stanje artikla poraste (nabavka)
 // i čisti potraživane redove koji se sada mogu pokriti dostupnim stanjem (FIFO).
 // Delimično pokrivanje smanjuje traženu količinu umesto brisanja.
-func (r *ServisniPotrazivaniDeloviRepo) ProveriIPocistiZaArtikal(ctx context.Context, artikalID int64) error {
+// Vraća ID-eve naloga čiji su svi potraživani redovi obrisani (nalog može da se otključa).
+func (r *ServisniPotrazivaniDeloviRepo) ProveriIPocistiZaArtikal(ctx context.Context, artikalID int64) ([]int64, error) {
 	var stanje int
 	err := r.db.QueryRowContext(ctx, "SELECT kolicina FROM artikli WHERE id = ?", artikalID).Scan(&stanje)
 	if err != nil {
-		return fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: stanje: %w", err)
+		return nil, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: stanje: %w", err)
 	}
 	if stanje <= 0 {
-		return nil
+		return nil, nil
 	}
 
 	redovi, err := r.db.QueryContext(ctx,
-		"SELECT id, kolicina FROM servisni_potrazivani_delovi WHERE artikal_id = ? ORDER BY datum",
+		"SELECT id, nalog_id, kolicina FROM servisni_potrazivani_delovi WHERE artikal_id = ? ORDER BY datum",
 		artikalID,
 	)
 	if err != nil {
-		return fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: query: %w", err)
+		return nil, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: query: %w", err)
 	}
 	defer redovi.Close()
 
 	type red struct {
 		id       int64
+		nalogID  int64
 		kolicina int
 	}
 	var lista []red
 	for redovi.Next() {
 		var p red
-		if err := redovi.Scan(&p.id, &p.kolicina); err != nil {
-			return fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: scan: %w", err)
+		if err := redovi.Scan(&p.id, &p.nalogID, &p.kolicina); err != nil {
+			return nil, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: scan: %w", err)
 		}
 		lista = append(lista, p)
 	}
 	redovi.Close()
+
+	// prati naloge iz kojih smo obrisali red
+	obrisaniNalozi := map[int64]struct{}{}
 
 	dostupno := stanje
 	for _, p := range lista {
@@ -149,16 +154,29 @@ func (r *ServisniPotrazivaniDeloviRepo) ProveriIPocistiZaArtikal(ctx context.Con
 		}
 		if dostupno >= p.kolicina {
 			if _, err := r.db.ExecContext(ctx, "DELETE FROM servisni_potrazivani_delovi WHERE id = ?", p.id); err != nil {
-				return fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: delete: %w", err)
+				return nil, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: delete: %w", err)
 			}
+			obrisaniNalozi[p.nalogID] = struct{}{}
 			dostupno -= p.kolicina
 		} else {
 			novaKol := p.kolicina - dostupno
 			if _, err := r.db.ExecContext(ctx, "UPDATE servisni_potrazivani_delovi SET kolicina = ? WHERE id = ?", novaKol, p.id); err != nil {
-				return fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: update: %w", err)
+				return nil, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: update: %w", err)
 			}
 			dostupno = 0
 		}
 	}
-	return nil
+
+	// vrati samo one naloge koji NEMAJU više nijedan potraživani red
+	var otkljucani []int64
+	for nalogID := range obrisaniNalozi {
+		var preostalo int
+		_ = r.db.QueryRowContext(ctx,
+			"SELECT COUNT(*) FROM servisni_potrazivani_delovi WHERE nalog_id = ?", nalogID,
+		).Scan(&preostalo)
+		if preostalo == 0 {
+			otkljucani = append(otkljucani, nalogID)
+		}
+	}
+	return otkljucani, nil
 }
