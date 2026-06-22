@@ -261,10 +261,17 @@ func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// nakon povećanja stanja proveri da li se potraživani delovi u servisu mogu pokriti
+	// nakon povećanja stanja: počisti potraživane delove i vrati otključane naloge na Primljeno
 	for _, s := range stavke {
-		if err := h.ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal(r.Context(), s.ArtikalID); err != nil {
+		otkljucani, err := h.ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal(r.Context(), s.ArtikalID)
+		if err != nil {
 			slog.Error("provera potraživanih delova nije uspela", "artikal_id", s.ArtikalID, "error", err)
+			continue
+		}
+		for _, nalogID := range otkljucani {
+			if err := h.ServisRepo.AzurirajStatus(r.Context(), nalogID, model.StatusPrimljeno); err != nil {
+				slog.Error("automatski reset statusa naloga nije uspeo", "nalog_id", nalogID, "error", err)
+			}
 		}
 	}
 
