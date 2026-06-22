@@ -22,7 +22,7 @@ func NoviServisniPotrazivaniDeloviRepo(db *sql.DB) *ServisniPotrazivaniDeloviRep
 // DohvatiZaNalog vraća sve potraživane delove za dati servisni nalog
 func (r *ServisniPotrazivaniDeloviRepo) DohvatiZaNalog(ctx context.Context, nalogID int64) ([]model.ServisniPotrazivaniDeo, error) {
 	redovi, err := r.db.QueryContext(ctx, `
-		SELECT spd.id, spd.nalog_id, spd.artikal_id, spd.kolicina, spd.datum,
+		SELECT spd.id, spd.nalog_id, spd.artikal_id, spd.kolicina, spd.cena_komada, spd.datum,
 		       a.naziv
 		FROM servisni_potrazivani_delovi spd
 		JOIN artikli a ON a.id = spd.artikal_id
@@ -36,53 +36,13 @@ func (r *ServisniPotrazivaniDeloviRepo) DohvatiZaNalog(ctx context.Context, nalo
 	var rezultat []model.ServisniPotrazivaniDeo
 	for redovi.Next() {
 		var d model.ServisniPotrazivaniDeo
-		err := redovi.Scan(&d.ID, &d.NalogID, &d.ArtikalID, &d.Kolicina, &d.Datum, &d.ArtikalNaziv)
+		err := redovi.Scan(&d.ID, &d.NalogID, &d.ArtikalID, &d.Kolicina, &d.CenaKomada, &d.Datum, &d.ArtikalNaziv)
 		if err != nil {
 			return nil, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.DohvatiZaNalog: scan: %w", err)
 		}
 		rezultat = append(rezultat, d)
 	}
 	return rezultat, nil
-}
-
-// DodajIliUvecaj dodaje novi potraživani deo ili uvećava količinu ako već postoji.
-// Vraća ID reda (novog ili postojećeg).
-func (r *ServisniPotrazivaniDeloviRepo) DodajIliUvecaj(ctx context.Context, nalogID, artikalID int64, kolicina int) (int64, error) {
-	var postojeciID int64
-	var postojeciKol int
-	err := r.db.QueryRowContext(ctx,
-		"SELECT id, kolicina FROM servisni_potrazivani_delovi WHERE nalog_id = ? AND artikal_id = ?",
-		nalogID, artikalID,
-	).Scan(&postojeciID, &postojeciKol)
-
-	if err == nil {
-		novaKol := postojeciKol + kolicina
-		_, err = r.db.ExecContext(ctx,
-			"UPDATE servisni_potrazivani_delovi SET kolicina = ? WHERE id = ?",
-			novaKol, postojeciID,
-		)
-		if err != nil {
-			return 0, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.DodajIliUvecaj: update: %w", err)
-		}
-		return postojeciID, nil
-	}
-
-	if errors.Is(err, sql.ErrNoRows) {
-		rez, err := r.db.ExecContext(ctx,
-			"INSERT INTO servisni_potrazivani_delovi (nalog_id, artikal_id, kolicina) VALUES (?, ?, ?)",
-			nalogID, artikalID, kolicina,
-		)
-		if err != nil {
-			return 0, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.DodajIliUvecaj: insert: %w", err)
-		}
-		id, err := rez.LastInsertId()
-		if err != nil {
-			return 0, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.DodajIliUvecaj: last insert id: %w", err)
-		}
-		return id, nil
-	}
-
-	return 0, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.DodajIliUvecaj: proveri: %w", err)
 }
 
 // Obrisi uklanja potraživani deo po ID-u
@@ -136,7 +96,7 @@ func (r *ServisniPotrazivaniDeloviRepo) ProveriIPocistiZaArtikal(ctx context.Con
 	}
 
 	redovi, err := tx.QueryContext(ctx,
-		"SELECT id, nalog_id, kolicina FROM servisni_potrazivani_delovi WHERE artikal_id = ? ORDER BY datum",
+		"SELECT id, nalog_id, kolicina, cena_komada FROM servisni_potrazivani_delovi WHERE artikal_id = ? ORDER BY datum",
 		artikalID,
 	)
 	if err != nil {
@@ -147,11 +107,12 @@ func (r *ServisniPotrazivaniDeloviRepo) ProveriIPocistiZaArtikal(ctx context.Con
 		id       int64
 		nalogID  int64
 		kolicina int
+		cena     float64
 	}
 	var lista []red
 	for redovi.Next() {
 		var p red
-		if err := redovi.Scan(&p.id, &p.nalogID, &p.kolicina); err != nil {
+		if err := redovi.Scan(&p.id, &p.nalogID, &p.kolicina, &p.cena); err != nil {
 			redovi.Close()
 			return nil, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: scan: %w", err)
 		}
@@ -171,23 +132,29 @@ func (r *ServisniPotrazivaniDeloviRepo) ProveriIPocistiZaArtikal(ctx context.Con
 			break
 		}
 		if dostupno >= p.kolicina {
-			// ceo red je pokriven — obriši ga i skini punu količinu sa magacina
-			if _, err := tx.ExecContext(ctx, "DELETE FROM servisni_potrazivani_delovi WHERE id = ?", p.id); err != nil {
-				return nil, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: delete: %w", err)
+			// ceo red je pokriven — prebaci ga u ugrađene delove, skini sa magacina, obriši red
+			if err := r.ugradiUNalog(ctx, tx, p.nalogID, artikalID, p.kolicina, p.cena); err != nil {
+				return nil, err
 			}
 			if err := r.skiniSaMagacina(ctx, tx, artikalID, p.kolicina, &stanjeMagacin, p.nalogID); err != nil {
 				return nil, err
 			}
+			if _, err := tx.ExecContext(ctx, "DELETE FROM servisni_potrazivani_delovi WHERE id = ?", p.id); err != nil {
+				return nil, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: delete: %w", err)
+			}
 			obrisaniNalozi[p.nalogID] = struct{}{}
 			dostupno -= p.kolicina
 		} else {
-			// delimično pokrivanje — sve dostupno ide na nalog; skini dostupno sa magacina
-			novaKol := p.kolicina - dostupno
-			if _, err := tx.ExecContext(ctx, "UPDATE servisni_potrazivani_delovi SET kolicina = ? WHERE id = ?", novaKol, p.id); err != nil {
-				return nil, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: update: %w", err)
+			// delimično pokrivanje — sve dostupno ide na nalog; prebaci u ugrađene, skini sa magacina
+			if err := r.ugradiUNalog(ctx, tx, p.nalogID, artikalID, dostupno, p.cena); err != nil {
+				return nil, err
 			}
 			if err := r.skiniSaMagacina(ctx, tx, artikalID, dostupno, &stanjeMagacin, p.nalogID); err != nil {
 				return nil, err
+			}
+			novaKol := p.kolicina - dostupno
+			if _, err := tx.ExecContext(ctx, "UPDATE servisni_potrazivani_delovi SET kolicina = ? WHERE id = ?", novaKol, p.id); err != nil {
+				return nil, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: update: %w", err)
 			}
 			dostupno = 0
 		}
@@ -211,6 +178,49 @@ func (r *ServisniPotrazivaniDeloviRepo) ProveriIPocistiZaArtikal(ctx context.Con
 		return nil, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: commit: %w", err)
 	}
 	return otkljucani, nil
+}
+
+// ugradiUNalog prebacuje pokrivenu količinu u ugrađene delove (servisni_delovi):
+// uvećava postojeći red za isti artikal na nalogu ili kreira novi. Radi unutar
+// prosleđene transakcije. Ne dira magacin — to radi skiniSaMagacina zasebno.
+func (r *ServisniPotrazivaniDeloviRepo) ugradiUNalog(ctx context.Context, tx *sql.Tx, nalogID, artikalID int64, kolicina int, cenaKomada float64) error {
+	var postojeciID int64
+	var postojeciKol int
+	err := tx.QueryRowContext(ctx,
+		"SELECT id, kolicina FROM servisni_delovi WHERE nalog_id = ? AND artikal_id = ?",
+		nalogID, artikalID,
+	).Scan(&postojeciID, &postojeciKol)
+
+	if err == nil {
+		// ne pregazi postojeću cenu nulom (npr. legacy potraživani red bez cene)
+		if cenaKomada > 0 {
+			_, err = tx.ExecContext(ctx,
+				"UPDATE servisni_delovi SET kolicina = ?, cena_komada = ? WHERE id = ?",
+				postojeciKol+kolicina, cenaKomada, postojeciID,
+			)
+		} else {
+			_, err = tx.ExecContext(ctx,
+				"UPDATE servisni_delovi SET kolicina = ? WHERE id = ?",
+				postojeciKol+kolicina, postojeciID,
+			)
+		}
+		if err != nil {
+			return fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ugradiUNalog: update: %w", err)
+		}
+		return nil
+	}
+	if errors.Is(err, sql.ErrNoRows) {
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO servisni_delovi (nalog_id, artikal_id, kolicina, cena_komada)
+			VALUES (?, ?, ?, ?)`,
+			nalogID, artikalID, kolicina, cenaKomada,
+		)
+		if err != nil {
+			return fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ugradiUNalog: insert: %w", err)
+		}
+		return nil
+	}
+	return fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ugradiUNalog: proveri: %w", err)
 }
 
 // skiniSaMagacina umanjuje stanje artikla za datu količinu (jer odlazi na servisni

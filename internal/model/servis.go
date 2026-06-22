@@ -9,9 +9,9 @@ import (
 const (
 	StatusPrimljeno  = "Primljeno"
 	StatusCekaDelove = "Čeka delove"
-	StatusUPopravci    = "U popravci"
-	StatusZavrseno     = "Završeno"
-	StatusPreuzeto     = "Preuzeto"
+	StatusUPopravci  = "U popravci"
+	StatusZavrseno   = "Završeno"
+	StatusPreuzeto   = "Preuzeto"
 )
 
 // SviStatusi je uređena lista statusa za prikaz u dropdownu
@@ -72,11 +72,12 @@ type ServisniDeoSaArtiklom struct {
 // ServisniPotrazivaniDeo beleži artikle koji nedostaju za servisni nalog —
 // količina koja se traži a nije na stanju; ne skida se sa lagera dok ne stigne
 type ServisniPotrazivaniDeo struct {
-	ID        int64
-	NalogID   int64
-	ArtikalID int64
-	Kolicina  int
-	Datum     time.Time
+	ID         int64
+	NalogID    int64
+	ArtikalID  int64
+	Kolicina   int
+	CenaKomada float64
+	Datum      time.Time
 	// za prikaz:
 	ArtikalNaziv string
 }
