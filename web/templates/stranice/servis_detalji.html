@@ -86,6 +86,12 @@
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Datum prijema</div>
                 <div style="font-size:14px;color:var(--tekst-glavni);">{{.Nalog.DatumPrijema.Format "02.01.2006. u 15:04"}}</div>
             </div>
+            {{if .Nalog.PredvidjenDatum}}
+            <div>
+                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Predviđen datum popravke</div>
+                <div style="font-size:14px;color:var(--tekst-glavni);">{{.Nalog.PredvidjenDatum.Format "02.01.2006."}}</div>
+            </div>
+            {{end}}
             {{if .Nalog.DatumZavrsetka}}
             <div>
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Datum završetka</div>
