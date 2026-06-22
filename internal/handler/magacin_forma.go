@@ -251,10 +251,22 @@ func (h *Handler) SacuvajIzmenuArtikla(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// promenu količine sprovodimo kroz KorigujKolicinu da bi se zabeležio magacinski
+	// trag (korekcija); Izmeni menja samo metapodatke, ne dira stanje
+	novaKolicina := artikal.Kolicina
+	artikal.Kolicina = staraKolicina
+
 	artikal.ID = id
 	if err := h.Artikli.Izmeni(r.Context(), &artikal); err != nil {
 		http.Error(w, "Greška pri čuvanju izmene", http.StatusInternalServerError)
 		return
+	}
+
+	// ako se količina promenila, koriguj stanje uz magacinski trag
+	if novaKolicina != staraKolicina {
+		if e := h.Artikli.KorigujKolicinu(r.Context(), id, novaKolicina, &k.ID, "izmena artikla"); e != nil {
+			slog.Error("korekcija količine pri izmeni artikla nije uspela", "artikal_id", id, "error", e)
+		}
 	}
 
 	// ažuriraj dobavljače artikla prema formi
@@ -277,7 +289,7 @@ func (h *Handler) SacuvajIzmenuArtikla(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// ako je stanje poraslo, proveri potraživane servisne delove
-	if artikal.Kolicina > staraKolicina {
+	if novaKolicina > staraKolicina {
 		otkljucani, err := h.ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal(r.Context(), id)
 		if err != nil {
 			slog.Error("provera potraživanih delova nije uspela", "artikal_id", id, "error", err)

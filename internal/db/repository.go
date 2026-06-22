@@ -210,7 +210,10 @@ type ProdajaRepository interface {
 // ServisniDeloviRepository definiše operacije nad ugrađenim delovima u servisu
 type ServisniDeloviRepository interface {
 	DohvatiZaNalog(ctx context.Context, nalogID int64) ([]model.ServisniDeoSaArtiklom, error)
-	Dodaj(ctx context.Context, nalogID, artikalID int64, kolicina int, cenaKomada float64, korisnikID *int64) (int64, error)
+	// UgradiIliPotrazuj atomično (jedna transakcija) čita stanje magacina, ugrađuje
+	// ono što fizički ima (skida sa lagera, lager NE ide u minus), a višak beleži u
+	// potraživane delove. Vraća koliko je ugrađeno i koliko nedostaje.
+	UgradiIliPotrazuj(ctx context.Context, nalogID, artikalID int64, kolicina int, cenaKomada float64, korisnikID *int64) (ugradjeno, nedostaje int, err error)
 	DohvatiArtikalID(ctx context.Context, deoID int64) (int64, error)
 	Obrisi(ctx context.Context, id int64, korisnikID *int64) error
 }
@@ -218,7 +221,6 @@ type ServisniDeloviRepository interface {
 // ServisniPotrazivaniDeloviRepository definiše operacije nad delovima koji nedostaju
 type ServisniPotrazivaniDeloviRepository interface {
 	DohvatiZaNalog(ctx context.Context, nalogID int64) ([]model.ServisniPotrazivaniDeo, error)
-	DodajIliUvecaj(ctx context.Context, nalogID, artikalID int64, kolicina int) (int64, error)
 	Obrisi(ctx context.Context, id int64) error
 	ObrisiZaArtikal(ctx context.Context, nalogID, artikalID int64) error
 	// ProveriIPocistiZaArtikal proverava potraživane redove za dati artikal nakon

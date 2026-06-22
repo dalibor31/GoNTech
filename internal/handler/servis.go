@@ -535,36 +535,23 @@ func (h *Handler) DodajDeloNalogu(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// proveri stanje na magacinu: ako tražimo više nego što ima, ugrađujemo samo
-	// ono što je na stanju, a razliku beležimo u potraživane delove (ne skida se
-	// sa lagera dok ne stigne); lager NIKAD ne ide u minus
-	ugradjeno := kolicina
-	nedostaje := 0
+	// ime artikla za poruke korisniku
 	imeArtikla := ""
 	if art, e := h.Artikli.DohvatiID(r.Context(), artikalID); e == nil && art != nil {
 		imeArtikla = art.Naziv
-		if kolicina > art.Kolicina {
-			ugradjeno = art.Kolicina
-			nedostaje = kolicina - art.Kolicina
-		}
 	}
 
-	// ugrađujemo samo ono što fizički imamo (ako ima > 0)
-	if ugradjeno > 0 {
-		if _, err := h.ServisniDeloviRepo.Dodaj(r.Context(), nalogID, artikalID, ugradjeno, cena, &k.ID); err != nil {
-			slog.Error("greška pri dodavanju dela", "error", err)
-			middleware.SetFlash(w, r, h.DB, "greska", "Greška pri dodavanju dela.")
-			http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
-			return
-		}
+	// atomično: ugradi ono što imamo (skida sa lagera, ne ide u minus), višak u potraživane
+	ugradjeno, nedostaje, err := h.ServisniDeloviRepo.UgradiIliPotrazuj(r.Context(), nalogID, artikalID, kolicina, cena, &k.ID)
+	if err != nil {
+		slog.Error("greška pri dodavanju dela", "error", err)
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri dodavanju dela.")
+		http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
+		return
 	}
 
-	// višak → potraživani delovi (ne skidamo sa lagera)
+	// ako nešto nedostaje, prebaci nalog u „Čeka delove" i obavesti korisnika
 	if nedostaje > 0 {
-		if _, err := h.ServisniPotrazivaniDeloviRepo.DodajIliUvecaj(r.Context(), nalogID, artikalID, nedostaje); err != nil {
-			slog.Error("greška pri beleženju potraživanog dela", "error", err)
-		}
-		// automatski prebaci nalog u „Čeka delove"
 		if e := h.ServisRepo.AzurirajStatus(r.Context(), nalogID, model.StatusCekaDelove); e != nil {
 			slog.Error("greška pri prebacivanju naloga u Čeka delove", "error", e)
 		}
