@@ -4,7 +4,7 @@ import "time"
 
 // Tipovi magacinskih promena
 const (
-	PromenaUlazNabavka = "ulaz_nabavka"
+	PromenaUlazNabavka  = "ulaz_nabavka"
 	PromenaIzlazProdaja = "izlaz_prodaja"
 	PromenaIzlazServis  = "izlaz_servis"
 	PromenaPovracaj     = "povracaj"

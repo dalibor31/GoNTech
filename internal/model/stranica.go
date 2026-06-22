@@ -31,22 +31,22 @@ type FlashPoruka struct {
 
 // PodaciStranice su zajednički podaci koje svaka stranica prima
 type PodaciStranice struct {
-	Stranica       string
-	NaslovStranice string
-	Tema           string
-	NazivFirme     string
-	Podnazlov      string
-	LogoPutanja        string // putanja do slike loga firme
-	TopbarLogoSlika    bool   // prikaži logo sliku u topbaru
-	AvatarPutanja      string // putanja do lične avatar slike korisnika
-	Korisnik           string
-	KorisnikIme    string          // korisničko ime prijavljenog korisnika
-	KorisnikUloga  string          // uloga: "superadmin", "admin", "radnik"
-	CsrfToken      string          // CSRF zaštitni token za forme
-	AssetV         string          // verzija statičkih fajlova (cache-busting za CSS/JS)
-	Dozvole        map[string]bool // mapa akcija → dozvoljeno/nije
-	Moduli         map[string]bool // mapa zakonskih modula → uključen za firmu (profil firme)
-	Flash          *FlashPoruka    // jednokratna poruka nakon redirecta
+	Stranica        string
+	NaslovStranice  string
+	Tema            string
+	NazivFirme      string
+	Podnazlov       string
+	LogoPutanja     string // putanja do slike loga firme
+	TopbarLogoSlika bool   // prikaži logo sliku u topbaru
+	AvatarPutanja   string // putanja do lične avatar slike korisnika
+	Korisnik        string
+	KorisnikIme     string          // korisničko ime prijavljenog korisnika
+	KorisnikUloga   string          // uloga: "superadmin", "admin", "radnik"
+	CsrfToken       string          // CSRF zaštitni token za forme
+	AssetV          string          // verzija statičkih fajlova (cache-busting za CSS/JS)
+	Dozvole         map[string]bool // mapa akcija → dozvoljeno/nije
+	Moduli          map[string]bool // mapa zakonskih modula → uključen za firmu (profil firme)
+	Flash           *FlashPoruka    // jednokratna poruka nakon redirecta
 	// app pozadina — popunjava se iz podešavanja za sve stranice
 	AppPozadina             string
 	AppPozadinaOpacity      string // vrednost 0-80 (% overlay zatamnjivanja)

@@ -209,10 +209,10 @@ func (h *Handler) Izvestaji(w http.ResponseWriter, r *http.Request) {
 // PodaciPrometногLista su podaci za prometni list magacina
 type PodaciPrometногLista struct {
 	model.PodaciStranice
-	Promene  []model.PrometniRed
-	Od       string
-	Do       string
-	Ukupno   int
+	Promene []model.PrometniRed
+	Od      string
+	Do      string
+	Ukupno  int
 }
 
 // PrometniListMagacina renderuje prometni list magacina za odabrani period
@@ -264,9 +264,9 @@ func (h *Handler) PrometniListMagacina(w http.ResponseWriter, r *http.Request) {
 // PodaciStanjaZaliha su podaci za izveštaj o stanju zaliha
 type PodaciStanjaZaliha struct {
 	model.PodaciStranice
-	Zalihe        []model.StanjeZalihaRed
+	Zalihe         []model.StanjeZalihaRed
 	UkupnaVrednost float64
-	BrojArtikala  int
+	BrojArtikala   int
 }
 
 // StanjeZalihaIzvestaj renderuje izveštaj o trenutnom stanju zaliha

@@ -15,7 +15,6 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-
 // podaciPodsetnici su podaci za stranicu sa listom podsetnika
 type podaciPodsetnici struct {
 	model.PodaciStranice

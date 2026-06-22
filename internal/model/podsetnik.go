@@ -7,14 +7,14 @@ const TipOpsti = "opsti"
 
 // Podsetnik predstavlja jedan podsetnik
 type Podsetnik struct {
-	ID               int64
-	Naslov           string
-	Napomena         string
-	DatumPodsecanja  time.Time
-	Zavrseno         bool
-	Tip              string
-	DatumUnosa       time.Time
-	KorisnikID       *int64 // ako nil — podsetnik nije dodeljen konkretnom korisniku
+	ID              int64
+	Naslov          string
+	Napomena        string
+	DatumPodsecanja time.Time
+	Zavrseno        bool
+	Tip             string
+	DatumUnosa      time.Time
+	KorisnikID      *int64 // ako nil — podsetnik nije dodeljen konkretnom korisniku
 }
 
 // JePrekoracen vraća true ako datum podsećanja je prošao a podsetnik nije završen
