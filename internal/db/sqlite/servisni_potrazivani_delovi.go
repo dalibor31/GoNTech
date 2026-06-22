@@ -105,3 +105,60 @@ func (r *ServisniPotrazivaniDeloviRepo) ObrisiZaArtikal(ctx context.Context, nal
 	}
 	return nil
 }
+
+// ProveriIPocistiZaArtikal poziva se nakon što stanje artikla poraste (nabavka)
+// i čisti potraživane redove koji se sada mogu pokriti dostupnim stanjem (FIFO).
+// Delimično pokrivanje smanjuje traženu količinu umesto brisanja.
+func (r *ServisniPotrazivaniDeloviRepo) ProveriIPocistiZaArtikal(ctx context.Context, artikalID int64) error {
+	var stanje int
+	err := r.db.QueryRowContext(ctx, "SELECT kolicina FROM artikli WHERE id = ?", artikalID).Scan(&stanje)
+	if err != nil {
+		return fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: stanje: %w", err)
+	}
+	if stanje <= 0 {
+		return nil
+	}
+
+	redovi, err := r.db.QueryContext(ctx,
+		"SELECT id, kolicina FROM servisni_potrazivani_delovi WHERE artikal_id = ? ORDER BY datum",
+		artikalID,
+	)
+	if err != nil {
+		return fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: query: %w", err)
+	}
+	defer redovi.Close()
+
+	type red struct {
+		id       int64
+		kolicina int
+	}
+	var lista []red
+	for redovi.Next() {
+		var p red
+		if err := redovi.Scan(&p.id, &p.kolicina); err != nil {
+			return fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: scan: %w", err)
+		}
+		lista = append(lista, p)
+	}
+	redovi.Close()
+
+	dostupno := stanje
+	for _, p := range lista {
+		if dostupno <= 0 {
+			break
+		}
+		if dostupno >= p.kolicina {
+			if _, err := r.db.ExecContext(ctx, "DELETE FROM servisni_potrazivani_delovi WHERE id = ?", p.id); err != nil {
+				return fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: delete: %w", err)
+			}
+			dostupno -= p.kolicina
+		} else {
+			novaKol := p.kolicina - dostupno
+			if _, err := r.db.ExecContext(ctx, "UPDATE servisni_potrazivani_delovi SET kolicina = ? WHERE id = ?", novaKol, p.id); err != nil {
+				return fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: update: %w", err)
+			}
+			dostupno = 0
+		}
+	}
+	return nil
+}
