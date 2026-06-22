@@ -30,7 +30,7 @@
         <a href="/magacin/novi?tip={{.Tip}}" class="btn-primarno">+ {{if eq .Tip "usluga"}}Nova usluga{{else if eq .Tip "trosak"}}Novi trošak{{else}}Novi artikal{{end}}</a>
         {{end}}
         {{if and (eq .Tip "proizvod") (index .Dozvole "kategorija.pregled")}}
-        <a href="/magacin/kategorije" class="btn-primarno">Kategorije</a>
+        <a href="/magacin/kategorije" class="btn-primarno" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML">Kategorije</a>
         {{end}}
     </div>
 

@@ -131,7 +131,7 @@ func (r *ServisRepo) Kreiraj(ctx context.Context, n *model.ServisniNalog) (int64
 			 ostecenja, pin_uredjaja, pribor, datum_prijema, javni_token)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		nullInt64(n.KlijentID), nullInt64(n.TehnicarID), n.BrojNaloga, n.Uredjaj,
-		nullString(n.SerijskiBroj), n.OpisKvara, nullString(n.TrazeneNadogradnje), n.Status,
+		nullString(n.SerijskiBroj), n.OpisKvara, n.TrazeneNadogradnje, n.Status,
 		nullFloat64(n.CenaOd), nullFloat64(n.CenaDo), nullFloat64(n.CenaKonacna),
 		nullFloat64(n.Avans), nullString(n.Napomena),
 		nullTime(n.GarancijaDo), nullTime(n.DatumZavrsetka),
@@ -176,7 +176,7 @@ func (r *ServisRepo) Izmeni(ctx context.Context, n *model.ServisniNalog) error {
 			avans = ?, napomena = ?, garancija_do = ?, datum_zavrsetka = ?,
 			ostecenja = ?, pin_uredjaja = ?, pribor = ?
 		WHERE id = ?`,
-		nullInt64(n.KlijentID), nullInt64(n.TehnicarID), n.Uredjaj, nullString(n.SerijskiBroj), n.OpisKvara, nullString(n.TrazeneNadogradnje),
+		nullInt64(n.KlijentID), nullInt64(n.TehnicarID), n.Uredjaj, nullString(n.SerijskiBroj), n.OpisKvara, n.TrazeneNadogradnje,
 		n.Status, nullFloat64(n.CenaOd), nullFloat64(n.CenaDo), nullFloat64(n.CenaKonacna),
 		nullFloat64(n.Avans), nullString(n.Napomena), nullTime(n.GarancijaDo), nullTime(n.DatumZavrsetka),
 		nullString(n.Ostecenja), nullString(n.PinUredjaja), nullString(n.Pribor),
