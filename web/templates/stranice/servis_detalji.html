@@ -94,27 +94,9 @@
             {{end}}
             <div>
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Garancija do</div>
-                {{if index .Dozvole "servis.izmeni"}}
-                <form method="post" action="/servis/{{.Nalog.ID}}/garancija" data-refresh="#nalog-zaglavlje" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                    <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
-                    <span style="font-size:14px;{{if .Nalog.GarancijaDo}}color:#16a34a;font-weight:500;{{else}}color:var(--tekst-sporedni);{{end}}">
-                        {{if .Nalog.GarancijaDo}}{{.Nalog.GarancijaDo.Format "02.01.2006."}}{{else}}—{{end}}
-                    </span>
-                    <input type="date" name="garancija_do" id="garancija-datum" value="{{if .Nalog.GarancijaDo}}{{.Nalog.GarancijaDo.Format "2006-01-02"}}{{end}}"
-                        onchange="var cb=this.form.querySelector('[name=bez_garancije]');if(cb)cb.checked=false;this.form.requestSubmit()"
-                        style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;" tabindex="-1">
-                    <button type="button" onclick="document.getElementById('garancija-datum').showPicker()"
-                        style="background:none;border:0.5px solid var(--ivica);border-radius:6px;cursor:pointer;padding:4px 6px;font-size:14px;line-height:1;" title="Izmeni datum garancije">📅</button>
-                    <label style="font-size:12px;color:var(--tekst-sporedni);cursor:pointer;display:flex;align-items:center;gap:3px;">
-                        <input type="checkbox" name="bez_garancije" value="1" onchange="this.form.requestSubmit()" style="cursor:pointer;"
-                            {{if not .Nalog.GarancijaDo}}checked{{end}}> bez garancije
-                    </label>
-                </form>
-                {{else}}
                 <div style="font-size:14px;{{if .Nalog.GarancijaDo}}color:#16a34a;font-weight:500;{{else}}color:var(--tekst-sporedni);{{end}}">
                     {{if .Nalog.GarancijaDo}}{{.Nalog.GarancijaDo.Format "02.01.2006."}}{{else}}—{{end}}
                 </div>
-                {{end}}
             </div>
             <div>
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Klijent</div>
