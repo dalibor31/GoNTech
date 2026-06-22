@@ -525,23 +525,29 @@ func (h *Handler) DodajDeloNalogu(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ako tražena količina prelazi magacinsko stanje, deo se NE ugrađuje (da lager
-	// ne ode u minus), a nalog se automatski prebacuje u „Čeka delove" radi nabavke
-	if art, e := h.Artikli.DohvatiID(r.Context(), artikalID); e == nil && art != nil && kolicina > art.Kolicina {
-		if e := h.ServisRepo.AzurirajStatus(r.Context(), nalogID, model.StatusCekaDelove); e != nil {
-			slog.Error("greška pri prebacivanju naloga u Čeka delove", "error", e)
-		}
-		middleware.SetFlash(w, r, h.DB, "greska",
-			"Nema dovoljno „"+art.Naziv+"\" na stanju (ima "+strconv.Itoa(art.Kolicina)+"). Nalog je prebačen u „Čeka delove\" — naručite deo.")
-		http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
-		return
+	// prepoznaj prekoračenje magacinskog stanja PRE dodavanja (posle dodavanja
+	// lager se smanji); deo se svejedno ugrađuje (dozvoljen backorder/minus lager)
+	prekoraceno := false
+	imeArtikla := ""
+	if art, e := h.Artikli.DohvatiID(r.Context(), artikalID); e == nil && art != nil {
+		prekoraceno = kolicina > art.Kolicina
+		imeArtikla = art.Naziv
 	}
 
 	if _, err := h.ServisniDeloviRepo.Dodaj(r.Context(), nalogID, artikalID, kolicina, cena, &k.ID); err != nil {
 		slog.Error("greška pri dodavanju dela", "error", err)
-		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri dodavanju dela. Proverite stanje na magacinu.")
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri dodavanju dela.")
 		http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
 		return
+	}
+
+	// prekoračenje → nalog automatski u „Čeka delove" (signal da treba nabavka)
+	if prekoraceno {
+		if e := h.ServisRepo.AzurirajStatus(r.Context(), nalogID, model.StatusCekaDelove); e != nil {
+			slog.Error("greška pri prebacivanju naloga u Čeka delove", "error", e)
+		}
+		middleware.SetFlash(w, r, h.DB, "greska",
+			"Deo „"+imeArtikla+"\" je dodat iznad stanja na magacinu — nalog je prebačen u „Čeka delove\". Naručite deo.")
 	}
 
 	http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10)+"?sacuvano=1", http.StatusSeeOther)
@@ -1180,6 +1186,23 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Nepoznat status", http.StatusBadRequest)
 		return
 	}
+
+	// zabrana izlaska iz „Čeka delove" dok god neki ugrađeni deo nema pokriće na
+	// zalihama (lager u minusu / backorder) — deo prvo treba nabaviti
+	if nalog, e := h.ServisRepo.DohvatiID(r.Context(), id); e == nil &&
+		nalog.Status == model.StatusCekaDelove && noviStatus != model.StatusCekaDelove {
+		var bezPokrica int
+		_ = h.DB.QueryRowContext(r.Context(),
+			`SELECT COUNT(*) FROM servisni_delovi sd JOIN artikli a ON a.id = sd.artikal_id
+			 WHERE sd.nalog_id = ? AND a.kolicina < 0`, id).Scan(&bezPokrica)
+		if bezPokrica > 0 {
+			middleware.SetFlash(w, r, h.DB, "greska",
+				"Nalog ne može da napusti „Čeka delove\" dok ima ugrađenih delova kojih nema na stanju (lager u minusu). Dopunite zalihe nabavkom.")
+			http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+			return
+		}
+	}
+
 	if err := h.ServisRepo.AzurirajStatus(r.Context(), id, noviStatus); err != nil {
 		slog.Error("greška pri promeni statusa naloga", "id", id, "error", err)
 		http.Error(w, "Greška pri promeni statusa", http.StatusInternalServerError)

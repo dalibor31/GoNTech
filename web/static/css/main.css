@@ -1111,6 +1111,11 @@ select {
 .bez-anim .tabela tbody tr,
 .bez-anim.tabela tbody tr { animation: none !important; }
 
+/* vizuelni indikator prekoračenja magacinskog stanja (crvena boja) —
+   koristi se u JS (classList.toggle) na #deo-umagacinu i #deo-kol */
+.prekoraceno { border-color: #dc2626 !important; }
+#deo-umagacinu.prekoraceno { color: #dc2626; border-color: #dc2626; }
+
 /* korisnikova preferencija animacije: body[data-animacija] nadjačava podrazumevano.
    Kad korisnik odabere stil, animiraju se i redovi tabela i mobilne kartice. */
 [data-animacija="bez"] .animiraj,
