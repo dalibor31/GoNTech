@@ -236,9 +236,11 @@ func (h *Handler) SacuvajIzmenuArtikla(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// stara prodajna cena — za nivelacioni trag ako se promeni kroz izmenu
+	// stara prodajna cena i količina — za nivelacioni trag i hook potraživanih delova
 	var staraCena float64
+	var staraKolicina int
 	if stari, e := h.Artikli.DohvatiID(r.Context(), id); e == nil {
+		staraKolicina = stari.Kolicina
 		staraCena = stari.ProdajnaCena
 		// spreči promenu tipa sa proizvoda na uslugu/trošak ako artikal ima zalihu
 		if stari.PratiLager() && stari.Kolicina > 0 && !artikal.PratiLager() {
@@ -271,6 +273,19 @@ func (h *Handler) SacuvajIzmenuArtikla(w http.ResponseWriter, r *http.Request) {
 			KorisnikID: korisnikID,
 		}); e != nil {
 			slog.Error("auto-nivelacija pri izmeni artikla nije upisana", "artikal_id", id, "error", e)
+		}
+	}
+
+	// ako je stanje poraslo, proveri potraživane servisne delove
+	if artikal.Kolicina > staraKolicina {
+		otkljucani, err := h.ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal(r.Context(), id)
+		if err != nil {
+			slog.Error("provera potraživanih delova nije uspela", "artikal_id", id, "error", err)
+		}
+		for _, nalogID := range otkljucani {
+			if err := h.ServisRepo.AzurirajStatus(r.Context(), nalogID, model.StatusPrimljeno); err != nil {
+				slog.Error("automatski reset statusa naloga nije uspeo", "nalog_id", nalogID, "error", err)
+			}
 		}
 	}
 
