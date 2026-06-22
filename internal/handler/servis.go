@@ -304,8 +304,16 @@ func (h *Handler) SacuvajIzmenaNaloga(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// auto-snimanje (forma se snima u realnom vremenu): umesto redirecta vraćamo 204,
+	// a greške kao kratak tekst sa statusom — JS na stranici to prikaže korisniku
+	autosave := r.Header.Get("X-Autosave") == "1"
+
 	nalog, greska := parseFormuNaloga(r)
 	if greska != "" {
+		if autosave {
+			http.Error(w, greska, http.StatusBadRequest)
+			return
+		}
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		klijenti, _ := h.KlijentiRepo.Lista(r.Context(), "")
 		tehnicari, _ := h.KorisniciRepo.Lista(r.Context())
@@ -342,6 +350,10 @@ func (h *Handler) SacuvajIzmenaNaloga(w http.ResponseWriter, r *http.Request) {
 
 	// ako nije izabran postojeći klijent, eventualno kreiraj novog iz polja forme
 	if greska := h.mozdaKreirajKlijenta(r.Context(), r, &nalog); greska != "" {
+		if autosave {
+			http.Error(w, greska, http.StatusBadRequest)
+			return
+		}
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		klijenti, _ := h.KlijentiRepo.Lista(r.Context(), "")
 		tehnicari, _ := h.KorisniciRepo.Lista(r.Context())
@@ -362,6 +374,10 @@ func (h *Handler) SacuvajIzmenaNaloga(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.ServisRepo.Izmeni(r.Context(), &nalog); err != nil {
 		slog.Error("greška pri čuvanju izmene naloga", "error", err)
+		if autosave {
+			http.Error(w, "Došlo je do greške pri čuvanju.", http.StatusInternalServerError)
+			return
+		}
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		klijenti, _ := h.KlijentiRepo.Lista(r.Context(), "")
 		tehnicari, _ := h.KorisniciRepo.Lista(r.Context())
@@ -380,6 +396,10 @@ func (h *Handler) SacuvajIzmenaNaloga(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if autosave {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)
 }
 

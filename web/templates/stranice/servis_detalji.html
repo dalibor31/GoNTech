@@ -30,7 +30,7 @@
     {{end}}
 
     <!-- nazad dugme -->
-    <a href="/servis" class="nazad-link">
+    <a href="/servis" class="nazad-link" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
         Nazad na servis
     </a>
@@ -44,22 +44,6 @@
                 </span>
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                     {{template "status-badge-detalji" .Nalog.Status}}
-                    <form method="post" action="/servis/{{.Nalog.ID}}/status" style="display:flex;align-items:center;gap:6px;" data-refresh="#nalog-zaglavlje">
-                        <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
-                        <select name="status" style="font-size:13px;padding:4px 8px;border-radius:6px;border:0.5px solid var(--ivica);background:var(--kartica-pozadina);color:var(--tekst-glavni);cursor:pointer;"{{if .ZakljucanStatus}} disabled title="Status zaključan dok ima delova koji nedostaju"{{end}}>
-                            {{range .SviStatusi}}
-                            {{/* „Čeka delove" je automatski status — ne nudi se ručno, osim ako je nalog već u njemu */}}
-                            {{if or (ne . "Čeka delove") (eq . $.Nalog.Status)}}
-                            <option value="{{.}}"{{if eq . $.Nalog.Status}} selected{{end}}>{{.}}</option>
-                            {{end}}
-                            {{end}}
-                        </select>
-                        {{if .ZakljucanStatus}}
-                        <span style="font-size:12px;color:#dc2626;">🔒 Status zaključan — obrišite delove koji nedostaju</span>
-                        {{else}}
-                        <button type="submit" class="btn-sekundarno" style="font-size:13px;padding:4px 12px;">Promeni</button>
-                        {{end}}
-                    </form>
                 </div>
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -76,7 +60,7 @@
                     Otpremnica
                 </a>
                 {{end}}
-                <a href="/servis/izmeni/{{.Nalog.ID}}" class="btn-primarno">
+                <a href="/servis/izmeni/{{.Nalog.ID}}" class="btn-primarno" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML">
                     Izmeni nalog
                 </a>
             </div>
@@ -90,12 +74,6 @@
             <div>
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Predviđen datum popravke</div>
                 <div style="font-size:14px;color:var(--tekst-glavni);">{{.Nalog.PredvidjenDatum.Format "02.01.2006."}}</div>
-            </div>
-            {{end}}
-            {{if .Nalog.DatumZavrsetka}}
-            <div>
-                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Datum završetka</div>
-                <div style="font-size:14px;color:var(--tekst-glavni);">{{.Nalog.DatumZavrsetka.Format "02.01.2006."}}</div>
             </div>
             {{end}}
             <div>

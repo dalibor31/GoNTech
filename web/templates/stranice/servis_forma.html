@@ -5,14 +5,18 @@
 {{define "sadrzaj"}}
 <div style="width:100%;">
 
-    <!-- podaci za Alpine: lista klijenata i eventualno već vezani klijent (kod izmene) -->
+    {{if not .Izmena}}
+    <!-- podaci za Alpine pretragu klijenta — potrebni samo pri novom nalogu;
+         u izmeni se blok klijenta ne prikazuje, pa ne ubacujemo težak inline JSON svih klijenata
+         (blokirao bi render forme i pravio bljesak pozadine pri otvaranju) -->
     <script>
         window.__klijentiNaloga = {{json .Klijenti}};
         window.__izabraniKlijentId = {{.Nalog.KlijentIDVrednost}};
     </script>
+    {{end}}
 
     <!-- nazad dugme -->
-    <a href="{{if .Izmena}}/servis/{{.Nalog.ID}}{{else}}/servis{{end}}" class="nazad-link">
+    <a href="{{if .Izmena}}/servis/{{.Nalog.ID}}{{else}}/servis{{end}}" class="nazad-link" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
         {{if .Izmena}}Nazad na nalog{{else}}Nazad na servis{{end}}
     </a>
@@ -21,7 +25,7 @@
     <div class="poruka-greska greska-animacija" style="margin-bottom:16px;">{{.Greska}}</div>
     {{end}}
 
-    <form method="POST" action="{{if .Izmena}}/servis/izmeni/{{.Nalog.ID}}{{else}}/servis/novi{{end}}">
+    <form id="forma-nalog" method="POST" action="{{if .Izmena}}/servis/izmeni/{{.Nalog.ID}}{{else}}/servis/novi{{end}}"{{if .Izmena}} data-autosave="1"{{end}}>
 
         <!-- broj naloga ide kao hidden — server ga je generisao, vraćamo ga pri POST-u -->
         <input type="hidden" name="broj_naloga" value="{{.Nalog.BrojNaloga}}">
@@ -304,17 +308,74 @@
                     style="width:100%;resize:vertical;">{{.Nalog.Napomena}}</textarea>
             </div>
 
-            <!-- dugmad -->
-            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;">
-                <a href="{{if .Izmena}}/servis/{{.Nalog.ID}}{{else}}/servis{{end}}" class="btn-sekundarno">Odustani</a>
-                <button type="submit" class="btn-primarno">
-                    {{if .Izmena}}Sačuvaj izmene{{else}}Sačuvaj nalog{{end}}
-                </button>
+            {{if .Izmena}}
+            <!-- izmena se snima automatski u realnom vremenu; indikator stanja umesto dugmeta -->
+            <div style="display:flex;justify-content:flex-end;align-items:center;min-height:24px;margin-top:18px;">
+                <span id="autosave-status" style="font-size:13px;color:var(--tekst-sporedni);transition:opacity 0.3s;opacity:0;"></span>
             </div>
+            {{else}}
+            <!-- dugmad (samo za novi nalog) -->
+            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;">
+                <a href="/servis" class="btn-sekundarno">Odustani</a>
+                <button type="submit" class="btn-primarno">Sačuvaj nalog</button>
+            </div>
+            {{end}}
         </div>
 
     </form>
 </div>
+
+<script>
+    // automatsko snimanje forme „Izmeni nalog" — okida se na `change` bilo kog polja.
+    // `change` se za tekst/textarea/number okine na blur (samo ako je vrednost promenjena),
+    // a za select/date/checkbox na izbor — jedan slušalac pokriva sve tipove.
+    (function () {
+        var forma = document.getElementById('forma-nalog');
+        if (!forma || forma.dataset.autosave !== '1') return;
+        var status = document.getElementById('autosave-status');
+        var slanjeUToku = false;
+        var ponoviPoZavrsetku = false;
+
+        function prikaziStatus(tekst, boja) {
+            if (!status) return;
+            status.textContent = tekst;
+            status.style.color = boja;
+            status.style.opacity = '1';
+        }
+        function sakrijStatus() {
+            if (status) status.style.opacity = '0';
+        }
+
+        function snimi() {
+            // ako je slanje već u toku, zapamti da treba ponovo snimiti kad se završi
+            if (slanjeUToku) { ponoviPoZavrsetku = true; return; }
+            slanjeUToku = true;
+            prikaziStatus('Čuvam…', 'var(--tekst-sporedni)');
+            var podaci = new URLSearchParams(new FormData(forma));
+            fetch(forma.action, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Autosave': '1' },
+                body: podaci,
+            }).then(function (odgovor) {
+                if (odgovor.ok) {
+                    prikaziStatus('Sačuvano ✓', '#16a34a');
+                    setTimeout(sakrijStatus, 2000);
+                } else {
+                    return odgovor.text().then(function (poruka) {
+                        prikaziStatus(poruka.trim() || 'Greška pri čuvanju', '#dc2626');
+                    });
+                }
+            }).catch(function () {
+                prikaziStatus('Greška pri čuvanju', '#dc2626');
+            }).finally(function () {
+                slanjeUToku = false;
+                if (ponoviPoZavrsetku) { ponoviPoZavrsetku = false; snimi(); }
+            });
+        }
+
+        forma.addEventListener('change', snimi);
+    })();
+</script>
 
 <style>
     .tip-opcija {
