@@ -5,7 +5,7 @@
 {{define "sadrzaj"}}
 <div class="stranica-stack" style="width:100%;max-width:760px;">
 
-    <a href="/pdv/kpr" class="nazad-link">
+    <a href="/pdv/kpr" class="nazad-link" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         Nazad na KPR
     </a>
@@ -113,7 +113,7 @@
             </div>
 
             <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;">
-                <a href="/pdv/kpr" class="btn-sekundarno" style="font-size:14px;padding:10px 20px;">Odustani</a>
+                <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/pdv/kpr" class="btn-sekundarno" style="font-size:14px;padding:10px 20px;">Odustani</a>
                 <button type="submit" style="background:var(--sb-akcent);color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;">Sačuvaj</button>
             </div>
         </div>

@@ -1,7 +1,7 @@
 {{template "base" .}} {{define "naslov"}}Istorija prijava — NTech{{end}} {{define "sadrzaj"}}
 <div class="stranica-stack" style="display: flex; flex-direction: column; gap: 16px">
   <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
-    <a href="/admin/korisnici" class="btn-sekundarno">← Nazad</a>
+    <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/admin/korisnici" class="btn-sekundarno">← Nazad</a>
     <span class="naslov-traka" style="font-size: 15px; font-weight: 500; color: var(--tekst-glavni)">Istorija prijava — {{.PrikazKorisnik.KorisnickoIme}}</span>
   </div>
 

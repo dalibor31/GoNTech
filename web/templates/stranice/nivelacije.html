@@ -17,7 +17,7 @@
                 <input type="date" name="do" value="{{.Do}}" style="padding:8px 10px;border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
             </div>
             <button type="submit" style="padding:8px 16px;background:var(--sb-aktivan);color:var(--tekst-jak);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;cursor:pointer;">Prikaži</button>
-            {{if or .Od .Do}}<a href="/nivelacije" class="nazad-link" style="margin-bottom:0;">Poništi filter</a>{{end}}
+            {{if or .Od .Do}}<a href="/nivelacije" class="nazad-link" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" style="margin-bottom:0;">Poništi filter</a>{{end}}
         </form>
     </div>
 

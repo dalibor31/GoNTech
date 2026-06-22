@@ -14,7 +14,7 @@
 
     <!-- gornja traka: dugme + interaktivna pretraga -->
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-        <a href="/klijenti/novi" class="btn-primarno">+ Novi klijent</a>
+        <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/klijenti/novi" class="btn-primarno">+ Novi klijent</a>
         <form method="GET" action="/klijenti" style="display:flex;gap:8px;flex:1;min-width:200px;"
               hx-get="/klijenti" hx-target="#klijenti-rezultati" hx-select="#klijenti-rezultati" hx-swap="innerHTML" hx-push-url="true">
             <input type="text" name="pretraga" value="{{.Pretraga}}"
@@ -83,7 +83,7 @@
                         </td>
                         <td class="centar">
                             <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
-                                <a href="/klijenti/izmeni/{{.ID}}" class="btn-primarno-malo">
+                                <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/klijenti/izmeni/{{.ID}}" class="btn-primarno-malo">
                                     Izmeni
                                 </a>
                                 {{if index $.Dozvole "klijent.obrisi"}}
@@ -100,7 +100,7 @@
                     {{else}}
                     <tr>
                         <td colspan="5" class="prazno-stanje">
-                            {{if $.Pretraga}}Za datu pretragu nema klijenata u bazi.{{else}}Nema klijenata. <a href="/klijenti/novi" style="color:var(--sb-akcent);">Dodaj prvog klijenta.</a>{{end}}
+                            {{if $.Pretraga}}Za datu pretragu nema klijenata u bazi.{{else}}Nema klijenata. <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/klijenti/novi" style="color:var(--sb-akcent);">Dodaj prvog klijenta.</a>{{end}}
                         </td>
                     </tr>
                     {{end}}
@@ -125,7 +125,7 @@
                     {{end}}
                 </div>
                 <div style="display:flex;gap:8px;flex-shrink:0;">
-                    <a href="/klijenti/izmeni/{{.ID}}" class="btn-primarno-malo">
+                    <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/klijenti/izmeni/{{.ID}}" class="btn-primarno-malo">
                         Izmeni
                     </a>
                     {{if index $.Dozvole "klijent.obrisi"}}
@@ -156,7 +156,7 @@
         </div>
         {{else}}
         <div class="prazno-stanje">
-            {{if $.Pretraga}}Za datu pretragu nema klijenata u bazi.{{else}}Nema klijenata. <a href="/klijenti/novi" style="color:var(--sb-akcent);">Dodaj prvog klijenta.</a>{{end}}
+            {{if $.Pretraga}}Za datu pretragu nema klijenata u bazi.{{else}}Nema klijenata. <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/klijenti/novi" style="color:var(--sb-akcent);">Dodaj prvog klijenta.</a>{{end}}
         </div>
         {{end}}
     </div>

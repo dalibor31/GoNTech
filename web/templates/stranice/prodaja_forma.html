@@ -14,7 +14,7 @@
 
 <div style="width: 100%" x-data="prodajaForma">
   <!-- nazad dugme -->
-  <a href="/prodaja" class="nazad-link">
+  <a href="/prodaja" class="nazad-link" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML">
     <svg
       xmlns="http://www.w3.org/2000/svg"
       width="16"
@@ -410,7 +410,7 @@
 
     <!-- dugmad forme -->
     <div style="display: flex; justify-content: flex-end; gap: 10px">
-      <a href="/prodaja" class="btn-sekundarno">Odustani</a>
+      <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja" class="btn-sekundarno">Odustani</a>
       <button
         type="submit"
         class="btn-primarno"

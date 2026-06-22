@@ -5,7 +5,7 @@
 {{define "sadrzaj"}}
 <div style="width:100%;">
 
-    <a href="/podsetnici" class="nazad-link">
+    <a href="/podsetnici" class="nazad-link" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
         Nazad na podsetnik
     </a>
@@ -67,7 +67,7 @@
                 {{end}}
 
                 <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:4px;">
-                    <a href="/podsetnici" class="btn-sekundarno">Odustani</a>
+                    <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/podsetnici" class="btn-sekundarno">Odustani</a>
                     <button type="submit" class="btn-primarno">
                         {{if .Izmena}}Sačuvaj izmene{{else}}Dodaj podsetnik{{end}}
                     </button>

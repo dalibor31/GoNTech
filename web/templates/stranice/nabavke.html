@@ -14,7 +14,7 @@
 
     <!-- dugme nova nabavka -->
     <div>
-        <a href="/nabavke/nova" class="btn-primarno">+ Nova nabavka</a>
+        <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/nabavke/nova" class="btn-primarno">+ Nova nabavka</a>
     </div>
 
     <!-- desktop tabela -->
@@ -47,7 +47,7 @@
                         </td>
                         <td style="padding:12px 16px;text-align:center;">
                             <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
-                                <a href="/nabavke/{{.ID}}" class="btn-primarno-malo">
+                                <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/nabavke/{{.ID}}" class="btn-primarno-malo">
                                     Detalji
                                 </a>
                                 {{if index $.Dozvole "nabavka.obrisi"}}
@@ -64,7 +64,7 @@
                     {{else}}
                     <tr>
                         <td colspan="5" style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
-                            Nema nabavki. <a href="/nabavke/nova" style="color:var(--sb-akcent);">Dodaj prvu nabavku.</a>
+                            Nema nabavki. <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/nabavke/nova" style="color:var(--sb-akcent);">Dodaj prvu nabavku.</a>
                         </td>
                     </tr>
                     {{end}}
@@ -94,7 +94,7 @@
             <div style="font-size:13px;color:var(--tekst-sporedni);margin-bottom:10px;">{{.Napomena}}</div>
             {{end}}
             <div style="display:flex;gap:8px;">
-                <a href="/nabavke/{{.ID}}" class="btn-primarno-malo" style="flex:1;justify-content:center;">
+                <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/nabavke/{{.ID}}" class="btn-primarno-malo" style="flex:1;justify-content:center;">
                     Detalji
                 </a>
                 {{if index $.Dozvole "nabavka.obrisi"}}
@@ -109,7 +109,7 @@
         </div>
         {{else}}
         <div style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
-            Nema nabavki. <a href="/nabavke/nova" style="color:var(--sb-akcent);">Dodaj prvu nabavku.</a>
+            Nema nabavki. <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/nabavke/nova" style="color:var(--sb-akcent);">Dodaj prvu nabavku.</a>
         </div>
         {{end}}
     </div>
