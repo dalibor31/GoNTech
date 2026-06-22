@@ -410,6 +410,20 @@
         osveziPrekoracenje();
     });
     if (kol) kol.addEventListener('input', osveziPrekoracenje);
+
+    // resetuj prikaz „U magacinu" nakon dodavanja dela — base.html poziva
+    // f.reset() posle AJAX osvežavanja tabele, ali .reset() ne dira <div>
+    var formaDelovi = document.querySelector('form[action$="/delovi"]');
+    if (formaDelovi) {
+        formaDelovi.addEventListener('reset', function () {
+            if (umagacinu) {
+                umagacinu.textContent = '—';
+                umagacinu.classList.remove('prekoraceno');
+            }
+            stanjeIzabrano = 0;
+            if (kol) kol.classList.remove('prekoraceno');
+        });
+    }
 })();
 </script>
 {{end}}
