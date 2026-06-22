@@ -129,7 +129,7 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	ps.NaslovStranice = "Dashboard"
 
 	podaci := model.PodaciDashboarda{
-		PodaciStranice: ps,
+		PodaciStranice:    ps,
 		BrojArtikala:      brojArtikala,
 		AktivniServisi:    aktivniServisi,
 		PrihodOvogMeseca:  prihodOvogMeseca,

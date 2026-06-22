@@ -40,9 +40,9 @@ func TestArtikalCenaBezPdvIPdvIznos(t *testing.T) {
 
 func TestKlijentPunoIme(t *testing.T) {
 	testovi := []struct {
-		naziv  string
-		k      Klijent
-		ocek   string
+		naziv string
+		k     Klijent
+		ocek  string
 	}{
 		{"pravno lice", Klijent{Tip: "pravno", NazivFirme: "Firma DOO", Ime: "x", Prezime: "y"}, "Firma DOO"},
 		{"fizičko lice", Klijent{Tip: "fizicko", Ime: "Petar", Prezime: "Petrović"}, "Petar Petrović"},

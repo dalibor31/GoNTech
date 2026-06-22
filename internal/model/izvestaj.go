@@ -73,12 +73,12 @@ type PrometniRed struct {
 
 // StanjeZalihaRed je jedan red izveštaja o stanju zaliha
 type StanjeZalihaRed struct {
-	Naziv         string
-	Sifra         string
-	Kategorija    string
-	Kolicina      int
-	KolicinMin    int
-	NabavnaCena   float64
-	ProdajnaCena  float64
+	Naziv          string
+	Sifra          string
+	Kategorija     string
+	Kolicina       int
+	KolicinMin     int
+	NabavnaCena    float64
+	ProdajnaCena   float64
 	VrednostZalihe float64 // kolicina × nabavna_cena
 }

@@ -49,7 +49,8 @@ func nadjiLokalneAdrese() []string {
 func PokreniSetup(fsys fs.FS, envFajl string) {
 	port := NadjiSlobodanPort()
 	if port == 0 {
-		slog.Error("setup: nije pronađen nijedan slobodan port"); os.Exit(1)
+		slog.Error("setup: nije pronađen nijedan slobodan port")
+		os.Exit(1)
 	}
 
 	gotov := make(chan struct{})
@@ -103,7 +104,8 @@ func PokreniSetup(fsys fs.FS, envFajl string) {
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			slog.Error("setup server", "error", err); os.Exit(1)
+			slog.Error("setup server", "error", err)
+			os.Exit(1)
 		}
 	}()
 

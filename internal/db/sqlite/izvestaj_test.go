@@ -19,8 +19,8 @@ func TestIzvestajArtikliBrojaci(t *testing.T) {
 		}
 	}
 	dodaj(&model.Artikal{Naziv: "A", Kolicina: 10, KolicinMin: 5})
-	dodaj(&model.Artikal{Naziv: "B", Kolicina: 2, KolicinMin: 5})  // kritičan
-	dodaj(&model.Artikal{Naziv: "C", Kolicina: 0, KolicinMin: 5})  // kritičan, nula
+	dodaj(&model.Artikal{Naziv: "B", Kolicina: 2, KolicinMin: 5}) // kritičan
+	dodaj(&model.Artikal{Naziv: "C", Kolicina: 0, KolicinMin: 5}) // kritičan, nula
 
 	if n, err := izv.BrojArtikala(ctx); err != nil || n != 3 {
 		t.Fatalf("BrojArtikala = %d, err=%v; očekivano 3", n, err)

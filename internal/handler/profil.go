@@ -56,9 +56,9 @@ func (h *Handler) ProfilTema(w http.ResponseWriter, r *http.Request) {
 	ps.NaslovStranice = "Moja tema"
 
 	podaci := podaciProfilTema{
-		PodaciStranice:      ps,
-		LokalnaTema:         svezi.LokalnaTema,
-		KoristiLokalnuTemu:  svezi.KoristiLokalnuTemu,
+		PodaciStranice:              ps,
+		LokalnaTema:                 svezi.LokalnaTema,
+		KoristiLokalnuTemu:          svezi.KoristiLokalnuTemu,
 		LokalnaPozadina:             svezi.LokalnaPozadina,
 		LokalnaPozadinaOpacity:      svezi.LokalnaPozadinaOpacity,
 		LokalnaPozadinaBlur:         svezi.LokalnaPozadinaBlur,

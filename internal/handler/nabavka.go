@@ -66,7 +66,7 @@ func artikalUJSON(artikli []model.ArtikalSaKategorijom, vezeDobavljaca map[int64
 			ID: a.ID, Naziv: a.Naziv, PdvStopa: a.PdvStopa,
 			NabavnaCena: a.NabavnaCena,
 			Marza:       a.Marza, KategorijaMarza: a.KategorijaMarza,
-			Dobavljaci:  dob,
+			Dobavljaci: dob,
 		})
 	}
 	b, _ := json.Marshal(lista)
