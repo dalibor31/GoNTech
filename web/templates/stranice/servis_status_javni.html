@@ -93,8 +93,6 @@
             {{$s := .Nalog.Status}}
             {{if eq $s "Primljeno"}}
                 <span class="status-bedz status-primljeno">Primljeno</span>
-            {{else if eq $s "U dijagnostici"}}
-                <span class="status-bedz status-dijagnostika">U dijagnostici</span>
             {{else if eq $s "Čeka delove"}}
                 <span class="status-bedz status-ceka">Čeka delove</span>
             {{else if eq $s "U popravci"}}

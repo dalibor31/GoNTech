@@ -147,8 +147,6 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 // bojaTackeServisa vraća hex boju tačke prema statusu naloga
 func bojaTackeServisa(status string) string {
 	switch status {
-	case "U dijagnostici":
-		return "#3b82f6"
 	case "Čeka delove":
 		return "#f97316"
 	case "U popravci":
