@@ -403,6 +403,33 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// self-heal: ako u međuvremenu ima stanja na magacinu za potraživane artikle,
+	// povuci ih (delimično ili u celosti) i otključaj nalog ako je sve pokriveno.
+	// Hvata sve načine na koje stanje poraste, ne samo nabavku/izmenu/popis.
+	if potrazivani, e := h.ServisniPotrazivaniDeloviRepo.DohvatiZaNalog(r.Context(), id); e == nil && len(potrazivani) > 0 {
+		vidjeni := map[int64]bool{}
+		for _, p := range potrazivani {
+			if vidjeni[p.ArtikalID] {
+				continue
+			}
+			vidjeni[p.ArtikalID] = true
+			otkljucani, err := h.ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal(r.Context(), p.ArtikalID)
+			if err != nil {
+				slog.Error("self-heal potraživanih delova nije uspeo", "artikal_id", p.ArtikalID, "error", err)
+				continue
+			}
+			for _, nalogID := range otkljucani {
+				if err := h.ServisRepo.AzurirajStatus(r.Context(), nalogID, model.StatusPrimljeno); err != nil {
+					slog.Error("self-heal reset statusa naloga nije uspeo", "nalog_id", nalogID, "error", err)
+				}
+			}
+		}
+		// status naloga se možda promenio — ponovo ga učitaj za prikaz
+		if osvezen, e := h.ServisRepo.DohvatiID(r.Context(), id); e == nil && osvezen != nil {
+			nalog = osvezen
+		}
+	}
+
 	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
