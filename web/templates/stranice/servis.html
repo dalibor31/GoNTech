@@ -4,7 +4,6 @@
 
 {{define "status-badge"}}
 {{if eq . "Primljeno"}}<span class="status-badge status-primljeno">{{.}}</span>
-{{else if eq . "U dijagnostici"}}<span class="status-badge status-dijagnostika">{{.}}</span>
 {{else if eq . "Čeka delove"}}<span class="status-badge status-ceka">{{.}}</span>
 {{else if eq . "U popravci"}}<span class="status-badge status-popravka">{{.}}</span>
 {{else if eq . "Završeno"}}<span class="status-badge status-zavrseno">{{.}}</span>

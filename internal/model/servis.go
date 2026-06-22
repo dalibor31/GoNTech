@@ -7,9 +7,8 @@ import (
 
 // Statusi servisnog naloga
 const (
-	StatusPrimljeno    = "Primljeno"
-	StatusDijagnostika = "U dijagnostici"
-	StatusCekaDelove   = "Čeka delove"
+	StatusPrimljeno  = "Primljeno"
+	StatusCekaDelove = "Čeka delove"
 	StatusUPopravci    = "U popravci"
 	StatusZavrseno     = "Završeno"
 	StatusPreuzeto     = "Preuzeto"
@@ -18,7 +17,6 @@ const (
 // SviStatusi je uređena lista statusa za prikaz u dropdownu
 var SviStatusi = []string{
 	StatusPrimljeno,
-	StatusDijagnostika,
 	StatusCekaDelove,
 	StatusUPopravci,
 	StatusZavrseno,
