@@ -25,26 +25,28 @@ var SviStatusi = []string{
 
 // ServisniNalog predstavlja jedan servisni nalog
 type ServisniNalog struct {
-	ID             int64
-	KlijentID      *int64
-	TehnicarID     *int64
-	BrojNaloga     string
-	Uredjaj        string
-	SerijskiBroj   string
-	OpisKvara      string
-	Status         string
-	CenaOd         *float64
-	CenaDo         *float64
-	CenaKonacna    *float64
-	Avans          *float64
-	Napomena       string
-	GarancijaDo    *time.Time
-	DatumPrijema   time.Time
-	DatumZavrsetka *time.Time
-	Ostecenja      string
-	PinUredjaja    string
-	Pribor         string
-	JavniToken     string
+	ID                 int64
+	KlijentID          *int64
+	TehnicarID         *int64
+	BrojNaloga         string
+	Uredjaj            string
+	SerijskiBroj       string
+	OpisKvara          string
+	TrazeneNadogradnje string
+	Status             string
+	CenaOd             *float64
+	CenaDo             *float64
+	CenaKonacna        *float64
+	Avans              *float64
+	Napomena           string
+	GarancijaDo        *time.Time
+	DatumPrijema       time.Time
+	DatumZavrsetka     *time.Time
+	Ostecenja          string
+	PinUredjaja        string
+	Pribor             string
+	NapomenaKlijentu   string
+	JavniToken         string
 }
 
 // ServisniDeo predstavlja jedan artikal ugrađen u servisni nalog

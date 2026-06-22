@@ -56,9 +56,9 @@ func (r *ServisRepo) Lista(ctx context.Context, pretraga, status string) ([]mode
 	upit := `
 		SELECT
 			sn.id, sn.klijent_id, sn.tehnicar_id, sn.broj_naloga, sn.uredjaj, sn.serijski_broj,
-			sn.opis_kvara, sn.status, sn.cena_od, sn.cena_do, sn.cena_konacna,
+			sn.opis_kvara, sn.trazene_nadogradnje, sn.status, sn.cena_od, sn.cena_do, sn.cena_konacna,
 			sn.avans, sn.napomena, sn.garancija_do, sn.datum_prijema, sn.datum_zavrsetka,
-			sn.ostecenja, sn.pin_uredjaja, sn.pribor, sn.javni_token,
+			sn.ostecenja, sn.pin_uredjaja, sn.pribor, sn.napomena_klijentu, sn.javni_token,
 			COALESCE(kp.naziv, '') AS klijent_naziv
 		FROM servisni_nalozi sn
 		LEFT JOIN klijent_prikaz kp ON kp.id = sn.klijent_id
@@ -103,9 +103,9 @@ func (r *ServisRepo) DohvatiID(ctx context.Context, id int64) (*model.ServisniNa
 	red := r.db.QueryRowContext(ctx, `
 		SELECT
 			id, klijent_id, tehnicar_id, broj_naloga, uredjaj, serijski_broj,
-			opis_kvara, status, cena_od, cena_do, cena_konacna,
+			opis_kvara, trazene_nadogradnje, status, cena_od, cena_do, cena_konacna,
 			avans, napomena, garancija_do, datum_prijema, datum_zavrsetka,
-			ostecenja, pin_uredjaja, pribor, javni_token
+			ostecenja, pin_uredjaja, pribor, napomena_klijentu, javni_token
 		FROM servisni_nalozi WHERE id = ?`, id)
 
 	var n model.ServisniNalog
@@ -126,12 +126,12 @@ func (r *ServisRepo) Kreiraj(ctx context.Context, n *model.ServisniNalog) (int64
 
 	rezultat, err := r.db.ExecContext(ctx, `
 		INSERT INTO servisni_nalozi
-			(klijent_id, tehnicar_id, broj_naloga, uredjaj, serijski_broj, opis_kvara,
+			(klijent_id, tehnicar_id, broj_naloga, uredjaj, serijski_broj, opis_kvara, trazene_nadogradnje,
 			 status, cena_od, cena_do, cena_konacna, avans, napomena, garancija_do, datum_zavrsetka,
 			 ostecenja, pin_uredjaja, pribor, datum_prijema, javni_token)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		nullInt64(n.KlijentID), nullInt64(n.TehnicarID), n.BrojNaloga, n.Uredjaj,
-		nullString(n.SerijskiBroj), n.OpisKvara, n.Status,
+		nullString(n.SerijskiBroj), n.OpisKvara, nullString(n.TrazeneNadogradnje), n.Status,
 		nullFloat64(n.CenaOd), nullFloat64(n.CenaDo), nullFloat64(n.CenaKonacna),
 		nullFloat64(n.Avans), nullString(n.Napomena),
 		nullTime(n.GarancijaDo), nullTime(n.DatumZavrsetka),
@@ -155,9 +155,9 @@ func (r *ServisRepo) DohvatiJavniToken(ctx context.Context, token string) (*mode
 	red := r.db.QueryRowContext(ctx, `
 		SELECT
 			id, klijent_id, tehnicar_id, broj_naloga, uredjaj, serijski_broj,
-			opis_kvara, status, cena_od, cena_do, cena_konacna,
+			opis_kvara, trazene_nadogradnje, status, cena_od, cena_do, cena_konacna,
 			avans, napomena, garancija_do, datum_prijema, datum_zavrsetka,
-			ostecenja, pin_uredjaja, pribor, javni_token
+			ostecenja, pin_uredjaja, pribor, napomena_klijentu, javni_token
 		FROM servisni_nalozi WHERE javni_token = ?`, token)
 
 	var n model.ServisniNalog
@@ -171,12 +171,12 @@ func (r *ServisRepo) DohvatiJavniToken(ctx context.Context, token string) (*mode
 func (r *ServisRepo) Izmeni(ctx context.Context, n *model.ServisniNalog) error {
 	_, err := r.db.ExecContext(ctx, `
 		UPDATE servisni_nalozi SET
-			klijent_id = ?, tehnicar_id = ?, uredjaj = ?, serijski_broj = ?, opis_kvara = ?,
+			klijent_id = ?, tehnicar_id = ?, uredjaj = ?, serijski_broj = ?, opis_kvara = ?, trazene_nadogradnje = ?,
 			status = ?, cena_od = ?, cena_do = ?, cena_konacna = ?,
 			avans = ?, napomena = ?, garancija_do = ?, datum_zavrsetka = ?,
 			ostecenja = ?, pin_uredjaja = ?, pribor = ?
 		WHERE id = ?`,
-		nullInt64(n.KlijentID), nullInt64(n.TehnicarID), n.Uredjaj, nullString(n.SerijskiBroj), n.OpisKvara,
+		nullInt64(n.KlijentID), nullInt64(n.TehnicarID), n.Uredjaj, nullString(n.SerijskiBroj), n.OpisKvara, nullString(n.TrazeneNadogradnje),
 		n.Status, nullFloat64(n.CenaOd), nullFloat64(n.CenaDo), nullFloat64(n.CenaKonacna),
 		nullFloat64(n.Avans), nullString(n.Napomena), nullTime(n.GarancijaDo), nullTime(n.DatumZavrsetka),
 		nullString(n.Ostecenja), nullString(n.PinUredjaja), nullString(n.Pribor),
@@ -225,6 +225,17 @@ func (r *ServisRepo) AzurirajGaranciju(ctx context.Context, id int64, garancijaD
 		if err != nil {
 			return fmt.Errorf("ntech: ServisRepo.AzurirajGaranciju: %w", err)
 		}
+	}
+	return nil
+}
+
+// AzurirajNapomenuKlijentu postavlja tekst napomene namenjene klijentu na nalogu
+func (r *ServisRepo) AzurirajNapomenuKlijentu(ctx context.Context, id int64, tekst string) error {
+	_, err := r.db.ExecContext(ctx,
+		"UPDATE servisni_nalozi SET napomena_klijentu = ? WHERE id = ?", tekst, id,
+	)
+	if err != nil {
+		return fmt.Errorf("ntech: ServisRepo.AzurirajNapomenuKlijentu: %w", err)
 	}
 	return nil
 }
@@ -310,15 +321,15 @@ func (r *ServisRepo) Obrisi(ctx context.Context, id int64, korisnikID *int64) er
 // klijentNaziv je opcioni pokazivač, nil kada se čita bez JOIN-a
 func scanNalog(scan func(...any) error, n *model.ServisniNalog, klijentNaziv *string) error {
 	var klijentID, tehnicarID sql.NullInt64
-	var serijskiBroj, napomena, ostecenja, pinUredjaja, pribor, javniToken sql.NullString
+	var serijskiBroj, napomena, ostecenja, pinUredjaja, pribor, napomenaKlijentu, javniToken sql.NullString
 	var cenaOd, cenaDo, cenaKonacna, avans sql.NullFloat64
 	var garancijaDo, datumZavrsetka sql.NullTime
 
 	args := []any{
 		&n.ID, &klijentID, &tehnicarID, &n.BrojNaloga, &n.Uredjaj, &serijskiBroj,
-		&n.OpisKvara, &n.Status, &cenaOd, &cenaDo, &cenaKonacna,
+		&n.OpisKvara, &n.TrazeneNadogradnje, &n.Status, &cenaOd, &cenaDo, &cenaKonacna,
 		&avans, &napomena, &garancijaDo, &n.DatumPrijema, &datumZavrsetka,
-		&ostecenja, &pinUredjaja, &pribor, &javniToken,
+		&ostecenja, &pinUredjaja, &pribor, &napomenaKlijentu, &javniToken,
 	}
 
 	if klijentNaziv != nil {
@@ -342,6 +353,7 @@ func scanNalog(scan func(...any) error, n *model.ServisniNalog, klijentNaziv *st
 	n.Ostecenja = ostecenja.String
 	n.PinUredjaja = pinUredjaja.String
 	n.Pribor = pribor.String
+	n.NapomenaKlijentu = napomenaKlijentu.String
 	if cenaOd.Valid {
 		v := cenaOd.Float64
 		n.CenaOd = &v
