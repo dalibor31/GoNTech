@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"ntech/internal/model"
@@ -76,18 +77,43 @@ func (r *ServisniDeloviRepo) Dodaj(ctx context.Context, nalogID, artikalID int64
 		return 0, fmt.Errorf("ntech: ServisniDeloviRepo.Dodaj: update stanje: %w", err)
 	}
 
-	rezultat, err := tx.ExecContext(ctx, `
-		INSERT INTO servisni_delovi (nalog_id, artikal_id, kolicina, cena_komada)
-		VALUES (?, ?, ?, ?)`,
-		nalogID, artikalID, kolicina, cenaKomada,
-	)
-	if err != nil {
-		return 0, fmt.Errorf("ntech: ServisniDeloviRepo.Dodaj: insert: %w", err)
-	}
+	// ako isti artikal već postoji na nalogu — saberi količinu i osveži cenu;
+	// u suprotnom kreiraj novi red (bez dupliranja istog artikla)
+	var deoID int64
+	var postojeciID int64
+	var postojeciKol int
+	err = tx.QueryRowContext(ctx,
+		"SELECT id, kolicina FROM servisni_delovi WHERE nalog_id = ? AND artikal_id = ?",
+		nalogID, artikalID,
+	).Scan(&postojeciID, &postojeciKol)
 
-	deoID, err := rezultat.LastInsertId()
-	if err != nil {
-		return 0, fmt.Errorf("ntech: ServisniDeloviRepo.Dodaj: last insert id: %w", err)
+	if err == nil {
+		// već postoji — saberi
+		novaKol := postojeciKol + kolicina
+		_, err = tx.ExecContext(ctx,
+			"UPDATE servisni_delovi SET kolicina = ?, cena_komada = ? WHERE id = ?",
+			novaKol, cenaKomada, postojeciID,
+		)
+		if err != nil {
+			return 0, fmt.Errorf("ntech: ServisniDeloviRepo.Dodaj: merge update: %w", err)
+		}
+		deoID = postojeciID
+	} else if errors.Is(err, sql.ErrNoRows) {
+		// novi artikal na nalogu — insert
+		rezultat, err := tx.ExecContext(ctx, `
+			INSERT INTO servisni_delovi (nalog_id, artikal_id, kolicina, cena_komada)
+			VALUES (?, ?, ?, ?)`,
+			nalogID, artikalID, kolicina, cenaKomada,
+		)
+		if err != nil {
+			return 0, fmt.Errorf("ntech: ServisniDeloviRepo.Dodaj: insert: %w", err)
+		}
+		deoID, err = rezultat.LastInsertId()
+		if err != nil {
+			return 0, fmt.Errorf("ntech: ServisniDeloviRepo.Dodaj: last insert id: %w", err)
+		}
+	} else {
+		return 0, fmt.Errorf("ntech: ServisniDeloviRepo.Dodaj: proveri postojanje: %w", err)
 	}
 
 	err = zabeleziMagacinPromenu(ctx, tx, artikalID, model.PromenaIzlazServis,

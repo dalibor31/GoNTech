@@ -1116,6 +1116,10 @@ select {
 .prekoraceno { border-color: #dc2626 !important; }
 #deo-umagacinu.prekoraceno { color: #dc2626; border-color: #dc2626; }
 
+/* poravnanje „U magacinu" sa Artiklom i Kol. — svi inputi/selectovi imaju
+   height: 38px (main.css:728); div-u nedostaje eksplicitna visina */
+#deo-umagacinu { height: 38px; }
+
 /* korisnikova preferencija animacije: body[data-animacija] nadjačava podrazumevano.
    Kad korisnik odabere stil, animiraju se i redovi tabela i mobilne kartice. */
 [data-animacija="bez"] .animiraj,
