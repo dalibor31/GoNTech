@@ -368,9 +368,25 @@ func (h *Handler) SacuvajPopis(w http.ResponseWriter, r *http.Request) {
 		if nova == a.Kolicina {
 			continue
 		}
+		povecano := nova > a.Kolicina
 		if err := h.Artikli.KorigujKolicinu(r.Context(), a.ID, nova, &k.ID, napomena); err != nil {
 			slog.Error("popis: korekcija artikla", "id", a.ID, "error", err)
 			greskaBroj++
+			continue
+		}
+		// ako je stanje poraslo, počisti potraživane delove i otključaj naloge —
+		// pokriveni delovi se odmah skidaju sa magacina (vidi ProveriIPocistiZaArtikal)
+		if povecano {
+			otkljucani, err := h.ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal(r.Context(), a.ID)
+			if err != nil {
+				slog.Error("popis: provera potraživanih delova nije uspela", "artikal_id", a.ID, "error", err)
+				continue
+			}
+			for _, nalogID := range otkljucani {
+				if err := h.ServisRepo.AzurirajStatus(r.Context(), nalogID, model.StatusPrimljeno); err != nil {
+					slog.Error("popis: automatski reset statusa naloga nije uspeo", "nalog_id", nalogID, "error", err)
+				}
+			}
 		}
 	}
 

@@ -106,13 +106,28 @@ func (r *ServisniPotrazivaniDeloviRepo) ObrisiZaArtikal(ctx context.Context, nal
 	return nil
 }
 
-// ProveriIPocistiZaArtikal poziva se nakon što stanje artikla poraste (nabavka)
-// i čisti potraživane redove koji se sada mogu pokriti dostupnim stanjem (FIFO).
-// Delimično pokrivanje smanjuje traženu količinu umesto brisanja.
+// ProveriIPocistiZaArtikal poziva se nakon što stanje artikla poraste (nabavka
+// ili direktan unos na kartici/popisu) i čisti potraživane redove koji se sada
+// mogu pokriti dostupnim stanjem (FIFO).
+//
+// Kada se potraženi deo (delimično ili u celosti) pokrije, ta količina se ODMAH
+// skida sa magacina jer fizički odlazi na servisni nalog; svaka takva promena se
+// beleži u magacinski revizijski trag (tip PromenaIzlazServis). Delimično
+// pokrivanje smanjuje traženu količinu umesto brisanja reda.
+//
+// Sve se izvršava u jednoj transakciji da bi skidanje magacina i čišćenje
+// potraživanih redova bili atomični.
+//
 // Vraća ID-eve naloga čiji su svi potraživani redovi obrisani (nalog može da se otključa).
 func (r *ServisniPotrazivaniDeloviRepo) ProveriIPocistiZaArtikal(ctx context.Context, artikalID int64) ([]int64, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: begin: %w", err)
+	}
+	defer tx.Rollback()
+
 	var stanje int
-	err := r.db.QueryRowContext(ctx, "SELECT kolicina FROM artikli WHERE id = ?", artikalID).Scan(&stanje)
+	err = tx.QueryRowContext(ctx, "SELECT kolicina FROM artikli WHERE id = ?", artikalID).Scan(&stanje)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: stanje: %w", err)
 	}
@@ -120,14 +135,13 @@ func (r *ServisniPotrazivaniDeloviRepo) ProveriIPocistiZaArtikal(ctx context.Con
 		return nil, nil
 	}
 
-	redovi, err := r.db.QueryContext(ctx,
+	redovi, err := tx.QueryContext(ctx,
 		"SELECT id, nalog_id, kolicina FROM servisni_potrazivani_delovi WHERE artikal_id = ? ORDER BY datum",
 		artikalID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: query: %w", err)
 	}
-	defer redovi.Close()
 
 	type red struct {
 		id       int64
@@ -138,6 +152,7 @@ func (r *ServisniPotrazivaniDeloviRepo) ProveriIPocistiZaArtikal(ctx context.Con
 	for redovi.Next() {
 		var p red
 		if err := redovi.Scan(&p.id, &p.nalogID, &p.kolicina); err != nil {
+			redovi.Close()
 			return nil, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: scan: %w", err)
 		}
 		lista = append(lista, p)
@@ -147,21 +162,32 @@ func (r *ServisniPotrazivaniDeloviRepo) ProveriIPocistiZaArtikal(ctx context.Con
 	// prati naloge iz kojih smo obrisali red
 	obrisaniNalozi := map[int64]struct{}{}
 
+	// tekuće stanje magacina koje se umanjuje kako pokrivamo potraživane delove;
+	// svaka promena se beleži sa stanjePre/stanjePosle radi tačnog revizijskog traga
+	stanjeMagacin := stanje
 	dostupno := stanje
 	for _, p := range lista {
 		if dostupno <= 0 {
 			break
 		}
 		if dostupno >= p.kolicina {
-			if _, err := r.db.ExecContext(ctx, "DELETE FROM servisni_potrazivani_delovi WHERE id = ?", p.id); err != nil {
+			// ceo red je pokriven — obriši ga i skini punu količinu sa magacina
+			if _, err := tx.ExecContext(ctx, "DELETE FROM servisni_potrazivani_delovi WHERE id = ?", p.id); err != nil {
 				return nil, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: delete: %w", err)
+			}
+			if err := r.skiniSaMagacina(ctx, tx, artikalID, p.kolicina, &stanjeMagacin, p.nalogID); err != nil {
+				return nil, err
 			}
 			obrisaniNalozi[p.nalogID] = struct{}{}
 			dostupno -= p.kolicina
 		} else {
+			// delimično pokrivanje — sve dostupno ide na nalog; skini dostupno sa magacina
 			novaKol := p.kolicina - dostupno
-			if _, err := r.db.ExecContext(ctx, "UPDATE servisni_potrazivani_delovi SET kolicina = ? WHERE id = ?", novaKol, p.id); err != nil {
+			if _, err := tx.ExecContext(ctx, "UPDATE servisni_potrazivani_delovi SET kolicina = ? WHERE id = ?", novaKol, p.id); err != nil {
 				return nil, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: update: %w", err)
+			}
+			if err := r.skiniSaMagacina(ctx, tx, artikalID, dostupno, &stanjeMagacin, p.nalogID); err != nil {
+				return nil, err
 			}
 			dostupno = 0
 		}
@@ -171,12 +197,35 @@ func (r *ServisniPotrazivaniDeloviRepo) ProveriIPocistiZaArtikal(ctx context.Con
 	var otkljucani []int64
 	for nalogID := range obrisaniNalozi {
 		var preostalo int
-		_ = r.db.QueryRowContext(ctx,
+		if err := tx.QueryRowContext(ctx,
 			"SELECT COUNT(*) FROM servisni_potrazivani_delovi WHERE nalog_id = ?", nalogID,
-		).Scan(&preostalo)
+		).Scan(&preostalo); err != nil {
+			return nil, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: prebroji: %w", err)
+		}
 		if preostalo == 0 {
 			otkljucani = append(otkljucani, nalogID)
 		}
 	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: commit: %w", err)
+	}
 	return otkljucani, nil
+}
+
+// skiniSaMagacina umanjuje stanje artikla za datu količinu (jer odlazi na servisni
+// nalog) i upisuje promenu u magacinski trag tipa PromenaIzlazServis. Radi unutar
+// prosleđene transakcije; *stanje drži tekuće stanje radi tačnog stanjePre/stanjePosle.
+func (r *ServisniPotrazivaniDeloviRepo) skiniSaMagacina(ctx context.Context, tx *sql.Tx, artikalID int64, kolicina int, stanje *int, nalogID int64) error {
+	stanjePre := *stanje
+	stanjePosle := stanjePre - kolicina
+	if _, err := tx.ExecContext(ctx, "UPDATE artikli SET kolicina = ? WHERE id = ?", stanjePosle, artikalID); err != nil {
+		return fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.skiniSaMagacina: update stanje: %w", err)
+	}
+	if err := zabeleziMagacinPromenu(ctx, tx, artikalID, model.PromenaIzlazServis,
+		-kolicina, stanjePre, stanjePosle, nalogID, nil, "pokriven potraživani deo"); err != nil {
+		return fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.skiniSaMagacina: magacin: %w", err)
+	}
+	*stanje = stanjePosle
+	return nil
 }
