@@ -327,16 +327,16 @@ func (h *Handler) SacuvajIzmenaNaloga(w http.ResponseWriter, r *http.Request) {
 
 	nalog.ID = id
 
-	// forma izmene više ne šalje status, datume, cene ni klijenta — očuvaj postojeće
-	// vrednosti (status se menja u detaljima, cena rada se računa iz radova, garancija
-	// i datum završetka se postavljaju kasnije). Inače bi prazna polja pregazila bazu.
+	// forma izmene više ne šalje status, datume (osim garancije), cene ni klijenta —
+	// očuvaj postojeće vrednosti (status se menja u detaljima, cena rada se računa iz
+	// radova, datum završetka se postavlja kasnije). Garancija se sada uređuje u formi,
+	// pa je čuvamo iz parseFormuNaloga. Inače bi prazna polja pregazila bazu.
 	if stari, e := h.ServisRepo.DohvatiID(r.Context(), id); e == nil && stari != nil {
 		nalog.Status = stari.Status
 		nalog.KlijentID = stari.KlijentID
 		nalog.CenaOd = stari.CenaOd
 		nalog.CenaDo = stari.CenaDo
 		nalog.CenaKonacna = stari.CenaKonacna
-		nalog.GarancijaDo = stari.GarancijaDo
 		nalog.DatumZavrsetka = stari.DatumZavrsetka
 	}
 
@@ -385,7 +385,8 @@ func (h *Handler) SacuvajIzmenaNaloga(w http.ResponseWriter, r *http.Request) {
 
 // ObrisiNalog prima POST zahtev i briše servisni nalog po ID-u
 func (h *Handler) ObrisiNalog(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.zahtevajDozvolu(w, r, "servis.obrisi"); !ok {
+	k, ok := h.zahtevajDozvolu(w, r, "servis.obrisi")
+	if !ok {
 		return
 	}
 	id, err := parseID(chi.URLParam(r, "id"))
@@ -394,7 +395,8 @@ func (h *Handler) ObrisiNalog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.ServisRepo.Obrisi(r.Context(), id); err != nil {
+	if err := h.ServisRepo.Obrisi(r.Context(), id, &k.ID); err != nil {
+		slog.Error("greška pri brisanju naloga", "id", id, "error", err)
 		http.Error(w, "Greška pri brisanju naloga", http.StatusInternalServerError)
 		return
 	}

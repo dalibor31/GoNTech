@@ -29,7 +29,7 @@
         <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
 
         <!-- ===================== KARTICA: UREĐAJ ===================== -->
-        <div class="kartica forma-kartica animiraj">
+        <div class="kartica forma-kartica animiraj" style="margin-bottom:20px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin:-16px -16px 20px -16px;padding:12px 16px;background:var(--pozadina);border-radius:12px 12px 0 0;flex-wrap:wrap;gap:10px;">
                 <span style="font-size:15px;font-weight:600;color:var(--tekst-glavni);">
                     {{if .Izmena}}Izmeni nalog{{else}}Novi nalog{{end}}
@@ -91,7 +91,7 @@
         <!-- ===================== KARTICA: TEHNIČAR (izmena) / KLIJENT I TEHNIČAR (novi) ===================== -->
         {{if .Izmena}}
         <!-- pri izmeni klijent se ne menja (vezan pri prijemu) — ostaje samo tehničar -->
-        <div class="kartica forma-kartica animiraj">
+        <div class="kartica forma-kartica animiraj" style="margin-bottom:20px;">
             <div class="sekcija-naslov">Tehničar</div>
             <div>
                 <label class="polje-labela">Tehničar</label>
@@ -104,7 +104,7 @@
             </div>
         </div>
         {{else}}
-        <div class="kartica forma-kartica animiraj" x-data="klijentNalog">
+        <div class="kartica forma-kartica animiraj" x-data="klijentNalog" style="margin-bottom:20px;">
             <div class="sekcija-naslov">Klijent</div>
             <div class="kolona" style="gap:12px;">
 
@@ -259,18 +259,38 @@
         </div>
         {{end}}
 
-        <!-- ===================== KARTICA: AVANS I NAPOMENA ===================== -->
-        <div class="kartica forma-kartica animiraj">
-            <div class="sekcija-naslov">Avans i napomena</div>
+        <!-- ===================== KARTICA: AVANS, GARANCIJA I NAPOMENA ===================== -->
+        <div class="kartica forma-kartica animiraj" style="margin-bottom:20px;">
+            <div class="sekcija-naslov">{{if .Izmena}}Avans, garancija i napomena{{else}}Avans i napomena{{end}}</div>
             <!-- cena rada se računa iz radova (usluga) u detaljima naloga; ovde samo avans -->
-            <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;">
                 <div>
                     <label class="polje-labela">{{if .Izmena}}Avans{{else}}Avans / kapara{{end}}</label>
                     <input type="number" name="avans" min="0" step="0.01"
                         value="{{if .Nalog.Avans}}{{.Nalog.Avans}}{{end}}"
                         placeholder="0" style="width:100%;">
                 </div>
+                {{if .Izmena}}
+                <!-- garancija — uređuje se ovde; „Bez garancije" isključuje datum -->
+                <div x-data="{ bez: {{if .Nalog.GarancijaDo}}false{{else}}true{{end}} }">
+                    <label class="polje-labela">Garancija do</label>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <input type="date" name="garancija_do"
+                            value="{{if .Nalog.GarancijaDo}}{{.Nalog.GarancijaDo.Format "2006-01-02"}}{{end}}"
+                            :disabled="bez" :style="bez ? 'opacity:.5;' : ''"
+                            style="flex:1;min-width:0;">
+                        <label class="tip-opcija" :class="bez ? 'tip-opcija-akt' : ''"
+                            style="white-space:nowrap;">
+                            <input type="checkbox" x-model="bez" style="margin:0;width:auto;">
+                            Bez garancije
+                        </label>
+                    </div>
+                    <!-- skriveni flag: server preskače datum kada je 1 -->
+                    <input type="hidden" name="bez_garancije" :value="bez ? '1' : '0'">
+                </div>
+                {{end}}
             </div>
+
             <div style="margin-top:16px;">
                 <label class="polje-labela">Napomena</label>
                 <textarea name="napomena" rows="2"

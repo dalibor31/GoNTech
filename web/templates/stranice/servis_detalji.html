@@ -333,6 +333,27 @@
         </div>
     </div>
 
+    <!-- ukupno: zbir usluga (radova) i ugrađenih delova -->
+    <div class="kartica detalji-kartica animiraj">
+        <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);">
+            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Ukupno</span>
+        </div>
+        <div class="kolona" style="gap:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:14px;color:var(--tekst-sporedni);">Usluge (rad)</span>
+                <span style="font-size:14px;color:var(--tekst-glavni);">{{dinari .UkupnoRadovi}} din</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:14px;color:var(--tekst-sporedni);">Ugrađeni delovi</span>
+                <span style="font-size:14px;color:var(--tekst-glavni);">{{dinari .UkupnoDelovi}} din</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:12px;border-top:0.5px solid var(--ivica);">
+                <span style="font-size:16px;font-weight:600;color:var(--tekst-glavni);">Ukupno</span>
+                <span style="font-size:18px;font-weight:600;color:var(--tekst-glavni);">{{dinari .UkupnoSve}} din</span>
+            </div>
+        </div>
+    </div>
+
     <!-- zona za brisanje -->
     <div class="kartica detalji-kartica animiraj" style="border-color:#dc262633;">
         <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">

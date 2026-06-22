@@ -192,7 +192,7 @@ type ServisRepository interface {
 	Izmeni(ctx context.Context, n *model.ServisniNalog) error
 	AzurirajStatus(ctx context.Context, id int64, status string) error
 	AzurirajGaranciju(ctx context.Context, id int64, garancijaDo *time.Time) error
-	Obrisi(ctx context.Context, id int64) error
+	Obrisi(ctx context.Context, id int64, korisnikID *int64) error
 	SledeciBroj(ctx context.Context) (string, error)
 }
 

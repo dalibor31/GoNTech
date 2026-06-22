@@ -230,10 +230,77 @@ func (r *ServisRepo) AzurirajGaranciju(ctx context.Context, id int64, garancijaD
 }
 
 // Obrisi briše servisni nalog po ID-u
-func (r *ServisRepo) Obrisi(ctx context.Context, id int64) error {
-	_, err := r.db.ExecContext(ctx, "DELETE FROM servisni_nalozi WHERE id = ?", id)
+// Obrisi briše servisni nalog i vraća ugrađene delove na stanje u magacinu (u transakciji)
+func (r *ServisRepo) Obrisi(ctx context.Context, id int64, korisnikID *int64) error {
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("ntech: ServisRepo.Obrisi: %w", err)
+		return fmt.Errorf("ntech: ServisRepo.Obrisi: begin tx: %w", err)
+	}
+	defer tx.Rollback()
+
+	// pokupi ugrađene delove pre brisanja (CASCADE bi ih obrisao bez povraćaja)
+	redovi, err := tx.QueryContext(ctx,
+		"SELECT artikal_id, kolicina FROM servisni_delovi WHERE nalog_id = ?", id)
+	if err != nil {
+		return fmt.Errorf("ntech: ServisRepo.Obrisi: dohvati delove: %w", err)
+	}
+	type povrat struct {
+		artikalID int64
+		kolicina  int
+	}
+	var delovi []povrat
+	for redovi.Next() {
+		var p povrat
+		if err := redovi.Scan(&p.artikalID, &p.kolicina); err != nil {
+			redovi.Close()
+			return fmt.Errorf("ntech: ServisRepo.Obrisi: scan dela: %w", err)
+		}
+		delovi = append(delovi, p)
+	}
+	redovi.Close()
+
+	for _, p := range delovi {
+		// usluge i troškovi nemaju stanje na lageru — vraćamo samo proizvodima
+		var stanjePre int
+		var tip string
+		err := tx.QueryRowContext(ctx,
+			"SELECT kolicina, tip FROM artikli WHERE id = ?", p.artikalID,
+		).Scan(&stanjePre, &tip)
+		if err != nil {
+			return fmt.Errorf("ntech: ServisRepo.Obrisi: dohvati stanje: %w", err)
+		}
+		if !(tip == model.TipProizvod || tip == "") {
+			continue
+		}
+
+		stanjePosle := stanjePre + p.kolicina
+		_, err = tx.ExecContext(ctx,
+			"UPDATE artikli SET kolicina = ? WHERE id = ?", stanjePosle, p.artikalID,
+		)
+		if err != nil {
+			return fmt.Errorf("ntech: ServisRepo.Obrisi: vrati stanje: %w", err)
+		}
+
+		err = zabeleziMagacinPromenu(ctx, tx, p.artikalID, model.PromenaPovracaj,
+			p.kolicina, stanjePre, stanjePosle, id, korisnikID, "brisanje servisnog naloga")
+		if err != nil {
+			return fmt.Errorf("ntech: ServisRepo.Obrisi: magacin: %w", err)
+		}
+	}
+
+	// potraživani delovi nemaju ON DELETE CASCADE — ručno ih čistimo da brisanje ne padne na FK
+	if _, err := tx.ExecContext(ctx,
+		"DELETE FROM servisni_potrazivani_delovi WHERE nalog_id = ?", id); err != nil {
+		return fmt.Errorf("ntech: ServisRepo.Obrisi: potraživani: %w", err)
+	}
+
+	// CASCADE briše servisni_delovi i servisni_radovi
+	if _, err := tx.ExecContext(ctx, "DELETE FROM servisni_nalozi WHERE id = ?", id); err != nil {
+		return fmt.Errorf("ntech: ServisRepo.Obrisi: delete: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("ntech: ServisRepo.Obrisi: commit: %w", err)
 	}
 
 	return nil
