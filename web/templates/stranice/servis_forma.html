@@ -12,9 +12,9 @@
     </script>
 
     <!-- nazad dugme -->
-    <a href="/servis" class="nazad-link">
+    <a href="{{if .Izmena}}/servis/{{.Nalog.ID}}{{else}}/servis{{end}}" class="nazad-link">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
-        Nazad na servis
+        {{if .Izmena}}Nazad na nalog{{else}}Nazad na servis{{end}}
     </a>
 
     {{if .Greska}}
@@ -88,7 +88,22 @@
             </div>
         </div>
 
-        <!-- ===================== KARTICA: KLIJENT I TEHNIČAR ===================== -->
+        <!-- ===================== KARTICA: TEHNIČAR (izmena) / KLIJENT I TEHNIČAR (novi) ===================== -->
+        {{if .Izmena}}
+        <!-- pri izmeni klijent se ne menja (vezan pri prijemu) — ostaje samo tehničar -->
+        <div class="kartica forma-kartica animiraj">
+            <div class="sekcija-naslov">Tehničar</div>
+            <div>
+                <label class="polje-labela">Tehničar</label>
+                <select name="tehnicar_id" style="width:100%;">
+                    <option value="">— nedodeljen —</option>
+                    {{range .Tehnicari}}
+                    <option value="{{.ID}}"{{if eq .ID $.Nalog.TehnicarIDVrednost}}selected{{end}}>{{.KorisnickoIme}}</option>
+                    {{end}}
+                </select>
+            </div>
+        </div>
+        {{else}}
         <div class="kartica forma-kartica animiraj" x-data="klijentNalog">
             <div class="sekcija-naslov">Klijent</div>
             <div class="kolona" style="gap:12px;">
@@ -242,100 +257,20 @@
                 </div>
             </div>
         </div>
-
-        <!-- ===================== KARTICA: STATUS I DATUMI ===================== -->
-        <!-- prikazuje se samo pri izmeni — pri prijemu (novom nalogu) status je
-             "Primljeno", a datumi i garancija se popunjavaju kasnije -->
-        {{if .Izmena}}
-        <div class="kartica forma-kartica animiraj">
-            <div class="sekcija-naslov">Status i datumi</div>
-            <div class="kolona" style="gap:12px;">
-                <div>
-                    <label class="polje-labela">Status naloga</label>
-                    <select name="status" style="width:100%;">
-                        {{range .SviStatusi}}
-                        <option value="{{.}}" {{if eq . $.Nalog.Status}}selected{{end}}>{{.}}</option>
-                        {{end}}
-                    </select>
-                </div>
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
-                    <div>
-                        <label class="polje-labela">Datum prijema</label>
-                        <input type="date" name="datum_prijema"
-                            value="{{.Nalog.DatumPrijema.Format "2006-01-02"}}"
-                            style="width:100%;">
-                    </div>
-                    <div>
-                        <label class="polje-labela">Datum završetka</label>
-                        <input type="date" name="datum_zavrsetka"
-                            value="{{if .Nalog.DatumZavrsetka}}{{.Nalog.DatumZavrsetka.Format "2006-01-02"}}{{end}}"
-                            style="width:100%;">
-                    </div>
-                </div>
-                <div>
-                    <label class="polje-labela">Garancija do</label>
-                    <input type="date" name="garancija_do" id="garancija_do_input"
-                        value="{{if .Nalog.GarancijaDo}}{{.Nalog.GarancijaDo.Format "2006-01-02"}}{{end}}"
-                        {{if not .Nalog.GarancijaDo}}disabled{{end}}
-                        style="width:100%;{{if not .Nalog.GarancijaDo}}opacity:0.4;{{end}}">
-                </div>
-                <!-- svič bez garancije -->
-                <div style="display:flex;align-items:center;gap:10px;">
-                    <label class="toggl" style="flex-shrink:0;">
-                        <input type="checkbox" id="bez_garancije_chk"
-                            {{if not .Nalog.GarancijaDo}}checked{{end}}
-                            onchange="toggleGarancija(this)">
-                        <span class="toggl-klizac"></span>
-                    </label>
-                    <input type="hidden" name="bez_garancije" id="bez_garancije_val"
-                        value="{{if not .Nalog.GarancijaDo}}1{{else}}0{{end}}">
-                    <span style="font-size:13px;color:var(--tekst-sporedni);">Bez garancije</span>
-                </div>
-            </div>
-        </div>
         {{end}}
 
-        <!-- ===================== KARTICA: CENE I NAPOMENA ===================== -->
+        <!-- ===================== KARTICA: AVANS I NAPOMENA ===================== -->
         <div class="kartica forma-kartica animiraj">
-            <div class="sekcija-naslov">{{if .Izmena}}Cene (din){{else}}Avans i napomena{{end}}</div>
-            {{if .Izmena}}
-<div class="forma-grid-4" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;">
-                <div>
-                    <label class="polje-labela">Procena od</label>
-                    <input type="number" name="cena_od" min="0" step="0.01"
-                        value="{{if .Nalog.CenaOd}}{{.Nalog.CenaOd}}{{end}}"
-                        placeholder="0" style="width:100%;">
-                </div>
-                <div>
-                    <label class="polje-labela">Procena do</label>
-                    <input type="number" name="cena_do" min="0" step="0.01"
-                        value="{{if .Nalog.CenaDo}}{{.Nalog.CenaDo}}{{end}}"
-                        placeholder="0" style="width:100%;">
-                </div>
-                <div>
-                    <label class="polje-labela">Cena rada</label>
-                    <input type="number" name="cena_konacna" min="0" step="0.01"
-                        value="{{if .Nalog.CenaKonacna}}{{.Nalog.CenaKonacna}}{{end}}"
-                        placeholder="0" style="width:100%;">
-                </div>
-                <div>
-                    <label class="polje-labela">Avans</label>
-                    <input type="number" name="avans" min="0" step="0.01"
-                        value="{{if .Nalog.Avans}}{{.Nalog.Avans}}{{end}}"
-                        placeholder="0" style="width:100%;">
-                </div>
-            </div>
-            {{else}}
-            <!-- novi nalog: pri prijemu se zna samo eventualni avans/kapara -->
+            <div class="sekcija-naslov">Avans i napomena</div>
+            <!-- cena rada se računa iz radova (usluga) u detaljima naloga; ovde samo avans -->
             <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                 <div>
-                    <label class="polje-labela">Avans / kapara</label>
+                    <label class="polje-labela">{{if .Izmena}}Avans{{else}}Avans / kapara{{end}}</label>
                     <input type="number" name="avans" min="0" step="0.01"
                         value="{{if .Nalog.Avans}}{{.Nalog.Avans}}{{end}}"
                         placeholder="0" style="width:100%;">
                 </div>
             </div>
-            {{end}}
             <div style="margin-top:16px;">
                 <label class="polje-labela">Napomena</label>
                 <textarea name="napomena" rows="2"
@@ -345,7 +280,7 @@
 
             <!-- dugmad -->
             <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;">
-                <a href="/servis" class="btn-sekundarno">Odustani</a>
+                <a href="{{if .Izmena}}/servis/{{.Nalog.ID}}{{else}}/servis{{end}}" class="btn-sekundarno">Odustani</a>
                 <button type="submit" class="btn-primarno">
                     {{if .Izmena}}Sačuvaj izmene{{else}}Sačuvaj nalog{{end}}
                 </button>
@@ -366,23 +301,4 @@
     .klijent-stavka:hover { background: var(--pozadina); }
     [x-cloak] { display: none !important; }
 </style>
-
-<script>
-    function toggleGarancija(chk) {
-        var input = document.getElementById('garancija_do_input');
-        var hidden = document.getElementById('bez_garancije_val');
-        if (chk.checked) {
-            if (input.value) input.dataset.sacuvano = input.value;
-            input.value = '';
-            input.disabled = true;
-            input.style.opacity = '0.4';
-            hidden.value = '1';
-        } else {
-            input.disabled = false;
-            input.style.opacity = '1';
-            if (input.dataset.sacuvano) input.value = input.dataset.sacuvano;
-            hidden.value = '0';
-        }
-    }
-</script>
 {{end}}
