@@ -261,6 +261,13 @@ func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// nakon povećanja stanja proveri da li se potraživani delovi u servisu mogu pokriti
+	for _, s := range stavke {
+		if err := h.ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal(r.Context(), s.ArtikalID); err != nil {
+			slog.Error("provera potraživanih delova nije uspela", "artikal_id", s.ArtikalID, "error", err)
+		}
+	}
+
 	http.Redirect(w, r, "/nabavke/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)
 }
 
