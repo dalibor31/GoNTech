@@ -48,7 +48,10 @@
                         <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
                         <select name="status" style="font-size:13px;padding:4px 8px;border-radius:6px;border:0.5px solid var(--ivica);background:var(--kartica-pozadina);color:var(--tekst-glavni);cursor:pointer;"{{if .ZakljucanStatus}} disabled title="Status zaključan dok ima delova koji nedostaju"{{end}}>
                             {{range .SviStatusi}}
+                            {{/* „Čeka delove" je automatski status — ne nudi se ručno, osim ako je nalog već u njemu */}}
+                            {{if or (ne . "Čeka delove") (eq . $.Nalog.Status)}}
                             <option value="{{.}}"{{if eq . $.Nalog.Status}} selected{{end}}>{{.}}</option>
+                            {{end}}
                             {{end}}
                         </select>
                         {{if .ZakljucanStatus}}
