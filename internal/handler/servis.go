@@ -327,6 +327,19 @@ func (h *Handler) SacuvajIzmenaNaloga(w http.ResponseWriter, r *http.Request) {
 
 	nalog.ID = id
 
+	// forma izmene više ne šalje status, datume, cene ni klijenta — očuvaj postojeće
+	// vrednosti (status se menja u detaljima, cena rada se računa iz radova, garancija
+	// i datum završetka se postavljaju kasnije). Inače bi prazna polja pregazila bazu.
+	if stari, e := h.ServisRepo.DohvatiID(r.Context(), id); e == nil && stari != nil {
+		nalog.Status = stari.Status
+		nalog.KlijentID = stari.KlijentID
+		nalog.CenaOd = stari.CenaOd
+		nalog.CenaDo = stari.CenaDo
+		nalog.CenaKonacna = stari.CenaKonacna
+		nalog.GarancijaDo = stari.GarancijaDo
+		nalog.DatumZavrsetka = stari.DatumZavrsetka
+	}
+
 	// ako nije izabran postojeći klijent, eventualno kreiraj novog iz polja forme
 	if greska := h.mozdaKreirajKlijenta(r.Context(), r, &nalog); greska != "" {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
