@@ -41,6 +41,7 @@ type ServisniNalog struct {
 	Napomena           string
 	GarancijaDo        *time.Time
 	DatumPrijema       time.Time
+	PredvidjenDatum    *time.Time
 	DatumZavrsetka     *time.Time
 	Ostecenja          string
 	PinUredjaja        string

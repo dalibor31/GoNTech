@@ -51,6 +51,7 @@ type PodaciPodesavanja struct {
 	KalkulacijaMarza                string
 	ServisGarancijaMeseci           string
 	PredracunRokDana                string
+	PredvidjenRokDana               string
 	LoginPozadina                   string
 	LoginPozadinaOpacity            string
 	LoginPozadinaBlurPozadine       string
@@ -388,6 +389,19 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "predracun_rok_dana", strconv.Itoa(n)); err != nil {
+			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if v := strings.TrimSpace(r.FormValue("predvidjen_rok_dana")); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 1 || n > 365 {
+			middleware.SetFlash(w, r, h.DB, "greska", "Predviđen rok popravke mora biti broj između 1 i 365 dana.")
+			http.Redirect(w, r, sledeci, http.StatusSeeOther)
+			return
+		}
+		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "predvidjen_rok_dana", strconv.Itoa(n)); err != nil {
 			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
 			return
 		}
@@ -767,6 +781,7 @@ func (h *Handler) napuniPodaciPodesavanja(r *http.Request, naslov string) (Podac
 		KalkulacijaMarza:                vrednostIliDefault(podesavanja, "kalkulacija_marza", "20"),
 		ServisGarancijaMeseci:           vrednostIliDefault(podesavanja, "servis_garancija_meseci", "2"),
 		PredracunRokDana:                vrednostIliDefault(podesavanja, "predracun_rok_dana", "7"),
+		PredvidjenRokDana:               vrednostIliDefault(podesavanja, "predvidjen_rok_dana", "15"),
 	}, nil
 }
 

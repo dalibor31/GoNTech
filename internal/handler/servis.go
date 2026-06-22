@@ -451,6 +451,10 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// predviđen datum popravke je izvedena vrednost (samo prikaz):
+	// datum prijema + broj dana iz podešavanja (predvidjen_rok_dana)
+	nalog.PredvidjenDatum = defaultPredvidjenDatum(nalog.DatumPrijema, podesavanja)
+
 	klijentNaziv := ""
 	if nalog.KlijentID != nil {
 		klijent, err := h.KlijentiRepo.DohvatiID(r.Context(), *nalog.KlijentID)
@@ -905,6 +909,17 @@ func defaultGarancija(datumPrijema time.Time, podesavanja map[string]string) *ti
 		return nil
 	}
 	t := datumPrijema.AddDate(0, meseci, 0)
+	return &t
+}
+
+// defaultPredvidjenDatum računa predviđen rok popravke kao datum prijema + broj
+// dana iz podešavanja (predvidjen_rok_dana, podrazumevano 15)
+func defaultPredvidjenDatum(datumPrijema time.Time, podesavanja map[string]string) *time.Time {
+	dana, err := strconv.Atoi(vrednostIliDefault(podesavanja, "predvidjen_rok_dana", "15"))
+	if err != nil || dana <= 0 {
+		return nil
+	}
+	t := datumPrijema.AddDate(0, 0, dana)
 	return &t
 }
 
