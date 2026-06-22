@@ -1272,10 +1272,20 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	trenutni, e := h.ServisRepo.DohvatiID(r.Context(), id)
+
+	// „Čeka delove" je automatski status (postavlja se kad nedostaje deo) —
+	// ne može se izabrati ručno ni iz jednog drugog statusa
+	if noviStatus == model.StatusCekaDelove && e == nil && trenutni.Status != model.StatusCekaDelove {
+		middleware.SetFlash(w, r, h.DB, "greska",
+			"Status „Čeka delove\" se postavlja automatski kada nedostaje deo i ne može se izabrati ručno.")
+		http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+		return
+	}
+
 	// zabrana izlaska iz „Čeka delove" dok postoje potraživani delovi —
 	// prvo nabaviti delove, pa obrisati iz potraživanih (ili kroz nabavku)
-	if nalog, e := h.ServisRepo.DohvatiID(r.Context(), id); e == nil &&
-		nalog.Status == model.StatusCekaDelove && noviStatus != model.StatusCekaDelove {
+	if e == nil && trenutni.Status == model.StatusCekaDelove && noviStatus != model.StatusCekaDelove {
 		potrazivani, err := h.ServisniPotrazivaniDeloviRepo.DohvatiZaNalog(r.Context(), id)
 		if err == nil && len(potrazivani) > 0 {
 			middleware.SetFlash(w, r, h.DB, "greska",
