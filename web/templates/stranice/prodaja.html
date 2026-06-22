@@ -12,10 +12,10 @@
             <input type="text" name="pretraga" value="{{.Pretraga}}" placeholder="Pretraži po broju naloga..." style="flex: 1" />
             <button type="submit" class="btn-sekundarno" style="white-space: nowrap">Pretraži</button>
             {{if .Pretraga}}
-            <a href="/prodaja" class="btn-sekundarno" style="white-space: nowrap">✕ Resetuj</a>
+            <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja" class="btn-sekundarno" style="white-space: nowrap">✕ Resetuj</a>
             {{end}}
         </form>
-        <a href="/prodaja/nova" class="btn-primarno">+ Nova prodaja</a>
+        <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja/nova" class="btn-primarno">+ Nova prodaja</a>
     </div>
 
     <!-- desktop tabela -->
@@ -40,7 +40,7 @@
                         <td style="padding: 12px 16px; text-align: right; font-size: 14px; font-weight: 500; color: var(--tekst-glavni)">{{dinari .Ukupno}} din</td>
                         <td style="padding: 12px 16px; text-align: center">
                             <div style="display: flex; align-items: center; justify-content: center; gap: 8px">
-                                <a href="/prodaja/{{.ID}}" class="btn-primarno-malo">Detalji</a>
+                                <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja/{{.ID}}" class="btn-primarno-malo">Detalji</a>
                                 {{if index $.Dozvole "prodaja.storno"}}
                                 <form method="POST" action="/prodaja/storno/{{.ID}}" style="margin: 0; padding: 0">
                                     <input type="hidden" name="_csrf" value="{{$.CsrfToken}}" />
@@ -54,7 +54,7 @@
                     <tr>
                         <td colspan="5" style="padding: 32px; text-align: center; font-size: 14px; color: var(--tekst-sporedni)">
                             {{if $.Pretraga}} Nema naloga koji odgovaraju pretrazi. {{else}} Nema prodajnih naloga.
-                            <a href="/prodaja/nova" style="color: var(--sb-akcent)">Dodaj prvu prodaju.</a>
+                            <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja/nova" style="color: var(--sb-akcent)">Dodaj prvu prodaju.</a>
                             {{end}}
                         </td>
                     </tr>
@@ -76,12 +76,12 @@
                 </div>
                 <div style="font-size: 15px; font-weight: 500; color: var(--tekst-glavni); white-space: nowrap">{{dinari .Ukupno}} din</div>
             </div>
-            <a href="/prodaja/{{.ID}}" class="btn-primarno-malo" style="justify-content: center; width: 100%; box-sizing: border-box">Detalji</a>
+            <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja/{{.ID}}" class="btn-primarno-malo" style="justify-content: center; width: 100%; box-sizing: border-box">Detalji</a>
         </div>
         {{else}}
         <div style="padding: 32px; text-align: center; font-size: 14px; color: var(--tekst-sporedni)">
             {{if $.Pretraga}} Nema naloga koji odgovaraju pretrazi. {{else}} Nema prodajnih naloga.
-            <a href="/prodaja/nova" style="color: var(--sb-akcent)">Dodaj prvu prodaju.</a>
+            <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja/nova" style="color: var(--sb-akcent)">Dodaj prvu prodaju.</a>
             {{end}}
         </div>
         {{end}}

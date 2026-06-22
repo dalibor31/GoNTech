@@ -22,7 +22,7 @@
                 placeholder="Pretraži preuzete naloge po broju ili uređaju..."
                 style="flex:1;min-width:160px;">
             <button type="submit" class="btn-primarno" style="flex-shrink:0;">Traži</button>
-            <a href="/servis" class="btn-sekundarno" style="white-space:nowrap;flex-shrink:0;">← Tabla</a>
+            <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/servis" class="btn-sekundarno" style="white-space:nowrap;flex-shrink:0;">← Tabla</a>
         </div>
     </form>
 
@@ -44,7 +44,7 @@
                     {{range .Nalozi}}
                     <tr class="animiraj red-tabele">
                         <td style="padding:12px 16px;">
-                            <a href="/servis/{{.ID}}"
+                            <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/servis/{{.ID}}"
                                 style="font-size:14px;font-weight:500;color:var(--sb-akcent);text-decoration:none;font-family:monospace;">
                                 {{.BrojNaloga}}
                             </a>
@@ -60,7 +60,7 @@
                             {{if .DatumZavrsetka}}{{.DatumZavrsetka.Format "02.01.2006."}}{{else}}—{{end}}
                         </td>
                         <td style="padding:12px 16px;text-align:center;">
-                            <a href="/servis/{{.ID}}" class="btn-primarno-malo">Otvori</a>
+                            <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/servis/{{.ID}}" class="btn-primarno-malo">Otvori</a>
                         </td>
                     </tr>
                     {{else}}
@@ -78,7 +78,7 @@
     <!-- mobilne kartice -->
     <div class="servis-kartice">
         {{range .Nalozi}}
-        <a href="/servis/{{.ID}}" class="kartica servis-kartica animiraj kartica-link">
+        <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/servis/{{.ID}}" class="kartica servis-kartica animiraj kartica-link">
             <div class="red-izmedju" style="align-items:flex-start;gap:12px;margin-bottom:10px;">
                 <div>
                     <div style="font-size:15px;font-weight:500;color:var(--sb-akcent);font-family:monospace;">{{.BrojNaloga}}</div>

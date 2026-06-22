@@ -316,7 +316,7 @@
             {{else}}
             <!-- dugmad (samo za novi nalog) -->
             <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;">
-                <a href="/servis" class="btn-sekundarno">Odustani</a>
+                <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/servis" class="btn-sekundarno">Odustani</a>
                 <button type="submit" class="btn-primarno">Sačuvaj nalog</button>
             </div>
             {{end}}

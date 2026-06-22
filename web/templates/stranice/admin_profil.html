@@ -101,7 +101,7 @@
 						{{if .JelDemo}}Podešavanje 2FA nije dostupno u demo modu.{{else}}Preporučujemo uključivanje dvostepene verifikacije.{{end}}
 					</div>
 				</div>
-				{{if not .JelDemo}}<a href="/admin/profil/totp/pokreni" class="btn-primarno">Podesi 2FA</a>{{end}}
+				{{if not .JelDemo}}<a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/admin/profil/totp/pokreni" class="btn-primarno">Podesi 2FA</a>{{end}}
 			</div>
 		{{ end }}
 	</div>
@@ -115,7 +115,7 @@
 				</svg>
 				<span style="font-size: 14px; color: var(--tekst-glavni)">
 					Podešavanja teme i pozadine nalaze se na
-					<a href="/profil/tema" style="color: var(--sb-akcent); text-decoration: none; font-weight: 500">stranici Tema</a>
+					<a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/profil/tema" style="color: var(--sb-akcent); text-decoration: none; font-weight: 500">stranici Tema</a>
 					.
 				</span>
 			</div>

@@ -24,9 +24,9 @@
 
     <!-- brzi linkovi ka magacinskim izveštajima -->
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        <a href="/izvestaji/prometni-list" class="btn-sekundarno">Prometni list magacina</a>
-        <a href="/izvestaji/stanje-zaliha" class="btn-sekundarno">Stanje zaliha</a>
-        <a href="/izvestaji/popis" class="btn-sekundarno">Popis (inventura)</a>
+        <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/izvestaji/prometni-list" class="btn-sekundarno">Prometni list magacina</a>
+        <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/izvestaji/stanje-zaliha" class="btn-sekundarno">Stanje zaliha</a>
+        <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/izvestaji/popis" class="btn-sekundarno">Popis (inventura)</a>
     </div>
 
     <!-- 1. mesečni prihod -->
@@ -96,7 +96,7 @@
                     {{range .StariNalozi}}
                     <tr style="border-bottom:0.5px solid var(--ivica);">
                         <td style="padding:8px 12px;">
-                            <a href="/servis/{{.ID}}" style="font-size:13px;font-family:monospace;color:var(--sb-akcent);text-decoration:none;">{{.BrojNaloga}}</a>
+                            <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/servis/{{.ID}}" style="font-size:13px;font-family:monospace;color:var(--sb-akcent);text-decoration:none;">{{.BrojNaloga}}</a>
                         </td>
                         <td style="padding:8px 12px;font-size:13px;color:var(--tekst-glavni);">{{.Uredjaj}}</td>
                         <td style="padding:8px 12px;font-size:13px;color:var(--tekst-sporedni);">{{.KlijentNaziv}}</td>

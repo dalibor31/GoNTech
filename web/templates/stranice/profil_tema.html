@@ -360,7 +360,7 @@
         <p style="font-size:13px;color:var(--tekst-sporedni);margin:0 0 12px;">
             Ova slika se prikazuje na stranici za prijavu svim korisnicima.
             Podešavanja su dostupna u
-            <a href="/admin/podesavanja/izgled" style="color:var(--sb-akcent);text-decoration:none;">Podešavanjima → Izgled</a>.
+            <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/admin/podesavanja/izgled" style="color:var(--sb-akcent);text-decoration:none;">Podešavanjima → Izgled</a>.
         </p>
     </div>
     {{end}}

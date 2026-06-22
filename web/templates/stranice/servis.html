@@ -29,8 +29,8 @@
                 placeholder="Pretraži po broju naloga ili uređaju..."
                 style="flex:1;min-width:160px;">
             <button type="submit" class="btn-primarno" style="flex-shrink:0;">Traži</button>
-            <a href="/servis/arhiva" class="btn-sekundarno" style="white-space:nowrap;flex-shrink:0;">Preuzeto</a>
-            <a href="/servis/novi" class="btn-primarno" style="white-space:nowrap;flex-shrink:0;">+ Novi nalog</a>
+            <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/servis/arhiva" class="btn-sekundarno" style="white-space:nowrap;flex-shrink:0;">Preuzeto</a>
+            <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/servis/novi" class="btn-primarno" style="white-space:nowrap;flex-shrink:0;">+ Novi nalog</a>
         </div>
     </form>
 
@@ -47,7 +47,7 @@
             <div class="kanban-kartice">
                 {{range $.Nalozi}}
                 {{if eq .Status $status}}
-                <a href="/servis/{{.ID}}" class="kartica kanban-karta">
+                <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/servis/{{.ID}}" class="kartica kanban-karta">
                     <div style="font-size:14px;font-weight:500;color:var(--sb-akcent);font-family:monospace;">
                         {{.BrojNaloga}}
                     </div>
@@ -68,7 +68,7 @@
     </div>
     {{else}}
     <div class="kartica animiraj" style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
-        {{if .Pretraga}}Za datu pretragu nema servisnih naloga u bazi.{{else}}Nema servisnih naloga. <a href="/servis/novi" style="color:var(--sb-akcent);">Dodaj prvi nalog.</a>{{end}}
+        {{if .Pretraga}}Za datu pretragu nema servisnih naloga u bazi.{{else}}Nema servisnih naloga. <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/servis/novi" style="color:var(--sb-akcent);">Dodaj prvi nalog.</a>{{end}}
     </div>
     {{end}}
 

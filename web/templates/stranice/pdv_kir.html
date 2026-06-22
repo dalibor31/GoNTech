@@ -18,9 +18,9 @@
                     <input type="date" name="do" value="{{.Do}}" style="padding:8px 10px;border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
                 </div>
                 <button type="submit" style="padding:8px 16px;background:var(--sb-aktivan);color:var(--tekst-jak);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;cursor:pointer;">Prikaži</button>
-                {{if or .Od .Do}}<a href="/pdv/kir" class="nazad-link" style="margin-bottom:0;">Poništi filter</a>{{end}}
+                {{if or .Od .Do}}<a href="/pdv/kir" class="nazad-link" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" style="margin-bottom:0;">Poništi filter</a>{{end}}
             </form>
-            <a href="/pdv/kir/nova" class="btn-primarno" style="font-size:13px;padding:8px 16px;white-space:nowrap;">+ Nov izlazni račun</a>
+            <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/pdv/kir/nova" class="btn-primarno" style="font-size:13px;padding:8px 16px;white-space:nowrap;">+ Nov izlazni račun</a>
         </div>
     </div>
 
@@ -65,7 +65,7 @@
                         </td>
                     </tr>
                     {{else}}
-                    <tr><td colspan="10" style="padding:28px;text-align:center;color:var(--tekst-sporedni);">Nema zapisa u izabranom periodu. <a href="/pdv/kir/nova" style="color:var(--sb-akcent);">Dodaj prvi.</a></td></tr>
+                    <tr><td colspan="10" style="padding:28px;text-align:center;color:var(--tekst-sporedni);">Nema zapisa u izabranom periodu. <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/pdv/kir/nova" style="color:var(--sb-akcent);">Dodaj prvi.</a></td></tr>
                     {{end}}
                 </tbody>
                 {{if .Zapisi}}

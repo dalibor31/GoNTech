@@ -14,7 +14,7 @@
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
             <div class="pomocni-tekst">Verzija programa: <span style="color:var(--tekst-glavni);font-weight:500;">{{.Verzija}}</span></div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <a href="/podesavanja/backup"
+                <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/podesavanja/backup"
                     style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--kartica);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;color:var(--tekst-sporedni);text-decoration:none;transition:background 0.2s;"
                     onmouseover="this.style.background='var(--pozadina)'" onmouseout="this.style.background='var(--kartica)'">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>

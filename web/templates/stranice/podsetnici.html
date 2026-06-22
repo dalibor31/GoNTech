@@ -22,7 +22,7 @@
 
     <!-- gornja traka -->
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-        <a href="/podsetnici/novi" class="btn-primarno">+ Novi podsetnik</a>
+        <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/podsetnici/novi" class="btn-primarno">+ Novi podsetnik</a>
         <form method="GET" action="/podsetnici" style="display:flex;gap:8px;align-items:center;flex:1;min-width:200px;flex-wrap:wrap;">
             <label class="cek-filter" style="display:flex;align-items:center;gap:6px;font-size:14px;color:var(--tekst-sporedni);cursor:pointer;white-space:nowrap;">
                 <input type="checkbox" name="samo_aktivni" value="1" {{if .SamoAktivni}}checked{{end}}
@@ -68,7 +68,7 @@
                         </td>
                         <td style="padding:12px 16px;text-align:center;">
                             <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
-                                <a href="/podsetnici/izmeni/{{.ID}}" class="btn-primarno-malo">Izmeni</a>
+                                <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/podsetnici/izmeni/{{.ID}}" class="btn-primarno-malo">Izmeni</a>
                                 <form method="POST" action="/podsetnici/zavrseno/{{.ID}}" style="display:inline;">
                                     <button type="submit" class="btn-primarno-malo">
                                         {{if .Zavrseno}}Aktiviraj{{else}}Završi{{end}}
@@ -86,7 +86,7 @@
                     {{else}}
                     <tr>
                         <td colspan="4" style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
-                            Nema podsetnika. <a href="/podsetnici/novi" style="color:var(--sb-akcent);">Dodaj prvi podsetnik.</a>
+                            Nema podsetnika. <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/podsetnici/novi" style="color:var(--sb-akcent);">Dodaj prvi podsetnik.</a>
                         </td>
                     </tr>
                     {{end}}
@@ -120,7 +120,7 @@
                 {{.DatumPodsecanja.Format "02.01.2006."}}
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <a href="/podsetnici/izmeni/{{.ID}}" class="btn-primarno-malo">Izmeni</a>
+                <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/podsetnici/izmeni/{{.ID}}" class="btn-primarno-malo">Izmeni</a>
                 <form method="POST" action="/podsetnici/zavrseno/{{.ID}}" style="display:inline;">
                     <button type="submit" class="btn-primarno-malo">
                         {{if .Zavrseno}}Aktiviraj{{else}}Završi{{end}}
@@ -136,7 +136,7 @@
         </div>
         {{else}}
         <div class="kartica" style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
-            Nema podsetnika. <a href="/podsetnici/novi" style="color:var(--sb-akcent);">Dodaj prvi podsetnik.</a>
+            Nema podsetnika. <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/podsetnici/novi" style="color:var(--sb-akcent);">Dodaj prvi podsetnik.</a>
         </div>
         {{end}}
     </div>
