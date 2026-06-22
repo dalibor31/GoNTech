@@ -152,6 +152,12 @@
             <div class="polje-labela">Opis kvara</div>
             <div class="polje-tekst">{{if .Nalog.OpisKvara}}{{.Nalog.OpisKvara}}{{else}}<span class="prazno">—</span>{{end}}</div>
         </div>
+        {{if .Nalog.TrazeneNadogradnje}}
+        <div style="margin-bottom:10px;">
+            <div class="polje-labela">Tražene nadogradnje</div>
+            <div class="polje-tekst">{{.Nalog.TrazeneNadogradnje}}</div>
+        </div>
+        {{end}}
         {{if or .Nalog.Ostecenja .Nalog.Pribor}}
         <div class="podaci-grid-2">
             {{if .Nalog.Ostecenja}}

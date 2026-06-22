@@ -772,16 +772,17 @@ func parseFormuNaloga(r *http.Request) (model.ServisniNalog, string) {
 	}
 
 	nalog := model.ServisniNalog{
-		BrojNaloga:   strings.TrimSpace(r.FormValue("broj_naloga")),
-		Uredjaj:      uredjaj,
-		SerijskiBroj: strings.TrimSpace(r.FormValue("serijski_broj")),
-		OpisKvara:    opisKvara,
-		Status:       r.FormValue("status"),
-		Napomena:     strings.TrimSpace(r.FormValue("napomena")),
-		Ostecenja:    strings.TrimSpace(r.FormValue("ostecenja")),
-		PinUredjaja:  strings.TrimSpace(r.FormValue("pin_uredjaja")),
-		Pribor:       strings.TrimSpace(r.FormValue("pribor")),
-		DatumPrijema: time.Now(),
+		BrojNaloga:         strings.TrimSpace(r.FormValue("broj_naloga")),
+		Uredjaj:            uredjaj,
+		SerijskiBroj:       strings.TrimSpace(r.FormValue("serijski_broj")),
+		OpisKvara:          opisKvara,
+		TrazeneNadogradnje: strings.TrimSpace(r.FormValue("trazene_nadogradnje")),
+		Status:             r.FormValue("status"),
+		Napomena:           strings.TrimSpace(r.FormValue("napomena")),
+		Ostecenja:          strings.TrimSpace(r.FormValue("ostecenja")),
+		PinUredjaja:        strings.TrimSpace(r.FormValue("pin_uredjaja")),
+		Pribor:             strings.TrimSpace(r.FormValue("pribor")),
+		DatumPrijema:       time.Now(),
 	}
 
 	// datum prijema — korisnik može da unese drugi datum (npr. retroaktivno)
@@ -1359,6 +1360,29 @@ func (h *Handler) AzurirajGaranciju(w http.ResponseWriter, r *http.Request) {
 	if err := h.ServisRepo.AzurirajGaranciju(r.Context(), id, garancijaDo); err != nil {
 		slog.Error("greška pri ažuriranju garancije", "id", id, "error", err)
 		http.Error(w, "Greška pri ažuriranju garancije", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+}
+
+// SacuvajNapomenuKlijentu ažurira napomenu namenjenu klijentu na nalogu
+func (h *Handler) SacuvajNapomenuKlijentu(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "servis.izmeni"); !ok {
+		return
+	}
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
+		return
+	}
+	tekst := strings.TrimSpace(r.FormValue("napomena_klijentu"))
+	if err := h.ServisRepo.AzurirajNapomenuKlijentu(r.Context(), id, tekst); err != nil {
+		slog.Error("greška pri ažuriranju napomene klijentu", "id", id, "error", err)
+		http.Error(w, "Greška pri ažuriranju napomene", http.StatusInternalServerError)
 		return
 	}
 	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
