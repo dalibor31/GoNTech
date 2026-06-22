@@ -17,38 +17,39 @@ import (
 
 // Handler drži zavisnosti koje su potrebne svim handlerima
 type Handler struct {
-	DB                    *sql.DB
-	PutanjaBaze           string
-	Artikli               db.ArtikalRepository
-	UslugeRepo            db.UslugaRepository
-	TroskoviRepo          db.TrosakRepository
-	KategorijeRepo        db.KategorijaRepository
-	DobavljaciRepo        db.DobavljacRepository
-	NabavkeRepo           db.NabavkaRepository
-	KlijentiRepo          db.KlijentRepository
-	ServisRepo            db.ServisRepository
-	ServisniDeloviRepo    db.ServisniDeloviRepository
-	ServisniRadoviRepo    db.ServisniRadoviRepository
-	MagacinskePromeneRepo db.MagacinskePromeneRepository
-	ProdajaRepo           db.ProdajaRepository
-	KorisniciRepo         db.KorisniciRepository
-	SesijeRepo            db.SesijeRepository
-	PodsetnikRepo         db.PodsetnikRepository
-	IzvestajRepo          db.IzvestajRepository
-	RezervniKodoviRepo    db.RezervniKodoviRepository
-	PokusajiRepo          db.PokusajiPrijaveRepository
-	LoginIstorijsaRepo    db.LoginIstorijsaRepository
-	DozvoleRepo           db.DozvoleRepository
-	PdvStopeRepo          db.PdvStopaRepository
-	PdvKirRepo            db.PdvKirRepository
-	PdvKprRepo            db.PdvKprRepository
-	NivelacijaRepo        db.NivelacijaRepository
-	Verzija               string
-	JelDemo               bool
-	AssetV                string // verzija statičkih fajlova za cache-busting (postavlja se pri pokretanju)
-	Templates             map[string]*template.Template
-	TemplatesFS           fs.FS
-	totpKljuc             []byte // ključ za šifrovanje TOTP tajni (prosleđuje se KorisniciRepo)
+	DB                            *sql.DB
+	PutanjaBaze                   string
+	Artikli                       db.ArtikalRepository
+	UslugeRepo                    db.UslugaRepository
+	TroskoviRepo                  db.TrosakRepository
+	KategorijeRepo                db.KategorijaRepository
+	DobavljaciRepo                db.DobavljacRepository
+	NabavkeRepo                   db.NabavkaRepository
+	KlijentiRepo                  db.KlijentRepository
+	ServisRepo                    db.ServisRepository
+	ServisniDeloviRepo            db.ServisniDeloviRepository
+	ServisniRadoviRepo            db.ServisniRadoviRepository
+	ServisniPotrazivaniDeloviRepo db.ServisniPotrazivaniDeloviRepository
+	MagacinskePromeneRepo         db.MagacinskePromeneRepository
+	ProdajaRepo                   db.ProdajaRepository
+	KorisniciRepo                 db.KorisniciRepository
+	SesijeRepo                    db.SesijeRepository
+	PodsetnikRepo                 db.PodsetnikRepository
+	IzvestajRepo                  db.IzvestajRepository
+	RezervniKodoviRepo            db.RezervniKodoviRepository
+	PokusajiRepo                  db.PokusajiPrijaveRepository
+	LoginIstorijsaRepo            db.LoginIstorijsaRepository
+	DozvoleRepo                   db.DozvoleRepository
+	PdvStopeRepo                  db.PdvStopaRepository
+	PdvKirRepo                    db.PdvKirRepository
+	PdvKprRepo                    db.PdvKprRepository
+	NivelacijaRepo                db.NivelacijaRepository
+	Verzija                       string
+	JelDemo                       bool
+	AssetV                        string // verzija statičkih fajlova za cache-busting (postavlja se pri pokretanju)
+	Templates                     map[string]*template.Template
+	TemplatesFS                   fs.FS
+	totpKljuc                     []byte // ključ za šifrovanje TOTP tajni (prosleđuje se KorisniciRepo)
 
 	// mu štiti DB i sve repozitorijume od zamene u letu (obnova backupa).
 	// Zahtevi drže deljeno (read) zaključavanje preko ZakljucajCitanje, a obnova
@@ -84,32 +85,33 @@ func (h *Handler) SaBazom(fn func(*sql.DB)) {
 // totpKljuc je 32-bajtni ključ za šifrovanje TOTP tajni u mirovanju.
 func Novi(baza *sql.DB, totpKljuc []byte) *Handler {
 	return &Handler{
-		DB:                    baza,
-		totpKljuc:             totpKljuc,
-		Artikli:               sqlite.NoviArtikalRepo(baza),
-		UslugeRepo:            sqlite.NoviUslugaRepo(baza),
-		TroskoviRepo:          sqlite.NoviTrosakRepo(baza),
-		KategorijeRepo:        sqlite.NovaKategorijaRepo(baza),
-		DobavljaciRepo:        sqlite.NoviDobavljacRepo(baza),
-		NabavkeRepo:           sqlite.NoviNabavkaRepo(baza),
-		KlijentiRepo:          sqlite.NoviKlijentRepo(baza),
-		ServisRepo:            sqlite.NoviServisRepo(baza),
-		ServisniDeloviRepo:    sqlite.NoviServisniDeloviRepo(baza),
-		ServisniRadoviRepo:    sqlite.NoviServisniRadoviRepo(baza),
-		MagacinskePromeneRepo: sqlite.NoviMagacinskePromeneRepo(baza),
-		ProdajaRepo:           sqlite.NoviProdajaRepo(baza),
-		KorisniciRepo:         sqlite.NoviKorisniciRepo(baza, totpKljuc),
-		SesijeRepo:            sqlite.NoviSesijeRepo(baza),
-		PodsetnikRepo:         sqlite.NoviPodsetnikRepo(baza),
-		IzvestajRepo:          sqlite.NoviIzvestajRepo(baza),
-		RezervniKodoviRepo:    sqlite.NoviRezervniKodoviRepo(baza),
-		PokusajiRepo:          sqlite.NoviPokusajiPrijaveRepo(baza),
-		LoginIstorijsaRepo:    sqlite.NoviLoginIstorijsaRepo(baza),
-		DozvoleRepo:           sqlite.NoviDozvoleRepo(baza, middleware.ImaDozvolu, middleware.SveAkcije()),
-		PdvStopeRepo:          sqlite.NoviPdvStopaRepo(baza),
-		PdvKirRepo:            sqlite.NoviPdvKirRepo(baza),
-		PdvKprRepo:            sqlite.NoviPdvKprRepo(baza),
-		NivelacijaRepo:        sqlite.NoviNivelacijaRepo(baza),
+		DB:                            baza,
+		totpKljuc:                     totpKljuc,
+		Artikli:                       sqlite.NoviArtikalRepo(baza),
+		UslugeRepo:                    sqlite.NoviUslugaRepo(baza),
+		TroskoviRepo:                  sqlite.NoviTrosakRepo(baza),
+		KategorijeRepo:                sqlite.NovaKategorijaRepo(baza),
+		DobavljaciRepo:                sqlite.NoviDobavljacRepo(baza),
+		NabavkeRepo:                   sqlite.NoviNabavkaRepo(baza),
+		KlijentiRepo:                  sqlite.NoviKlijentRepo(baza),
+		ServisRepo:                    sqlite.NoviServisRepo(baza),
+		ServisniDeloviRepo:            sqlite.NoviServisniDeloviRepo(baza),
+		ServisniRadoviRepo:            sqlite.NoviServisniRadoviRepo(baza),
+		ServisniPotrazivaniDeloviRepo: sqlite.NoviServisniPotrazivaniDeloviRepo(baza),
+		MagacinskePromeneRepo:         sqlite.NoviMagacinskePromeneRepo(baza),
+		ProdajaRepo:                   sqlite.NoviProdajaRepo(baza),
+		KorisniciRepo:                 sqlite.NoviKorisniciRepo(baza, totpKljuc),
+		SesijeRepo:                    sqlite.NoviSesijeRepo(baza),
+		PodsetnikRepo:                 sqlite.NoviPodsetnikRepo(baza),
+		IzvestajRepo:                  sqlite.NoviIzvestajRepo(baza),
+		RezervniKodoviRepo:            sqlite.NoviRezervniKodoviRepo(baza),
+		PokusajiRepo:                  sqlite.NoviPokusajiPrijaveRepo(baza),
+		LoginIstorijsaRepo:            sqlite.NoviLoginIstorijsaRepo(baza),
+		DozvoleRepo:                   sqlite.NoviDozvoleRepo(baza, middleware.ImaDozvolu, middleware.SveAkcije()),
+		PdvStopeRepo:                  sqlite.NoviPdvStopaRepo(baza),
+		PdvKirRepo:                    sqlite.NoviPdvKirRepo(baza),
+		PdvKprRepo:                    sqlite.NoviPdvKprRepo(baza),
+		NivelacijaRepo:                sqlite.NoviNivelacijaRepo(baza),
 	}
 }
 
@@ -128,6 +130,7 @@ func (h *Handler) reinicijalizujRepozitorijume(novaDB *sql.DB) {
 	h.ServisRepo = sqlite.NoviServisRepo(novaDB)
 	h.ServisniDeloviRepo = sqlite.NoviServisniDeloviRepo(novaDB)
 	h.ServisniRadoviRepo = sqlite.NoviServisniRadoviRepo(novaDB)
+	h.ServisniPotrazivaniDeloviRepo = sqlite.NoviServisniPotrazivaniDeloviRepo(novaDB)
 	h.MagacinskePromeneRepo = sqlite.NoviMagacinskePromeneRepo(novaDB)
 	h.ProdajaRepo = sqlite.NoviProdajaRepo(novaDB)
 	h.KorisniciRepo = sqlite.NoviKorisniciRepo(novaDB, h.totpKljuc)

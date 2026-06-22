@@ -68,6 +68,19 @@ func (d ServisniDeo) Ukupno() float64 {
 type ServisniDeoSaArtiklom struct {
 	ServisniDeo
 	ArtikalNaziv string
+	Potrazivano  int // komada koji nedostaju (iz servisni_potrazivani_delovi), 0 ako nema
+}
+
+// ServisniPotrazivaniDeo beleži artikle koji nedostaju za servisni nalog —
+// količina koja se traži a nije na stanju; ne skida se sa lagera dok ne stigne
+type ServisniPotrazivaniDeo struct {
+	ID        int64
+	NalogID   int64
+	ArtikalID int64
+	Kolicina  int
+	Datum     time.Time
+	// za prikaz:
+	ArtikalNaziv string
 }
 
 // ServisniRad predstavlja jednu stavku rada (uslugu) na servisnom nalogu.

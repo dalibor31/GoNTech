@@ -180,3 +180,15 @@ func (r *ServisniDeloviRepo) Obrisi(ctx context.Context, id int64, korisnikID *i
 
 	return nil
 }
+
+// DohvatiArtikalID vraća artikal_id za dati servisni deo (pre brisanja)
+func (r *ServisniDeloviRepo) DohvatiArtikalID(ctx context.Context, deoID int64) (int64, error) {
+	var artikalID int64
+	err := r.db.QueryRowContext(ctx,
+		"SELECT artikal_id FROM servisni_delovi WHERE id = ?", deoID,
+	).Scan(&artikalID)
+	if err != nil {
+		return 0, fmt.Errorf("ntech: ServisniDeloviRepo.DohvatiArtikalID: %w", err)
+	}
+	return artikalID, nil
+}

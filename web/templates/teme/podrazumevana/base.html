@@ -391,36 +391,29 @@
                             .then(function (rr) { return rr.text(); })
                             .then(function (html) {
                                 var doc = new DOMParser().parseFromString(html, 'text/html');
-                                var novi = doc.querySelector(ciljSel);
-                                var stari = document.querySelector(ciljSel);
-                                if (novi && stari) {
-                                    // bez-anim spречava treptaj re-animacije kartica pri zameni
-                                    novi.classList.add('bez-anim');
-                                    var sc = document.scrollingElement || document.documentElement;
-                                    var syDoc = sc ? sc.scrollTop : 0;
-                                    var gsStari = document.getElementById('sadrzaj');
-                                    var syGs = gsStari ? gsStari.scrollTop : 0;
-                                    stari.replaceWith(novi);
-                                    void novi.offsetHeight;
-                                    novi.classList.remove('bez-anim');
-                                    // replaceWith ne pokreće <script> iz fragmenta — re-izvrši ih
-                                    // ručno (npr. da se combobox/pretrage ponovo povežu)
-                                    novi.querySelectorAll('script').forEach(function (old) {
-                                        var s = document.createElement('script');
-                                        if (old.src) s.src = old.src; else s.textContent = old.textContent;
-                                        old.parentNode.replaceChild(s, old);
-                                    });
-                                    if (sc) sc.scrollTop = syDoc;
-                                    var gsNovi = document.getElementById('sadrzaj');
-                                    if (gsNovi) gsNovi.scrollTop = syGs;
-                                    // re-veži event handlere (AJAX submit, potvrda brisanja...)
-                                    // na sveže umetnute elemente — inače bi nove forme išle
-                                    // punim POST-om (skok na vrh), a × bez potvrde
-                                    ntechInicijalizuj();
-                                }
-                                // forma koja nije deo osveženog dela ostaje u DOM-u —
-                                // isprazni je za sledeći unos (za one koje osvežavaju sebe
-                                // ovo je bezuspešno jer su zamenjene, što je u redu)
+                                // podržava više selektora razdvojenih zarezom (npr. "#a, #b")
+                                var sc = document.scrollingElement || document.documentElement;
+                                var syDoc = sc ? sc.scrollTop : 0;
+                                var gsStari = document.getElementById('sadrzaj');
+                                var syGs = gsStari ? gsStari.scrollTop : 0;
+                                ciljSel.split(',').forEach(function (sel) {
+                                    sel = sel.trim();
+                                    var novi = doc.querySelector(sel);
+                                    var stari = document.querySelector(sel);
+                                    if (novi && stari) {
+                                        novi.style.animation = 'none';
+                                        stari.replaceWith(novi);
+                                        novi.querySelectorAll('script').forEach(function (old) {
+                                            var s = document.createElement('script');
+                                            if (old.src) s.src = old.src; else s.textContent = old.textContent;
+                                            old.parentNode.replaceChild(s, old);
+                                        });
+                                    }
+                                });
+                                if (sc) sc.scrollTop = syDoc;
+                                var gsNovi = document.getElementById('sadrzaj');
+                                if (gsNovi) gsNovi.scrollTop = syGs;
+                                ntechInicijalizuj();
                                 if (document.body.contains(f)) f.reset();
                                 if (btn) btn.disabled = false;
                             })
