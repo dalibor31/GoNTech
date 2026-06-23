@@ -361,6 +361,17 @@
             });
         });
 
+        // auto-snimanje — forme sa data-autosave se snimaju na svaku promenu polja
+        // (bez dugmeta „Sačuvaj"); 'change' se okida na blur za text/number/textarea,
+        // a na izbor za select/checkbox. Submit prolazi kroz AJAX logiku ispod.
+        document.querySelectorAll('form[data-autosave]').forEach(function(f) {
+            if (f._autosave) return;
+            f._autosave = true;
+            f.addEventListener('change', function() {
+                if (f.requestSubmit) f.requestSubmit(); else f.submit();
+            });
+        });
+
         // AJAX submit — forme koje serveru vraćaju ?sacuvano= ostaju na stranici (scroll se ne gubi)
         document.querySelectorAll('form[method="POST"],form[method="post"]').forEach(function(f) {
             if (f._ajaxSave) return;

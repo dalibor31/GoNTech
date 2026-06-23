@@ -1284,6 +1284,209 @@ func (h *Handler) StampaOtpremnice(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// PodaciReversa su podaci za revers — potvrdu o prijemu uređaja na servis.
+// Dokument se izdaje pri prijemu, pa nema cena.
+type PodaciReversa struct {
+	Nalog              model.ServisniNalog
+	Klijent            *model.Klijent
+	KlijentNaziv       string
+	KlijentOznakaIdent string // labela identifikacije ("JMBG" / "Br. lične karte")
+	KlijentBrojIdent   string // vrednost identifikacionog broja
+	TehnicarNaziv      string
+	QRKod              string // base64 QR ka javnoj status strani naloga
+	Uslovi             string // uslovi servisa iz podešavanja (servis_uslovi)
+	NazivFirme         string
+	Podnazlov          string
+	Adresa             string
+	Telefon            string
+	PIB                string
+}
+
+// StampaReversa renderuje revers (potvrdu o prijemu uređaja na servis)
+func (h *Handler) StampaReversa(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+
+	nalog, err := h.ServisRepo.DohvatiID(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Nalog nije pronađen", http.StatusNotFound)
+		return
+	}
+
+	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
+		return
+	}
+
+	var klijent *model.Klijent
+	klijentNaziv := ""
+	klijentOznaka := ""
+	klijentBroj := ""
+	if nalog.KlijentID != nil {
+		k, err := h.KlijentiRepo.DohvatiID(r.Context(), *nalog.KlijentID)
+		if err == nil {
+			klijent = k
+			klijentNaziv = k.PunoIme()
+			if k.JMBG != "" {
+				klijentOznaka = k.OznakaIdentifikacije()
+				klijentBroj = k.JMBG
+			}
+		}
+	}
+
+	tehnicarNaziv := ""
+	if nalog.TehnicarID != nil {
+		tehnicar, err := h.KorisniciRepo.DohvatiPoID(r.Context(), *nalog.TehnicarID)
+		if err == nil {
+			tehnicarNaziv = tehnicar.KorisnickoIme
+		}
+	}
+
+	nalogURL := qrNalogURL(r, nalog.JavniToken)
+	var qrKod string
+	if png, err := qrcode.Encode(nalogURL, qrcode.Medium, 160); err == nil {
+		qrKod = base64.StdEncoding.EncodeToString(png)
+	}
+
+	h.renderujStandalone(w, "servis_revers", PodaciReversa{
+		Nalog:              *nalog,
+		Klijent:            klijent,
+		KlijentNaziv:       klijentNaziv,
+		KlijentOznakaIdent: klijentOznaka,
+		KlijentBrojIdent:   klijentBroj,
+		TehnicarNaziv:      tehnicarNaziv,
+		QRKod:              qrKod,
+		Uslovi:             vrednostIliDefault(podesavanja, "servis_uslovi", podrazumevaniUsloviServisa),
+		NazivFirme:         podesavanja["naziv_firme"],
+		Podnazlov:          podesavanja["podnazlov"],
+		Adresa:             podesavanja["adresa"],
+		Telefon:            podesavanja["telefon"],
+		PIB:                podesavanja["pib"],
+	})
+}
+
+// PodaciPredracuna su podaci za predračun — procenu cene za tražene radove i delove,
+// koju klijent odobrava pre popravke. Gradi se iz stavki radova i delova na nalogu.
+type PodaciPredracuna struct {
+	Nalog          model.ServisniNalog
+	Radovi         []model.ServisniRad
+	UkupnoRad      float64
+	ServisniDelovi []model.ServisniDeoSaArtiklom
+	UkupnoDelovi   float64
+	UkupnoSve      float64
+	DatumIzdavanja time.Time
+	VaziDo         time.Time
+	Klauzula       string
+	QRKod          string
+	Klijent        *model.Klijent
+	KlijentNaziv   string
+	TehnicarNaziv  string
+	NazivFirme     string
+	Podnazlov      string
+	Adresa         string
+	Telefon        string
+	PIB            string
+}
+
+// StampaPredracuna renderuje predračun (procenu cene) na osnovu traženih radova i delova
+func (h *Handler) StampaPredracuna(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+
+	nalog, err := h.ServisRepo.DohvatiID(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Nalog nije pronađen", http.StatusNotFound)
+		return
+	}
+
+	radovi, err := h.ServisniRadoviRepo.DohvatiZaNalog(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju radova", http.StatusInternalServerError)
+		return
+	}
+
+	delovi, err := h.deloviSaPotrazivanima(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju delova", http.StatusInternalServerError)
+		return
+	}
+
+	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
+		return
+	}
+
+	var klijent *model.Klijent
+	klijentNaziv := ""
+	if nalog.KlijentID != nil {
+		k, err := h.KlijentiRepo.DohvatiID(r.Context(), *nalog.KlijentID)
+		if err == nil {
+			klijent = k
+			klijentNaziv = k.PunoIme()
+		}
+	}
+
+	tehnicarNaziv := ""
+	if nalog.TehnicarID != nil {
+		tehnicar, err := h.KorisniciRepo.DohvatiPoID(r.Context(), *nalog.TehnicarID)
+		if err == nil {
+			tehnicarNaziv = tehnicar.KorisnickoIme
+		}
+	}
+
+	var ukupnoRad float64
+	for _, rd := range radovi {
+		ukupnoRad += rd.Ukupno()
+	}
+	var ukupnoDelovi float64
+	for _, d := range delovi {
+		ukupnoDelovi += d.Ukupno()
+	}
+
+	// rok važenja iz podešavanja (default 7 dana)
+	rok := 7
+	if v, err := strconv.Atoi(podesavanja["predracun_rok_dana"]); err == nil && v > 0 {
+		rok = v
+	}
+	datumIzdavanja := time.Now()
+	vaziDo := datumIzdavanja.AddDate(0, 0, rok)
+
+	nalogURL := qrNalogURL(r, nalog.JavniToken)
+	var qrKod string
+	if png, err := qrcode.Encode(nalogURL, qrcode.Medium, 160); err == nil {
+		qrKod = base64.StdEncoding.EncodeToString(png)
+	}
+
+	h.renderujStandalone(w, "servis_predracun", PodaciPredracuna{
+		Nalog:          *nalog,
+		Radovi:         radovi,
+		UkupnoRad:      ukupnoRad,
+		ServisniDelovi: delovi,
+		UkupnoDelovi:   ukupnoDelovi,
+		UkupnoSve:      ukupnoRad + ukupnoDelovi,
+		DatumIzdavanja: datumIzdavanja,
+		VaziDo:         vaziDo,
+		Klauzula:       vrednostIliDefault(podesavanja, "servis_klauzula_predracuna", podrazumevanaKlauzulaPredracuna),
+		QRKod:          qrKod,
+		Klijent:        klijent,
+		KlijentNaziv:   klijentNaziv,
+		TehnicarNaziv:  tehnicarNaziv,
+		NazivFirme:     podesavanja["naziv_firme"],
+		Podnazlov:      podesavanja["podnazlov"],
+		Adresa:         podesavanja["adresa"],
+		Telefon:        podesavanja["telefon"],
+		PIB:            podesavanja["pib"],
+	})
+}
+
 // PodaciNalepnice su podaci za malu nalepnicu (70×40 mm) koja se lepi na uređaj
 type PodaciNalepnice struct {
 	Nalog         model.ServisniNalog

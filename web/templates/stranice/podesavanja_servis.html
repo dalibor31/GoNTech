@@ -9,11 +9,11 @@
     <div class="poruka-uspeh">Podešavanja su uspešno sačuvana.</div>
     {{end}}
 
-    <form method="POST" action="/podesavanja/sacuvaj">
+    <form method="POST" action="/podesavanja/sacuvaj" data-autosave>
         <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
         <input type="hidden" name="_next" value="/admin/podesavanja/servis">
 
-        <div class="kartica animiraj">
+        <div class="kartica animiraj" style="margin-bottom:16px;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sb-akcent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
                 <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Servis</span>
@@ -59,9 +59,35 @@
                 </div>
 
             </div>
+        </div>
 
-            <div style="display:flex;justify-content:flex-end;margin-top:20px;">
-                <button type="submit" class="btn-primarno">Sačuvaj</button>
+        <div class="kartica animiraj" style="margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sb-akcent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+                <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Uslovi servisa</span>
+            </div>
+
+            <div>
+                <label for="servis_uslovi" class="polje-labela">
+                    Uslovi koji se štampaju na reversu
+                </label>
+                <textarea id="servis_uslovi" name="servis_uslovi" rows="9"
+                    style="width:100%;resize:vertical;line-height:1.6;">{{.ServisUslovi}}</textarea>
+                <div class="pomocni-tekst" style="margin-top:6px;">
+                    Ovaj tekst se štampa na reversu (potvrdi o prijemu uređaja na servis). Slobodno ga
+                    izmeni prema svojim pravilima — svaka stavka u novom redu. Snima se automatski.
+                </div>
+            </div>
+
+            <div style="margin-top:16px;">
+                <label for="servis_klauzula_predracuna" class="polje-labela">
+                    Klauzula na predračunu
+                </label>
+                <textarea id="servis_klauzula_predracuna" name="servis_klauzula_predracuna" rows="3"
+                    style="width:100%;resize:vertical;line-height:1.6;">{{.ServisKlauzulaPredracuna}}</textarea>
+                <div class="pomocni-tekst" style="margin-top:6px;">
+                    Napomena na dnu predračuna (procena cene). Snima se automatski.
+                </div>
             </div>
         </div>
     </form>

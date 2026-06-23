@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predračun — {{.Nalog.BrojNaloga}}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 13px; color: #111; background: #fff; }
+
+        .strana { max-width: 780px; margin: 0 auto; padding: 32px 40px; }
+
+        .zaglavlje { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #111; gap: 20px; }
+        .firma-naziv { font-size: 20px; font-weight: 700; }
+        .firma-info { font-size: 11px; color: #555; margin-top: 4px; line-height: 1.7; }
+        .dok-naslov { text-align: right; }
+        .dok-tip { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #555; margin-bottom: 4px; }
+        .dok-broj { font-size: 22px; font-weight: 700; font-family: monospace; }
+        .dok-datum { font-size: 12px; color: #555; margin-top: 6px; }
+
+        .strane-blok { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+        .strana-kartica { padding: 12px 14px; border: 0.5px solid #ddd; border-radius: 6px; }
+        .strana-tip { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: #888; margin-bottom: 6px; }
+        .strana-naziv { font-size: 14px; font-weight: 600; }
+        .strana-info { font-size: 12px; color: #555; margin-top: 3px; line-height: 1.6; }
+
+        .odeljak { margin-bottom: 18px; }
+        .odeljak-naslov { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: #555; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 0.5px solid #ccc; }
+        .polje-tekst { font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
+        .prazno { color: #aaa; font-style: italic; }
+
+        .tabela { width: 100%; border-collapse: collapse; margin-top: 6px; }
+        .tabela th { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: #555; padding: 6px 8px; border-bottom: 1.5px solid #111; text-align: left; }
+        .tabela th.desno { text-align: right; }
+        .tabela td { padding: 7px 8px; border-bottom: 0.5px solid #ddd; font-size: 13px; vertical-align: middle; }
+        .tabela td.desno { text-align: right; }
+        .tabela .ukupno-red td { font-weight: 600; border-top: 1.5px solid #111; border-bottom: none; background: #fafafa; }
+
+        .rekap { margin-top: 14px; margin-left: auto; width: 320px; }
+        .rekap-red { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13px; }
+        .rekap-ukupno { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border: 1.5px solid #111; border-radius: 6px; margin-top: 8px; }
+        .rekap-ukupno-labela { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+        .rekap-ukupno-iznos { font-size: 20px; font-weight: 700; }
+
+        .klauzula-blok { margin-top: 18px; padding: 10px 14px; background: #fffbeb; border-left: 3px solid #f59e0b; font-size: 12px; color: #92400e; line-height: 1.6; white-space: pre-wrap; }
+        .vazi-do { margin-top: 12px; font-size: 12px; color: #555; }
+
+        .potpisi { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 36px; padding-top: 16px; border-top: 0.5px solid #ccc; }
+        .potpis-linija { border-top: 1px solid #888; margin-top: 44px; padding-top: 6px; font-size: 11px; color: #555; text-align: center; }
+
+        @media print {
+            body { font-size: 12px; }
+            .strana { padding: 16px 20px; max-width: 100%; }
+            .dugme-stampa { display: none !important; }
+            @page { size: A4; margin: 12mm 14mm; }
+        }
+        .dugme-stampa { position: fixed; bottom: 24px; right: 24px; background: #111; color: #fff; border: none; padding: 12px 22px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .dugme-stampa:hover { background: #333; }
+    </style>
+</head>
+<body>
+<div class="strana">
+
+    <!-- zaglavlje -->
+    <div class="zaglavlje">
+        <div>
+            <div class="firma-naziv">{{if .NazivFirme}}{{.NazivFirme}}{{else}}— naziv firme —{{end}}</div>
+            <div class="firma-info">
+                {{if .Podnazlov}}{{.Podnazlov}}<br>{{end}}
+                {{if .Adresa}}{{.Adresa}}<br>{{end}}
+                {{if .Telefon}}Tel: {{telefon .Telefon}}<br>{{end}}
+                {{if .PIB}}PIB: {{.PIB}}{{end}}
+            </div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:14px;">
+            <div class="dok-naslov">
+                <div class="dok-tip">Predračun (procena)</div>
+                <div class="dok-broj">{{.Nalog.BrojNaloga}}</div>
+                <div class="dok-datum">Datum: {{.DatumIzdavanja.Format "02.01.2006."}}</div>
+                <div class="dok-datum">Važi do: {{.VaziDo.Format "02.01.2006."}}</div>
+            </div>
+            {{if .QRKod}}
+            <img src="data:image/png;base64,{{.QRKod}}" width="76" height="76"
+                 alt="QR {{.Nalog.BrojNaloga}}"
+                 style="image-rendering:pixelated;border:1px solid #ddd;border-radius:4px;flex-shrink:0;">
+            {{end}}
+        </div>
+    </div>
+
+    <!-- izdao / za -->
+    <div class="strane-blok">
+        <div class="strana-kartica">
+            <div class="strana-tip">Izdao (servis)</div>
+            <div class="strana-naziv">{{if .NazivFirme}}{{.NazivFirme}}{{else}}—{{end}}</div>
+            <div class="strana-info">
+                {{if .Adresa}}{{.Adresa}}<br>{{end}}
+                {{if .Telefon}}{{telefon .Telefon}}{{end}}
+            </div>
+        </div>
+        <div class="strana-kartica">
+            <div class="strana-tip">Za (klijent)</div>
+            {{if .KlijentNaziv}}
+            <div class="strana-naziv">{{.KlijentNaziv}}</div>
+            <div class="strana-info">
+                {{if .Klijent}}
+                    {{if .Klijent.Telefon}}Tel: {{telefon .Klijent.Telefon}}<br>{{end}}
+                    {{if .Klijent.Mesto}}{{.Klijent.Mesto}}{{end}}
+                {{end}}
+            </div>
+            {{else}}
+            <div class="strana-naziv prazno">— klijent nije naveden —</div>
+            {{end}}
+        </div>
+    </div>
+
+    <!-- uređaj i traženo -->
+    <div class="odeljak">
+        <div class="odeljak-naslov">Uređaj i traženi radovi</div>
+        <div style="margin-bottom:6px;"><strong>Uređaj:</strong> {{if .Nalog.Uredjaj}}{{.Nalog.Uredjaj}}{{else}}<span class="prazno">—</span>{{end}}{{if .Nalog.SerijskiBroj}} &middot; S/N: {{.Nalog.SerijskiBroj}}{{end}}</div>
+        <div class="polje-tekst"><strong>Zahtev klijenta:</strong> {{if .Nalog.OpisKvara}}{{.Nalog.OpisKvara}}{{else}}<span class="prazno">—</span>{{end}}</div>
+    </div>
+
+    <!-- radovi -->
+    {{if .Radovi}}
+    <div class="odeljak">
+        <div class="odeljak-naslov">Radovi</div>
+        <table class="tabela">
+            <thead>
+                <tr>
+                    <th>Usluga</th>
+                    <th class="desno" style="width:70px;">Kol.</th>
+                    <th class="desno" style="width:120px;">Cena</th>
+                    <th class="desno" style="width:120px;">Ukupno</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Radovi}}
+                <tr>
+                    <td>{{.Naziv}}</td>
+                    <td class="desno">{{.Kolicina}}</td>
+                    <td class="desno">{{dinari .CenaKomada}} din</td>
+                    <td class="desno">{{dinari .Ukupno}} din</td>
+                </tr>
+                {{end}}
+                <tr class="ukupno-red">
+                    <td colspan="3">Ukupno radovi</td>
+                    <td class="desno">{{dinari .UkupnoRad}} din</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {{end}}
+
+    <!-- delovi -->
+    {{if .ServisniDelovi}}
+    <div class="odeljak">
+        <div class="odeljak-naslov">Delovi i materijal</div>
+        <table class="tabela">
+            <thead>
+                <tr>
+                    <th>Artikal</th>
+                    <th class="desno" style="width:70px;">Kol.</th>
+                    <th class="desno" style="width:120px;">Cena/kom</th>
+                    <th class="desno" style="width:120px;">Ukupno</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .ServisniDelovi}}
+                <tr>
+                    <td>{{.ArtikalNaziv}}</td>
+                    <td class="desno">{{.Kolicina}}</td>
+                    <td class="desno">{{dinari .CenaKomada}} din</td>
+                    <td class="desno">{{dinari .Ukupno}} din</td>
+                </tr>
+                {{end}}
+                <tr class="ukupno-red">
+                    <td colspan="3">Ukupno delovi</td>
+                    <td class="desno">{{dinari .UkupnoDelovi}} din</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {{end}}
+
+    {{if and (not .Radovi) (not .ServisniDelovi)}}
+    <div class="odeljak">
+        <div class="polje-tekst prazno">Na nalog još nisu uneti radovi ni delovi — dodaj ih u detaljima naloga da bi se prikazali na predračunu.</div>
+    </div>
+    {{end}}
+
+    <!-- rekapitulacija -->
+    <div class="rekap">
+        {{if .Radovi}}<div class="rekap-red"><span>Radovi</span><span>{{dinari .UkupnoRad}} din</span></div>{{end}}
+        {{if .ServisniDelovi}}<div class="rekap-red"><span>Delovi i materijal</span><span>{{dinari .UkupnoDelovi}} din</span></div>{{end}}
+        <div class="rekap-ukupno">
+            <div class="rekap-ukupno-labela">Ukupno (procena):</div>
+            <div class="rekap-ukupno-iznos">{{dinari .UkupnoSve}} din</div>
+        </div>
+    </div>
+
+    <!-- klauzula -->
+    {{if .Klauzula}}
+    <div class="klauzula-blok">{{.Klauzula}}</div>
+    {{end}}
+
+    <div class="vazi-do">Predračun važi do <strong>{{.VaziDo.Format "02.01.2006."}}</strong>.</div>
+
+    <!-- potpisi -->
+    <div class="potpisi">
+        <div>
+            <div class="potpis-linija">Saglasan sa procenom (klijent)</div>
+        </div>
+        <div>
+            <div class="potpis-linija">Izdao{{if .TehnicarNaziv}} — {{.TehnicarNaziv}}{{end}} (servis)</div>
+        </div>
+    </div>
+
+</div>
+
+<button class="dugme-stampa" onclick="window.print()">Štampaj</button>
+
+</body>
+</html>

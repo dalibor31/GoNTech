@@ -14,6 +14,7 @@
 
 {{define "status-badge-detalji"}}
 {{if eq . "Primljeno"}}<span class="status-badge status-primljeno">{{.}}</span>
+{{else if eq . "U dijagnostici"}}<span class="status-badge status-dijagnostika">{{.}}</span>
 {{else if eq . "Čeka delove"}}<span class="status-badge status-ceka">{{.}}</span>
 {{else if eq . "U popravci"}}<span class="status-badge status-popravka">{{.}}</span>
 {{else if eq . "Završeno"}}<span class="status-badge status-zavrseno">{{.}}</span>
@@ -44,9 +45,26 @@
                 </span>
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                     {{template "status-badge-detalji" .Nalog.Status}}
+                    {{if eq .Nalog.Status "Primljeno"}}
+                    <!-- serviser preuzima uređaj u rad → status prelazi u „U dijagnostici";
+                         data-refresh osvežava samo zaglavlje (badge i ovo dugme se ponovo renderuju) -->
+                    <form method="POST" action="/servis/{{.Nalog.ID}}/status" data-refresh="#nalog-zaglavlje" style="margin:0;">
+                        <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+                        <input type="hidden" name="status" value="U dijagnostici">
+                        <button type="submit" class="btn-sekundarno" style="padding:3px 12px;font-size:12px;">
+                            Počni dijagnostiku
+                        </button>
+                    </form>
+                    {{end}}
                 </div>
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <a href="/servis/{{.Nalog.ID}}/revers" target="_blank" class="btn-sekundarno">
+                    Revers
+                </a>
+                <a href="/servis/{{.Nalog.ID}}/predracun" target="_blank" class="btn-sekundarno">
+                    Predračun
+                </a>
                 <a href="/servis/{{.Nalog.ID}}/radni-nalog" target="_blank" class="btn-sekundarno">
                     Radni nalog
                 </a>
