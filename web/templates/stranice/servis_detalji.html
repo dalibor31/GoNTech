@@ -70,16 +70,66 @@
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Datum prijema</div>
                 <div style="font-size:14px;color:var(--tekst-glavni);">{{.Nalog.DatumPrijema.Format "02.01.2006. u 15:04"}}</div>
             </div>
-            {{if .Nalog.PredvidjenDatum}}
             <div>
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Predviđen datum popravke</div>
-                <div style="font-size:14px;color:var(--tekst-glavni);">{{.Nalog.PredvidjenDatum.Format "02.01.2006."}}</div>
+                <div style="font-size:14px;color:var(--tekst-glavni);">
+                    {{if .Nalog.PredvidjenDatum}}{{.Nalog.PredvidjenDatum.Format "02.01.2006."}}{{else}}—{{end}}
+                    {{if index .Dozvole "servis.izmeni"}}
+                    <button type="button" class="izmeni-polje" onclick="ntechOtvoriModal(this)">Promeni</button>
+                    <dialog class="premesti-modal" onclick="if(event.target===this)this.close()">
+                        <form method="dialog" class="premesti-zaglavlje">
+                            <h3>Predviđen datum popravke</h3>
+                            <button type="submit" class="premesti-zatvori" aria-label="Zatvori">&times;</button>
+                        </form>
+                        <form method="POST" action="/servis/{{.Nalog.ID}}/predvidjen-datum" data-refresh="#nalog-zaglavlje" style="display:flex;flex-direction:column;gap:12px;padding:16px;">
+                            <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+                            <div>
+                                <label class="polje-labela">Datum</label>
+                                <input type="date" name="predvidjen_datum"
+                                    value="{{if .Nalog.PredvidjenDatum}}{{.Nalog.PredvidjenDatum.Format "2006-01-02"}}{{end}}"
+                                    style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                                <div class="pomocni-tekst" style="margin-top:6px;">Podrazumevano = automatski (datum prijema + rok iz podešavanja).</div>
+                            </div>
+                            <button type="button" class="btn-sekundarno" style="align-self:flex-start;"
+                                onclick="var f=this.closest('form'); f.querySelector('[name=predvidjen_datum]').value=''; f.requestSubmit();">Podrazumevano</button>
+                        </form>
+                    </dialog>
+                    {{end}}
+                </div>
             </div>
-            {{end}}
             <div>
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Garancija do</div>
                 <div style="font-size:14px;{{if .Nalog.GarancijaDo}}color:#16a34a;font-weight:500;{{else}}color:var(--tekst-sporedni);{{end}}">
                     {{if .Nalog.GarancijaDo}}{{.Nalog.GarancijaDo.Format "02.01.2006."}}{{else}}—{{end}}
+                    {{if index .Dozvole "servis.izmeni"}}
+                    <button type="button" class="izmeni-polje" onclick="ntechOtvoriModal(this)">Promeni</button>
+                    <dialog class="premesti-modal" onclick="if(event.target===this)this.close()">
+                        <form method="dialog" class="premesti-zaglavlje">
+                            <h3>Garancija do</h3>
+                            <button type="submit" class="premesti-zatvori" aria-label="Zatvori">&times;</button>
+                        </form>
+                        <form method="POST" action="/servis/{{.Nalog.ID}}/garancija" data-refresh="#nalog-zaglavlje" style="display:flex;flex-direction:column;gap:12px;padding:16px;">
+                            <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+                            <div>
+                                <label class="polje-labela">Garancija do</label>
+                                <div style="display:flex;align-items:center;gap:10px;">
+                                    <input type="date" name="garancija_do"
+                                        value="{{if .Nalog.GarancijaDo}}{{.Nalog.GarancijaDo.Format "2006-01-02"}}{{else}}{{.GarancijaDefault}}{{end}}"
+                                        min="{{.Nalog.DatumPrijema.Format "2006-01-02"}}"
+                                        {{if .BezGarancije}}disabled{{end}}
+                                        style="flex:1;min-width:0;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;{{if .BezGarancije}}opacity:.5;{{end}}">
+                                    <label class="tip-opcija{{if .BezGarancije}} tip-opcija-akt{{end}}" style="white-space:nowrap;">
+                                        <input type="checkbox" name="bez_garancije" value="1"{{if .BezGarancije}} checked{{end}} style="margin:0;width:auto;"
+                                            onchange="var d=this.closest('div').querySelector('[name=garancija_do]'); d.disabled=this.checked; d.style.opacity=this.checked?'.5':''; this.closest('label').classList.toggle('tip-opcija-akt',this.checked);">
+                                        Bez garancije
+                                    </label>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-sekundarno" style="align-self:flex-start;"
+                                onclick="var f=this.closest('form'); var d=f.querySelector('[name=garancija_do]'); d.disabled=false; d.style.opacity=''; d.value='{{.GarancijaDefault}}'; var c=f.querySelector('[name=bez_garancije]'); c.checked=false; c.closest('label').classList.remove('tip-opcija-akt'); f.requestSubmit();">Podrazumevano</button>
+                        </form>
+                    </dialog>
+                    {{end}}
                 </div>
             </div>
             <div>
@@ -88,12 +138,34 @@
                     {{if .KlijentNaziv}}{{.KlijentNaziv}}{{else}}—{{end}}
                 </div>
             </div>
-            {{if .TehnicarNaziv}}
             <div>
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Tehničar</div>
-                <div style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{.TehnicarNaziv}}</div>
+                <div style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">
+                    {{if .TehnicarNaziv}}{{.TehnicarNaziv}}{{else}}<span style="color:var(--tekst-sporedni);font-weight:normal;">— nedodeljen —</span>{{end}}
+                    {{if index .Dozvole "servis.izmeni"}}
+                    <button type="button" class="izmeni-polje" onclick="ntechOtvoriModal(this)">Promeni</button>
+                    <dialog class="premesti-modal" onclick="if(event.target===this)this.close()">
+                        <form method="dialog" class="premesti-zaglavlje">
+                            <h3>Tehničar</h3>
+                            <button type="submit" class="premesti-zatvori" aria-label="Zatvori">&times;</button>
+                        </form>
+                        <form method="POST" action="/servis/{{.Nalog.ID}}/tehnicar" data-refresh="#nalog-zaglavlje" style="display:flex;flex-direction:column;gap:12px;padding:16px;">
+                            <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+                            <div>
+                                <label class="polje-labela">Tehničar</label>
+                                <select name="tehnicar_id"
+                                    style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                                    <option value="">— nedodeljen —</option>
+                                    {{range .Tehnicari}}
+                                    <option value="{{.ID}}"{{if eq .ID $.Nalog.TehnicarIDVrednost}} selected{{end}}>{{.KorisnickoIme}}</option>
+                                    {{end}}
+                                </select>
+                            </div>
+                        </form>
+                    </dialog>
+                    {{end}}
+                </div>
             </div>
-            {{end}}
         </div>
     </div>
 
@@ -480,5 +552,31 @@
         });
     }
 })();
+
+// Popup polja (predviđen datum, garancija, tehničar): nema dugmeta „Sačuvaj" —
+// snima se na zatvaranje modala, i to samo ako je vrednost promenjena.
+// Početno stanje forme pamtimo pri otvaranju; na „close" upoređujemo i, ako se
+// razlikuje, šaljemo formu (ntech AJAX presretač osveži #nalog-zaglavlje).
+window.ntechOtvoriModal = function (btn) {
+    var d = btn.nextElementSibling;
+    if (!d || d.tagName !== 'DIALOG') return;
+    var forma = d.querySelector('form[method="POST"], form[method="post"]');
+    if (forma) forma.dataset.poc = new URLSearchParams(new FormData(forma)).toString();
+    d.showModal();
+};
+if (!window._ntechModalSaveDodato) {
+    window._ntechModalSaveDodato = true;
+    // 'close' ne baburi — slušamo u capture fazi na dokumentu (hvata i modale ubačene swap-om)
+    document.addEventListener('close', function (e) {
+        var d = e.target;
+        if (!d || d.tagName !== 'DIALOG') return;
+        var forma = d.querySelector('form[method="POST"], form[method="post"]');
+        if (!forma || forma.dataset.poc === undefined) return;
+        var sad = new URLSearchParams(new FormData(forma)).toString();
+        if (sad !== forma.dataset.poc) {
+            if (forma.requestSubmit) forma.requestSubmit(); else forma.submit();
+        }
+    }, true);
+}
 </script>
 {{end}}
