@@ -64,6 +64,7 @@ type PodaciDetaljiNaloga struct {
 	UkupnoDelovi            float64
 	UkupnoRadovi            float64
 	UkupnoSve               float64
+	Avans                   float64
 	PreostaloSve            float64
 	ZakljucanStatus         bool           // onemogući promenu statusa dok ima potraživanih delova
 	CenaDijagnostikePredlog string         // podrazumevana cena dijagnostike iz podešavanja (za prefill input-a)
@@ -650,6 +651,7 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 		UkupnoDelovi:            ukupnoDelovi,
 		UkupnoRadovi:            ukupnoRadovi,
 		UkupnoSve:               ukupnoSve,
+		Avans:                   avans,
 		PreostaloSve:            preostaloSve,
 		ZakljucanStatus:         zakljucanStatus,
 		CenaDijagnostikePredlog: podesavanja["servis_cena_dijagnostike"],

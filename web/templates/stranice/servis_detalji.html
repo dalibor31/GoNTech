@@ -83,48 +83,87 @@
                         </button>
                     </form>
                     {{end}}
+                    {{if eq .Nalog.Status "Završeno"}}
+                    <!-- klijent preuzima uređaj → modal sa naplatom, pa status prelazi u „Preuzeto" -->
+                    <button type="button" class="btn-sekundarno" style="padding:3px 12px;font-size:12px;" onclick="ntechOtvoriModal(this)">
+                        Preuzeto
+                    </button>
+                    <dialog class="premesti-modal" onclick="if(event.target===this)this.close()">
+                        <form method="dialog" class="premesti-zaglavlje">
+                            <h3>Preuzimanje uređaja</h3>
+                            <button type="submit" class="premesti-zatvori" aria-label="Zatvori">&times;</button>
+                        </form>
+                        <div style="display:flex;flex-direction:column;gap:10px;padding:16px;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <span style="color:var(--tekst-sporedni);">Ukupno</span>
+                                <span style="color:var(--tekst-glavni);">{{dinari .UkupnoSve}} din</span>
+                            </div>
+                            {{if gt .Avans 0.0}}
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <span style="color:var(--tekst-sporedni);">Avans (uplaćeno)</span>
+                                <span style="color:#16a34a;">−{{dinari .Avans}} din</span>
+                            </div>
+                            {{else}}
+                            <div style="font-size:12px;color:var(--tekst-sporedni);">Klijent nije dao avans.</div>
+                            {{end}}
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:10px;border-top:0.5px solid var(--ivica);">
+                                <span style="font-size:16px;font-weight:600;color:var(--tekst-glavni);">Za naplatu</span>
+                                <span style="font-size:18px;font-weight:600;color:var(--tekst-glavni);">{{dinari .PreostaloSve}} din</span>
+                            </div>
+                            <form method="POST" action="/servis/{{.Nalog.ID}}/status" data-refresh="#sadrzaj" style="margin-top:8px;">
+                                <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+                                <input type="hidden" name="status" value="Preuzeto">
+                                <button type="submit" class="btn-primarno" style="width:100%;">Naplati i preuzmi</button>
+                            </form>
+                        </div>
+                    </dialog>
+                    {{end}}
                 </div>
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                {{/* Revers je potvrda o prijemu — primaran u „Primljeno"; kasnije ostaje samo diskretan reprint */}}
+                {{/* Revers je potvrda o prijemu — primaran u „Primljeno"; reprint dok traje; ne u „Završeno" */}}
                 {{if eq .Nalog.Status "Primljeno"}}
                 <a href="/servis/{{.Nalog.ID}}/revers" target="_blank" class="btn-sekundarno">
                     Revers
                 </a>
-                {{else}}
+                {{else if and (ne .Nalog.Status "Završeno") (ne .Nalog.Status "Preuzeto")}}
                 <a href="/servis/{{.Nalog.ID}}/revers" target="_blank" style="font-size:12px;color:var(--tekst-sporedni);text-decoration:underline;align-self:center;">
                     Revers (reprint)
                 </a>
                 {{end}}
-                {{/* Predračun je ponuda klijentu sa procenom radova/delova — dostupan od prijema
-                     (dijagnostika je opcioni korak; klijent često traži procenu odmah) */}}
+                {{/* Predračun je ponuda klijentu pre odobrenja — ne u „U popravci", „Završeno" ni „Preuzeto" */}}
+                {{if and (ne .Nalog.Status "U popravci") (ne .Nalog.Status "Završeno") (ne .Nalog.Status "Preuzeto")}}
                 <a href="/servis/{{.Nalog.ID}}/predracun" target="_blank" class="btn-sekundarno">
                     Predračun
                 </a>
+                {{end}}
                 {{/* Radni nalog je interni papir serviseru — šta treba uraditi; „U dijagnostici" i „Čeka delove" */}}
                 {{if or (eq .Nalog.Status "U dijagnostici") (eq .Nalog.Status "Čeka delove")}}
                 <a href="/servis/{{.Nalog.ID}}/radni-nalog" target="_blank" class="btn-sekundarno">
                     Radni nalog
                 </a>
                 {{end}}
-                {{if or (eq .Nalog.Status "Završeno") (eq .Nalog.Status "Preuzeto")}}
+                {{if eq .Nalog.Status "Završeno"}}
                 <a href="/servis/{{.Nalog.ID}}/otpremnica" target="_blank" class="btn-sekundarno">
                     Otpremnica
                 </a>
                 {{end}}
-                {{/* Nalepnica je primarna pri prijemu (lepi se na uređaj); kasnije ostaje samo diskretan reprint */}}
+                {{/* Nalepnica je primarna pri prijemu (lepi se na uređaj); reprint dok traje; ne u „Završeno" */}}
                 {{if eq .Nalog.Status "Primljeno"}}
                 <a href="/servis/{{.Nalog.ID}}/nalepnica" target="_blank" class="btn-sekundarno">
                     Nalepnica
                 </a>
-                {{else}}
+                {{else if and (ne .Nalog.Status "Završeno") (ne .Nalog.Status "Preuzeto")}}
                 <a href="/servis/{{.Nalog.ID}}/nalepnica" target="_blank" style="font-size:12px;color:var(--tekst-sporedni);text-decoration:underline;align-self:center;">
                     Nalepnica (reprint)
                 </a>
                 {{end}}
+                {{/* nalog gotov/preuzet — nema više izmena */}}
+                {{if and (ne .Nalog.Status "Završeno") (ne .Nalog.Status "Preuzeto")}}
                 <a href="/servis/izmeni/{{.Nalog.ID}}" class="btn-primarno" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML">
                     Izmeni nalog
                 </a>
+                {{end}}
             </div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:16px;">
@@ -133,6 +172,13 @@
                 <div style="font-size:14px;color:var(--tekst-glavni);">{{.Nalog.DatumPrijema.Format "02.01.2006. u 15:04"}}</div>
             </div>
             <div>
+                {{/* dok traje: „Predviđen datum popravke" (editabilan); kad je gotovo: „Datum završetka" (automatski, readonly) */}}
+                {{if or (eq .Nalog.Status "Završeno") (eq .Nalog.Status "Preuzeto")}}
+                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Datum završetka</div>
+                <div style="font-size:14px;color:var(--tekst-glavni);">
+                    {{if .Nalog.DatumZavrsetka}}{{.Nalog.DatumZavrsetka.Format "02.01.2006."}}{{else}}—{{end}}
+                </div>
+                {{else}}
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Predviđen datum popravke</div>
                 <div style="font-size:14px;color:var(--tekst-glavni);">
                     {{if .Nalog.PredvidjenDatum}}{{.Nalog.PredvidjenDatum.Format "02.01.2006."}}{{else}}—{{end}}
@@ -158,6 +204,7 @@
                     </dialog>
                     {{end}}
                 </div>
+                {{end}}
             </div>
             <div>
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Garancija</div>
@@ -290,8 +337,8 @@
         </div>
     </div>
 
-    <!-- nalaz dijagnostike: šta je serviser utvrdio (dijagnoza + predlog) — od „U dijagnostici" nadalje -->
-    {{if ne .Nalog.Status "Primljeno"}}
+    <!-- utvrđeni kvar: šta je serviser utvrdio (dijagnoza + predlog) — od „U dijagnostici" do popravke, ne u „Završeno"/„Preuzeto" -->
+    {{if and (ne .Nalog.Status "Primljeno") (ne .Nalog.Status "Završeno") (ne .Nalog.Status "Preuzeto")}}
     <div class="kartica detalji-kartica animiraj" id="nalaz-dijagnostike-kartica">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);flex-wrap:wrap;gap:10px;">
             <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Utvrđeni kvar</span>
@@ -352,7 +399,8 @@
     </div>
     {{end}}
 
-    <!-- napomena klijentu -->
+    <!-- napomena klijentu — ne prikazuje se kad je nalog „Završeno"/„Preuzeto" (zatvoren) -->
+    {{if and (ne .Nalog.Status "Završeno") (ne .Nalog.Status "Preuzeto")}}
     <div class="kartica detalji-kartica animiraj" id="napomena-klijentu-kartica">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);flex-wrap:wrap;gap:10px;">
             <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Napomena klijentu</span>
@@ -373,9 +421,11 @@
         </div>
         {{end}}
     </div>
+    {{end}}
 
-    {{/* kad je popravka odbijena naplaćuje se samo dijagnostika — radovi i delovi se ne prikazuju */}}
-    {{if not .Nalog.PopravkaOdbijena}}
+    {{/* kartice radova/delova se ne prikazuju kad je popravka odbijena (samo dijagnostika)
+         ni kad je nalog „Završeno"/„Preuzeto" (posao gotov — sume ostaju u kartici Ukupno) */}}
+    {{if and (not .Nalog.PopravkaOdbijena) (ne .Nalog.Status "Završeno") (ne .Nalog.Status "Preuzeto")}}
     <!-- radovi (usluge) -->
     <div class="kartica detalji-kartica animiraj" id="radovi-kartica">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);flex-wrap:wrap;gap:10px;">
