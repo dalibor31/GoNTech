@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
+	"image/png"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -15,6 +17,8 @@ import (
 	"ntech/internal/middleware"
 	"ntech/internal/model"
 
+	"github.com/boombuler/barcode"
+	"github.com/boombuler/barcode/code128"
 	"github.com/go-chi/chi/v5"
 	qrcode "github.com/skip2/go-qrcode"
 )
@@ -1303,6 +1307,25 @@ type PodaciNalepnice struct {
 	Nalog        model.ServisniNalog
 	KlijentNaziv string
 	QRKod        string // base64 PNG QR koda sa URL-om naloga
+	Barkod       string // base64 PNG Code128 barkoda sa brojem naloga (za laserski skener)
+}
+
+// barkodNaloga generiše Code128 barkod broja naloga kao base64 PNG; prazan string ako ne uspe
+func barkodNaloga(broj string) string {
+	kod, err := code128.Encode(broj)
+	if err != nil {
+		return ""
+	}
+	// razvuci na fiksnu širinu/visinu radi oštrog otiska na nalepnici
+	skaliran, err := barcode.Scale(kod, 480, 90)
+	if err != nil {
+		return ""
+	}
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, skaliran); err != nil {
+		return ""
+	}
+	return base64.StdEncoding.EncodeToString(buf.Bytes())
 }
 
 // StampaNalepnice renderuje malu nalepnicu sa brojem naloga, klijentom, uređajem i QR kodom
@@ -1341,6 +1364,7 @@ func (h *Handler) StampaNalepnice(w http.ResponseWriter, r *http.Request) {
 		Nalog:        *nalog,
 		KlijentNaziv: klijentNaziv,
 		QRKod:        qrKod,
+		Barkod:       barkodNaloga(nalog.BrojNaloga),
 	})
 }
 
