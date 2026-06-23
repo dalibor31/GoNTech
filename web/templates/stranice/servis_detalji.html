@@ -47,14 +47,9 @@
                 </div>
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                {{if not (or (eq .Nalog.Status "Završeno") (eq .Nalog.Status "Preuzeto"))}}
-                <a href="/servis/{{.Nalog.ID}}/stampa" target="_blank" class="btn-sekundarno">
+                <a href="/servis/{{.Nalog.ID}}/radni-nalog" target="_blank" class="btn-sekundarno">
                     Radni nalog
                 </a>
-                <a href="/servis/{{.Nalog.ID}}/predracun" target="_blank" class="btn-sekundarno">
-                    Predračun
-                </a>
-                {{end}}
                 {{if or (eq .Nalog.Status "Završeno") (eq .Nalog.Status "Preuzeto")}}
                 <a href="/servis/{{.Nalog.ID}}/otpremnica" target="_blank" class="btn-sekundarno">
                     Otpremnica
@@ -263,7 +258,7 @@
         {{if index .Dozvole "servis.izmeni"}}
         <form method="POST" action="/servis/{{.Nalog.ID}}/radovi" style="margin-bottom:16px;" data-refresh="#radovi-spisak">
             <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
-            <div style="display:grid;grid-template-columns:1fr 80px 120px auto;gap:10px;align-items:flex-end;">
+            <div class="detalji-forma-rad">
                 <div>
                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Usluga</label>
                     <select name="usluga_id" id="rad-usluga" style="width:100%;" required>
@@ -289,6 +284,7 @@
         <!-- lista radova -->
         <div id="radovi-spisak">
         {{if .ServisniRadovi}}
+        <div class="tabela-skrol">
         <table class="tabela">
             <thead>
                 <tr style="border-bottom:0.5px solid var(--ivica);">
@@ -322,6 +318,7 @@
                 {{end}}
             </tbody>
         </table>
+        </div>
         {{else}}
         <div style="font-size:13px;color:var(--tekst-sporedni);text-align:center;padding:16px 0;">
             Nema unetih radova. Dodaj uslugu iz cenovnika.
@@ -344,7 +341,7 @@
                 <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Kategorija</label>
                 <select id="deo-kategorija" style="width:100%;"></select>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 70px 80px 120px auto;gap:10px;align-items:flex-end;">
+            <div class="detalji-forma-deo">
                 <div>
                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Artikal</label>
                     <select name="artikal_id" id="deo-artikal" style="width:100%;" required>
@@ -373,6 +370,7 @@
         <!-- lista delova -->
         <div id="delovi-spisak">
         {{if .ServisniDelovi}}
+        <div class="tabela-skrol">
         <table class="tabela">
             <thead>
                 <tr style="border-bottom:0.5px solid var(--ivica);">
@@ -412,6 +410,7 @@
                 {{end}}
             </tbody>
         </table>
+        </div>
         {{else}}
         <div style="font-size:13px;color:var(--tekst-sporedni);text-align:center;padding:16px 0;">
             Nema ugrađenih delova za ovaj nalog.

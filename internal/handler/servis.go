@@ -1105,23 +1105,19 @@ func (h *Handler) renderujFormuNaloga(w http.ResponseWriter, podaci PodaciFormeN
 	h.renderujTemplate(w, "servis_forma", podaci)
 }
 
-// PodaciStampeServisa su podaci za print-friendly prikaz servisnog naloga
-type PodaciStampeServisa struct {
+// PodaciRadnogNaloga su podaci za interni radni list servisera (bez cena)
+type PodaciRadnogNaloga struct {
 	Nalog          model.ServisniNalog
 	ServisniDelovi []model.ServisniDeoSaArtiklom
-	UkupnoDelovi   float64
 	KlijentNaziv   string
+	KlijentTelefon string
 	TehnicarNaziv  string
 	NazivFirme     string
-	Podnazlov      string
-	Adresa         string
-	Telefon        string
-	PIB            string
-	QRKod          string // base64 PNG QR koda sa URL-om naloga
+	Barkod         string // base64 PNG Code128 barkoda broja naloga (za skener)
 }
 
-// StampaServisa renderuje print-friendly stranicu za servisni nalog
-func (h *Handler) StampaServisa(w http.ResponseWriter, r *http.Request) {
+// StampaRadnogNaloga renderuje interni radni list koji serviser preuzima uz uređaj
+func (h *Handler) StampaRadnogNaloga(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
@@ -1147,6 +1143,7 @@ func (h *Handler) StampaServisa(w http.ResponseWriter, r *http.Request) {
 	}
 
 	klijentNaziv := ""
+	klijentTelefon := ""
 	if nalog.KlijentID != nil {
 		klijent, err := h.KlijentiRepo.DohvatiID(r.Context(), *nalog.KlijentID)
 		if err == nil {
@@ -1155,6 +1152,7 @@ func (h *Handler) StampaServisa(w http.ResponseWriter, r *http.Request) {
 			} else {
 				klijentNaziv = strings.TrimSpace(klijent.Ime + " " + klijent.Prezime)
 			}
+			klijentTelefon = klijent.Telefon
 		}
 	}
 
@@ -1166,30 +1164,14 @@ func (h *Handler) StampaServisa(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var ukupnoDelovi float64
-	for _, d := range delovi {
-		ukupnoDelovi += d.Ukupno()
-	}
-
-	// QR kod vodi na javnu status stranicu — dostupnu bez prijave
-	nalogURL := qrNalogURL(r, nalog.JavniToken)
-	var qrKod string
-	if png, err := qrcode.Encode(nalogURL, qrcode.Medium, 160); err == nil {
-		qrKod = base64.StdEncoding.EncodeToString(png)
-	}
-
-	h.renderujStandalone(w, "servis_stampa", PodaciStampeServisa{
+	h.renderujStandalone(w, "servis_radni_nalog", PodaciRadnogNaloga{
 		Nalog:          *nalog,
 		ServisniDelovi: delovi,
-		UkupnoDelovi:   ukupnoDelovi,
 		KlijentNaziv:   klijentNaziv,
+		KlijentTelefon: klijentTelefon,
 		TehnicarNaziv:  tehnicarNaziv,
 		NazivFirme:     podesavanja["naziv_firme"],
-		Podnazlov:      podesavanja["podnazlov"],
-		Adresa:         podesavanja["adresa"],
-		Telefon:        podesavanja["telefon"],
-		PIB:            podesavanja["pib"],
-		QRKod:          qrKod,
+		Barkod:         barkodNaloga(nalog.BrojNaloga),
 	})
 }
 
@@ -1304,10 +1286,12 @@ func (h *Handler) StampaOtpremnice(w http.ResponseWriter, r *http.Request) {
 
 // PodaciNalepnice su podaci za malu nalepnicu (70×40 mm) koja se lepi na uređaj
 type PodaciNalepnice struct {
-	Nalog        model.ServisniNalog
-	KlijentNaziv string
-	QRKod        string // base64 PNG QR koda sa URL-om naloga
-	Barkod       string // base64 PNG Code128 barkoda sa brojem naloga (za laserski skener)
+	Nalog         model.ServisniNalog
+	KlijentNaziv  string
+	Telefon       string // sirov telefon klijenta (formatira se u šablonu)
+	DatumPrijema  string // kratki format, npr. "20.06."
+	PredvidjenRok string // kratki format predviđenog datuma; prazno ako nije postavljen
+	Barkod        string // base64 PNG Code128 barkoda sa brojem naloga (za laserski skener)
 }
 
 // barkodNaloga generiše Code128 barkod broja naloga kao base64 PNG; prazan string ako ne uspe
@@ -1343,6 +1327,7 @@ func (h *Handler) StampaNalepnice(w http.ResponseWriter, r *http.Request) {
 	}
 
 	klijentNaziv := ""
+	telefon := ""
 	if nalog.KlijentID != nil {
 		k, err := h.KlijentiRepo.DohvatiID(r.Context(), *nalog.KlijentID)
 		if err == nil {
@@ -1351,164 +1336,24 @@ func (h *Handler) StampaNalepnice(w http.ResponseWriter, r *http.Request) {
 			} else {
 				klijentNaziv = strings.TrimSpace(k.Ime + " " + k.Prezime)
 			}
+			telefon = k.Telefon
 		}
 	}
 
-	nalogURL := qrNalogURL(r, nalog.JavniToken)
-	var qrKod string
-	if png, err := qrcode.Encode(nalogURL, qrcode.Medium, 160); err == nil {
-		qrKod = base64.StdEncoding.EncodeToString(png)
+	// kratki datumi za nalepnicu (npr. "20.06.")
+	datumPrijema := nalog.DatumPrijema.Format("02.01.")
+	predvidjenRok := ""
+	if nalog.PredvidjenDatum != nil {
+		predvidjenRok = nalog.PredvidjenDatum.Format("02.01.")
 	}
 
 	h.renderujStandalone(w, "servis_nalepnica", PodaciNalepnice{
-		Nalog:        *nalog,
-		KlijentNaziv: klijentNaziv,
-		QRKod:        qrKod,
-		Barkod:       barkodNaloga(nalog.BrojNaloga),
-	})
-}
-
-// PodaciPredracuna su podaci za predračun/ponudu koja se šalje klijentu pre rada
-type PodaciPredracuna struct {
-	Nalog          model.ServisniNalog
-	ServisniDelovi []model.ServisniDeoSaArtiklom
-	UkupnoDelovi   float64
-
-	ImaCenuRada bool    // ima li nalog uopšte cenu rada (raspon ili fiksnu)
-	CenaRaspon  bool    // true → prikaži procenu Od–Do; false → fiksnu cenu
-	CenaRadaOd  float64 // donja granica procene
-	CenaRadaDo  float64 // gornja granica procene
-	CenaRada    float64 // fiksna cena rada
-
-	UkupnoOd float64 // delovi + CenaRadaOd (kad je raspon)
-	UkupnoDo float64 // delovi + CenaRadaDo (kad je raspon)
-	Ukupno   float64 // delovi + fiksna cena (ili samo delovi ako nema cene rada)
-
-	DatumIzdavanja time.Time
-	VaziDo         time.Time
-
-	QRKod         string
-	Klijent       *model.Klijent
-	KlijentNaziv  string
-	TehnicarNaziv string
-	NazivFirme    string
-	Podnazlov     string
-	Adresa        string
-	Telefon       string
-	PIB           string
-}
-
-// StampaPredracuna renderuje predračun/ponudu koja se šalje klijentu kada se utvrdi kvar
-func (h *Handler) StampaPredracuna(w http.ResponseWriter, r *http.Request) {
-	id, err := parseID(chi.URLParam(r, "id"))
-	if err != nil {
-		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
-		return
-	}
-
-	nalog, err := h.ServisRepo.DohvatiID(r.Context(), id)
-	if err != nil {
-		http.Error(w, "Nalog nije pronađen", http.StatusNotFound)
-		return
-	}
-
-	delovi, err := h.deloviSaPotrazivanima(r.Context(), id)
-	if err != nil {
-		http.Error(w, "Greška pri učitavanju delova", http.StatusInternalServerError)
-		return
-	}
-
-	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
-	if err != nil {
-		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
-		return
-	}
-
-	var klijent *model.Klijent
-	klijentNaziv := ""
-	if nalog.KlijentID != nil {
-		k, err := h.KlijentiRepo.DohvatiID(r.Context(), *nalog.KlijentID)
-		if err == nil {
-			klijent = k
-			if k.NazivFirme != "" {
-				klijentNaziv = k.NazivFirme
-			} else {
-				klijentNaziv = strings.TrimSpace(k.Ime + " " + k.Prezime)
-			}
-		}
-	}
-
-	tehnicarNaziv := ""
-	if nalog.TehnicarID != nil {
-		tehnicar, err := h.KorisniciRepo.DohvatiPoID(r.Context(), *nalog.TehnicarID)
-		if err == nil {
-			tehnicarNaziv = tehnicar.KorisnickoIme
-		}
-	}
-
-	var ukupnoDelovi float64
-	for _, d := range delovi {
-		ukupnoDelovi += d.Ukupno()
-	}
-
-	// cena rada: ako postoji procena raspona (Od i Do) prikaži je, inače padni na fiksnu cenu
-	var imaCenuRada, cenaRaspon bool
-	var cenaRadaOd, cenaRadaDo, cenaRada float64
-	var ukupnoOd, ukupnoDo, ukupno float64
-	switch {
-	case nalog.CenaOd != nil && nalog.CenaDo != nil:
-		imaCenuRada = true
-		cenaRaspon = true
-		cenaRadaOd = *nalog.CenaOd
-		cenaRadaDo = *nalog.CenaDo
-		ukupnoOd = ukupnoDelovi + cenaRadaOd
-		ukupnoDo = ukupnoDelovi + cenaRadaDo
-	case nalog.CenaKonacna != nil:
-		imaCenuRada = true
-		cenaRada = *nalog.CenaKonacna
-		ukupno = ukupnoDelovi + cenaRada
-	default:
-		ukupno = ukupnoDelovi
-	}
-
-	// rok važenja iz podešavanja (default 7 dana)
-	rok := 7
-	if v, err := strconv.Atoi(podesavanja["predracun_rok_dana"]); err == nil && v > 0 {
-		rok = v
-	}
-	datumIzdavanja := time.Now()
-	vaziDo := datumIzdavanja.AddDate(0, 0, rok)
-
-	// QR kod vodi na javnu status stranicu — dostupnu bez prijave
-	nalogURL := qrNalogURL(r, nalog.JavniToken)
-	var qrKod string
-	if png, err := qrcode.Encode(nalogURL, qrcode.Medium, 160); err == nil {
-		qrKod = base64.StdEncoding.EncodeToString(png)
-	}
-
-	h.renderujStandalone(w, "servis_predracun", PodaciPredracuna{
-		Nalog:          *nalog,
-		ServisniDelovi: delovi,
-		UkupnoDelovi:   ukupnoDelovi,
-		ImaCenuRada:    imaCenuRada,
-		CenaRaspon:     cenaRaspon,
-		CenaRadaOd:     cenaRadaOd,
-		CenaRadaDo:     cenaRadaDo,
-		CenaRada:       cenaRada,
-		UkupnoOd:       ukupnoOd,
-		UkupnoDo:       ukupnoDo,
-		Ukupno:         ukupno,
-		DatumIzdavanja: datumIzdavanja,
-		VaziDo:         vaziDo,
-		QRKod:          qrKod,
-		Klijent:        klijent,
-		KlijentNaziv:   klijentNaziv,
-		TehnicarNaziv:  tehnicarNaziv,
-		NazivFirme:     podesavanja["naziv_firme"],
-		Podnazlov:      podesavanja["podnazlov"],
-		Adresa:         podesavanja["adresa"],
-		Telefon:        podesavanja["telefon"],
-		PIB:            podesavanja["pib"],
+		Nalog:         *nalog,
+		KlijentNaziv:  klijentNaziv,
+		Telefon:       telefon,
+		DatumPrijema:  datumPrijema,
+		PredvidjenRok: predvidjenRok,
+		Barkod:        barkodNaloga(nalog.BrojNaloga),
 	})
 }
 

@@ -1298,6 +1298,7 @@ select {
 /* kartica naloga u koloni — nasleđuje .kartica, dodaje kompaktan padding i hover */
 .kanban-karta {
     display: block;
+    position: relative;
     text-decoration: none;
     padding: 12px;
     cursor: pointer;
@@ -1306,6 +1307,72 @@ select {
 .kanban-karta:hover {
     transform: translateY(-1px);
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+}
+/* dugme uz SN broj — otvara internu napomenu */
+.napomena-omot {
+    display: inline-flex;
+}
+.napomena-dugme {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    border: none;
+    background: transparent;
+    color: var(--sb-akcent);
+    cursor: pointer;
+    border-radius: 5px;
+    line-height: 0;
+    opacity: 0.75;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: opacity 0.12s ease, background 0.12s ease;
+}
+.napomena-dugme:hover,
+.napomena-dugme:focus {
+    opacity: 1;
+    background: var(--pozadina-hover);
+    outline: none;
+}
+/* napomena kao overlay preko karte; ostaje u granicama karte → overflow kanbana je ne seče */
+.karta-napomena {
+    position: absolute;
+    inset: 0;
+    padding: 10px 12px;
+    background: var(--pozadina-kartica, var(--pozadina));
+    border: 1px solid var(--sb-akcent);
+    border-radius: inherit;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--tekst-glavni);
+    white-space: pre-wrap;
+    overflow: auto;
+    text-align: left;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.12s ease;
+    z-index: 5;
+}
+/* okidač je omot (ne dugme): pošto je napomena DOM-dete omota, hover nad samom
+   napomenom drži omot „hovered" → ostaje stabilno vidljiva, ne treperi.
+   focus-within pokriva tap na mobilnom (fokus dugmeta unutar omota). */
+.napomena-omot:hover .karta-napomena,
+.napomena-omot:focus-within .karta-napomena {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* forme „Dodaj rad/deo" u detaljima naloga — grid u CSS (ne inline) da ga @media može nadjačati */
+.detalji-forma-rad { display: grid; grid-template-columns: 1fr 80px 120px auto; gap: 10px; align-items: flex-end; }
+.detalji-forma-deo { display: grid; grid-template-columns: 1fr 70px 80px 120px auto; gap: 10px; align-items: flex-end; }
+@media (max-width: 600px) {
+    /* na telefonu: dve kolone, dugme preko cele širine */
+    .detalji-forma-rad,
+    .detalji-forma-deo { grid-template-columns: 1fr 1fr; }
+    .detalji-forma-rad > :last-child,
+    .detalji-forma-deo > :last-child { grid-column: 1 / -1; }
+    .detalji-forma-rad > :last-child .btn-primarno,
+    .detalji-forma-deo > :last-child .btn-primarno { width: 100%; }
 }
 
 @media (max-width: 768px) {
