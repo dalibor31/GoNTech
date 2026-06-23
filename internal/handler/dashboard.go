@@ -83,6 +83,7 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	} else {
 		for _, s := range redovi {
 			poslednjiServisi = append(poslednjiServisi, model.StavkaServisa{
+				ID:           s.ID,
 				Uredjaj:      s.Uredjaj,
 				Status:       s.Status,
 				BojaTacke:    bojaTackeServisa(s.Status),
