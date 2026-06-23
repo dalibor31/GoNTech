@@ -20,6 +20,19 @@ import (
 	"ntech/internal/model"
 )
 
+// podrazumevaniUsloviServisa je podrazumevani tekst uslova servisa koji se
+// štampa na reversu; korisnik ga može izmeniti u Podešavanja → Servis.
+const podrazumevaniUsloviServisa = `1. Servis ne odgovara za podatke na uređaju. Klijent je dužan da sam napravi rezervnu kopiju podataka pre predaje.
+2. Uređaj se preuzima uz ovaj revers i ličnu kartu. Bez reversa uređaj se ne izdaje.
+3. Rok za podizanje uređaja je 30 dana od obaveštenja o završetku. Po isteku roka servis ne odgovara za uređaj.
+4. Ako klijent odustane od popravke, naplaćuje se dijagnostika prema cenovniku.
+5. Garancija na izvršeni servis važi za zamenjene delove i obavljeni rad, ne i za nove kvarove.
+6. Potpisom klijent potvrđuje da je saglasan sa navedenim uslovima.`
+
+// podrazumevanaKlauzulaPredracuna je podrazumevana napomena koja se štampa na
+// dnu predračuna; korisnik je može izmeniti u Podešavanja → Servis.
+const podrazumevanaKlauzulaPredracuna = `Procena je data na osnovu zahteva klijenta i nije fiskalni dokument. Ako se tokom rada utvrdi dodatni kvar, servis kontaktira klijenta radi saglasnosti pre nastavka radova i izmene cene.`
+
 // PodaciPodesavanja su podaci za stranicu podešavanja
 type PodaciPodesavanja struct {
 	model.PodaciStranice
@@ -52,6 +65,8 @@ type PodaciPodesavanja struct {
 	ServisGarancijaDana             string
 	PredracunRokDana                string
 	PredvidjenRokDana               string
+	ServisUslovi                    string
+	ServisKlauzulaPredracuna        string
 	LoginPozadina                   string
 	LoginPozadinaOpacity            string
 	LoginPozadinaBlurPozadine       string
@@ -402,6 +417,25 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "predvidjen_rok_dana", strconv.Itoa(n)); err != nil {
+			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// uslovi servisa (slobodan tekst, štampa se na reversu); čuva se uvek,
+	// pa korisnik može i da skrati ili isprazni tekst
+	if _, ima := r.Form["servis_uslovi"]; ima {
+		uslovi := strings.TrimSpace(r.FormValue("servis_uslovi"))
+		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "servis_uslovi", uslovi); err != nil {
+			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// klauzula na predračunu (slobodan tekst); čuva se uvek
+	if _, ima := r.Form["servis_klauzula_predracuna"]; ima {
+		klauzula := strings.TrimSpace(r.FormValue("servis_klauzula_predracuna"))
+		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "servis_klauzula_predracuna", klauzula); err != nil {
 			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
 			return
 		}
@@ -782,6 +816,8 @@ func (h *Handler) napuniPodaciPodesavanja(r *http.Request, naslov string) (Podac
 		ServisGarancijaDana:             vrednostIliDefault(podesavanja, "servis_garancija_dana", "60"),
 		PredracunRokDana:                vrednostIliDefault(podesavanja, "predracun_rok_dana", "7"),
 		PredvidjenRokDana:               vrednostIliDefault(podesavanja, "predvidjen_rok_dana", "15"),
+		ServisUslovi:                    vrednostIliDefault(podesavanja, "servis_uslovi", podrazumevaniUsloviServisa),
+		ServisKlauzulaPredracuna:        vrednostIliDefault(podesavanja, "servis_klauzula_predracuna", podrazumevanaKlauzulaPredracuna),
 	}, nil
 }
 
