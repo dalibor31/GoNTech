@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nalepnica — {{.Nalog.BrojNaloga}}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { background: #f4f4f5; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color: #111; }
+
+        /* nalepnica 70×40 mm */
+        .nalepnica {
+            width: 70mm;
+            height: 40mm;
+            background: #fff;
+            padding: 3mm;
+            display: flex;
+            align-items: center;
+            gap: 3mm;
+            overflow: hidden;
+        }
+        /* na ekranu — centrirano sa okvirom radi pregleda */
+        @media screen {
+            .nalepnica { margin: 24px auto; border: 1px dashed #bbb; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+        }
+
+        .podaci { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 1.5mm; }
+        .broj { font-family: monospace; font-size: 14pt; font-weight: 700; line-height: 1.1; }
+        .red { font-size: 8pt; line-height: 1.25; }
+        .red .labela { color: #777; text-transform: uppercase; letter-spacing: .3px; font-size: 6.5pt; }
+        .red .vrednost { font-weight: 600; word-break: break-word; }
+        .prazno { color: #aaa; font-style: italic; font-weight: 400; }
+
+        .qr { flex: 0 0 auto; }
+        .qr img { display: block; width: 26mm; height: 26mm; }
+
+        @page { size: 70mm 40mm; margin: 0; }
+        @media print {
+            html, body { background: #fff; }
+            .nalepnica { margin: 0; border: 0; box-shadow: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="nalepnica">
+        <div class="podaci">
+            <div class="broj">{{.Nalog.BrojNaloga}}</div>
+            <div class="red">
+                <div class="labela">Klijent</div>
+                <div class="vrednost">{{if .KlijentNaziv}}{{.KlijentNaziv}}{{else}}<span class="prazno">—</span>{{end}}</div>
+            </div>
+            <div class="red">
+                <div class="labela">Uređaj</div>
+                <div class="vrednost">{{if .Nalog.Uredjaj}}{{.Nalog.Uredjaj}}{{else}}<span class="prazno">—</span>{{end}}</div>
+            </div>
+        </div>
+        {{if .QRKod}}
+        <div class="qr"><img src="data:image/png;base64,{{.QRKod}}" alt="QR"></div>
+        {{end}}
+    </div>
+    <script>window.addEventListener('load', function(){ window.print(); });</script>
+</body>
+</html>

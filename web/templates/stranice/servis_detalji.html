@@ -60,6 +60,9 @@
                     Otpremnica
                 </a>
                 {{end}}
+                <a href="/servis/{{.Nalog.ID}}/nalepnica" target="_blank" class="btn-sekundarno">
+                    Nalepnica
+                </a>
                 <a href="/servis/izmeni/{{.Nalog.ID}}" class="btn-primarno" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML">
                     Izmeni nalog
                 </a>
