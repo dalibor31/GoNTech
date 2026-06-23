@@ -67,6 +67,7 @@ type PodaciPodesavanja struct {
 	PredvidjenRokDana               string
 	ServisUslovi                    string
 	ServisKlauzulaPredracuna        string
+	QrBazniUrl                      string
 	LoginPozadina                   string
 	LoginPozadinaOpacity            string
 	LoginPozadinaBlurPozadine       string
@@ -280,10 +281,17 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// checkbox-i: šalju vrednost samo kada su čekirani, pa ih uvek eksplicitno čitamo
-	topbarLogoSlika := "0"
-	if r.FormValue("topbar_logo_slika") == "1" {
-		topbarLogoSlika = "1"
+	// checkbox „topbar_logo_slika" živi u Firma sekciji. Pošto se sekcije auto-snimaju
+	// odvojeno, čitamo ga SAMO kad je poslata Firma sekcija (marker `_sekcija_firma`),
+	// inače ostaje "" pa ga petlja ispod preskoči i ne dira postojeću vrednost.
+	// (Checkbox koji nije čekiran se ne šalje, pa bi inače snimanje druge sekcije
+	// ugasilo logo u topbaru.)
+	topbarLogoSlika := ""
+	if _, jeFirmaSekcija := r.Form["_sekcija_firma"]; jeFirmaSekcija {
+		topbarLogoSlika = "0"
+		if r.FormValue("topbar_logo_slika") == "1" {
+			topbarLogoSlika = "1"
+		}
 	}
 
 	// matični broj — 8 cifara; prazno je dozvoljeno (polje nije obavezno)
@@ -436,6 +444,15 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 	if _, ima := r.Form["servis_klauzula_predracuna"]; ima {
 		klauzula := strings.TrimSpace(r.FormValue("servis_klauzula_predracuna"))
 		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "servis_klauzula_predracuna", klauzula); err != nil {
+			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// bazna adresa za QR kod (npr. http://192.168.1.25:3000); prazno → koristi se host iz zahteva
+	if _, ima := r.Form["qr_bazni_url"]; ima {
+		bazni := strings.TrimSpace(r.FormValue("qr_bazni_url"))
+		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "qr_bazni_url", bazni); err != nil {
 			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
 			return
 		}
@@ -818,6 +835,7 @@ func (h *Handler) napuniPodaciPodesavanja(r *http.Request, naslov string) (Podac
 		PredvidjenRokDana:               vrednostIliDefault(podesavanja, "predvidjen_rok_dana", "15"),
 		ServisUslovi:                    vrednostIliDefault(podesavanja, "servis_uslovi", podrazumevaniUsloviServisa),
 		ServisKlauzulaPredracuna:        vrednostIliDefault(podesavanja, "servis_klauzula_predracuna", podrazumevanaKlauzulaPredracuna),
+		QrBazniUrl:                      podesavanja["qr_bazni_url"],
 	}, nil
 }
 

@@ -10,14 +10,14 @@
 
         .strana { max-width: 780px; margin: 0 auto; padding: 32px 40px; }
 
-        /* zaglavlje */
-        .zaglavlje { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #111; gap: 20px; }
-        .firma-naziv { font-size: 20px; font-weight: 700; }
+        /* zaglavlje: tri okvira (firma · klijent · dokument) */
+        .zaglavlje { display: flex; align-items: stretch; margin-bottom: 20px; gap: 12px; }
+        .zg-okvir { flex: 1; padding: 12px 14px; border: 0.5px solid #ddd; border-radius: 6px; }
+        .firma-naziv { font-size: 18px; font-weight: 700; }
         .firma-info { font-size: 11px; color: #555; margin-top: 4px; line-height: 1.7; }
-        .dok-naslov { text-align: right; }
         .dok-tip { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #555; margin-bottom: 4px; }
-        .dok-broj { font-size: 22px; font-weight: 700; font-family: monospace; }
-        .dok-datum { font-size: 12px; color: #555; margin-top: 6px; }
+        .dok-broj { font-size: 18px; font-weight: 700; font-family: monospace; }
+        .dok-datum { font-size: 12px; color: #555; margin-top: 4px; }
 
         /* strane */
         .strane-blok { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
@@ -79,56 +79,51 @@
 
     <!-- zaglavlje -->
     <div class="zaglavlje">
-        <div>
+        <!-- LEVO: firma — logo na vrhu, tekst ispod -->
+        <div class="zg-okvir">
+            {{if .LogoPutanja}}
+            <img src="{{.LogoPutanja}}" alt="Logo" style="max-height:54px;max-width:100%;object-fit:contain;display:block;margin-bottom:8px;">
+            {{else}}
             <div class="firma-naziv">{{if .NazivFirme}}{{.NazivFirme}}{{else}}— naziv firme —{{end}}</div>
+            {{end}}
             <div class="firma-info">
                 {{if .Podnazlov}}{{.Podnazlov}}<br>{{end}}
                 {{if .Adresa}}{{.Adresa}}<br>{{end}}
                 {{if .Telefon}}Tel: {{telefon .Telefon}}<br>{{end}}
-                {{if .PIB}}PIB: {{.PIB}}{{end}}
+                {{if .PIB}}PIB: {{.PIB}}{{end}}{{if .MaticniBroj}}{{if .PIB}} &middot; {{end}}MB: {{.MaticniBroj}}{{end}}
             </div>
         </div>
-        <div style="display:flex;align-items:flex-start;gap:14px;">
-            <div class="dok-naslov">
-                <div class="dok-tip">Otpremnica</div>
-                <div class="dok-broj">{{.Nalog.BrojNaloga}}</div>
-                <div class="dok-datum">Datum: {{.Nalog.DatumPrijema.Format "02.01.2006."}}</div>
-                {{if .Nalog.DatumZavrsetka}}
-                <div class="dok-datum">Završeno: {{.Nalog.DatumZavrsetka.Format "02.01.2006."}}</div>
-                {{end}}
-            </div>
-            {{if .QRKod}}
-            <img src="data:image/png;base64,{{.QRKod}}" width="76" height="76"
-                 alt="QR {{.Nalog.BrojNaloga}}"
-                 style="image-rendering:pixelated;border:1px solid #ddd;border-radius:4px;flex-shrink:0;">
-            {{end}}
-        </div>
-    </div>
-
-    <!-- isporučilac i primalac -->
-    <div class="strane-blok">
-        <div class="strana-kartica">
-            <div class="strana-tip">Isporučilac</div>
-            <div class="strana-naziv">{{if .NazivFirme}}{{.NazivFirme}}{{else}}—{{end}}</div>
-            <div class="strana-info">
-                {{if .Adresa}}{{.Adresa}}<br>{{end}}
-                {{if .Telefon}}{{telefon .Telefon}}{{end}}
-            </div>
-        </div>
-        <div class="strana-kartica">
-            <div class="strana-tip">Primalac (klijent)</div>
+        <!-- SREDINA: klijent -->
+        <div class="zg-okvir">
+            <div class="strana-tip">Klijent</div>
             {{if .KlijentNaziv}}
             <div class="strana-naziv">{{.KlijentNaziv}}</div>
             <div class="strana-info">
                 {{if .Klijent}}
                     {{if .Klijent.Telefon}}Tel: {{telefon .Klijent.Telefon}}<br>{{end}}
                     {{if .Klijent.Email}}{{.Klijent.Email}}<br>{{end}}
-                    {{if .Klijent.Mesto}}{{.Klijent.Mesto}}{{end}}
+                    {{if .Klijent.Mesto}}{{.Klijent.Mesto}}<br>{{end}}
+                    {{if .Klijent.PIB}}PIB: {{.Klijent.PIB}}{{end}}
                 {{end}}
             </div>
             {{else}}
             <div class="strana-naziv prazno">— klijent nije naveden —</div>
             {{end}}
+        </div>
+        <!-- DESNO: barkod na vrhu, ispod datumi (levo) + QR (skroz desno) -->
+        <div class="zg-okvir" style="flex:1.3;">
+            {{if .Barkod}}<img src="data:image/png;base64,{{.Barkod}}" alt="Barkod {{.Nalog.BrojNaloga}}" style="display:block;width:100%;max-height:46px;object-fit:contain;margin-bottom:10px;">{{end}}
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+                <div>
+                    <div class="dok-tip">Otpremnica</div>
+                    <div class="dok-broj">{{.Nalog.BrojNaloga}}</div>
+                    <div class="dok-datum">Datum: {{.Nalog.DatumPrijema.Format "02.01.2006."}}</div>
+                    {{if .Nalog.DatumZavrsetka}}
+                    <div class="dok-datum">Završeno: {{.Nalog.DatumZavrsetka.Format "02.01.2006."}}</div>
+                    {{end}}
+                </div>
+                {{if .QRKod}}<img src="data:image/png;base64,{{.QRKod}}" width="64" height="64" alt="QR {{.Nalog.BrojNaloga}}" style="image-rendering:pixelated;border:1px solid #ddd;border-radius:4px;flex-shrink:0;">{{end}}
+            </div>
         </div>
     </div>
 

@@ -10,13 +10,13 @@
 
         .strana { max-width: 780px; margin: 0 auto; padding: 32px 40px; }
 
-        .zaglavlje { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #111; gap: 20px; }
-        .firma-naziv { font-size: 20px; font-weight: 700; }
-        .firma-info { font-size: 11px; color: #555; margin-top: 4px; line-height: 1.7; }
-        .dok-naslov { text-align: right; }
+        .zaglavlje { display: flex; align-items: stretch; margin-bottom: 18px; gap: 12px; }
+        .zg-okvir { flex: 1; padding: 12px 14px; border: 0.5px solid #ddd; border-radius: 6px; }
+        .firma-naziv { font-size: 18px; font-weight: 700; }
+        .firma-info { font-size: 11px; color: #555; margin-top: 3px; line-height: 1.5; }
         .dok-tip { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #555; margin-bottom: 4px; }
-        .dok-broj { font-size: 22px; font-weight: 700; font-family: monospace; }
-        .dok-datum { font-size: 12px; color: #555; margin-top: 6px; }
+        .dok-broj { font-size: 18px; font-weight: 700; font-family: monospace; }
+        .dok-datum { font-size: 12px; color: #555; margin-top: 4px; }
 
         .strane-blok { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
         .strana-kartica { padding: 12px 14px; border: 0.5px solid #ddd; border-radius: 6px; }
@@ -53,6 +53,12 @@
             .strana { padding: 16px 20px; max-width: 100%; }
             .dugme-stampa { display: none !important; }
             @page { size: A4; margin: 12mm 14mm; }
+            /* red tabele se ne sme prelomiti preko granice stranice */
+            .tabela tr { break-inside: avoid; }
+            /* zaglavlje tabele se ponavlja na svakoj stranici kad tabela pređe na novu */
+            .tabela thead { display: table-header-group; }
+            /* rekapitulacija, klauzula i potpisi ostaju u jednom komadu */
+            .rekap, .klauzula-blok, .potpisi { break-inside: avoid; }
         }
         .dugme-stampa { position: fixed; bottom: 24px; right: 24px; background: #111; color: #fff; border: none; padding: 12px 22px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
         .dugme-stampa:hover { background: #333; }
@@ -63,53 +69,49 @@
 
     <!-- zaglavlje -->
     <div class="zaglavlje">
-        <div>
+        <!-- LEVO: firma — logo na vrhu, tekst ispod -->
+        <div class="zg-okvir">
+            {{if .LogoPutanja}}
+            <img src="{{.LogoPutanja}}" alt="Logo" style="max-height:54px;max-width:100%;object-fit:contain;display:block;margin-bottom:8px;">
+            {{else}}
             <div class="firma-naziv">{{if .NazivFirme}}{{.NazivFirme}}{{else}}— naziv firme —{{end}}</div>
+            {{end}}
             <div class="firma-info">
                 {{if .Podnazlov}}{{.Podnazlov}}<br>{{end}}
                 {{if .Adresa}}{{.Adresa}}<br>{{end}}
                 {{if .Telefon}}Tel: {{telefon .Telefon}}<br>{{end}}
-                {{if .PIB}}PIB: {{.PIB}}{{end}}
+                {{if .PIB}}PIB: {{.PIB}}{{end}}{{if .MaticniBroj}}{{if .PIB}} &middot; {{end}}MB: {{.MaticniBroj}}{{end}}
             </div>
         </div>
-        <div style="display:flex;align-items:flex-start;gap:14px;">
-            <div class="dok-naslov">
-                <div class="dok-tip">Predračun (procena)</div>
-                <div class="dok-broj">{{.Nalog.BrojNaloga}}</div>
-                <div class="dok-datum">Datum: {{.DatumIzdavanja.Format "02.01.2006."}}</div>
-                <div class="dok-datum">Važi do: {{.VaziDo.Format "02.01.2006."}}</div>
-            </div>
-            {{if .QRKod}}
-            <img src="data:image/png;base64,{{.QRKod}}" width="76" height="76"
-                 alt="QR {{.Nalog.BrojNaloga}}"
-                 style="image-rendering:pixelated;border:1px solid #ddd;border-radius:4px;flex-shrink:0;">
-            {{end}}
-        </div>
-    </div>
-
-    <!-- izdao / za -->
-    <div class="strane-blok">
-        <div class="strana-kartica">
-            <div class="strana-tip">Izdao (servis)</div>
-            <div class="strana-naziv">{{if .NazivFirme}}{{.NazivFirme}}{{else}}—{{end}}</div>
-            <div class="strana-info">
-                {{if .Adresa}}{{.Adresa}}<br>{{end}}
-                {{if .Telefon}}{{telefon .Telefon}}{{end}}
-            </div>
-        </div>
-        <div class="strana-kartica">
-            <div class="strana-tip">Za (klijent)</div>
+        <!-- SREDINA: klijent -->
+        <div class="zg-okvir">
+            <div class="strana-tip">Klijent</div>
             {{if .KlijentNaziv}}
             <div class="strana-naziv">{{.KlijentNaziv}}</div>
             <div class="strana-info">
                 {{if .Klijent}}
                     {{if .Klijent.Telefon}}Tel: {{telefon .Klijent.Telefon}}<br>{{end}}
-                    {{if .Klijent.Mesto}}{{.Klijent.Mesto}}{{end}}
+                    {{if .Klijent.Email}}{{.Klijent.Email}}<br>{{end}}
+                    {{if .Klijent.Mesto}}{{.Klijent.Mesto}}<br>{{end}}
+                    {{if .Klijent.PIB}}PIB: {{.Klijent.PIB}}{{end}}
                 {{end}}
             </div>
             {{else}}
             <div class="strana-naziv prazno">— klijent nije naveden —</div>
             {{end}}
+        </div>
+        <!-- DESNO: barkod na vrhu, ispod datumi (levo) + QR (skroz desno) -->
+        <div class="zg-okvir" style="flex:1.3;">
+            {{if .Barkod}}<img src="data:image/png;base64,{{.Barkod}}" alt="Barkod {{.Nalog.BrojNaloga}}" style="display:block;width:100%;max-height:46px;object-fit:contain;margin-bottom:10px;">{{end}}
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+                <div>
+                    <div class="dok-tip">Predračun (procena)</div>
+                    <div class="dok-broj">{{.Nalog.BrojNaloga}}</div>
+                    <div class="dok-datum">Datum: {{.DatumIzdavanja.Format "02.01.2006."}}</div>
+                    <div class="dok-datum">Važi do: {{.VaziDo.Format "02.01.2006."}}</div>
+                </div>
+                {{if .QRKod}}<img src="data:image/png;base64,{{.QRKod}}" width="64" height="64" alt="QR {{.Nalog.BrojNaloga}}" style="image-rendering:pixelated;border:1px solid #ddd;border-radius:4px;flex-shrink:0;">{{end}}
+            </div>
         </div>
     </div>
 
