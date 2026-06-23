@@ -40,6 +40,7 @@ type ServisniNalog struct {
 	Avans              *float64
 	Napomena           string
 	GarancijaDo        *time.Time
+	GarancijaDana      *int // trajanje garancije u danima (od završetka); nil/0 = bez garancije
 	DatumPrijema       time.Time
 	PredvidjenDatum    *time.Time
 	DatumZavrsetka     *time.Time

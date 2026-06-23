@@ -22,14 +22,15 @@
             <div class="kolona" style="gap:16px;">
 
                 <div style="max-width:280px;">
-                    <label for="servis_garancija_meseci" class="polje-labela">
-                        Podrazumevani rok garancije (meseci)
+                    <label for="servis_garancija_dana" class="polje-labela">
+                        Podrazumevana garancija (dana)
                     </label>
-                    <input type="number" id="servis_garancija_meseci" name="servis_garancija_meseci"
-                        min="0" max="120" value="{{.ServisGarancijaMeseci}}"
+                    <input type="number" id="servis_garancija_dana" name="servis_garancija_dana"
+                        min="0" max="3650" value="{{.ServisGarancijaDana}}"
                         style="width:100%;">
                     <div class="pomocni-tekst" style="margin-top:6px;">
-                        Automatski se upisuje pri prijemu uređaja. Vrednost 0 znači bez garancije.
+                        Trajanje garancije u danima (računato od završetka radova). Dugme „Podrazumevano"
+                        na nalogu koristi ovu vrednost. 0 znači bez garancije.
                     </div>
                 </div>
 

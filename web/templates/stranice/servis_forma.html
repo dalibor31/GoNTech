@@ -100,11 +100,11 @@
 
         <!-- ===================== KARTICA: TEHNIČAR (izmena) / KLIJENT I TEHNIČAR (novi) ===================== -->
         {{if .Izmena}}
-        <!-- pri izmeni klijent se ne menja (vezan pri prijemu) — ostaje samo tehničar -->
+        <!-- pri izmeni klijent se ne menja (vezan pri prijemu) — ostaje samo serviser -->
         <div class="kartica forma-kartica animiraj" style="margin-bottom:20px;">
-            <div class="sekcija-naslov">Tehničar</div>
+            <div class="sekcija-naslov">Serviser</div>
             <div>
-                <label class="polje-labela">Tehničar</label>
+                <label class="polje-labela">Serviser</label>
                 <select name="tehnicar_id" style="width:100%;">
                     <option value="">— nedodeljen —</option>
                     {{range .Tehnicari}}
@@ -252,9 +252,9 @@
                     </template>
                 </div>
 
-                <!-- tehničar -->
+                <!-- serviser -->
                 <div>
-                    <label class="polje-labela">Tehničar</label>
+                    <label class="polje-labela">Serviser</label>
                     <select name="tehnicar_id" style="width:100%;">
                         <option value="">— nedodeljen —</option>
                         {{range .Tehnicari}}
@@ -280,27 +280,6 @@
                         value="{{if .Nalog.Avans}}{{.Nalog.Avans}}{{end}}"
                         placeholder="0" style="width:100%;">
                 </div>
-                {{if .Izmena}}
-                <!-- garancija — isti izgled kao popup „Garancija do" u detaljima naloga;
-                     „Bez garancije" isključuje datum, „Podrazumevano" vraća prijem + meseci -->
-                <div>
-                    <label class="polje-labela">Garancija do</label>
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <input type="date" name="garancija_do"
-                            value="{{if .Nalog.GarancijaDo}}{{.Nalog.GarancijaDo.Format "2006-01-02"}}{{else}}{{.GarancijaDefault}}{{end}}"
-                            min="{{.Nalog.DatumPrijema.Format "2006-01-02"}}"
-                            {{if .BezGarancije}}disabled{{end}}
-                            style="flex:1;min-width:0;{{if .BezGarancije}}opacity:.5;{{end}}">
-                        <label class="tip-opcija{{if .BezGarancije}} tip-opcija-akt{{end}}" style="white-space:nowrap;">
-                            <input type="checkbox" name="bez_garancije" value="1"{{if .BezGarancije}} checked{{end}} style="margin:0;width:auto;"
-                                onchange="var d=this.closest('div').querySelector('[name=garancija_do]'); d.disabled=this.checked; d.style.opacity=this.checked?'.5':''; this.closest('label').classList.toggle('tip-opcija-akt',this.checked);">
-                            Bez garancije
-                        </label>
-                    </div>
-                    <button type="button" class="btn-sekundarno" style="margin-top:8px;"
-                        onclick="var f=this.closest('form'); var d=f.querySelector('[name=garancija_do]'); d.disabled=false; d.style.opacity=''; d.value='{{.GarancijaDefault}}'; var c=f.querySelector('[name=bez_garancije]'); c.checked=false; c.closest('label').classList.remove('tip-opcija-akt'); d.dispatchEvent(new Event('change',{bubbles:true}));">Podrazumevano</button>
-                </div>
-                {{end}}
             </div>
 
             <div style="margin-top:16px;">

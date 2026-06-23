@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -148,7 +149,7 @@ func (h *Handler) NoviNalog(w http.ResponseWriter, r *http.Request) {
 
 	tehnicari, err := h.KorisniciRepo.Lista(r.Context())
 	if err != nil {
-		http.Error(w, "Greška pri učitavanju tehničara", http.StatusInternalServerError)
+		http.Error(w, "Greška pri učitavanju servisera", http.StatusInternalServerError)
 		return
 	}
 
@@ -293,7 +294,7 @@ func (h *Handler) IzmeniNalog(w http.ResponseWriter, r *http.Request) {
 
 	tehnicari, err := h.KorisniciRepo.Lista(r.Context())
 	if err != nil {
-		http.Error(w, "Greška pri učitavanju tehničara", http.StatusInternalServerError)
+		http.Error(w, "Greška pri učitavanju servisera", http.StatusInternalServerError)
 		return
 	}
 
@@ -381,6 +382,8 @@ func (h *Handler) SacuvajIzmenaNaloga(w http.ResponseWriter, r *http.Request) {
 		nalog.DatumZavrsetka = stari.DatumZavrsetka
 		nalog.PredvidjenDatum = stari.PredvidjenDatum
 		nalog.DatumPrijema = stari.DatumPrijema
+		nalog.GarancijaDo = stari.GarancijaDo     // garancija se uređuje u detaljima, ne u formi
+		nalog.GarancijaDana = stari.GarancijaDana // isto — trajanje garancije se ne dira u formi
 	}
 
 	// garancija ne sme da bude pre datuma prijema
@@ -537,12 +540,9 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 		nalog.PredvidjenDatum = defaultPredvidjenDatum(nalog.DatumPrijema, podesavanja)
 	}
 
-	// podrazumevana garancija (za dugme „Podrazumevano" u popup-u) i stanje „bez garancije" iz baze
-	garancijaDefault := ""
-	if d := defaultGarancija(nalog.DatumPrijema, podesavanja); d != nil {
-		garancijaDefault = d.Format("2006-01-02")
-	}
-	bezGarancije := nalog.GarancijaDo == nil
+	// podrazumevano trajanje garancije u danima (dugme „Podrazumevano") i stanje „bez garancije" iz baze
+	garancijaDefault := strconv.Itoa(defaultGarancijaDana(podesavanja))
+	bezGarancije := nalog.GarancijaDana == nil || *nalog.GarancijaDana <= 0
 
 	klijentNaziv := ""
 	if nalog.KlijentID != nil {
@@ -560,10 +560,10 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// lista tehničara za izbor u popup-u „Promeni tehničara"
+	// lista servisera za izbor u popup-u „Promeni servisera"
 	tehnicari, err := h.KorisniciRepo.Lista(r.Context())
 	if err != nil {
-		slog.Error("greška pri učitavanju tehničara", "error", err)
+		slog.Error("greška pri učitavanju servisera", "error", err)
 	}
 
 	delovi, err := h.deloviSaPotrazivanima(r.Context(), id)
@@ -905,7 +905,7 @@ func parseFormuNaloga(r *http.Request) (model.ServisniNalog, string) {
 		}
 	}
 
-	// opcioni tehničar
+	// opcioni serviser
 	if tidStr := r.FormValue("tehnicar_id"); tidStr != "" {
 		if tid, err := strconv.ParseInt(tidStr, 10, 64); err == nil {
 			nalog.TehnicarID = &tid
@@ -1019,6 +1019,60 @@ func defaultPredvidjenDatum(datumPrijema time.Time, podesavanja map[string]strin
 	}
 	t := datumPrijema.AddDate(0, 0, dana)
 	return &t
+}
+
+// srpskiPlural vraća odgovarajući oblik reči za dati broj (1 / 2–4 / 5+).
+func srpskiPlural(n int, jedan, par, mnogo string) string {
+	if n < 0 {
+		n = -n
+	}
+	d, dd := n%10, n%100
+	switch {
+	case d == 1 && dd != 11:
+		return jedan
+	case d >= 2 && d <= 4 && (dd < 12 || dd > 14):
+		return par
+	default:
+		return mnogo
+	}
+}
+
+// garancijaUTekst formatira trajanje garancije (u danima) na srpskom:
+// 20 → „20 dana", 45 → „1 mesec i 15 dana", 60 → „2 meseca".
+func garancijaUTekst(dana int) string {
+	if dana <= 0 {
+		return "bez garancije"
+	}
+	m := dana / 30
+	d := dana % 30
+	mesecRec := srpskiPlural(m, "mesec", "meseca", "meseci")
+	danRec := srpskiPlural(d, "dan", "dana", "dana")
+	switch {
+	case m > 0 && d > 0:
+		return fmt.Sprintf("%d %s i %d %s", m, mesecRec, d, danRec)
+	case m > 0:
+		return fmt.Sprintf("%d %s", m, mesecRec)
+	default:
+		return fmt.Sprintf("%d %s", d, danRec)
+	}
+}
+
+// garancijaTekst je šablonski helper: trajanje garancije u danima → tekst, ili „—" za prazno.
+func garancijaTekst(dana *int) string {
+	if dana == nil || *dana <= 0 {
+		return "—"
+	}
+	return garancijaUTekst(*dana)
+}
+
+// defaultGarancijaDana vraća podrazumevano trajanje garancije u danima iz podešavanja
+// (servis_garancija_dana, podrazumevano 60).
+func defaultGarancijaDana(podesavanja map[string]string) int {
+	dana, err := strconv.Atoi(vrednostIliDefault(podesavanja, "servis_garancija_dana", "60"))
+	if err != nil || dana < 0 {
+		return 60
+	}
+	return dana
 }
 
 // garancijaPrePrijema vraća true ako je datum garancije raniji od datuma prijema (po danu).
@@ -1483,6 +1537,42 @@ func (h *Handler) AzurirajGaranciju(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
 }
 
+// AzurirajGarancijaDana postavlja trajanje garancije u danima (od završetka radova);
+// „bez garancije" ili prazno/0 → bez garancije.
+func (h *Handler) AzurirajGarancijaDana(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "servis.izmeni"); !ok {
+		return
+	}
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
+		return
+	}
+	var dana *int
+	if r.FormValue("bez_garancije") != "1" {
+		if s := strings.TrimSpace(r.FormValue("garancija_dana")); s != "" {
+			n, err := strconv.Atoi(s)
+			if err != nil || n < 0 {
+				http.Error(w, "Garancija mora biti ceo broj dana.", http.StatusBadRequest)
+				return
+			}
+			if n > 0 {
+				dana = &n
+			}
+		}
+	}
+	if err := h.ServisRepo.AzurirajGarancijaDana(r.Context(), id, dana); err != nil {
+		slog.Error("greška pri ažuriranju garancije (dana)", "id", id, "error", err)
+		http.Error(w, "Greška pri ažuriranju garancije", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+}
+
 // AzurirajPredvidjenDatum postavlja ručni override predviđenog datuma popravke;
 // prazno polje vraća nalog na izvedeni default (prijem + rok iz podešavanja).
 func (h *Handler) AzurirajPredvidjenDatum(w http.ResponseWriter, r *http.Request) {
@@ -1515,7 +1605,7 @@ func (h *Handler) AzurirajPredvidjenDatum(w http.ResponseWriter, r *http.Request
 	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
 }
 
-// AzurirajTehnicar menja dodeljenog tehničara na nalogu; prazna vrednost → nedodeljen.
+// AzurirajTehnicar menja dodeljenog servisera na nalogu; prazna vrednost → nedodeljen.
 func (h *Handler) AzurirajTehnicar(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.zahtevajDozvolu(w, r, "servis.izmeni"); !ok {
 		return
@@ -1533,14 +1623,14 @@ func (h *Handler) AzurirajTehnicar(w http.ResponseWriter, r *http.Request) {
 	if t := strings.TrimSpace(r.FormValue("tehnicar_id")); t != "" {
 		v, err := strconv.ParseInt(t, 10, 64)
 		if err != nil {
-			http.Error(w, "Neispravan tehničar", http.StatusBadRequest)
+			http.Error(w, "Neispravan serviser", http.StatusBadRequest)
 			return
 		}
 		tehnicarID = &v
 	}
 	if err := h.ServisRepo.AzurirajTehnicar(r.Context(), id, tehnicarID); err != nil {
-		slog.Error("greška pri ažuriranju tehničara", "id", id, "error", err)
-		http.Error(w, "Greška pri ažuriranju tehničara", http.StatusInternalServerError)
+		slog.Error("greška pri ažuriranju servisera", "id", id, "error", err)
+		http.Error(w, "Greška pri ažuriranju servisera", http.StatusInternalServerError)
 		return
 	}
 	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
