@@ -360,6 +360,8 @@ func main() {
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "servis.pregled")).Get("/servis/{id}/predracun", h.StampaPredracuna)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/status", h.PromeniStatus)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/garancija", h.AzurirajGaranciju)
+		r.With(doz("servis.izmeni")).Post("/servis/{id}/predvidjen-datum", h.AzurirajPredvidjenDatum)
+		r.With(doz("servis.izmeni")).Post("/servis/{id}/tehnicar", h.AzurirajTehnicar)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/napomena-klijentu", h.SacuvajNapomenuKlijentu)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/delovi", h.DodajDeloNalogu)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/delovi/{deo_id}/obrisi", h.ObrisiDeloNaloga)

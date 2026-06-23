@@ -32,31 +32,36 @@ type PodaciServisa struct {
 // PodaciFormeNaloga su podaci za formu novog/izmenjenog servisnog naloga
 type PodaciFormeNaloga struct {
 	model.PodaciStranice
-	Nalog      model.ServisniNalog
-	Klijenti   []model.Klijent
-	Tehnicari  []model.Korisnik
-	SviStatusi []string
-	Greska     string
-	Izmena     bool
+	Nalog            model.ServisniNalog
+	Klijenti         []model.Klijent
+	Tehnicari        []model.Korisnik
+	SviStatusi       []string
+	Greska           string
+	Izmena           bool
+	GarancijaDefault string // podrazumevana garancija (prijem + meseci), format 2006-01-02
+	BezGarancije     bool   // u bazi nalog nema garanciju (GarancijaDo == NULL)
 }
 
 // PodaciDetaljiNaloga su podaci za pregled jednog servisnog naloga
 type PodaciDetaljiNaloga struct {
 	model.PodaciStranice
-	Nalog           model.ServisniNalog
-	KlijentNaziv    string
-	TehnicarNaziv   string
-	ServisniDelovi  []model.ServisniDeoSaArtiklom
-	ServisniRadovi  []model.ServisniRad
-	Artikli         []model.ArtikalSaKategorijom
-	Usluge          []model.Usluga
-	Sacuvano        bool
-	UkupnoDelovi    float64
-	UkupnoRadovi    float64
-	UkupnoSve       float64
-	PreostaloSve    float64
-	ZakljucanStatus bool // onemogući promenu statusa dok ima potraživanih delova
-	SviStatusi      []string
+	Nalog            model.ServisniNalog
+	KlijentNaziv     string
+	TehnicarNaziv    string
+	Tehnicari        []model.Korisnik
+	GarancijaDefault string // podrazumevana garancija (prijem + meseci), format 2006-01-02
+	BezGarancije     bool   // u bazi nalog nema garanciju (GarancijaDo == NULL)
+	ServisniDelovi   []model.ServisniDeoSaArtiklom
+	ServisniRadovi   []model.ServisniRad
+	Artikli          []model.ArtikalSaKategorijom
+	Usluge           []model.Usluga
+	Sacuvano         bool
+	UkupnoDelovi     float64
+	UkupnoRadovi     float64
+	UkupnoSve        float64
+	PreostaloSve     float64
+	ZakljucanStatus  bool // onemogući promenu statusa dok ima potraživanih delova
+	SviStatusi       []string
 }
 
 // Servis renderuje listu servisnih naloga sa opcionom pretragom i filterom statusa
@@ -196,6 +201,26 @@ func (h *Handler) SacuvajNalog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// garancija ne sme da bude pre datuma prijema
+	if nalog.GarancijaDo != nil && garancijaPrePrijema(*nalog.GarancijaDo, nalog.DatumPrijema) {
+		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+		klijenti, _ := h.KlijentiRepo.Lista(r.Context(), "")
+		tehnicari, _ := h.KorisniciRepo.Lista(r.Context())
+		ps := h.popuniPodaciStranice(r, podesavanja)
+		ps.Stranica = "servis"
+		ps.NaslovStranice = "Novi nalog"
+		h.renderujFormuNaloga(w, PodaciFormeNaloga{
+			PodaciStranice: ps,
+			Nalog:          nalog,
+			Klijenti:       klijenti,
+			Tehnicari:      tehnicari,
+			SviStatusi:     model.SviStatusi,
+			Greska:         "Datum garancije ne može biti pre datuma prijema.",
+			Izmena:         false,
+		})
+		return
+	}
+
 	// ako nije izabran postojeći klijent, eventualno kreiraj novog iz polja forme
 	if greska := h.mozdaKreirajKlijenta(r.Context(), r, &nalog); greska != "" {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
@@ -272,6 +297,12 @@ func (h *Handler) IzmeniNalog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	garancijaDefault := ""
+	if d := defaultGarancija(nalog.DatumPrijema, podesavanja); d != nil {
+		garancijaDefault = d.Format("2006-01-02")
+	}
+	// stanje „bez garancije" čitamo iz baze pre nego što popunimo default za prikaz
+	bezGarancije := nalog.GarancijaDo == nil
 	if nalog.GarancijaDo == nil {
 		nalog.GarancijaDo = defaultGarancija(nalog.DatumPrijema, podesavanja)
 	}
@@ -279,12 +310,14 @@ func (h *Handler) IzmeniNalog(w http.ResponseWriter, r *http.Request) {
 	ps.Stranica = "servis"
 	ps.NaslovStranice = "Izmeni nalog"
 	h.renderujFormuNaloga(w, PodaciFormeNaloga{
-		PodaciStranice: ps,
-		Nalog:          *nalog,
-		Klijenti:       klijenti,
-		Tehnicari:      tehnicari,
-		SviStatusi:     model.SviStatusi,
-		Izmena:         true,
+		PodaciStranice:   ps,
+		Nalog:            *nalog,
+		Klijenti:         klijenti,
+		Tehnicari:        tehnicari,
+		SviStatusi:       model.SviStatusi,
+		Izmena:           true,
+		GarancijaDefault: garancijaDefault,
+		BezGarancije:     bezGarancije,
 	})
 }
 
@@ -346,6 +379,33 @@ func (h *Handler) SacuvajIzmenaNaloga(w http.ResponseWriter, r *http.Request) {
 		nalog.CenaDo = stari.CenaDo
 		nalog.CenaKonacna = stari.CenaKonacna
 		nalog.DatumZavrsetka = stari.DatumZavrsetka
+		nalog.PredvidjenDatum = stari.PredvidjenDatum
+		nalog.DatumPrijema = stari.DatumPrijema
+	}
+
+	// garancija ne sme da bude pre datuma prijema
+	if nalog.GarancijaDo != nil && garancijaPrePrijema(*nalog.GarancijaDo, nalog.DatumPrijema) {
+		greska := "Datum garancije ne može biti pre datuma prijema."
+		if autosave {
+			http.Error(w, greska, http.StatusBadRequest)
+			return
+		}
+		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+		klijenti, _ := h.KlijentiRepo.Lista(r.Context(), "")
+		tehnicari, _ := h.KorisniciRepo.Lista(r.Context())
+		ps := h.popuniPodaciStranice(r, podesavanja)
+		ps.Stranica = "servis"
+		ps.NaslovStranice = "Izmeni nalog"
+		h.renderujFormuNaloga(w, PodaciFormeNaloga{
+			PodaciStranice: ps,
+			Nalog:          nalog,
+			Klijenti:       klijenti,
+			Tehnicari:      tehnicari,
+			SviStatusi:     model.SviStatusi,
+			Greska:         greska,
+			Izmena:         true,
+		})
+		return
 	}
 
 	// ako nije izabran postojeći klijent, eventualno kreiraj novog iz polja forme
@@ -471,9 +531,18 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// predviđen datum popravke je izvedena vrednost (samo prikaz):
-	// datum prijema + broj dana iz podešavanja (predvidjen_rok_dana)
-	nalog.PredvidjenDatum = defaultPredvidjenDatum(nalog.DatumPrijema, podesavanja)
+	// predviđen datum popravke: ako postoji ručni override (iz baze) koristi se,
+	// inače izvedeni default (datum prijema + rok iz podešavanja)
+	if nalog.PredvidjenDatum == nil {
+		nalog.PredvidjenDatum = defaultPredvidjenDatum(nalog.DatumPrijema, podesavanja)
+	}
+
+	// podrazumevana garancija (za dugme „Podrazumevano" u popup-u) i stanje „bez garancije" iz baze
+	garancijaDefault := ""
+	if d := defaultGarancija(nalog.DatumPrijema, podesavanja); d != nil {
+		garancijaDefault = d.Format("2006-01-02")
+	}
+	bezGarancije := nalog.GarancijaDo == nil
 
 	klijentNaziv := ""
 	if nalog.KlijentID != nil {
@@ -489,6 +558,12 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			tehnicarNaziv = tehnicar.KorisnickoIme
 		}
+	}
+
+	// lista tehničara za izbor u popup-u „Promeni tehničara"
+	tehnicari, err := h.KorisniciRepo.Lista(r.Context())
+	if err != nil {
+		slog.Error("greška pri učitavanju tehničara", "error", err)
 	}
 
 	delovi, err := h.deloviSaPotrazivanima(r.Context(), id)
@@ -542,21 +617,24 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 	ps.Stranica = "servis"
 	ps.NaslovStranice = "Detalji naloga"
 	podaci := PodaciDetaljiNaloga{
-		PodaciStranice:  ps,
-		Nalog:           *nalog,
-		KlijentNaziv:    klijentNaziv,
-		TehnicarNaziv:   tehnicarNaziv,
-		ServisniDelovi:  delovi,
-		ServisniRadovi:  radovi,
-		Artikli:         artikli,
-		Usluge:          usluge,
-		Sacuvano:        r.URL.Query().Get("sacuvano") == "1",
-		UkupnoDelovi:    ukupnoDelovi,
-		UkupnoRadovi:    ukupnoRadovi,
-		UkupnoSve:       ukupnoSve,
-		PreostaloSve:    preostaloSve,
-		ZakljucanStatus: zakljucanStatus,
-		SviStatusi:      model.SviStatusi,
+		PodaciStranice:   ps,
+		Nalog:            *nalog,
+		KlijentNaziv:     klijentNaziv,
+		TehnicarNaziv:    tehnicarNaziv,
+		Tehnicari:        tehnicari,
+		GarancijaDefault: garancijaDefault,
+		BezGarancije:     bezGarancije,
+		ServisniDelovi:   delovi,
+		ServisniRadovi:   radovi,
+		Artikli:          artikli,
+		Usluge:           usluge,
+		Sacuvano:         r.URL.Query().Get("sacuvano") == "1",
+		UkupnoDelovi:     ukupnoDelovi,
+		UkupnoRadovi:     ukupnoRadovi,
+		UkupnoSve:        ukupnoSve,
+		PreostaloSve:     preostaloSve,
+		ZakljucanStatus:  zakljucanStatus,
+		SviStatusi:       model.SviStatusi,
 	}
 
 	h.renderujTemplate(w, "servis_detalji", podaci)
@@ -941,6 +1019,14 @@ func defaultPredvidjenDatum(datumPrijema time.Time, podesavanja map[string]strin
 	}
 	t := datumPrijema.AddDate(0, 0, dana)
 	return &t
+}
+
+// garancijaPrePrijema vraća true ako je datum garancije raniji od datuma prijema (po danu).
+// Garancija ne sme da bude pre prijema uređaja.
+func garancijaPrePrijema(garancija, prijem time.Time) bool {
+	g := time.Date(garancija.Year(), garancija.Month(), garancija.Day(), 0, 0, 0, 0, time.UTC)
+	p := time.Date(prijem.Year(), prijem.Month(), prijem.Day(), 0, 0, 0, 0, time.UTC)
+	return g.Before(p)
 }
 
 // parseOpcionuCenu pretvara string u *float64 — prazno polje ili neispravna vrednost vraća nil
@@ -1368,6 +1454,9 @@ func (h *Handler) AzurirajGaranciju(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
 		return
 	}
+	// ista logika kao u formi „Izmeni nalog" (parseFormuNaloga): popunjen datum se čuva,
+	// prazno ili „bez garancije" → bez garancije. Podrazumevanu vrednost postavlja dugme
+	// „Podrazumevano" eksplicitno (popuni input), pa ovde nema posebne default grane.
 	var garancijaDo *time.Time
 	if r.FormValue("bez_garancije") != "1" {
 		if gd := strings.TrimSpace(r.FormValue("garancija_do")); gd != "" {
@@ -1377,24 +1466,81 @@ func (h *Handler) AzurirajGaranciju(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			garancijaDo = &t
-		} else {
-			// odštiklirano „bez garancije" bez izabranog datuma → vrati default
-			nalog, err := h.ServisRepo.DohvatiID(r.Context(), id)
-			if err != nil {
-				slog.Error("greška pri dohvatanju naloga za garanciju", "id", id, "error", err)
-			} else {
-				podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
-				if err != nil {
-					slog.Error("greška pri učitavanju podešavanja za garanciju", "error", err)
-				} else {
-					garancijaDo = defaultGarancija(nalog.DatumPrijema, podesavanja)
-				}
-			}
+		}
+	}
+	// garancija ne sme da bude pre datuma prijema
+	if garancijaDo != nil {
+		if nalog, e := h.ServisRepo.DohvatiID(r.Context(), id); e == nil && nalog != nil && garancijaPrePrijema(*garancijaDo, nalog.DatumPrijema) {
+			http.Error(w, "Datum garancije ne može biti pre datuma prijema.", http.StatusBadRequest)
+			return
 		}
 	}
 	if err := h.ServisRepo.AzurirajGaranciju(r.Context(), id, garancijaDo); err != nil {
 		slog.Error("greška pri ažuriranju garancije", "id", id, "error", err)
 		http.Error(w, "Greška pri ažuriranju garancije", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+}
+
+// AzurirajPredvidjenDatum postavlja ručni override predviđenog datuma popravke;
+// prazno polje vraća nalog na izvedeni default (prijem + rok iz podešavanja).
+func (h *Handler) AzurirajPredvidjenDatum(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "servis.izmeni"); !ok {
+		return
+	}
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
+		return
+	}
+	var predvidjenDatum *time.Time
+	if pd := strings.TrimSpace(r.FormValue("predvidjen_datum")); pd != "" {
+		t, err := time.Parse("2006-01-02", pd)
+		if err != nil {
+			http.Error(w, "Neispravan predviđen datum", http.StatusBadRequest)
+			return
+		}
+		predvidjenDatum = &t
+	}
+	if err := h.ServisRepo.AzurirajPredvidjenDatum(r.Context(), id, predvidjenDatum); err != nil {
+		slog.Error("greška pri ažuriranju predviđenog datuma", "id", id, "error", err)
+		http.Error(w, "Greška pri ažuriranju predviđenog datuma", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+}
+
+// AzurirajTehnicar menja dodeljenog tehničara na nalogu; prazna vrednost → nedodeljen.
+func (h *Handler) AzurirajTehnicar(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "servis.izmeni"); !ok {
+		return
+	}
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
+		return
+	}
+	var tehnicarID *int64
+	if t := strings.TrimSpace(r.FormValue("tehnicar_id")); t != "" {
+		v, err := strconv.ParseInt(t, 10, 64)
+		if err != nil {
+			http.Error(w, "Neispravan tehničar", http.StatusBadRequest)
+			return
+		}
+		tehnicarID = &v
+	}
+	if err := h.ServisRepo.AzurirajTehnicar(r.Context(), id, tehnicarID); err != nil {
+		slog.Error("greška pri ažuriranju tehničara", "id", id, "error", err)
+		http.Error(w, "Greška pri ažuriranju tehničara", http.StatusInternalServerError)
 		return
 	}
 	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)

@@ -522,6 +522,22 @@ body {
 }
 .btn-primarno-malo:hover { opacity: 0.85; }
 
+/* sitno diskretno dugme „Promeni" pored vrednosti u detaljima naloga */
+.izmeni-polje {
+    margin-left: 6px;
+    font-size: 11px;
+    padding: 1px 7px;
+    border: 0.5px solid var(--ivica);
+    border-radius: 6px;
+    background: var(--kartica);
+    color: var(--tekst-sporedni);
+    cursor: pointer;
+    white-space: nowrap;
+    vertical-align: middle;
+    transition: color 0.15s, border-color 0.15s;
+}
+.izmeni-polje:hover { color: var(--tekst-glavni); border-color: var(--sb-akcent); }
+
 /* sekundarno dugme (Odustani) */
 .btn-sekundarno {
     display: inline-flex;
