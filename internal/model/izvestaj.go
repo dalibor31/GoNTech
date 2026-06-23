@@ -8,6 +8,7 @@ import "time"
 
 // ServisRedDashboard je jedan red za listu poslednjih servisa na dashboardu
 type ServisRedDashboard struct {
+	ID           int64
 	Uredjaj      string
 	Status       string
 	DatumPrijema time.Time

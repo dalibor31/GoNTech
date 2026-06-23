@@ -2,6 +2,7 @@ package model
 
 // StavkaServisa prikazuje jedan servisni nalog na dashboardu
 type StavkaServisa struct {
+	ID           int64
 	Uredjaj      string
 	Status       string
 	BojaTacke    string

@@ -86,11 +86,11 @@
 			<span style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">Poslednji servisi</span>
 		</div>
 		{{ range .PoslednjiServisi }}
-			<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--ivica);">
+			<a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/servis/{{ .ID }}" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--ivica);text-decoration:none;">
 				<div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:{{ .BojaTacke }};"></div>
 				<span style="font-size:13px;color:var(--tekst-glavni);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ .Uredjaj }}</span>
 				<span style="font-size:11px;color:var(--tekst-sporedni);white-space:nowrap;">{{ .DatumPrijema }}</span>
-			</div>
+			</a>
 		{{ else }}
 			<div style="font-size:13px;color:var(--tekst-sporedni);padding:8px 0;">Nema servisnih naloga.</div>
 		{{ end }}

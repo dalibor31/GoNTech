@@ -57,7 +57,7 @@ func (r *sqliteIzvestajRepo) BrojKriticnihZaliha(ctx context.Context) (int, erro
 
 func (r *sqliteIzvestajRepo) PoslednjiServisi(ctx context.Context, limit int) ([]model.ServisRedDashboard, error) {
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT uredjaj, status, datum_prijema FROM servisni_nalozi
+		SELECT id, uredjaj, status, datum_prijema FROM servisni_nalozi
 		ORDER BY datum_prijema DESC LIMIT ?`, limit)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: izvestaj.PoslednjiServisi: %w", err)
@@ -66,7 +66,7 @@ func (r *sqliteIzvestajRepo) PoslednjiServisi(ctx context.Context, limit int) ([
 	var lista []model.ServisRedDashboard
 	for rows.Next() {
 		var s model.ServisRedDashboard
-		if err := rows.Scan(&s.Uredjaj, &s.Status, &s.DatumPrijema); err != nil {
+		if err := rows.Scan(&s.ID, &s.Uredjaj, &s.Status, &s.DatumPrijema); err != nil {
 			return nil, fmt.Errorf("ntech: izvestaj.PoslednjiServisi: %w", err)
 		}
 		lista = append(lista, s)
