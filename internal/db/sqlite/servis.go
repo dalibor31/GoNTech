@@ -58,7 +58,7 @@ func (r *ServisRepo) Lista(ctx context.Context, pretraga, status string) ([]mode
 			sn.id, sn.klijent_id, sn.tehnicar_id, sn.broj_naloga, sn.uredjaj, sn.serijski_broj,
 			sn.opis_kvara, sn.trazene_nadogradnje, sn.status, sn.cena_od, sn.cena_do, sn.cena_konacna,
 			sn.avans, sn.napomena, sn.garancija_do, sn.garancija_dana, sn.datum_prijema, sn.datum_zavrsetka, sn.predvidjen_datum,
-			sn.ostecenja, sn.pin_uredjaja, sn.pribor, sn.napomena_klijentu, sn.javni_token,
+			sn.ostecenja, sn.pin_uredjaja, sn.pribor, sn.napomena_klijentu, sn.nalaz_dijagnostike, sn.uradjeno, sn.cena_dijagnostike, sn.popravka_odbijena, sn.javni_token,
 			COALESCE(kp.naziv, '') AS klijent_naziv
 		FROM servisni_nalozi sn
 		LEFT JOIN klijent_prikaz kp ON kp.id = sn.klijent_id
@@ -105,7 +105,7 @@ func (r *ServisRepo) DohvatiID(ctx context.Context, id int64) (*model.ServisniNa
 			id, klijent_id, tehnicar_id, broj_naloga, uredjaj, serijski_broj,
 			opis_kvara, trazene_nadogradnje, status, cena_od, cena_do, cena_konacna,
 			avans, napomena, garancija_do, garancija_dana, datum_prijema, datum_zavrsetka, predvidjen_datum,
-			ostecenja, pin_uredjaja, pribor, napomena_klijentu, javni_token
+			ostecenja, pin_uredjaja, pribor, napomena_klijentu, nalaz_dijagnostike, uradjeno, cena_dijagnostike, popravka_odbijena, javni_token
 		FROM servisni_nalozi WHERE id = ?`, id)
 
 	var n model.ServisniNalog
@@ -157,7 +157,7 @@ func (r *ServisRepo) DohvatiJavniToken(ctx context.Context, token string) (*mode
 			id, klijent_id, tehnicar_id, broj_naloga, uredjaj, serijski_broj,
 			opis_kvara, trazene_nadogradnje, status, cena_od, cena_do, cena_konacna,
 			avans, napomena, garancija_do, garancija_dana, datum_prijema, datum_zavrsetka, predvidjen_datum,
-			ostecenja, pin_uredjaja, pribor, napomena_klijentu, javni_token
+			ostecenja, pin_uredjaja, pribor, napomena_klijentu, nalaz_dijagnostike, uradjeno, cena_dijagnostike, popravka_odbijena, javni_token
 		FROM servisni_nalozi WHERE javni_token = ?`, token)
 
 	var n model.ServisniNalog
@@ -192,17 +192,32 @@ func (r *ServisRepo) Izmeni(ctx context.Context, n *model.ServisniNalog) error {
 // AzurirajStatus menja samo status naloga; ako nalog prelazi u završno stanje
 // i datum_zavrsetka još nije postavljen, automatski ga postavlja na danas.
 func (r *ServisRepo) AzurirajStatus(ctx context.Context, id int64, status string) error {
+	// svaka „normalna" promena statusa poništava oznaku odbijene popravke
+	// (npr. serviser se predomisli i vrati nalog iz „Završeno" u dijagnostiku/popravku)
 	var upit string
 	if status == model.StatusZavrseno || status == model.StatusPreuzeto {
-		upit = `UPDATE servisni_nalozi SET status = ?,
+		upit = `UPDATE servisni_nalozi SET status = ?, popravka_odbijena = 0,
 			datum_zavrsetka = COALESCE(datum_zavrsetka, date('now', 'localtime'))
 			WHERE id = ?`
 	} else {
-		upit = `UPDATE servisni_nalozi SET status = ? WHERE id = ?`
+		upit = `UPDATE servisni_nalozi SET status = ?, popravka_odbijena = 0 WHERE id = ?`
 	}
 	_, err := r.db.ExecContext(ctx, upit, status, id)
 	if err != nil {
 		return fmt.Errorf("ntech: ServisRepo.AzurirajStatus: %w", err)
+	}
+	return nil
+}
+
+// OdbijPopravku označava da je klijent odbio popravku posle dijagnostike:
+// nalog prelazi u „Završeno", upisuje se oznaka i cena dijagnostike (taksa za pregled).
+func (r *ServisRepo) OdbijPopravku(ctx context.Context, id int64, cena float64) error {
+	_, err := r.db.ExecContext(ctx, `UPDATE servisni_nalozi
+		SET status = ?, popravka_odbijena = 1, cena_dijagnostike = ?,
+			datum_zavrsetka = COALESCE(datum_zavrsetka, date('now', 'localtime'))
+		WHERE id = ?`, model.StatusZavrseno, cena, id)
+	if err != nil {
+		return fmt.Errorf("ntech: ServisRepo.OdbijPopravku: %w", err)
 	}
 	return nil
 }
@@ -288,6 +303,39 @@ func (r *ServisRepo) AzurirajNapomenuKlijentu(ctx context.Context, id int64, tek
 	return nil
 }
 
+// AzurirajNalazDijagnostike postavlja tekst nalaza dijagnostike (dijagnoza kvara i predlog popravke) na nalogu
+func (r *ServisRepo) AzurirajNalazDijagnostike(ctx context.Context, id int64, tekst string) error {
+	_, err := r.db.ExecContext(ctx,
+		"UPDATE servisni_nalozi SET nalaz_dijagnostike = ? WHERE id = ?", tekst, id,
+	)
+	if err != nil {
+		return fmt.Errorf("ntech: ServisRepo.AzurirajNalazDijagnostike: %w", err)
+	}
+	return nil
+}
+
+// AzurirajUradjeno čuva tekst „šta je urađeno" na servisnom nalogu
+func (r *ServisRepo) AzurirajUradjeno(ctx context.Context, id int64, tekst string) error {
+	_, err := r.db.ExecContext(ctx,
+		"UPDATE servisni_nalozi SET uradjeno = ? WHERE id = ?", tekst, id,
+	)
+	if err != nil {
+		return fmt.Errorf("ntech: ServisRepo.AzurirajUradjeno: %w", err)
+	}
+	return nil
+}
+
+// AzurirajCenaDijagnostike postavlja cenu dijagnostike (taksa kad klijent ne prihvati popravku)
+func (r *ServisRepo) AzurirajCenaDijagnostike(ctx context.Context, id int64, cena float64) error {
+	_, err := r.db.ExecContext(ctx,
+		"UPDATE servisni_nalozi SET cena_dijagnostike = ? WHERE id = ?", cena, id,
+	)
+	if err != nil {
+		return fmt.Errorf("ntech: ServisRepo.AzurirajCenaDijagnostike: %w", err)
+	}
+	return nil
+}
+
 // Obrisi briše servisni nalog po ID-u
 // Obrisi briše servisni nalog i vraća ugrađene delove na stanje u magacinu (u transakciji)
 func (r *ServisRepo) Obrisi(ctx context.Context, id int64, korisnikID *int64) error {
@@ -369,16 +417,17 @@ func (r *ServisRepo) Obrisi(ctx context.Context, id int64, korisnikID *int64) er
 // klijentNaziv je opcioni pokazivač, nil kada se čita bez JOIN-a
 func scanNalog(scan func(...any) error, n *model.ServisniNalog, klijentNaziv *string) error {
 	var klijentID, tehnicarID sql.NullInt64
-	var serijskiBroj, napomena, ostecenja, pinUredjaja, pribor, napomenaKlijentu, javniToken sql.NullString
+	var serijskiBroj, napomena, ostecenja, pinUredjaja, pribor, napomenaKlijentu, nalazDijagnostike, uradjeno, javniToken sql.NullString
 	var cenaOd, cenaDo, cenaKonacna, avans sql.NullFloat64
 	var garancijaDo, datumZavrsetka, predvidjenDatum sql.NullTime
 	var garancijaDana sql.NullInt64
+	var popravkaOdbijena sql.NullInt64
 
 	args := []any{
 		&n.ID, &klijentID, &tehnicarID, &n.BrojNaloga, &n.Uredjaj, &serijskiBroj,
 		&n.OpisKvara, &n.TrazeneNadogradnje, &n.Status, &cenaOd, &cenaDo, &cenaKonacna,
 		&avans, &napomena, &garancijaDo, &garancijaDana, &n.DatumPrijema, &datumZavrsetka, &predvidjenDatum,
-		&ostecenja, &pinUredjaja, &pribor, &napomenaKlijentu, &javniToken,
+		&ostecenja, &pinUredjaja, &pribor, &napomenaKlijentu, &nalazDijagnostike, &uradjeno, &n.CenaDijagnostike, &popravkaOdbijena, &javniToken,
 	}
 
 	if klijentNaziv != nil {
@@ -403,6 +452,8 @@ func scanNalog(scan func(...any) error, n *model.ServisniNalog, klijentNaziv *st
 	n.PinUredjaja = pinUredjaja.String
 	n.Pribor = pribor.String
 	n.NapomenaKlijentu = napomenaKlijentu.String
+	n.NalazDijagnostike = nalazDijagnostike.String
+	n.Uradjeno = uradjeno.String
 	if cenaOd.Valid {
 		v := cenaOd.Float64
 		n.CenaOd = &v
@@ -435,6 +486,7 @@ func scanNalog(scan func(...any) error, n *model.ServisniNalog, klijentNaziv *st
 		v := int(garancijaDana.Int64)
 		n.GarancijaDana = &v
 	}
+	n.PopravkaOdbijena = popravkaOdbijena.Int64 != 0
 	n.JavniToken = javniToken.String
 
 	return nil

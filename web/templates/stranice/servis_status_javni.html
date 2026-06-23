@@ -55,8 +55,8 @@
         /* red podataka */
         .red { display: flex; justify-content: space-between; align-items: flex-start; padding: 10px 0; border-bottom: 0.5px solid #f0f0f0; gap: 12px; }
         .red:last-child { border-bottom: none; }
-        .red-labela { font-size: 12px; color: #888; flex-shrink: 0; }
-        .red-vrednost { font-size: 13px; color: #111; font-weight: 500; text-align: right; }
+        .red-labela { font-size: 12px; color: #888; min-width: 0; overflow-wrap: anywhere; }
+        .red-vrednost { font-size: 13px; color: #111; font-weight: 500; text-align: right; flex-shrink: 0; white-space: nowrap; }
 
         /* cena */
         .cena-blok { background: #f9fafb; border-radius: 10px; padding: 14px 16px; margin-top: 4px; }
@@ -105,6 +105,8 @@
             {{$s := .Nalog.Status}}
             {{if eq $s "Primljeno"}}
                 <span class="status-bedz status-primljeno">Primljeno</span>
+            {{else if eq $s "U dijagnostici"}}
+                <span class="status-bedz status-dijagnostika">U dijagnostici</span>
             {{else if eq $s "Čeka delove"}}
                 <span class="status-bedz status-ceka">Čeka delove</span>
             {{else if eq $s "U popravci"}}
@@ -152,6 +154,13 @@
                 <span class="red-labela">Garancija</span>
                 <span class="red-vrednost">{{garancijaTekst .Nalog.GarancijaDana}}</span>
             </div>
+
+            {{if .Nalog.NalazDijagnostike}}
+            <div style="margin-top:12px;">
+                <div class="red-labela" style="margin-bottom:6px;">Utvrđeno na dijagnostici</div>
+                <div class="napomena-blok">{{.Nalog.NalazDijagnostike}}</div>
+            </div>
+            {{end}}
 
             {{if .Nalog.NapomenaKlijentu}}
             <div style="margin-top:12px;">

@@ -50,6 +50,10 @@ type ServisniNalog struct {
 	PinUredjaja        string
 	Pribor             string
 	NapomenaKlijentu   string
+	NalazDijagnostike  string  // šta je serviser utvrdio pregledom (dijagnoza + predlog popravke)
+	Uradjeno           string  // šta je serviser stvarno uradio tokom popravke
+	CenaDijagnostike   float64 // taksa kad klijent ne prihvati popravku; 0 = ne naplaćuje se
+	PopravkaOdbijena   bool    // klijent odbio popravku posle dijagnostike → naplaćuje se samo dijagnostika
 	JavniToken         string
 }
 
@@ -157,6 +161,14 @@ func (n ServisniNalog) AvansStr() string {
 		return ""
 	}
 	return fmt.Sprintf("%.2f", *n.Avans)
+}
+
+// CenaDijagnostikeStr vraća cenu dijagnostike za <input>, ili prazan string kad je 0
+func (n ServisniNalog) CenaDijagnostikeStr() string {
+	if n.CenaDijagnostike == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%.2f", n.CenaDijagnostike)
 }
 
 // PreostaloZaNaplatu vraća razliku konacna_cena − avans, minimum 0.

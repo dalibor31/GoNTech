@@ -196,6 +196,10 @@ type ServisRepository interface {
 	AzurirajPredvidjenDatum(ctx context.Context, id int64, predvidjenDatum *time.Time) error
 	AzurirajTehnicar(ctx context.Context, id int64, tehnicarID *int64) error
 	AzurirajNapomenuKlijentu(ctx context.Context, id int64, tekst string) error
+	AzurirajNalazDijagnostike(ctx context.Context, id int64, tekst string) error
+	AzurirajUradjeno(ctx context.Context, id int64, tekst string) error
+	AzurirajCenaDijagnostike(ctx context.Context, id int64, cena float64) error
+	OdbijPopravku(ctx context.Context, id int64, cena float64) error
 	Obrisi(ctx context.Context, id int64, korisnikID *int64) error
 	SledeciBroj(ctx context.Context) (string, error)
 }
