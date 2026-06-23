@@ -1298,6 +1298,52 @@ func (h *Handler) StampaOtpremnice(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// PodaciNalepnice su podaci za malu nalepnicu (70×40 mm) koja se lepi na uređaj
+type PodaciNalepnice struct {
+	Nalog        model.ServisniNalog
+	KlijentNaziv string
+	QRKod        string // base64 PNG QR koda sa URL-om naloga
+}
+
+// StampaNalepnice renderuje malu nalepnicu sa brojem naloga, klijentom, uređajem i QR kodom
+func (h *Handler) StampaNalepnice(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+
+	nalog, err := h.ServisRepo.DohvatiID(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Nalog nije pronađen", http.StatusNotFound)
+		return
+	}
+
+	klijentNaziv := ""
+	if nalog.KlijentID != nil {
+		k, err := h.KlijentiRepo.DohvatiID(r.Context(), *nalog.KlijentID)
+		if err == nil {
+			if k.NazivFirme != "" {
+				klijentNaziv = k.NazivFirme
+			} else {
+				klijentNaziv = strings.TrimSpace(k.Ime + " " + k.Prezime)
+			}
+		}
+	}
+
+	nalogURL := qrNalogURL(r, nalog.JavniToken)
+	var qrKod string
+	if png, err := qrcode.Encode(nalogURL, qrcode.Medium, 160); err == nil {
+		qrKod = base64.StdEncoding.EncodeToString(png)
+	}
+
+	h.renderujStandalone(w, "servis_nalepnica", PodaciNalepnice{
+		Nalog:        *nalog,
+		KlijentNaziv: klijentNaziv,
+		QRKod:        qrKod,
+	})
+}
+
 // PodaciPredracuna su podaci za predračun/ponudu koja se šalje klijentu pre rada
 type PodaciPredracuna struct {
 	Nalog          model.ServisniNalog
