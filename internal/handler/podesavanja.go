@@ -49,7 +49,7 @@ type PodaciPodesavanja struct {
 	BackupIntervalSati              string
 	BackupBrojKopija                string
 	KalkulacijaMarza                string
-	ServisGarancijaMeseci           string
+	ServisGarancijaDana             string
 	PredracunRokDana                string
 	PredvidjenRokDana               string
 	LoginPozadina                   string
@@ -366,15 +366,15 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// podrazumevani rok garancije za servis (meseci, 0–120)
-	if v := strings.TrimSpace(r.FormValue("servis_garancija_meseci")); v != "" {
+	// podrazumevana garancija za servis (dani, 0–3650)
+	if v := strings.TrimSpace(r.FormValue("servis_garancija_dana")); v != "" {
 		n, err := strconv.Atoi(v)
-		if err != nil || n < 0 || n > 120 {
-			middleware.SetFlash(w, r, h.DB, "greska", "Rok garancije mora biti broj između 0 i 120 meseci.")
+		if err != nil || n < 0 || n > 3650 {
+			middleware.SetFlash(w, r, h.DB, "greska", "Garancija mora biti broj između 0 i 3650 dana.")
 			http.Redirect(w, r, sledeci, http.StatusSeeOther)
 			return
 		}
-		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "servis_garancija_meseci", strconv.Itoa(n)); err != nil {
+		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "servis_garancija_dana", strconv.Itoa(n)); err != nil {
 			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
 			return
 		}
@@ -779,7 +779,7 @@ func (h *Handler) napuniPodaciPodesavanja(r *http.Request, naslov string) (Podac
 		BackupIntervalSati:              vrednostIliDefault(podesavanja, "backup_interval_sati", "24"),
 		BackupBrojKopija:                vrednostIliDefault(podesavanja, "backup_broj_kopija", "7"),
 		KalkulacijaMarza:                vrednostIliDefault(podesavanja, "kalkulacija_marza", "20"),
-		ServisGarancijaMeseci:           vrednostIliDefault(podesavanja, "servis_garancija_meseci", "2"),
+		ServisGarancijaDana:             vrednostIliDefault(podesavanja, "servis_garancija_dana", "60"),
 		PredracunRokDana:                vrednostIliDefault(podesavanja, "predracun_rok_dana", "7"),
 		PredvidjenRokDana:               vrednostIliDefault(podesavanja, "predvidjen_rok_dana", "15"),
 	}, nil

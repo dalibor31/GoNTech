@@ -68,6 +68,8 @@ var sablonskeFunkcije = template.FuncMap{
 	},
 	// telefon formatira srpski broj telefona radi lakšeg čitanja: "0641234567" → "064 123 4567"
 	"telefon": formatirajTelefon,
+	// garancijaTekst prikazuje trajanje garancije (dani) na srpskom: 45 → „1 mesec i 15 dana"
+	"garancijaTekst": garancijaTekst,
 	// json serijalizuje vrednost u JSON za ugradnju u <script> (npr. Alpine x-data);
 	// template.JS sprečava da html/template dodatno escapuje rezultat
 	"json": func(v any) (template.JS, error) {

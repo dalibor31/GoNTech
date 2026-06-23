@@ -20,6 +20,15 @@ func nullInt64(v *int64) sql.NullInt64 {
 	return sql.NullInt64{Int64: *v, Valid: true}
 }
 
+// nullInt pretvara *int pokazivač u sql.NullInt64 —
+// koristi se za opciona celobrojna polja (npr. trajanje garancije u danima)
+func nullInt(v *int) sql.NullInt64 {
+	if v == nil {
+		return sql.NullInt64{}
+	}
+	return sql.NullInt64{Int64: int64(*v), Valid: true}
+}
+
 // nullFloat64 pretvara *float64 pokazivač u sql.NullFloat64 —
 // koristi se za opciona numerička polja kao što su cene
 func nullFloat64(v *float64) sql.NullFloat64 {

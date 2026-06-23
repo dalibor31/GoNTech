@@ -57,7 +57,7 @@ func (r *ServisRepo) Lista(ctx context.Context, pretraga, status string) ([]mode
 		SELECT
 			sn.id, sn.klijent_id, sn.tehnicar_id, sn.broj_naloga, sn.uredjaj, sn.serijski_broj,
 			sn.opis_kvara, sn.trazene_nadogradnje, sn.status, sn.cena_od, sn.cena_do, sn.cena_konacna,
-			sn.avans, sn.napomena, sn.garancija_do, sn.datum_prijema, sn.datum_zavrsetka, sn.predvidjen_datum,
+			sn.avans, sn.napomena, sn.garancija_do, sn.garancija_dana, sn.datum_prijema, sn.datum_zavrsetka, sn.predvidjen_datum,
 			sn.ostecenja, sn.pin_uredjaja, sn.pribor, sn.napomena_klijentu, sn.javni_token,
 			COALESCE(kp.naziv, '') AS klijent_naziv
 		FROM servisni_nalozi sn
@@ -104,7 +104,7 @@ func (r *ServisRepo) DohvatiID(ctx context.Context, id int64) (*model.ServisniNa
 		SELECT
 			id, klijent_id, tehnicar_id, broj_naloga, uredjaj, serijski_broj,
 			opis_kvara, trazene_nadogradnje, status, cena_od, cena_do, cena_konacna,
-			avans, napomena, garancija_do, datum_prijema, datum_zavrsetka, predvidjen_datum,
+			avans, napomena, garancija_do, garancija_dana, datum_prijema, datum_zavrsetka, predvidjen_datum,
 			ostecenja, pin_uredjaja, pribor, napomena_klijentu, javni_token
 		FROM servisni_nalozi WHERE id = ?`, id)
 
@@ -127,14 +127,14 @@ func (r *ServisRepo) Kreiraj(ctx context.Context, n *model.ServisniNalog) (int64
 	rezultat, err := r.db.ExecContext(ctx, `
 		INSERT INTO servisni_nalozi
 			(klijent_id, tehnicar_id, broj_naloga, uredjaj, serijski_broj, opis_kvara, trazene_nadogradnje,
-			 status, cena_od, cena_do, cena_konacna, avans, napomena, garancija_do, datum_zavrsetka, predvidjen_datum,
+			 status, cena_od, cena_do, cena_konacna, avans, napomena, garancija_do, garancija_dana, datum_zavrsetka, predvidjen_datum,
 			 ostecenja, pin_uredjaja, pribor, datum_prijema, javni_token)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		nullInt64(n.KlijentID), nullInt64(n.TehnicarID), n.BrojNaloga, n.Uredjaj,
 		nullString(n.SerijskiBroj), n.OpisKvara, n.TrazeneNadogradnje, n.Status,
 		nullFloat64(n.CenaOd), nullFloat64(n.CenaDo), nullFloat64(n.CenaKonacna),
 		nullFloat64(n.Avans), nullString(n.Napomena),
-		nullTime(n.GarancijaDo), nullTime(n.DatumZavrsetka), nullTime(n.PredvidjenDatum),
+		nullTime(n.GarancijaDo), nullInt(n.GarancijaDana), nullTime(n.DatumZavrsetka), nullTime(n.PredvidjenDatum),
 		nullString(n.Ostecenja), nullString(n.PinUredjaja), nullString(n.Pribor),
 		n.DatumPrijema, token,
 	)
@@ -156,7 +156,7 @@ func (r *ServisRepo) DohvatiJavniToken(ctx context.Context, token string) (*mode
 		SELECT
 			id, klijent_id, tehnicar_id, broj_naloga, uredjaj, serijski_broj,
 			opis_kvara, trazene_nadogradnje, status, cena_od, cena_do, cena_konacna,
-			avans, napomena, garancija_do, datum_prijema, datum_zavrsetka, predvidjen_datum,
+			avans, napomena, garancija_do, garancija_dana, datum_prijema, datum_zavrsetka, predvidjen_datum,
 			ostecenja, pin_uredjaja, pribor, napomena_klijentu, javni_token
 		FROM servisni_nalozi WHERE javni_token = ?`, token)
 
@@ -173,12 +173,12 @@ func (r *ServisRepo) Izmeni(ctx context.Context, n *model.ServisniNalog) error {
 		UPDATE servisni_nalozi SET
 			klijent_id = ?, tehnicar_id = ?, uredjaj = ?, serijski_broj = ?, opis_kvara = ?, trazene_nadogradnje = ?,
 			status = ?, cena_od = ?, cena_do = ?, cena_konacna = ?,
-			avans = ?, napomena = ?, garancija_do = ?, datum_zavrsetka = ?, predvidjen_datum = ?,
+			avans = ?, napomena = ?, garancija_do = ?, garancija_dana = ?, datum_zavrsetka = ?, predvidjen_datum = ?,
 			ostecenja = ?, pin_uredjaja = ?, pribor = ?
 		WHERE id = ?`,
 		nullInt64(n.KlijentID), nullInt64(n.TehnicarID), n.Uredjaj, nullString(n.SerijskiBroj), n.OpisKvara, n.TrazeneNadogradnje,
 		n.Status, nullFloat64(n.CenaOd), nullFloat64(n.CenaDo), nullFloat64(n.CenaKonacna),
-		nullFloat64(n.Avans), nullString(n.Napomena), nullTime(n.GarancijaDo), nullTime(n.DatumZavrsetka), nullTime(n.PredvidjenDatum),
+		nullFloat64(n.Avans), nullString(n.Napomena), nullTime(n.GarancijaDo), nullInt(n.GarancijaDana), nullTime(n.DatumZavrsetka), nullTime(n.PredvidjenDatum),
 		nullString(n.Ostecenja), nullString(n.PinUredjaja), nullString(n.Pribor),
 		n.ID,
 	)
@@ -229,6 +229,19 @@ func (r *ServisRepo) AzurirajGaranciju(ctx context.Context, id int64, garancijaD
 	return nil
 }
 
+// AzurirajGarancijaDana postavlja trajanje garancije u danima (od završetka radova).
+// dana == nil ili 0 → bez garancije.
+func (r *ServisRepo) AzurirajGarancijaDana(ctx context.Context, id int64, dana *int) error {
+	_, err := r.db.ExecContext(ctx,
+		"UPDATE servisni_nalozi SET garancija_dana = ? WHERE id = ?",
+		nullInt(dana), id,
+	)
+	if err != nil {
+		return fmt.Errorf("ntech: ServisRepo.AzurirajGarancijaDana: %w", err)
+	}
+	return nil
+}
+
 // AzurirajPredvidjenDatum postavlja ili briše ručni override predviđenog datuma popravke.
 // predvidjenDatum == nil → vraća se na izvedeni default (prijem + rok iz podešavanja).
 func (r *ServisRepo) AzurirajPredvidjenDatum(ctx context.Context, id int64, predvidjenDatum *time.Time) error {
@@ -251,7 +264,7 @@ func (r *ServisRepo) AzurirajPredvidjenDatum(ctx context.Context, id int64, pred
 	return nil
 }
 
-// AzurirajTehnicar postavlja ili uklanja dodeljenog tehničara na nalogu.
+// AzurirajTehnicar postavlja ili uklanja dodeljenog servisera na nalogu.
 // tehnicarID == nil → nedodeljen.
 func (r *ServisRepo) AzurirajTehnicar(ctx context.Context, id int64, tehnicarID *int64) error {
 	_, err := r.db.ExecContext(ctx,
@@ -359,11 +372,12 @@ func scanNalog(scan func(...any) error, n *model.ServisniNalog, klijentNaziv *st
 	var serijskiBroj, napomena, ostecenja, pinUredjaja, pribor, napomenaKlijentu, javniToken sql.NullString
 	var cenaOd, cenaDo, cenaKonacna, avans sql.NullFloat64
 	var garancijaDo, datumZavrsetka, predvidjenDatum sql.NullTime
+	var garancijaDana sql.NullInt64
 
 	args := []any{
 		&n.ID, &klijentID, &tehnicarID, &n.BrojNaloga, &n.Uredjaj, &serijskiBroj,
 		&n.OpisKvara, &n.TrazeneNadogradnje, &n.Status, &cenaOd, &cenaDo, &cenaKonacna,
-		&avans, &napomena, &garancijaDo, &n.DatumPrijema, &datumZavrsetka, &predvidjenDatum,
+		&avans, &napomena, &garancijaDo, &garancijaDana, &n.DatumPrijema, &datumZavrsetka, &predvidjenDatum,
 		&ostecenja, &pinUredjaja, &pribor, &napomenaKlijentu, &javniToken,
 	}
 
@@ -416,6 +430,10 @@ func scanNalog(scan func(...any) error, n *model.ServisniNalog, klijentNaziv *st
 	if predvidjenDatum.Valid {
 		v := predvidjenDatum.Time
 		n.PredvidjenDatum = &v
+	}
+	if garancijaDana.Valid {
+		v := int(garancijaDana.Int64)
+		n.GarancijaDana = &v
 	}
 	n.JavniToken = javniToken.String
 
