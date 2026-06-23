@@ -63,6 +63,7 @@ type PodaciPodesavanja struct {
 	BackupBrojKopija                string
 	KalkulacijaMarza                string
 	ServisGarancijaDana             string
+	ServisCenaDijagnostike          string
 	PredracunRokDana                string
 	PredvidjenRokDana               string
 	ServisUslovi                    string
@@ -398,6 +399,20 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "servis_garancija_dana", strconv.Itoa(n)); err != nil {
+			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// podrazumevana cena dijagnostike (din, ≥ 0)
+	if v := strings.TrimSpace(r.FormValue("servis_cena_dijagnostike")); v != "" {
+		cena, err := strconv.ParseFloat(strings.ReplaceAll(v, ",", "."), 64)
+		if err != nil || cena < 0 {
+			middleware.SetFlash(w, r, h.DB, "greska", "Cena dijagnostike mora biti broj veći ili jednak 0.")
+			http.Redirect(w, r, sledeci, http.StatusSeeOther)
+			return
+		}
+		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "servis_cena_dijagnostike", strconv.FormatFloat(cena, 'f', -1, 64)); err != nil {
 			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
 			return
 		}
@@ -831,6 +846,7 @@ func (h *Handler) napuniPodaciPodesavanja(r *http.Request, naslov string) (Podac
 		BackupBrojKopija:                vrednostIliDefault(podesavanja, "backup_broj_kopija", "7"),
 		KalkulacijaMarza:                vrednostIliDefault(podesavanja, "kalkulacija_marza", "20"),
 		ServisGarancijaDana:             vrednostIliDefault(podesavanja, "servis_garancija_dana", "60"),
+		ServisCenaDijagnostike:          vrednostIliDefault(podesavanja, "servis_cena_dijagnostike", "0"),
 		PredracunRokDana:                vrednostIliDefault(podesavanja, "predracun_rok_dana", "7"),
 		PredvidjenRokDana:               vrednostIliDefault(podesavanja, "predvidjen_rok_dana", "15"),
 		ServisUslovi:                    vrednostIliDefault(podesavanja, "servis_uslovi", podrazumevaniUsloviServisa),

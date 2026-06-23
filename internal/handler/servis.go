@@ -50,23 +50,25 @@ type PodaciFormeNaloga struct {
 // PodaciDetaljiNaloga su podaci za pregled jednog servisnog naloga
 type PodaciDetaljiNaloga struct {
 	model.PodaciStranice
-	Nalog            model.ServisniNalog
-	KlijentNaziv     string
-	TehnicarNaziv    string
-	Tehnicari        []model.Korisnik
-	GarancijaDefault string // podrazumevana garancija (prijem + meseci), format 2006-01-02
-	BezGarancije     bool   // u bazi nalog nema garanciju (GarancijaDo == NULL)
-	ServisniDelovi   []model.ServisniDeoSaArtiklom
-	ServisniRadovi   []model.ServisniRad
-	Artikli          []model.ArtikalSaKategorijom
-	Usluge           []model.Usluga
-	Sacuvano         bool
-	UkupnoDelovi     float64
-	UkupnoRadovi     float64
-	UkupnoSve        float64
-	PreostaloSve     float64
-	ZakljucanStatus  bool // onemogući promenu statusa dok ima potraživanih delova
-	SviStatusi       []string
+	Nalog                   model.ServisniNalog
+	KlijentNaziv            string
+	TehnicarNaziv           string
+	Tehnicari               []model.Korisnik
+	GarancijaDefault        string // podrazumevana garancija (prijem + meseci), format 2006-01-02
+	BezGarancije            bool   // u bazi nalog nema garanciju (GarancijaDo == NULL)
+	ServisniDelovi          []model.ServisniDeoSaArtiklom
+	ServisniRadovi          []model.ServisniRad
+	Artikli                 []model.ArtikalSaKategorijom
+	Usluge                  []model.Usluga
+	Sacuvano                bool
+	UkupnoDelovi            float64
+	UkupnoRadovi            float64
+	UkupnoSve               float64
+	PreostaloSve            float64
+	ZakljucanStatus         bool           // onemogući promenu statusa dok ima potraživanih delova
+	CenaDijagnostikePredlog string         // podrazumevana cena dijagnostike iz podešavanja (za prefill input-a)
+	KorisceneUsluge         map[int64]bool // ID-evi usluga već dodatih na nalog — izostavljaju se iz dropdown-a
+	SviStatusi              []string
 }
 
 // Servis renderuje listu servisnih naloga sa opcionom pretragom i filterom statusa
@@ -595,11 +597,23 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 	for _, d := range delovi {
 		ukupnoDelovi += d.Ukupno()
 	}
+	// skup već dodatih usluga — izostavljaju se iz dropdown-a da se ista usluga ne doda dvaput
+	korisceneUsluge := make(map[int64]bool, len(radovi))
 	for _, rad := range radovi {
 		ukupnoRadovi += rad.Ukupno()
+		if rad.UslugaID != 0 {
+			korisceneUsluge[rad.UslugaID] = true
+		}
 	}
-	// cena rada = zbir radova (usluga); ukupno za klijenta = radovi + delovi
-	ukupnoSve := ukupnoRadovi + ukupnoDelovi
+	// ukupno za klijenta zavisi od ishoda dijagnostike:
+	// – klijent odbio popravku → naplaćuje se samo cena dijagnostike
+	// – inače (popravka u toku/gotova) → radovi + delovi, dijagnostika se ne gleda
+	var ukupnoSve float64
+	if nalog.PopravkaOdbijena {
+		ukupnoSve = nalog.CenaDijagnostike
+	} else {
+		ukupnoSve = ukupnoRadovi + ukupnoDelovi
+	}
 	avans := 0.0
 	if nalog.Avans != nil {
 		avans = *nalog.Avans
@@ -621,24 +635,26 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 	ps.Stranica = "servis"
 	ps.NaslovStranice = "Detalji naloga"
 	podaci := PodaciDetaljiNaloga{
-		PodaciStranice:   ps,
-		Nalog:            *nalog,
-		KlijentNaziv:     klijentNaziv,
-		TehnicarNaziv:    tehnicarNaziv,
-		Tehnicari:        tehnicari,
-		GarancijaDefault: garancijaDefault,
-		BezGarancije:     bezGarancije,
-		ServisniDelovi:   delovi,
-		ServisniRadovi:   radovi,
-		Artikli:          artikli,
-		Usluge:           usluge,
-		Sacuvano:         r.URL.Query().Get("sacuvano") == "1",
-		UkupnoDelovi:     ukupnoDelovi,
-		UkupnoRadovi:     ukupnoRadovi,
-		UkupnoSve:        ukupnoSve,
-		PreostaloSve:     preostaloSve,
-		ZakljucanStatus:  zakljucanStatus,
-		SviStatusi:       model.SviStatusi,
+		PodaciStranice:          ps,
+		Nalog:                   *nalog,
+		KlijentNaziv:            klijentNaziv,
+		TehnicarNaziv:           tehnicarNaziv,
+		Tehnicari:               tehnicari,
+		GarancijaDefault:        garancijaDefault,
+		BezGarancije:            bezGarancije,
+		ServisniDelovi:          delovi,
+		ServisniRadovi:          radovi,
+		Artikli:                 artikli,
+		Usluge:                  usluge,
+		Sacuvano:                r.URL.Query().Get("sacuvano") == "1",
+		UkupnoDelovi:            ukupnoDelovi,
+		UkupnoRadovi:            ukupnoRadovi,
+		UkupnoSve:               ukupnoSve,
+		PreostaloSve:            preostaloSve,
+		ZakljucanStatus:         zakljucanStatus,
+		CenaDijagnostikePredlog: podesavanja["servis_cena_dijagnostike"],
+		KorisceneUsluge:         korisceneUsluge,
+		SviStatusi:              model.SviStatusi,
 	}
 
 	h.renderujTemplate(w, "servis_detalji", podaci)
@@ -1804,6 +1820,127 @@ func (h *Handler) SacuvajNapomenuKlijentu(w http.ResponseWriter, r *http.Request
 		return
 	}
 	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+}
+
+// SacuvajNalazDijagnostike obrađuje POST /servis/{id}/nalaz-dijagnostike i čuva
+// dijagnozu koju je serviser utvrdio (rezultat dijagnostike, hrani predračun)
+func (h *Handler) SacuvajNalazDijagnostike(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "servis.izmeni"); !ok {
+		return
+	}
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
+		return
+	}
+	tekst := strings.TrimSpace(r.FormValue("nalaz_dijagnostike"))
+	if err := h.ServisRepo.AzurirajNalazDijagnostike(r.Context(), id, tekst); err != nil {
+		slog.Error("greška pri ažuriranju nalaza dijagnostike", "id", id, "error", err)
+		http.Error(w, "Greška pri ažuriranju nalaza", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+}
+
+// SacuvajUradjeno obrađuje POST /servis/{id}/uradjeno i čuva tekst „šta je urađeno"
+// (serviser upisuje izvršene radove tokom popravke)
+func (h *Handler) SacuvajUradjeno(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "servis.izmeni"); !ok {
+		return
+	}
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
+		return
+	}
+	tekst := strings.TrimSpace(r.FormValue("uradjeno"))
+	if err := h.ServisRepo.AzurirajUradjeno(r.Context(), id, tekst); err != nil {
+		slog.Error("greška pri ažuriranju urađenog", "id", id, "error", err)
+		http.Error(w, "Greška pri čuvanju", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+}
+
+// AzurirajCenaDijagnostike čuva cenu dijagnostike (taksa kad klijent ne prihvati popravku);
+// prazno polje ili neispravna vrednost se tretira kao 0 (ne naplaćuje se)
+func (h *Handler) AzurirajCenaDijagnostike(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "servis.izmeni"); !ok {
+		return
+	}
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
+		return
+	}
+	cena := 0.0
+	if s := strings.TrimSpace(r.FormValue("cena_dijagnostike")); s != "" {
+		v, e := strconv.ParseFloat(s, 64)
+		if e != nil || v < 0 {
+			http.Error(w, "Cena dijagnostike mora biti broj veći ili jednak nuli.", http.StatusBadRequest)
+			return
+		}
+		cena = v
+	}
+	if err := h.ServisRepo.AzurirajCenaDijagnostike(r.Context(), id, cena); err != nil {
+		slog.Error("greška pri ažuriranju cene dijagnostike", "id", id, "error", err)
+		http.Error(w, "Greška pri ažuriranju cene dijagnostike", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+}
+
+// OdbijPopravku obrađuje slučaj kad klijent posle dijagnostike ne prihvati popravku:
+// nalog prelazi u „Završeno" i naplaćuje se samo cena dijagnostike. Cena se uzima iz
+// forme, a ako je prazna koristi se podrazumevana iz podešavanja (Podešavanja → Servis).
+func (h *Handler) OdbijPopravku(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "servis.izmeni"); !ok {
+		return
+	}
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
+		return
+	}
+
+	cenaStr := strings.TrimSpace(r.FormValue("cena_dijagnostike"))
+	if cenaStr == "" {
+		// nema unete cene na nalogu → uzmi podrazumevanu iz podešavanja
+		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+		cenaStr = strings.TrimSpace(podesavanja["servis_cena_dijagnostike"])
+	}
+	cena := 0.0
+	if cenaStr != "" {
+		v, e := strconv.ParseFloat(strings.ReplaceAll(cenaStr, ",", "."), 64)
+		if e != nil || v < 0 {
+			http.Error(w, "Cena dijagnostike mora biti broj veći ili jednak nuli.", http.StatusBadRequest)
+			return
+		}
+		cena = v
+	}
+
+	if err := h.ServisRepo.OdbijPopravku(r.Context(), id, cena); err != nil {
+		slog.Error("greška pri odbijanju popravke", "id", id, "error", err)
+		http.Error(w, "Greška pri promeni statusa", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)
 }
 
 // PodaciJavnogStatusa su podaci za javnu status stranicu servisnog naloga

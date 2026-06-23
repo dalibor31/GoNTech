@@ -47,8 +47,8 @@
                     {{template "status-badge-detalji" .Nalog.Status}}
                     {{if eq .Nalog.Status "Primljeno"}}
                     <!-- serviser preuzima uređaj u rad → status prelazi u „U dijagnostici";
-                         data-refresh osvežava samo zaglavlje (badge i ovo dugme se ponovo renderuju) -->
-                    <form method="POST" action="/servis/{{.Nalog.ID}}/status" data-refresh="#nalog-zaglavlje" style="margin:0;">
+                         promena statusa menja kartice i dugmad, pa osvežavamo ceo sadržaj (#sadrzaj) -->
+                    <form method="POST" action="/servis/{{.Nalog.ID}}/status" data-refresh="#sadrzaj" style="margin:0;">
                         <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
                         <input type="hidden" name="status" value="U dijagnostici">
                         <button type="submit" class="btn-sekundarno" style="padding:3px 12px;font-size:12px;">
@@ -56,26 +56,72 @@
                         </button>
                     </form>
                     {{end}}
+                    {{if eq .Nalog.Status "U dijagnostici"}}
+                    <!-- ishod dijagnostike: klijent odobri popravku (→ U popravci) ili ne prihvata (→ Završeno, naplata pregleda) -->
+                    <form method="POST" action="/servis/{{.Nalog.ID}}/status" data-refresh="#sadrzaj" style="margin:0;">
+                        <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+                        <input type="hidden" name="status" value="U popravci">
+                        <button type="submit" class="btn-sekundarno" style="padding:3px 12px;font-size:12px;">
+                            Odobri popravku
+                        </button>
+                    </form>
+                    <form method="POST" action="/servis/{{.Nalog.ID}}/odbij-popravku" style="margin:0;">
+                        <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+                        <button type="submit" class="btn-sekundarno" style="padding:3px 12px;font-size:12px;"
+                            data-potvrda="Klijent ne prihvata popravku? Nalog ide u „Završeno” i naplaćuje se samo dijagnostika.">
+                            Klijent ne prihvata
+                        </button>
+                    </form>
+                    {{end}}
+                    {{if eq .Nalog.Status "U popravci"}}
+                    <!-- popravka gotova → nalog prelazi u „Završeno" (na preuzimanje) -->
+                    <form method="POST" action="/servis/{{.Nalog.ID}}/status" data-refresh="#sadrzaj" style="margin:0;">
+                        <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+                        <input type="hidden" name="status" value="Završeno">
+                        <button type="submit" class="btn-sekundarno" style="padding:3px 12px;font-size:12px;">
+                            Završi
+                        </button>
+                    </form>
+                    {{end}}
                 </div>
             </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                {{/* Revers je potvrda o prijemu — primaran u „Primljeno"; kasnije ostaje samo diskretan reprint */}}
+                {{if eq .Nalog.Status "Primljeno"}}
                 <a href="/servis/{{.Nalog.ID}}/revers" target="_blank" class="btn-sekundarno">
                     Revers
                 </a>
+                {{else}}
+                <a href="/servis/{{.Nalog.ID}}/revers" target="_blank" style="font-size:12px;color:var(--tekst-sporedni);text-decoration:underline;align-self:center;">
+                    Revers (reprint)
+                </a>
+                {{end}}
+                {{/* Predračun je ponuda klijentu sa procenom radova/delova — dostupan od prijema
+                     (dijagnostika je opcioni korak; klijent često traži procenu odmah) */}}
                 <a href="/servis/{{.Nalog.ID}}/predracun" target="_blank" class="btn-sekundarno">
                     Predračun
                 </a>
+                {{/* Radni nalog je interni papir serviseru — šta treba uraditi; „U dijagnostici" i „Čeka delove" */}}
+                {{if or (eq .Nalog.Status "U dijagnostici") (eq .Nalog.Status "Čeka delove")}}
                 <a href="/servis/{{.Nalog.ID}}/radni-nalog" target="_blank" class="btn-sekundarno">
                     Radni nalog
                 </a>
+                {{end}}
                 {{if or (eq .Nalog.Status "Završeno") (eq .Nalog.Status "Preuzeto")}}
                 <a href="/servis/{{.Nalog.ID}}/otpremnica" target="_blank" class="btn-sekundarno">
                     Otpremnica
                 </a>
                 {{end}}
+                {{/* Nalepnica je primarna pri prijemu (lepi se na uređaj); kasnije ostaje samo diskretan reprint */}}
+                {{if eq .Nalog.Status "Primljeno"}}
                 <a href="/servis/{{.Nalog.ID}}/nalepnica" target="_blank" class="btn-sekundarno">
                     Nalepnica
                 </a>
+                {{else}}
+                <a href="/servis/{{.Nalog.ID}}/nalepnica" target="_blank" style="font-size:12px;color:var(--tekst-sporedni);text-decoration:underline;align-self:center;">
+                    Nalepnica (reprint)
+                </a>
+                {{end}}
                 <a href="/servis/izmeni/{{.Nalog.ID}}" class="btn-primarno" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML">
                     Izmeni nalog
                 </a>
@@ -244,6 +290,68 @@
         </div>
     </div>
 
+    <!-- nalaz dijagnostike: šta je serviser utvrdio (dijagnoza + predlog) — od „U dijagnostici" nadalje -->
+    {{if ne .Nalog.Status "Primljeno"}}
+    <div class="kartica detalji-kartica animiraj" id="nalaz-dijagnostike-kartica">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);flex-wrap:wrap;gap:10px;">
+            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Utvrđeni kvar</span>
+        </div>
+        {{/* kvar i cena dijagnostike se unose samo dok je nalog „U dijagnostici"; kasnije su readonly */}}
+        {{if and (index .Dozvole "servis.izmeni") (eq .Nalog.Status "U dijagnostici")}}
+        <!-- snima se kad textarea izgubi fokus (bez dugmeta); data-refresh osvežava samo ovu karticu -->
+        <form method="POST" action="/servis/{{.Nalog.ID}}/nalaz-dijagnostike" data-refresh="#nalaz-dijagnostike-kartica">
+            <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+            <textarea name="nalaz_dijagnostike" rows="3"
+                placeholder="Šta je serviser utvrdio pregledom — dijagnoza kvara i predlog popravke..."
+                style="width:100%;resize:vertical;"
+                data-poc="{{.Nalog.NalazDijagnostike}}"
+                onblur="if(this.value!==this.dataset.poc){this.dataset.poc=this.value;(this.form.requestSubmit?this.form.requestSubmit():this.form.submit());}">{{.Nalog.NalazDijagnostike}}</textarea>
+        </form>
+        <!-- cena dijagnostike: naplaćuje se ako klijent ne prihvati popravku; snima se na promenu -->
+        <form method="POST" action="/servis/{{.Nalog.ID}}/cena-dijagnostike" data-refresh="#nalaz-dijagnostike-kartica, #nalog-ukupno" style="margin-top:12px;">
+            <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+            <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Cena dijagnostike (din)</label>
+            {{$cenaDij := .Nalog.CenaDijagnostikeStr}}{{if not $cenaDij}}{{$cenaDij = .CenaDijagnostikePredlog}}{{end}}
+            <input type="number" name="cena_dijagnostike" min="0" step="0.01" style="max-width:200px;"
+                placeholder="0"
+                value="{{$cenaDij}}"
+                data-poc="{{$cenaDij}}"
+                onchange="if(this.value!==this.dataset.poc){this.dataset.poc=this.value;(this.form.requestSubmit?this.form.requestSubmit():this.form.submit());}">
+            <div class="pomocni-tekst" style="margin-top:6px;">Predlog iz podešavanja; naplaćuje se samo ako klijent ne prihvati popravku.</div>
+        </form>
+        {{else}}
+        <div style="font-size:13px;color:var(--tekst-sporedni);line-height:1.6;white-space:pre-wrap;">
+            {{if .Nalog.NalazDijagnostike}}{{.Nalog.NalazDijagnostike}}{{else}}<span style="color:var(--tekst-sporedni);font-style:italic;">Nalaz još nije unet.</span>{{end}}
+        </div>
+        {{end}}
+    </div>
+    {{end}}
+
+    <!-- urađeno: šta je serviser stvarno uradio — od „U popravci" nadalje -->
+    {{if or (eq .Nalog.Status "U popravci") (eq .Nalog.Status "Čeka delove") (eq .Nalog.Status "Završeno") (eq .Nalog.Status "Preuzeto")}}
+    <div class="kartica detalji-kartica animiraj" id="uradjeno-kartica">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);flex-wrap:wrap;gap:10px;">
+            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Urađeno</span>
+        </div>
+        {{/* upisuje se dok traje popravka („U popravci" / „Čeka delove"); kasnije readonly */}}
+        {{if and (index .Dozvole "servis.izmeni") (or (eq .Nalog.Status "U popravci") (eq .Nalog.Status "Čeka delove"))}}
+        <!-- snima se kad textarea izgubi fokus (bez dugmeta); data-refresh osvežava samo ovu karticu -->
+        <form method="POST" action="/servis/{{.Nalog.ID}}/uradjeno" data-refresh="#uradjeno-kartica">
+            <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+            <textarea name="uradjeno" rows="3"
+                placeholder="Šta je serviser uradio na uređaju tokom popravke..."
+                style="width:100%;resize:vertical;"
+                data-poc="{{.Nalog.Uradjeno}}"
+                onblur="if(this.value!==this.dataset.poc){this.dataset.poc=this.value;(this.form.requestSubmit?this.form.requestSubmit():this.form.submit());}">{{.Nalog.Uradjeno}}</textarea>
+        </form>
+        {{else}}
+        <div style="font-size:13px;color:var(--tekst-sporedni);line-height:1.6;white-space:pre-wrap;">
+            {{if .Nalog.Uradjeno}}{{.Nalog.Uradjeno}}{{else}}<span style="color:var(--tekst-sporedni);font-style:italic;">Još nije uneto šta je urađeno.</span>{{end}}
+        </div>
+        {{end}}
+    </div>
+    {{end}}
+
     <!-- napomena klijentu -->
     <div class="kartica detalji-kartica animiraj" id="napomena-klijentu-kartica">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);flex-wrap:wrap;gap:10px;">
@@ -266,22 +374,24 @@
         {{end}}
     </div>
 
+    {{/* kad je popravka odbijena naplaćuje se samo dijagnostika — radovi i delovi se ne prikazuju */}}
+    {{if not .Nalog.PopravkaOdbijena}}
     <!-- radovi (usluge) -->
-    <div class="kartica detalji-kartica animiraj">
+    <div class="kartica detalji-kartica animiraj" id="radovi-kartica">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);flex-wrap:wrap;gap:10px;">
             <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Radovi (usluge)</span>
         </div>
 
         <!-- forma za dodavanje rada iz cenovnika usluga -->
         {{if index .Dozvole "servis.izmeni"}}
-        <form method="POST" action="/servis/{{.Nalog.ID}}/radovi" style="margin-bottom:16px;" data-refresh="#radovi-spisak">
+        <form method="POST" action="/servis/{{.Nalog.ID}}/radovi" style="margin-bottom:16px;" data-refresh="#radovi-kartica, #nalog-ukupno">
             <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
             <div class="detalji-forma-rad">
                 <div>
                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Usluga</label>
                     <select name="usluga_id" id="rad-usluga" style="width:100%;" required>
                         <option value="">— odaberi uslugu —</option>
-                        {{range .Usluge}}<option value="{{.ID}}" data-cena="{{.Cena}}">{{.Naziv}}</option>{{end}}
+                        {{range .Usluge}}{{if not (index $.KorisceneUsluge .ID)}}<option value="{{.ID}}" data-cena="{{.Cena}}">{{.Naziv}}</option>{{end}}{{end}}
                     </select>
                 </div>
                 <div>
@@ -322,7 +432,7 @@
                     <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .Ukupno}} din</td>
                     <td style="padding:9px 10px;text-align:center;">
                         {{if index $.Dozvole "servis.izmeni"}}
-                        <form method="POST" action="/servis/{{$.Nalog.ID}}/radovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#radovi-spisak">
+                        <form method="POST" action="/servis/{{$.Nalog.ID}}/radovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#radovi-kartica, #nalog-ukupno">
                             <input type="hidden" name="_csrf" value="{{$.CsrfToken}}">
                             <button type="submit"
                                 data-potvrda="Ukloniti rad '{{.Naziv}}'?"
@@ -353,7 +463,7 @@
 
         <!-- forma za dodavanje dela -->
         {{if index .Dozvole "servis.izmeni"}}
-        <form method="POST" action="/servis/{{.Nalog.ID}}/delovi" style="margin-bottom:16px;" data-refresh="#delovi-spisak, #nalog-zaglavlje">
+        <form method="POST" action="/servis/{{.Nalog.ID}}/delovi" style="margin-bottom:16px;" data-refresh="#delovi-spisak, #nalog-zaglavlje, #nalog-ukupno">
             <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
             <div style="margin-bottom:10px;">
                 <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Kategorija</label>
@@ -414,7 +524,7 @@
                     </td>
                     <td style="padding:9px 10px;text-align:center;">
                         {{if and .ID (index $.Dozvole "servis.izmeni")}}
-                        <form method="POST" action="/servis/{{$.Nalog.ID}}/delovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#delovi-spisak, #nalog-zaglavlje">
+                        <form method="POST" action="/servis/{{$.Nalog.ID}}/delovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#delovi-spisak, #nalog-zaglavlje, #nalog-ukupno">
                             <input type="hidden" name="_csrf" value="{{$.CsrfToken}}">
                             <button type="submit"
                                 data-potvrda="Ukloniti deo '{{.ArtikalNaziv}}'?"
@@ -436,13 +546,21 @@
         {{end}}
         </div>
     </div>
+    {{end}}
 
     <!-- ukupno: zbir usluga (radova) i ugrađenih delova -->
-    <div class="kartica detalji-kartica animiraj">
+    <div id="nalog-ukupno" class="kartica detalji-kartica animiraj">
         <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);">
             <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Ukupno</span>
         </div>
         <div class="kolona" style="gap:10px;">
+            {{if .Nalog.PopravkaOdbijena}}
+            {{/* klijent odbio popravku — naplaćuje se samo dijagnostika */}}
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:14px;color:var(--tekst-sporedni);">Dijagnostika</span>
+                <span style="font-size:14px;color:var(--tekst-glavni);">{{dinari .Nalog.CenaDijagnostike}} din</span>
+            </div>
+            {{else}}
             <div style="display:flex;justify-content:space-between;align-items:center;">
                 <span style="font-size:14px;color:var(--tekst-sporedni);">Usluge (rad)</span>
                 <span style="font-size:14px;color:var(--tekst-glavni);">{{dinari .UkupnoRadovi}} din</span>
@@ -451,6 +569,7 @@
                 <span style="font-size:14px;color:var(--tekst-sporedni);">Ugrađeni delovi</span>
                 <span style="font-size:14px;color:var(--tekst-glavni);">{{dinari .UkupnoDelovi}} din</span>
             </div>
+            {{end}}
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:12px;border-top:0.5px solid var(--ivica);">
                 <span style="font-size:16px;font-weight:600;color:var(--tekst-glavni);">Ukupno</span>
                 <span style="font-size:18px;font-weight:600;color:var(--tekst-glavni);">{{dinari .UkupnoSve}} din</span>
@@ -459,6 +578,8 @@
     </div>
 
     <!-- zona za brisanje -->
+    {{/* Brisanje je moguće samo dok je „Primljeno" (greška pri unosu); čim uđe u proceduru naplaćuje se dijagnostika */}}
+    {{if eq .Nalog.Status "Primljeno"}}
     <div class="kartica detalji-kartica animiraj" style="border-color:#dc262633;">
         <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
             <div style="flex:1;min-width:200px;">
@@ -475,21 +596,22 @@
             </form>
         </div>
     </div>
+    {{end}}
 
 </div>
 
 <script>
 // Radovi: pri izboru usluge iz <select>-a popuni predloženu cenu (data-cena).
-(function () {
-    var sel = document.getElementById('rad-usluga');
+// Delegacija na document — kartica radova se osvežava AJAX-om (data-refresh),
+// pa listener vezan za sam <select> ne bi preživeo zamenu elementa.
+document.addEventListener('change', function (e) {
+    if (!e.target || e.target.id !== 'rad-usluga') return;
     var cena = document.getElementById('rad-cena');
-    if (!sel || !cena) return;
-    sel.addEventListener('change', function () {
-        var opt = sel.options[sel.selectedIndex];
-        var c = parseFloat(opt.getAttribute('data-cena'));
-        cena.value = (!isNaN(c) && c > 0) ? c.toFixed(2) : '0';
-    });
-})();
+    if (!cena) return;
+    var opt = e.target.options[e.target.selectedIndex];
+    var c = parseFloat(opt.getAttribute('data-cena'));
+    cena.value = (!isNaN(c) && c > 0) ? c.toFixed(2) : '0';
+});
 
 // Delovi: kategorija filtrira <select> artikala; izborom artikla popunjavamo
 // cenu i prikaz „U magacinu". Običan <select> ima native pretragu kucanjem
