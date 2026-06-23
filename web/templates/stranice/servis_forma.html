@@ -98,22 +98,8 @@
             </div>
         </div>
 
-        <!-- ===================== KARTICA: TEHNIČAR (izmena) / KLIJENT I TEHNIČAR (novi) ===================== -->
-        {{if .Izmena}}
-        <!-- pri izmeni klijent se ne menja (vezan pri prijemu) — ostaje samo serviser -->
-        <div class="kartica forma-kartica animiraj" style="margin-bottom:20px;">
-            <div class="sekcija-naslov">Serviser</div>
-            <div>
-                <label class="polje-labela">Serviser</label>
-                <select name="tehnicar_id" style="width:100%;">
-                    <option value="">— nedodeljen —</option>
-                    {{range .Tehnicari}}
-                    <option value="{{.ID}}"{{if eq .ID $.Nalog.TehnicarIDVrednost}}selected{{end}}>{{.KorisnickoIme}}</option>
-                    {{end}}
-                </select>
-            </div>
-        </div>
-        {{else}}
+        <!-- ===================== KARTICA: KLIJENT I SERVISER (samo novi nalog) ===================== -->
+        {{if not .Izmena}}
         <div class="kartica forma-kartica animiraj" x-data="klijentNalog" style="margin-bottom:20px;">
             <div class="sekcija-naslov">Klijent</div>
             <div class="kolona" style="gap:12px;">
@@ -269,11 +255,23 @@
         </div>
         {{end}}
 
-        <!-- ===================== KARTICA: AVANS, GARANCIJA I NAPOMENA ===================== -->
+        <!-- ===================== KARTICA: SERVISER, AVANS I NAPOMENA ===================== -->
         <div class="kartica forma-kartica animiraj" style="margin-bottom:20px;">
-            <div class="sekcija-naslov">{{if .Izmena}}Avans, garancija i napomena{{else}}Avans i napomena{{end}}</div>
+            <div class="sekcija-naslov">{{if .Izmena}}Serviser, avans i napomena{{else}}Avans i napomena{{end}}</div>
             <!-- cena rada se računa iz radova (usluga) u detaljima naloga; ovde samo avans -->
             <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;">
+                {{if .Izmena}}
+                <!-- pri izmeni klijent se ne menja (vezan pri prijemu) — ostaje samo serviser -->
+                <div>
+                    <label class="polje-labela">Serviser</label>
+                    <select name="tehnicar_id" style="width:100%;">
+                        <option value="">— nedodeljen —</option>
+                        {{range .Tehnicari}}
+                        <option value="{{.ID}}"{{if eq .ID $.Nalog.TehnicarIDVrednost}}selected{{end}}>{{.KorisnickoIme}}</option>
+                        {{end}}
+                    </select>
+                </div>
+                {{end}}
                 <div>
                     <label class="polje-labela">{{if .Izmena}}Avans{{else}}Avans / kapara{{end}}</label>
                     <input type="number" name="avans" min="0" step="0.01"
