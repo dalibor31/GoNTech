@@ -1106,6 +1106,15 @@ func (h *Handler) renderujFormuNaloga(w http.ResponseWriter, podaci PodaciFormeN
 }
 
 // PodaciRadnogNaloga su podaci za interni radni list servisera (bez cena)
+// logoZaDokument vraća putanju loga za štampu na dokumentima — samo ako je u
+// Podešavanja → Opšte uključeno „Prikaži logo" (topbar_logo_slika). Inače prazno.
+func logoZaDokument(podesavanja map[string]string) string {
+	if podesavanja["topbar_logo_slika"] == "1" {
+		return podesavanja["logo_putanja"]
+	}
+	return ""
+}
+
 type PodaciRadnogNaloga struct {
 	Nalog          model.ServisniNalog
 	ServisniDelovi []model.ServisniDeoSaArtiklom
@@ -1113,6 +1122,7 @@ type PodaciRadnogNaloga struct {
 	KlijentTelefon string
 	TehnicarNaziv  string
 	NazivFirme     string
+	LogoPutanja    string
 	Barkod         string // base64 PNG Code128 barkoda broja naloga (za skener)
 }
 
@@ -1171,6 +1181,7 @@ func (h *Handler) StampaRadnogNaloga(w http.ResponseWriter, r *http.Request) {
 		KlijentTelefon: klijentTelefon,
 		TehnicarNaziv:  tehnicarNaziv,
 		NazivFirme:     podesavanja["naziv_firme"],
+		LogoPutanja:    logoZaDokument(podesavanja),
 		Barkod:         barkodNaloga(nalog.BrojNaloga),
 	})
 }
@@ -1187,10 +1198,13 @@ type PodaciOtpremnice struct {
 	KlijentNaziv   string
 	TehnicarNaziv  string
 	NazivFirme     string
+	LogoPutanja    string
 	Podnazlov      string
 	Adresa         string
 	Telefon        string
 	PIB            string
+	MaticniBroj    string
+	Barkod         string // base64 PNG Code128 barkoda broja naloga
 }
 
 // StampaOtpremnice renderuje otpremnicu pri preuzimanju uređaja od strane klijenta
@@ -1260,7 +1274,7 @@ func (h *Handler) StampaOtpremnice(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	nalogURL := qrNalogURL(r, nalog.JavniToken)
+	nalogURL := qrNalogURL(r, nalog.JavniToken, podesavanja["qr_bazni_url"])
 	var qrKodOtpr string
 	if png, err := qrcode.Encode(nalogURL, qrcode.Medium, 160); err == nil {
 		qrKodOtpr = base64.StdEncoding.EncodeToString(png)
@@ -1277,10 +1291,13 @@ func (h *Handler) StampaOtpremnice(w http.ResponseWriter, r *http.Request) {
 		KlijentNaziv:   klijentNaziv,
 		TehnicarNaziv:  tehnicarNaziv,
 		NazivFirme:     podesavanja["naziv_firme"],
+		LogoPutanja:    logoZaDokument(podesavanja),
 		Podnazlov:      podesavanja["podnazlov"],
 		Adresa:         podesavanja["adresa"],
 		Telefon:        podesavanja["telefon"],
 		PIB:            podesavanja["pib"],
+		MaticniBroj:    podesavanja["maticni_broj"],
+		Barkod:         barkodNaloga(nalog.BrojNaloga),
 	})
 }
 
@@ -1296,10 +1313,13 @@ type PodaciReversa struct {
 	QRKod              string // base64 QR ka javnoj status strani naloga
 	Uslovi             string // uslovi servisa iz podešavanja (servis_uslovi)
 	NazivFirme         string
+	LogoPutanja        string
 	Podnazlov          string
 	Adresa             string
 	Telefon            string
 	PIB                string
+	MaticniBroj        string
+	Barkod             string // base64 PNG Code128 barkoda broja naloga
 }
 
 // StampaReversa renderuje revers (potvrdu o prijemu uređaja na servis)
@@ -1346,7 +1366,7 @@ func (h *Handler) StampaReversa(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	nalogURL := qrNalogURL(r, nalog.JavniToken)
+	nalogURL := qrNalogURL(r, nalog.JavniToken, podesavanja["qr_bazni_url"])
 	var qrKod string
 	if png, err := qrcode.Encode(nalogURL, qrcode.Medium, 160); err == nil {
 		qrKod = base64.StdEncoding.EncodeToString(png)
@@ -1362,10 +1382,13 @@ func (h *Handler) StampaReversa(w http.ResponseWriter, r *http.Request) {
 		QRKod:              qrKod,
 		Uslovi:             vrednostIliDefault(podesavanja, "servis_uslovi", podrazumevaniUsloviServisa),
 		NazivFirme:         podesavanja["naziv_firme"],
+		LogoPutanja:        logoZaDokument(podesavanja),
 		Podnazlov:          podesavanja["podnazlov"],
 		Adresa:             podesavanja["adresa"],
 		Telefon:            podesavanja["telefon"],
 		PIB:                podesavanja["pib"],
+		MaticniBroj:        podesavanja["maticni_broj"],
+		Barkod:             barkodNaloga(nalog.BrojNaloga),
 	})
 }
 
@@ -1386,10 +1409,13 @@ type PodaciPredracuna struct {
 	KlijentNaziv   string
 	TehnicarNaziv  string
 	NazivFirme     string
+	LogoPutanja    string
 	Podnazlov      string
 	Adresa         string
 	Telefon        string
 	PIB            string
+	MaticniBroj    string
+	Barkod         string // base64 PNG Code128 barkoda broja naloga
 }
 
 // StampaPredracuna renderuje predračun (procenu cene) na osnovu traženih radova i delova
@@ -1459,7 +1485,7 @@ func (h *Handler) StampaPredracuna(w http.ResponseWriter, r *http.Request) {
 	datumIzdavanja := time.Now()
 	vaziDo := datumIzdavanja.AddDate(0, 0, rok)
 
-	nalogURL := qrNalogURL(r, nalog.JavniToken)
+	nalogURL := qrNalogURL(r, nalog.JavniToken, podesavanja["qr_bazni_url"])
 	var qrKod string
 	if png, err := qrcode.Encode(nalogURL, qrcode.Medium, 160); err == nil {
 		qrKod = base64.StdEncoding.EncodeToString(png)
@@ -1480,10 +1506,13 @@ func (h *Handler) StampaPredracuna(w http.ResponseWriter, r *http.Request) {
 		KlijentNaziv:   klijentNaziv,
 		TehnicarNaziv:  tehnicarNaziv,
 		NazivFirme:     podesavanja["naziv_firme"],
+		LogoPutanja:    logoZaDokument(podesavanja),
 		Podnazlov:      podesavanja["podnazlov"],
 		Adresa:         podesavanja["adresa"],
 		Telefon:        podesavanja["telefon"],
 		PIB:            podesavanja["pib"],
+		MaticniBroj:    podesavanja["maticni_broj"],
+		Barkod:         barkodNaloga(nalog.BrojNaloga),
 	})
 }
 
@@ -1779,11 +1808,20 @@ func (h *Handler) SacuvajNapomenuKlijentu(w http.ResponseWriter, r *http.Request
 
 // PodaciJavnogStatusa su podaci za javnu status stranicu servisnog naloga
 type PodaciJavnogStatusa struct {
-	Nalog      model.ServisniNalog
-	NazivFirme string
-	Telefon    string
-	Adresa     string
-	SviStatusi []string
+	Nalog          model.ServisniNalog
+	NazivFirme     string
+	LogoPutanja    string
+	Podnazlov      string
+	Adresa         string
+	Telefon        string
+	PIB            string
+	MaticniBroj    string
+	Radovi         []model.ServisniRad
+	UkupnoRad      float64
+	ServisniDelovi []model.ServisniDeoSaArtiklom
+	UkupnoDelovi   float64
+	UkupnoSve      float64
+	SviStatusi     []string
 }
 
 // ServisJavniStatus prikazuje javnu status stranicu — dostupna bez prijave putem QR koda
@@ -1800,21 +1838,50 @@ func (h *Handler) ServisJavniStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// javni link se „gasi" čim klijent preuzme uređaj — posle preuzimanja status više nije dostupan
+	if nalog.Status == model.StatusPreuzeto {
+		http.NotFound(w, r)
+		return
+	}
+
+	radovi, _ := h.ServisniRadoviRepo.DohvatiZaNalog(r.Context(), nalog.ID)
+	delovi, _ := h.deloviSaPotrazivanima(r.Context(), nalog.ID)
+	var ukupnoRad, ukupnoDelovi float64
+	for _, rd := range radovi {
+		ukupnoRad += rd.Ukupno()
+	}
+	for _, d := range delovi {
+		ukupnoDelovi += d.Ukupno()
+	}
+
 	podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 
 	h.renderujStandalone(w, "servis_status_javni", PodaciJavnogStatusa{
-		Nalog:      *nalog,
-		NazivFirme: podesavanja["naziv_firme"],
-		Telefon:    podesavanja["telefon"],
-		Adresa:     podesavanja["adresa"],
-		SviStatusi: model.SviStatusi,
+		Nalog:          *nalog,
+		NazivFirme:     podesavanja["naziv_firme"],
+		LogoPutanja:    logoZaDokument(podesavanja),
+		Podnazlov:      podesavanja["podnazlov"],
+		Adresa:         podesavanja["adresa"],
+		Telefon:        podesavanja["telefon"],
+		PIB:            podesavanja["pib"],
+		MaticniBroj:    podesavanja["maticni_broj"],
+		Radovi:         radovi,
+		UkupnoRad:      ukupnoRad,
+		ServisniDelovi: delovi,
+		UkupnoDelovi:   ukupnoDelovi,
+		UkupnoSve:      ukupnoRad + ukupnoDelovi,
+		SviStatusi:     model.SviStatusi,
 	})
 }
 
 // qrNalogURL konstruiše URL za QR kod vodeći računa o reverse proxy-ju.
-// Ako aplikacija radi iza nginx/Caddy/Traefik koji prekida TLS, r.TLS je nil,
-// ali X-Forwarded-Proto header sadrži stvarnu šemu.
-func qrNalogURL(r *http.Request, token string) string {
+// Ako je u podešavanjima zadata fiksna adresa (bazniURL, npr. http://192.168.1.25:3000),
+// koristi se ona — korisno da QR radi sa telefona kad se programu pristupa preko „localhost".
+// Inače se host i šema čitaju iz zahteva (X-Forwarded-Proto pokriva nginx/Caddy/Traefik).
+func qrNalogURL(r *http.Request, token, bazniURL string) string {
+	if b := strings.TrimRight(strings.TrimSpace(bazniURL), "/"); b != "" {
+		return b + "/status/" + token
+	}
 	scheme := "http"
 	if r.TLS != nil {
 		scheme = "https"

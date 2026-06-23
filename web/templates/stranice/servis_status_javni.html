@@ -78,10 +78,22 @@
 <body>
     <div class="omotac">
 
-        <!-- zaglavlje firme -->
+        <!-- naslov stranice -->
+        <div style="text-align:center;font-size:12px;color:#999;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:14px;">Praćenje statusa popravke</div>
+
+        <!-- zaglavlje firme — logo (ili naziv) + podaci, isto kao na dokumentima -->
         <div class="zaglavlje">
+            {{if .LogoPutanja}}
+            <img src="{{.LogoPutanja}}" alt="Logo" style="max-height:60px;max-width:220px;object-fit:contain;margin-bottom:8px;">
+            {{else}}
             <div class="firma-naziv">{{if .NazivFirme}}{{.NazivFirme}}{{else}}Servis{{end}}</div>
-            {{if .Adresa}}<div class="firma-info">{{.Adresa}}</div>{{end}}
+            {{end}}
+            <div class="firma-info">
+                {{if .Podnazlov}}{{.Podnazlov}}<br>{{end}}
+                {{if .Adresa}}{{.Adresa}}<br>{{end}}
+                {{if .Telefon}}Tel: {{telefon .Telefon}}<br>{{end}}
+                {{if .PIB}}PIB: {{.PIB}}{{end}}{{if .MaticniBroj}}{{if .PIB}} &middot; {{end}}MB: {{.MaticniBroj}}{{end}}
+            </div>
         </div>
 
         <!-- kartica: uređaj i status -->
@@ -129,75 +141,49 @@
                 <span class="red-vrednost">{{.Nalog.DatumPrijema.Format "02.01.2006."}}</span>
             </div>
 
-            {{if .Nalog.DatumZavrsetka}}
+            {{if .Nalog.PredvidjenDatum}}
             <div class="red">
-                <span class="red-labela">Datum završetka</span>
-                <span class="red-vrednost">{{.Nalog.DatumZavrsetka.Format "02.01.2006."}}</span>
+                <span class="red-labela">Predviđeni datum završetka</span>
+                <span class="red-vrednost">{{.Nalog.PredvidjenDatum.Format "02.01.2006."}}</span>
             </div>
             {{end}}
 
-            {{if .Nalog.SerijskiBroj}}
             <div class="red">
-                <span class="red-labela">Serijski broj</span>
-                <span class="red-vrednost">{{.Nalog.SerijskiBroj}}</span>
+                <span class="red-labela">Garancija</span>
+                <span class="red-vrednost">{{garancijaTekst .Nalog.GarancijaDana}}</span>
             </div>
-            {{end}}
 
-            {{if .Nalog.OpisKvara}}
-            <div class="red">
-                <span class="red-labela">Opis kvara</span>
-                <span class="red-vrednost">{{.Nalog.OpisKvara}}</span>
-            </div>
-            {{end}}
-
-            {{if .Nalog.GarancijaDo}}
-            <div class="red">
-                <span class="red-labela">Garancija do</span>
-                <span class="red-vrednost">{{.Nalog.GarancijaDo.Format "02.01.2006."}}</span>
-            </div>
-            {{end}}
-
-            <!-- procenjena cena -->
-            {{if or .Nalog.CenaOd .Nalog.CenaDo .Nalog.CenaKonacna}}
-            <div style="margin-top:12px;">
-                <div class="red-labela" style="margin-bottom:8px;">Procena cene</div>
-                <div class="cena-blok">
-                    {{if .Nalog.CenaKonacna}}
-                        <div class="cena-od-do">
-                            <span class="cena-vrednost">{{formatBroj .Nalog.CenaKonacna}} din</span>
-                        </div>
-                        <div class="cena-labela">Konačna cena popravke</div>
-                    {{else if and .Nalog.CenaOd .Nalog.CenaDo}}
-                        <div class="cena-od-do">
-                            <span class="cena-vrednost">{{formatBroj .Nalog.CenaOd}}</span>
-                            <span class="cena-sep">–</span>
-                            <span class="cena-vrednost">{{formatBroj .Nalog.CenaDo}} din</span>
-                        </div>
-                        <div class="cena-labela">Procenjeni raspon cene</div>
-                    {{else if .Nalog.CenaOd}}
-                        <div class="cena-od-do">
-                            <span class="cena-vrednost">od {{formatBroj .Nalog.CenaOd}} din</span>
-                        </div>
-                        <div class="cena-labela">Procenjena cena od</div>
-                    {{end}}
-                </div>
-            </div>
-            {{end}}
-
-            {{if .Nalog.Napomena}}
+            {{if .Nalog.NapomenaKlijentu}}
             <div style="margin-top:12px;">
                 <div class="red-labela" style="margin-bottom:6px;">Napomena</div>
-                <div class="napomena-blok">{{.Nalog.Napomena}}</div>
+                <div class="napomena-blok">{{.Nalog.NapomenaKlijentu}}</div>
             </div>
             {{end}}
         </div>
 
-        <!-- kontakt -->
-        {{if .Telefon}}
-        <div class="kontakt">
-            <div class="kontakt-naslov">Kontakt</div>
-            <a href="tel:{{.Telefon}}" class="kontakt-tel">{{telefon .Telefon}}</a>
-            {{if .Adresa}}<div class="kontakt-adresa">{{.Adresa}}</div>{{end}}
+        <!-- kartica: radovi i delovi sa procenom -->
+        {{if or .Radovi .ServisniDelovi}}
+        <div class="kartica">
+            <div class="kartica-naslov">Radovi i delovi</div>
+
+            {{range .Radovi}}
+            <div class="red">
+                <span class="red-labela">{{.Naziv}}{{if gt .Kolicina 1.0}} &times;{{.Kolicina}}{{end}}</span>
+                <span class="red-vrednost">{{dinari .Ukupno}} din</span>
+            </div>
+            {{end}}
+
+            {{range .ServisniDelovi}}
+            <div class="red">
+                <span class="red-labela">{{.ArtikalNaziv}}{{if gt .Kolicina 1}} &times;{{.Kolicina}}{{end}}</span>
+                <span class="red-vrednost">{{dinari .Ukupno}} din</span>
+            </div>
+            {{end}}
+
+            <div class="cena-blok" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;">
+                <span class="cena-labela" style="margin:0;">Ukupno (procena)</span>
+                <span class="cena-vrednost">{{dinari .UkupnoSve}} din</span>
+            </div>
         </div>
         {{end}}
 

@@ -11,15 +11,15 @@
         .strana { max-width: 780px; margin: 0 auto; padding: 32px 40px; }
 
         /* zaglavlje */
-        .zaglavlje { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; padding-bottom: 14px; border-bottom: 2px solid #111; gap: 20px; }
+        .zaglavlje { display: flex; align-items: stretch; margin-bottom: 20px; gap: 12px; }
+        .zg-okvir { flex: 1; padding: 12px 14px; border: 0.5px solid #ddd; border-radius: 6px; }
         .firma-naziv { font-size: 16px; font-weight: 700; }
         .firma-podnaslov { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
-        .nalog-desno { text-align: right; }
         .nalog-naslov { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 2px; }
-        .nalog-broj { font-size: 22px; font-weight: 700; font-family: monospace; }
+        .nalog-broj { font-size: 18px; font-weight: 700; font-family: monospace; }
         .status { display: inline-block; margin-top: 6px; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1.5px solid #111; }
-        .barkod { margin-top: 8px; }
-        .barkod img { display: block; height: 11mm; width: 52mm; object-fit: fill; margin-left: auto; }
+        .barkod { margin-bottom: 10px; }
+        .barkod img { display: block; width: 100%; max-height: 46px; object-fit: contain; }
 
         /* odeljci */
         .odeljak { margin-bottom: 18px; }
@@ -69,50 +69,34 @@
 
     <!-- zaglavlje -->
     <div class="zaglavlje">
-        <div>
+        <!-- LEVO: firma — logo na vrhu, tekst ispod -->
+        <div class="zg-okvir">
+            {{if .LogoPutanja}}
+            <img src="{{.LogoPutanja}}" alt="Logo" style="max-height:50px;max-width:100%;object-fit:contain;display:block;margin-bottom:8px;">
+            {{else}}
             <div class="firma-naziv">{{if .NazivFirme}}{{.NazivFirme}}{{else}}— naziv firme —{{end}}</div>
+            {{end}}
             <div class="firma-podnaslov">Radni nalog — interni</div>
         </div>
-        <div class="nalog-desno">
-            <div class="nalog-naslov">Broj naloga</div>
-            <div class="nalog-broj">{{.Nalog.BrojNaloga}}</div>
-            <div><span class="status">{{.Nalog.Status}}</span></div>
+        <!-- SREDINA: klijent -->
+        <div class="zg-okvir" style="font-size:12px;line-height:1.6;">
+            <div class="polje-labela">Klijent</div>
+            <div class="polje-vrednost">{{if .KlijentNaziv}}{{.KlijentNaziv}}{{else}}<span class="prazno">—</span>{{end}}</div>
+            {{if .KlijentTelefon}}<div style="color:#555;">Tel: {{telefon .KlijentTelefon}}</div>{{end}}
+        </div>
+        <!-- DESNO: barkod na vrhu, ispod broj + status + datumi + serviser -->
+        <div class="zg-okvir" style="flex:1.3;">
             {{if .Barkod}}
             <div class="barkod"><img src="data:image/png;base64,{{.Barkod}}" alt="Barkod {{.Nalog.BrojNaloga}}"></div>
             {{end}}
-        </div>
-    </div>
-
-    <!-- osnovni podaci -->
-    <div class="odeljak">
-        <div class="odeljak-naslov">Osnovni podaci</div>
-        <div class="podaci-grid">
-            <div>
-                <div class="polje-labela">Datum prijema</div>
-                <div class="polje-vrednost">{{.Nalog.DatumPrijema.Format "02.01.2006. u 15:04"}}</div>
+            <div class="nalog-naslov">Broj naloga</div>
+            <div class="nalog-broj">{{.Nalog.BrojNaloga}}</div>
+            <div><span class="status">{{.Nalog.Status}}</span></div>
+            <div style="font-size:11px;color:#555;margin-top:6px;line-height:1.7;">
+                Prijem: {{.Nalog.DatumPrijema.Format "02.01.2006."}}
+                {{if .Nalog.PredvidjenDatum}}<br>Rok: {{.Nalog.PredvidjenDatum.Format "02.01.2006."}}{{end}}
+                {{if .TehnicarNaziv}}<br>Serviser: {{.TehnicarNaziv}}{{end}}
             </div>
-            {{if .Nalog.PredvidjenDatum}}
-            <div>
-                <div class="polje-labela">Predviđen rok</div>
-                <div class="polje-vrednost">{{.Nalog.PredvidjenDatum.Format "02.01.2006."}}</div>
-            </div>
-            {{end}}
-            {{if .TehnicarNaziv}}
-            <div>
-                <div class="polje-labela">Serviser</div>
-                <div class="polje-vrednost">{{.TehnicarNaziv}}</div>
-            </div>
-            {{end}}
-            <div>
-                <div class="polje-labela">Klijent</div>
-                <div class="polje-vrednost">{{if .KlijentNaziv}}{{.KlijentNaziv}}{{else}}<span class="prazno">—</span>{{end}}</div>
-            </div>
-            {{if .KlijentTelefon}}
-            <div>
-                <div class="polje-labela">Telefon klijenta</div>
-                <div class="polje-vrednost">{{telefon .KlijentTelefon}}</div>
-            </div>
-            {{end}}
         </div>
     </div>
 
