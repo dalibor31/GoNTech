@@ -247,6 +247,28 @@ networks:
 
 Servis `teron-mock` je dostupan iz `ntech` kontejnera na adresi `http://teron-mock:4566` preko interne Docker mreže — port nije izložen spolja.
 
+Za pokretanje kao samostalni Docker kontejner:
+
+```yaml
+# docker-compose.fisk.yml
+services:
+  teron-mock:
+    image: ghcr.io/dalibor31/ntech-fisk:latest
+    container_name: teron_mock
+    restart: unless-stopped
+    ports:
+      - "4566:4566"
+    volumes:
+      - teron-data:/app/data
+
+volumes:
+  teron-data:
+```
+
+```bash
+docker compose -f docker-compose.fisk.yml up -d
+```
+
 Za lokalno pokretanje moka (bez Dockera):
 
 ```bash

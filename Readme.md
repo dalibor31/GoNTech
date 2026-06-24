@@ -247,6 +247,28 @@ networks:
 
 The `teron-mock` service is reachable from `ntech` at `http://teron-mock:4566` over the internal Docker network — the port is not exposed to the host.
 
+To run as a standalone Docker container:
+
+```yaml
+# docker-compose.fisk.yml
+services:
+  teron-mock:
+    image: ghcr.io/dalibor31/ntech-fisk:latest
+    container_name: teron_mock
+    restart: unless-stopped
+    ports:
+      - "4566:4566"
+    volumes:
+      - teron-data:/app/data
+
+volumes:
+  teron-data:
+```
+
+```bash
+docker compose -f docker-compose.fisk.yml up -d
+```
+
 To run the mock server locally (without Docker):
 
 ```bash
