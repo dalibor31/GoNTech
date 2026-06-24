@@ -124,6 +124,50 @@ func TestPotrazivaniDelimicnoPokrivanje(t *testing.T) {
 	}
 }
 
+// TestPotrazivaniPredlozeniSeNePokrivaju: predloženi delovi (predlozeno=1) ne smeju
+// biti auto-konvertovani u ugrađene niti smeti otključavanje naloga.
+func TestPotrazivaniPredlozeniSeNePokrivaju(t *testing.T) {
+	db := testDB(t)
+	ctx := context.Background()
+
+	if _, err := db.ExecContext(ctx, "INSERT INTO artikli (id, naziv, kolicina) VALUES (1, 'GPU', 5)"); err != nil {
+		t.Fatalf("insert artikal: %v", err)
+	}
+	if _, err := db.ExecContext(ctx,
+		"INSERT INTO servisni_nalozi (id, broj_naloga, uredjaj, opis_kvara, status) VALUES (1, 'SN-1', 'PC', 'kvar', 'U dijagnostici')",
+	); err != nil {
+		t.Fatalf("insert nalog: %v", err)
+	}
+	// predloženi deo serviser predlaže klijentu (predlozeno=1) — ne sme biti auto-ugradjen
+	if _, err := db.ExecContext(ctx,
+		"INSERT INTO servisni_potrazivani_delovi (nalog_id, artikal_id, kolicina, cena_komada, predlozeno) VALUES (1, 1, 3, 100, 1)",
+	); err != nil {
+		t.Fatalf("insert predlozeni: %v", err)
+	}
+
+	potrRepo := NoviServisniPotrazivaniDeloviRepo(db)
+	otkljucani, err := potrRepo.ProveriIPocistiZaArtikal(ctx, 1)
+	if err != nil {
+		t.Fatalf("ProveriIPocistiZaArtikal: %v", err)
+	}
+	// nalog se NE otključava — predlozeni redovi se ignorišu
+	if len(otkljucani) != 0 {
+		t.Fatalf("nalog ne sme da se otključa zbog predlozenih redova, dobijeno %v", otkljucani)
+	}
+	// predlozeni red mora ostati nepromenjen
+	if k := skalarInt(t, db, "SELECT kolicina FROM servisni_potrazivani_delovi WHERE nalog_id=1 AND predlozeno=1"); k != 3 {
+		t.Fatalf("predlozeni deo mora ostati 3, dobijeno %d", k)
+	}
+	// magacin se ne sme dirljati
+	if stanje := skalarInt(t, db, "SELECT kolicina FROM artikli WHERE id=1"); stanje != 5 {
+		t.Fatalf("stanje magacina mora ostati 5, dobijeno %d", stanje)
+	}
+	// u servisni_delovi ne sme biti ništa ubačeno
+	if k := skalarInt(t, db, "SELECT COUNT(*) FROM servisni_delovi WHERE nalog_id=1"); k != 0 {
+		t.Fatalf("servisni_delovi mora biti prazan, dobijeno %d", k)
+	}
+}
+
 // skalarInt vraća jednu celobrojnu vrednost iz upita (za proveru stanja u testu)
 func skalarInt(t *testing.T, db *sql.DB, upit string) int {
 	t.Helper()

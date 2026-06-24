@@ -58,10 +58,11 @@ func (r *ServisRepo) Lista(ctx context.Context, pretraga, status string) ([]mode
 			sn.id, sn.klijent_id, sn.tehnicar_id, sn.broj_naloga, sn.uredjaj, sn.serijski_broj,
 			sn.opis_kvara, sn.trazene_nadogradnje, sn.status, sn.cena_od, sn.cena_do, sn.cena_konacna,
 			sn.avans, sn.napomena, sn.garancija_do, sn.garancija_dana, sn.datum_prijema, sn.datum_zavrsetka, sn.predvidjen_datum,
-			sn.ostecenja, sn.pin_uredjaja, sn.pribor, sn.napomena_klijentu, sn.nalaz_dijagnostike, sn.uradjeno, sn.cena_dijagnostike, sn.popravka_odbijena, sn.javni_token, sn.komentar_klijenta,
+			sn.ostecenja, sn.pin_uredjaja, sn.pribor, sn.napomena_klijentu, sn.nalaz_dijagnostike, sn.uradjeno, sn.cena_dijagnostike, sn.popravka_odbijena, sn.javni_token, sn.komentar_klijenta, sn.odluka_klijenta, sn.datum_odluke,
 			COALESCE(kp.naziv, '') AS klijent_naziv,
 			(EXISTS(SELECT 1 FROM servis_radovi sr WHERE sr.nalog_id = sn.id AND sr.predlozeno = 1)
-			 OR EXISTS(SELECT 1 FROM servisni_delovi sd WHERE sd.nalog_id = sn.id AND sd.predlozeno = 1)) AS ima_predlog
+			 OR EXISTS(SELECT 1 FROM servisni_delovi sd WHERE sd.nalog_id = sn.id AND sd.predlozeno = 1)
+			 OR EXISTS(SELECT 1 FROM servisni_potrazivani_delovi spd WHERE spd.nalog_id = sn.id AND spd.predlozeno = 1)) AS ima_predlog
 		FROM servisni_nalozi sn
 		LEFT JOIN klijent_prikaz kp ON kp.id = sn.klijent_id
 		WHERE 1=1`
@@ -107,7 +108,7 @@ func (r *ServisRepo) DohvatiID(ctx context.Context, id int64) (*model.ServisniNa
 			id, klijent_id, tehnicar_id, broj_naloga, uredjaj, serijski_broj,
 			opis_kvara, trazene_nadogradnje, status, cena_od, cena_do, cena_konacna,
 			avans, napomena, garancija_do, garancija_dana, datum_prijema, datum_zavrsetka, predvidjen_datum,
-			ostecenja, pin_uredjaja, pribor, napomena_klijentu, nalaz_dijagnostike, uradjeno, cena_dijagnostike, popravka_odbijena, javni_token, komentar_klijenta
+			ostecenja, pin_uredjaja, pribor, napomena_klijentu, nalaz_dijagnostike, uradjeno, cena_dijagnostike, popravka_odbijena, javni_token, komentar_klijenta, odluka_klijenta, datum_odluke
 		FROM servisni_nalozi WHERE id = ?`, id)
 
 	var n model.ServisniNalog
@@ -159,7 +160,7 @@ func (r *ServisRepo) DohvatiJavniToken(ctx context.Context, token string) (*mode
 			id, klijent_id, tehnicar_id, broj_naloga, uredjaj, serijski_broj,
 			opis_kvara, trazene_nadogradnje, status, cena_od, cena_do, cena_konacna,
 			avans, napomena, garancija_do, garancija_dana, datum_prijema, datum_zavrsetka, predvidjen_datum,
-			ostecenja, pin_uredjaja, pribor, napomena_klijentu, nalaz_dijagnostike, uradjeno, cena_dijagnostike, popravka_odbijena, javni_token, komentar_klijenta
+			ostecenja, pin_uredjaja, pribor, napomena_klijentu, nalaz_dijagnostike, uradjeno, cena_dijagnostike, popravka_odbijena, javni_token, komentar_klijenta, odluka_klijenta, datum_odluke
 		FROM servisni_nalozi WHERE javni_token = ?`, token)
 
 	var n model.ServisniNalog
@@ -349,6 +350,30 @@ func (r *ServisRepo) AzurirajKomentarKlijenta(ctx context.Context, id int64, tek
 	return nil
 }
 
+// ObrisiOdlukuKlijenta poništava prethodnu odluku klijenta (npr. kad se doda novi predlog).
+func (r *ServisRepo) ObrisiOdlukuKlijenta(ctx context.Context, id int64) error {
+	_, err := r.db.ExecContext(ctx,
+		"UPDATE servisni_nalozi SET odluka_klijenta = NULL, komentar_klijenta = NULL, datum_odluke = NULL WHERE id = ?", id,
+	)
+	if err != nil {
+		return fmt.Errorf("ntech: ServisRepo.ObrisiOdlukuKlijenta: %w", err)
+	}
+	return nil
+}
+
+// SacuvajOdlukuKlijenta beleži odluku klijenta (prihvaceno/odbijeno) i poruku.
+// Ako je prihvaćeno, poziva PrihvatiPredlozene za delove i radove.
+func (r *ServisRepo) SacuvajOdlukuKlijenta(ctx context.Context, id int64, odluka string, odgovor string) error {
+	_, err := r.db.ExecContext(ctx,
+		"UPDATE servisni_nalozi SET odluka_klijenta = ?, komentar_klijenta = ?, datum_odluke = CURRENT_TIMESTAMP WHERE id = ?",
+		odluka, odgovor, id,
+	)
+	if err != nil {
+		return fmt.Errorf("ntech: ServisRepo.SacuvajOdlukuKlijenta: %w", err)
+	}
+	return nil
+}
+
 // Obrisi briše servisni nalog po ID-u
 // Obrisi briše servisni nalog i vraća ugrađene delove na stanje u magacinu (u transakciji)
 func (r *ServisRepo) Obrisi(ctx context.Context, id int64, korisnikID *int64) error {
@@ -430,9 +455,9 @@ func (r *ServisRepo) Obrisi(ctx context.Context, id int64, korisnikID *int64) er
 // klijentNaziv je opcioni pokazivač, nil kada se čita bez JOIN-a
 func scanNalog(scan func(...any) error, n *model.ServisniNalog, klijentNaziv *string, imaPredlog *bool) error {
 	var klijentID, tehnicarID sql.NullInt64
-	var serijskiBroj, napomena, ostecenja, pinUredjaja, pribor, napomenaKlijentu, nalazDijagnostike, uradjeno, javniToken, komentarKlijenta sql.NullString
+	var serijskiBroj, napomena, ostecenja, pinUredjaja, pribor, napomenaKlijentu, nalazDijagnostike, uradjeno, javniToken, komentarKlijenta, odlukaKlijenta sql.NullString
 	var cenaOd, cenaDo, cenaKonacna, avans sql.NullFloat64
-	var garancijaDo, datumZavrsetka, predvidjenDatum sql.NullTime
+	var garancijaDo, datumZavrsetka, predvidjenDatum, datumOdluke sql.NullTime
 	var garancijaDana sql.NullInt64
 	var popravkaOdbijena sql.NullInt64
 
@@ -440,7 +465,7 @@ func scanNalog(scan func(...any) error, n *model.ServisniNalog, klijentNaziv *st
 		&n.ID, &klijentID, &tehnicarID, &n.BrojNaloga, &n.Uredjaj, &serijskiBroj,
 		&n.OpisKvara, &n.TrazeneNadogradnje, &n.Status, &cenaOd, &cenaDo, &cenaKonacna,
 		&avans, &napomena, &garancijaDo, &garancijaDana, &n.DatumPrijema, &datumZavrsetka, &predvidjenDatum,
-		&ostecenja, &pinUredjaja, &pribor, &napomenaKlijentu, &nalazDijagnostike, &uradjeno, &n.CenaDijagnostike, &popravkaOdbijena, &javniToken, &komentarKlijenta,
+		&ostecenja, &pinUredjaja, &pribor, &napomenaKlijentu, &nalazDijagnostike, &uradjeno, &n.CenaDijagnostike, &popravkaOdbijena, &javniToken, &komentarKlijenta, &odlukaKlijenta, &datumOdluke,
 	}
 
 	if klijentNaziv != nil {
@@ -505,6 +530,11 @@ func scanNalog(scan func(...any) error, n *model.ServisniNalog, klijentNaziv *st
 	n.PopravkaOdbijena = popravkaOdbijena.Int64 != 0
 	n.JavniToken = javniToken.String
 	n.KomentarKlijenta = komentarKlijenta.String
+	n.OdlukaKlijenta = odlukaKlijenta.String
+	if datumOdluke.Valid {
+		v := datumOdluke.Time
+		n.DatumOdluke = &v
+	}
 
 	return nil
 }

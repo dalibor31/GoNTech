@@ -9,6 +9,8 @@
     .detalji-kartica:nth-child(3) { animation-delay: 0.20s; }
     .detalji-kartica:nth-child(4) { animation-delay: 0.28s; }
     .detalji-kartica:nth-child(5) { animation-delay: 0.36s; }
+    /* bez animacija na detaljima — smetaju pri dodavanju/brisanju stavki */
+    #sadrzaj .kartica.animiraj { animation: none; }
 </style>
 {{end}}
 
@@ -158,8 +160,8 @@
                     Nalepnica (reprint)
                 </a>
                 {{end}}
-                {{/* nalog gotov/preuzet — nema više izmena */}}
-                {{if and (ne .Nalog.Status "Završeno") (ne .Nalog.Status "Preuzeto")}}
+                {{/* nalog u popravci ili gotov/preuzet — nema više izmena */}}
+                {{if and (ne .Nalog.Status "U popravci") (ne .Nalog.Status "Završeno") (ne .Nalog.Status "Preuzeto")}}
                 <a href="/servis/izmeni/{{.Nalog.ID}}" class="btn-primarno" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML">
                     Izmeni nalog
                 </a>
@@ -441,6 +443,7 @@
     </div>
     {{end}}
 
+    <div id="stavke-blok" style="display:flex;flex-direction:column;gap:16px;">
     {{/* kartice radova/delova se ne prikazuju kad je popravka odbijena (samo dijagnostika)
          ni kad je nalog „Završeno"/„Preuzeto" (posao gotov — sume ostaju u kartici Ukupno) */}}
     {{if and (not .Nalog.PopravkaOdbijena) (ne .Nalog.Status "Završeno") (ne .Nalog.Status "Preuzeto")}}
@@ -452,7 +455,7 @@
         </div>
 
         <!-- forma za dodavanje rada — u dijagnostici se automatski beleži kao predlog -->
-        {{if index .Dozvole "servis.izmeni"}}
+        {{if and (index .Dozvole "servis.izmeni") (ne .Nalog.Status "U popravci")}}
         <form method="POST" action="/servis/{{.Nalog.ID}}/radovi" style="margin-bottom:16px;" data-refresh="#radovi-blok, #nalog-ukupno">
             <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
             {{if .ZakljucaniUgradjeni}}<input type="hidden" name="predlozeno" value="1">{{end}}
@@ -487,6 +490,7 @@
             <thead>
                 <tr style="border-bottom:0.5px solid var(--ivica);">
                     <th style="padding:8px 10px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Usluga</th>
+                    <th style="padding:8px 10px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:90px;">Šifra</th>
                     <th style="padding:8px 10px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:80px;">Kol.</th>
                     <th style="padding:8px 10px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:130px;">Cena/kom</th>
                     <th style="padding:8px 10px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:130px;">Ukupno</th>
@@ -497,6 +501,7 @@
                 {{range .ServisniRadovi}}
                 <tr style="border-bottom:0.5px solid var(--ivica);">
                     <td style="padding:9px 10px;font-size:14px;color:var(--tekst-glavni);">{{.Naziv}}</td>
+                    <td style="padding:9px 10px;font-size:12px;color:var(--tekst-sporedni);font-family:monospace;">{{.Sifra}}</td>
                     <td style="padding:9px 10px;text-align:center;font-size:14px;color:var(--tekst-glavni);">{{.Kolicina}}</td>
                     <td style="padding:9px 10px;text-align:right;font-size:14px;color:var(--tekst-glavni);">{{dinari .CenaKomada}} din</td>
                     <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .Ukupno}} din</td>
@@ -517,11 +522,12 @@
                 {{range .PredlozeniRadovi}}
                 <tr style="border-bottom:0.5px solid var(--ivica);background:rgba(245,158,11,0.08);">
                     <td style="padding:9px 10px;font-size:14px;color:var(--tekst-glavni);">{{.Naziv}} <span class="predlog-bedz" style="font-size:10px;padding:1px 7px;">Predlog</span></td>
+                    <td style="padding:9px 10px;font-size:12px;color:var(--tekst-sporedni);font-family:monospace;">{{.Sifra}}</td>
                     <td style="padding:9px 10px;text-align:center;font-size:14px;color:var(--tekst-glavni);">{{.Kolicina}}</td>
                     <td style="padding:9px 10px;text-align:right;font-size:14px;color:var(--tekst-glavni);">{{dinari .CenaKomada}} din</td>
                     <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .Ukupno}} din</td>
                     <td style="padding:9px 10px;text-align:center;">
-                        {{if index $.Dozvole "servis.izmeni"}}
+                        {{if and (index $.Dozvole "servis.izmeni") (ne $.Nalog.Status "U popravci")}}
                         <form method="POST" action="/servis/{{$.Nalog.ID}}/radovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#radovi-blok, #nalog-ukupno">
                             <input type="hidden" name="_csrf" value="{{$.CsrfToken}}">
                             <button type="submit"
@@ -548,13 +554,18 @@
 
     <!-- ugrađeni delovi -->
     <div id="delovi-blok">
+    {{/* osvežava window._ntechArtikli i dropdown svaki put kad data-refresh osvežava #delovi-blok */}}
+    <script>
+    window._ntechArtikli = {{json .Artikli}};
+    if (typeof window._ntechPopuniArtikle === 'function') window._ntechPopuniArtikle();
+    </script>
     <div class="kartica detalji-kartica animiraj" id="delovi-kartica">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);flex-wrap:wrap;gap:10px;">
             <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Delovi</span>
         </div>
 
         <!-- forma za dodavanje dela — u dijagnostici se automatski beleži kao predlog -->
-        {{if index .Dozvole "servis.izmeni"}}
+        {{if and (index .Dozvole "servis.izmeni") (ne .Nalog.Status "U popravci")}}
         <form method="POST" action="/servis/{{.Nalog.ID}}/delovi" style="margin-bottom:16px;" data-refresh="#delovi-blok, #nalog-zaglavlje, #nalog-ukupno">
             <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
             {{if .ZakljucaniUgradjeni}}<input type="hidden" name="predlozeno" value="1">{{end}}
@@ -596,6 +607,7 @@
             <thead>
                 <tr style="border-bottom:0.5px solid var(--ivica);">
                     <th style="padding:8px 10px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);">Artikal</th>
+                    <th style="padding:8px 10px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:90px;">Šifra</th>
                     <th style="padding:8px 10px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:80px;">Kol.</th>
                     <th style="padding:8px 10px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:130px;">Cena/kom</th>
                     <th style="padding:8px 10px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:130px;">Ukupno</th>
@@ -606,6 +618,7 @@
                 {{range .ServisniDelovi}}
                 <tr data-artikal-id="{{.ArtikalID}}" data-kolicina="{{.Kolicina}}" data-potrazivano="{{.Potrazivano}}" style="border-bottom:0.5px solid var(--ivica);{{if .Potrazivano}}background:rgba(220,38,38,0.06);{{end}}">
                     <td style="padding:9px 10px;font-size:14px;color:var(--tekst-glavni);">{{.ArtikalNaziv}}</td>
+                    <td style="padding:9px 10px;font-size:12px;color:var(--tekst-sporedni);font-family:monospace;">{{.ArtikalSifra}}</td>
                     <td style="padding:9px 10px;text-align:center;font-size:14px;{{if .Potrazivano}}color:#dc2626;font-weight:600;{{else}}color:var(--tekst-glavni);{{end}}">
                         {{.Kolicina}}{{if .Potrazivano}}<span style="font-weight:400;"> + {{.Potrazivano}} na čekanju</span>{{end}}
                     </td>
@@ -630,10 +643,11 @@
                 </tr>
                 {{end}}
                 {{range .PredlozeniDelovi}}
-                <tr data-artikal-id="{{.ArtikalID}}" data-kolicina="{{.Kolicina}}" data-potrazivano="{{.Potrazivano}}" style="border-bottom:0.5px solid var(--ivica);background:rgba(245,158,11,0.08);{{if .Potrazivano}}background:rgba(220,38,38,0.06);{{end}}">
+                <tr data-artikal-id="{{.ArtikalID}}" data-kolicina="{{.Kolicina}}" data-potrazivano="{{.Potrazivano}}" style="border-bottom:0.5px solid var(--ivica);background:rgba(245,158,11,0.08);">
                     <td style="padding:9px 10px;font-size:14px;color:var(--tekst-glavni);">{{.ArtikalNaziv}} <span class="predlog-bedz" style="font-size:10px;padding:1px 7px;">Predlog</span></td>
-                    <td style="padding:9px 10px;text-align:center;font-size:14px;{{if .Potrazivano}}color:#dc2626;font-weight:600;{{else}}color:var(--tekst-glavni);{{end}}">
-                        {{.Kolicina}}{{if .Potrazivano}}<span style="font-weight:400;"> + {{.Potrazivano}} na čekanju</span>{{end}}
+                    <td style="padding:9px 10px;font-size:12px;color:var(--tekst-sporedni);font-family:monospace;">{{.ArtikalSifra}}</td>
+                    <td style="padding:9px 10px;text-align:center;font-size:14px;color:var(--tekst-glavni);">
+                        {{if .Kolicina}}{{.Kolicina}}{{if .Potrazivano}} + {{.Potrazivano}}{{end}}{{else}}{{.Potrazivano}}{{end}}
                     </td>
                     <td style="padding:9px 10px;text-align:right;font-size:14px;color:var(--tekst-glavni);">
                         {{if .Kolicina}}{{dinari .CenaKomada}} din{{else}}—{{end}}
@@ -642,15 +656,22 @@
                         {{if .Kolicina}}{{dinari .Ukupno}} din{{else}}—{{end}}
                     </td>
                     <td style="padding:9px 10px;text-align:center;">
-                        {{if and .ID (index $.Dozvole "servis.izmeni")}}
+                        {{if and (index $.Dozvole "servis.izmeni") (ne $.Nalog.Status "U popravci")}}
+                        {{if .ID}}
                         <form method="POST" action="/servis/{{$.Nalog.ID}}/delovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#delovi-blok, #nalog-zaglavlje, #nalog-ukupno">
                             <input type="hidden" name="_csrf" value="{{$.CsrfToken}}">
                             <button type="submit"
                                 data-potvrda="Ukloniti predloženi deo '{{.ArtikalNaziv}}'?"
-                                style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px;padding:2px 6px;border-radius:4px;">
-                                ×
-                            </button>
+                                style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px;padding:2px 6px;border-radius:4px;">×</button>
                         </form>
+                        {{else if .ArtikalID}}
+                        <form method="POST" action="/servis/{{$.Nalog.ID}}/predlozeni-delovi/{{.ArtikalID}}/obrisi" style="display:inline;" data-refresh="#delovi-blok, #nalog-zaglavlje, #nalog-ukupno">
+                            <input type="hidden" name="_csrf" value="{{$.CsrfToken}}">
+                            <button type="submit"
+                                data-potvrda="Ukloniti predloženi deo '{{.ArtikalNaziv}}'?"
+                                style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px;padding:2px 6px;border-radius:4px;">×</button>
+                        </form>
+                        {{end}}
                         {{end}}
                     </td>
                 </tr>
@@ -665,8 +686,32 @@
         {{end}}
         </div>
     </div>
+    <script>(function(){
+        var k=document.getElementById('deo-kategorija');
+        var a=document.getElementById('deo-artikal');
+        var u=document.getElementById('deo-umagacinu');
+        var l=document.getElementById('deo-kol');
+        var c=document.getElementById('deo-cena');
+        var st=0;
+        function osv(){if(!l||!a)return;var o=a.options[a.selectedIndex];var s=o?parseInt(o.getAttribute('data-stanje'),10):0;st=isNaN(s)?0:s;if(u)u.textContent=a.value?st:'—';if(l)l.classList.toggle('prekoraceno',a.value&&st===0)}
+        function pop(){
+            if(!a)return;
+            var ka=k?k.value:'';
+            a.innerHTML='<option value="">— odaberi artikal —</option>';
+        var aa=window._ntechArtikli||[];
+        aa.forEach(function(x){if(!ka||(x.KategorijaNaziv||'')===ka)a.innerHTML+='<option value="'+x.ID+'" data-cena="'+x.ProdajnaCena+'" data-stanje="'+(x.Kolicina||0)+'">'+x.Naziv+'</option>'})
+    }
+    if(k){var aa2=window._ntechArtikli||[];var kgs=[];aa2.forEach(function(x){var n=x.KategorijaNaziv||'';if(n&&kgs.indexOf(n)===-1)kgs.push(n)})
+        k.innerHTML='<option value="">— sve kategorije —</option>'+kgs.map(function(x){return'<option value="'+x+'">'+x+'</option>'}).join('');k.onchange=pop}
+        pop();
+        if(a)a.onchange=function(){var o=a.options[a.selectedIndex];if(!o)return;var v=parseFloat(o.getAttribute('data-cena'));if(c)c.value=(!isNaN(v)&&v>0)?v.toFixed(2):'0';osv()}
+        if(l)l.oninput=osv;
+        var fd=document.querySelector('form[action$=\"/delovi\"]');
+        if(fd)fd.addEventListener('reset',function(){if(u){u.textContent='—';u.classList.remove('prekoraceno')}st=0;if(l)l.classList.remove('prekoraceno')})
+    })();</script>
     </div>
     {{end}}
+    </div>{{/* kraj stavke-blok */}}
 
 
 
@@ -739,7 +784,8 @@ document.addEventListener('change', function (e) {
 // cenu i prikaz „U magacinu". Običan <select> ima native pretragu kucanjem
 // i otvara se jednim klikom (za razliku od datalist-a).
 (function () {
-    var ARTIKLI = {{json .Artikli}} || [];
+    window._ntechArtikli = {{json .Artikli}} || [];
+    var ARTIKLI = window._ntechArtikli;
     var kategSel = document.getElementById('deo-kategorija');
     var artikalSel = document.getElementById('deo-artikal');
     var cena = document.getElementById('deo-cena');
@@ -748,21 +794,13 @@ document.addEventListener('change', function (e) {
     var stanjeIzabrano = 0;
     if (!artikalSel) return;
 
-    // boji „U magacinu" i polje količine crveno kada ukupno (postojeće u tabeli
-    // + nova količina) prelazi stanje; čita direktno iz DOM-a tabele jer se ona
-    // osvežava AJAX-om, pa JSON varijabla zastareva
+    // boji „U magacinu" i polje količine crveno kada nova količina prelazi
+    // trenutno stanje; stanjeIzabrano već odražava snižen lager (UgradiIliPotrazuj
+    // skida sa stanja odmah pri dodavanju), pa nema potrebe sabirati ono što je
+    // već u tabeli
     function osveziPrekoracenje() {
         var novaKol = parseInt(kol && kol.value, 10) || 0;
-        var postojeciKol = 0;
-        if (artikalSel.value) {
-            var aid = artikalSel.value;
-            var redovi = document.querySelectorAll('#delovi-spisak tr[data-artikal-id="' + aid + '"]');
-            redovi.forEach(function (tr) {
-                postojeciKol += (parseInt(tr.getAttribute('data-kolicina'), 10) || 0) +
-                    (parseInt(tr.getAttribute('data-potrazivano'), 10) || 0);
-            });
-        }
-        var preko = (postojeciKol + novaKol) > stanjeIzabrano && artikalSel.value;
+        var preko = novaKol > stanjeIzabrano && artikalSel.value;
         if (umagacinu) umagacinu.classList.toggle('prekoraceno', preko);
         if (kol) kol.classList.toggle('prekoraceno', preko);
     }
@@ -779,6 +817,7 @@ document.addEventListener('change', function (e) {
     }
 
     function popuniArtikle() {
+        ARTIKLI = window._ntechArtikli || [];
         var izabrana = kategSel ? kategSel.value : '';
         artikalSel.innerHTML = '<option value="">— odaberi artikal —</option>' +
             ARTIKLI.filter(function (a) { return !izabrana || (a.KategorijaNaziv || '') === izabrana; })
@@ -788,6 +827,7 @@ document.addEventListener('change', function (e) {
                 }).join('');
         if (umagacinu) umagacinu.textContent = '—';
     }
+    window._ntechPopuniArtikle = popuniArtikle;
     popuniArtikle();
     if (kategSel) kategSel.addEventListener('change', popuniArtikle);
 
@@ -804,17 +844,21 @@ document.addEventListener('change', function (e) {
 
     // resetuj prikaz „U magacinu" nakon dodavanja dela — base.html poziva
     // f.reset() posle AJAX osvežavanja tabele, ali .reset() ne dira <div>
-    var formaDelovi = document.querySelector('form[action$="/delovi"]');
-    if (formaDelovi) {
-        formaDelovi.addEventListener('reset', function () {
-            if (umagacinu) {
-                umagacinu.textContent = '—';
-                umagacinu.classList.remove('prekoraceno');
-            }
-            stanjeIzabrano = 0;
-            if (kol) kol.classList.remove('prekoraceno');
-        });
+    function zakaciResetDelovi() {
+        var fd = document.querySelector('form[action$="/delovi"]');
+        if (fd) {
+            fd.addEventListener('reset', function () {
+                if (umagacinu) {
+                    umagacinu.textContent = '—';
+                    umagacinu.classList.remove('prekoraceno');
+                }
+                stanjeIzabrano = 0;
+                if (kol) kol.classList.remove('prekoraceno');
+            });
+        }
     }
+    zakaciResetDelovi();
+
 })();
 
 // Popup polja (predviđen datum, garancija, serviser): nema dugmeta „Sačuvaj" —

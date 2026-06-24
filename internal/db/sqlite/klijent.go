@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"ntech/internal/db"
@@ -91,6 +92,115 @@ func (r *KlijentRepo) DohvatiID(ctx context.Context, id int64) (*model.Klijent, 
 	k.Telefon = telefon.String
 	k.Email = email.String
 	k.Mesto = mesto.String
+	k.Napomena = napomena.String
+
+	return &k, nil
+}
+
+// Pronadji traži postojećeg klijenta po imenu i prezimenu (fizičko) ili nazivu firme (pravno).
+// Vraća nil, nil ako nije pronađen.
+// Pretraga ide od najočiglednijeg ka opštijem: JMBG/PIB → ime+prezime+mesto → telefon → email → samo ime+prezime.
+func (r *KlijentRepo) Pronadji(ctx context.Context, tip, ime, prezime, nazivFirme, jmbg, telefon, email, mesto string) (*model.Klijent, error) {
+	var k model.Klijent
+	var imeN, prezimeN, jmbgN, tipIdent, nazivFirmeN, pibN, telefonN, emailN, mestoN, napomena sql.NullString
+
+	skeniraj := func(row *sql.Row) error {
+		return row.Scan(
+			&k.ID, &k.Tip, &imeN, &prezimeN, &jmbgN, &tipIdent, &nazivFirmeN, &pibN, &telefonN, &emailN, &mestoN, &napomena, &k.DatumUnosa,
+		)
+	}
+
+	var row *sql.Row
+
+	if tip == "pravno" {
+		// 1. PIB (najpreciznije za firmu)
+		if jmbg != "" {
+			row = r.db.QueryRowContext(ctx, `
+				SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
+				FROM klijenti WHERE tip = 'pravno' AND pib = ? LIMIT 1`, jmbg)
+			if err := skeniraj(row); err == nil {
+				goto popuni
+			}
+		}
+		// 2. Naziv firme + mesto
+		if nazivFirme != "" && mesto != "" {
+			row = r.db.QueryRowContext(ctx, `
+				SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
+				FROM klijenti WHERE tip = 'pravno' AND naziv_firme = ? AND mesto = ? LIMIT 1`, nazivFirme, mesto)
+			if err := skeniraj(row); err == nil {
+				goto popuni
+			}
+		}
+		// 3. Samo naziv firme
+		row = r.db.QueryRowContext(ctx, `
+			SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
+			FROM klijenti WHERE tip = 'pravno' AND naziv_firme = ? LIMIT 1`, nazivFirme)
+		if err := skeniraj(row); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil, nil
+			}
+			return nil, fmt.Errorf("ntech: KlijentRepo.Pronadji: %w", err)
+		}
+	} else {
+		// Fizičko lice — više nivoa
+		// 1. JMBG ili broj lične karte
+		if jmbg != "" {
+			row = r.db.QueryRowContext(ctx, `
+				SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
+				FROM klijenti WHERE tip != 'pravno' AND jmbg = ? LIMIT 1`, jmbg)
+			if err := skeniraj(row); err == nil {
+				goto popuni
+			}
+		}
+		// 2. Ime + prezime + mesto
+		if ime != "" && prezime != "" && mesto != "" {
+			row = r.db.QueryRowContext(ctx, `
+				SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
+				FROM klijenti WHERE tip != 'pravno' AND ime = ? AND prezime = ? AND mesto = ? LIMIT 1`, ime, prezime, mesto)
+			if err := skeniraj(row); err == nil {
+				goto popuni
+			}
+		}
+		// 3. Ime + prezime + telefon
+		if ime != "" && prezime != "" && telefon != "" {
+			row = r.db.QueryRowContext(ctx, `
+				SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
+				FROM klijenti WHERE tip != 'pravno' AND ime = ? AND prezime = ? AND telefon = ? LIMIT 1`, ime, prezime, telefon)
+			if err := skeniraj(row); err == nil {
+				goto popuni
+			}
+		}
+		// 4. Ime + prezime + email
+		if ime != "" && prezime != "" && email != "" {
+			row = r.db.QueryRowContext(ctx, `
+				SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
+				FROM klijenti WHERE tip != 'pravno' AND ime = ? AND prezime = ? AND email = ? LIMIT 1`, ime, prezime, email)
+			if err := skeniraj(row); err == nil {
+				goto popuni
+			}
+		}
+		// 5. Samo ime + prezime (poslednji fallback)
+		row = r.db.QueryRowContext(ctx, `
+			SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
+			FROM klijenti WHERE tip != 'pravno' AND ime = ? AND prezime = ? LIMIT 1`, ime, prezime)
+		if err := skeniraj(row); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil, nil
+			}
+			return nil, fmt.Errorf("ntech: KlijentRepo.Pronadji: %w", err)
+		}
+	}
+
+popuni:
+	k.Ime = imeN.String
+	k.Prezime = prezimeN.String
+	k.JMBG = jmbgN.String
+	k.TipIdentifikacije = tipIdent.String
+	k.NazivFirme = nazivFirmeN.String
+	k.PIB = pibN.String
+	k.Telefon = telefonN.String
+	k.Email = emailN.String
+	k.Mesto = mestoN.String
 	k.Napomena = napomena.String
 
 	return &k, nil

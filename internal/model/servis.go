@@ -50,11 +50,13 @@ type ServisniNalog struct {
 	PinUredjaja        string
 	Pribor             string
 	NapomenaKlijentu   string
-	NalazDijagnostike  string  // šta je serviser utvrdio pregledom (dijagnoza + predlog popravke)
-	Uradjeno           string  // šta je serviser stvarno uradio tokom popravke
-	CenaDijagnostike   float64 // taksa kad klijent ne prihvati popravku; 0 = ne naplaćuje se
-	PopravkaOdbijena   bool    // klijent odbio popravku posle dijagnostike → naplaćuje se samo dijagnostika
-	KomentarKlijenta   string  // poruka klijenta uz prihvatanje/odbijanje predloga
+	NalazDijagnostike  string     // šta je serviser utvrdio pregledom (dijagnoza + predlog popravke)
+	Uradjeno           string     // šta je serviser stvarno uradio tokom popravke
+	CenaDijagnostike   float64    // taksa kad klijent ne prihvati popravku; 0 = ne naplaćuje se
+	PopravkaOdbijena   bool       // klijent odbio popravku posle dijagnostike → naplaćuje se samo dijagnostika
+	KomentarKlijenta   string     // poruka klijenta uz prihvatanje/odbijanje predloga
+	OdlukaKlijenta     string     // '' / 'prihvaceno' / 'odbijeno'
+	DatumOdluke        *time.Time // kada je klijent doneo odluku
 	JavniToken         string
 }
 
@@ -78,6 +80,7 @@ func (d ServisniDeo) Ukupno() float64 {
 type ServisniDeoSaArtiklom struct {
 	ServisniDeo
 	ArtikalNaziv string
+	ArtikalSifra string
 	Potrazivano  int // komada koji nedostaju (iz servisni_potrazivani_delovi), 0 ako nema
 }
 
@@ -102,6 +105,7 @@ type ServisniRad struct {
 	NalogID    int64
 	UslugaID   int64 // 0 ako je usluga u međuvremenu obrisana iz cenovnika
 	Naziv      string
+	Sifra      string
 	Kolicina   float64
 	CenaKomada float64
 	Datum      string

@@ -54,6 +54,18 @@ func (r *ServisniPotrazivaniDeloviRepo) Obrisi(ctx context.Context, id int64) er
 	return nil
 }
 
+// ObrisiPredlozeneZaArtikal briše samo predlozene redove (predlozeno=1) za dati artikal na nalogu
+func (r *ServisniPotrazivaniDeloviRepo) ObrisiPredlozeneZaArtikal(ctx context.Context, nalogID, artikalID int64) error {
+	_, err := r.db.ExecContext(ctx,
+		"DELETE FROM servisni_potrazivani_delovi WHERE nalog_id = ? AND artikal_id = ? AND predlozeno = 1",
+		nalogID, artikalID,
+	)
+	if err != nil {
+		return fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ObrisiPredlozeneZaArtikal: %w", err)
+	}
+	return nil
+}
+
 // ObrisiZaArtikal briše sve potraživane delove za dati artikal na datom nalogu
 func (r *ServisniPotrazivaniDeloviRepo) ObrisiZaArtikal(ctx context.Context, nalogID, artikalID int64) error {
 	_, err := r.db.ExecContext(ctx,
@@ -96,7 +108,7 @@ func (r *ServisniPotrazivaniDeloviRepo) ProveriIPocistiZaArtikal(ctx context.Con
 	}
 
 	redovi, err := tx.QueryContext(ctx,
-		"SELECT id, nalog_id, kolicina, cena_komada FROM servisni_potrazivani_delovi WHERE artikal_id = ? ORDER BY datum",
+		"SELECT id, nalog_id, kolicina, cena_komada FROM servisni_potrazivani_delovi WHERE artikal_id = ? AND predlozeno = 0 ORDER BY datum",
 		artikalID,
 	)
 	if err != nil {
@@ -165,7 +177,7 @@ func (r *ServisniPotrazivaniDeloviRepo) ProveriIPocistiZaArtikal(ctx context.Con
 	for nalogID := range obrisaniNalozi {
 		var preostalo int
 		if err := tx.QueryRowContext(ctx,
-			"SELECT COUNT(*) FROM servisni_potrazivani_delovi WHERE nalog_id = ?", nalogID,
+			"SELECT COUNT(*) FROM servisni_potrazivani_delovi WHERE nalog_id = ? AND predlozeno = 0", nalogID,
 		).Scan(&preostalo); err != nil {
 			return nil, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal: prebroji: %w", err)
 		}
@@ -187,7 +199,7 @@ func (r *ServisniPotrazivaniDeloviRepo) ugradiUNalog(ctx context.Context, tx *sq
 	var postojeciID int64
 	var postojeciKol int
 	err := tx.QueryRowContext(ctx,
-		"SELECT id, kolicina FROM servisni_delovi WHERE nalog_id = ? AND artikal_id = ?",
+		"SELECT id, kolicina FROM servisni_delovi WHERE nalog_id = ? AND artikal_id = ? AND predlozeno = 0",
 		nalogID, artikalID,
 	).Scan(&postojeciID, &postojeciKol)
 

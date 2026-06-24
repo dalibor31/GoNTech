@@ -178,6 +178,7 @@ type KlijentRepository interface {
 	ListaFilter(ctx context.Context, filter KlijentFilter) ([]model.Klijent, error)
 	PrebrojiPoFilteru(ctx context.Context, filter KlijentFilter) (int, error)
 	DohvatiID(ctx context.Context, id int64) (*model.Klijent, error)
+	Pronadji(ctx context.Context, tip, ime, prezime, nazivFirme, jmbg, telefon, email, mesto string) (*model.Klijent, error)
 	Kreiraj(ctx context.Context, k *model.Klijent) (int64, error)
 	Izmeni(ctx context.Context, k *model.Klijent) error
 	Obrisi(ctx context.Context, id int64) error
@@ -201,6 +202,8 @@ type ServisRepository interface {
 	AzurirajCenaDijagnostike(ctx context.Context, id int64, cena float64) error
 	OdbijPopravku(ctx context.Context, id int64, cena float64) error
 	AzurirajKomentarKlijenta(ctx context.Context, id int64, tekst string) error
+	SacuvajOdlukuKlijenta(ctx context.Context, id int64, odluka string, odgovor string) error
+	ObrisiOdlukuKlijenta(ctx context.Context, id int64) error
 	Obrisi(ctx context.Context, id int64, korisnikID *int64) error
 	SledeciBroj(ctx context.Context) (string, error)
 }
@@ -236,6 +239,7 @@ type ServisniPotrazivaniDeloviRepository interface {
 	DohvatiZaNalog(ctx context.Context, nalogID int64) ([]model.ServisniPotrazivaniDeo, error)
 	Obrisi(ctx context.Context, id int64) error
 	ObrisiZaArtikal(ctx context.Context, nalogID, artikalID int64) error
+	ObrisiPredlozeneZaArtikal(ctx context.Context, nalogID, artikalID int64) error
 	// ProveriIPocistiZaArtikal proverava potraživane redove za dati artikal nakon
 	// povećanja stanja i briše/smanjuje redove koji se mogu pokriti (FIFO).
 	// Vraća ID-eve naloga čiji je poslednji potraživani red obrisan.
