@@ -38,9 +38,19 @@ Cilj je jednostavan: sve što servis treba da prati nalazi se na jednom mestu, b
 - Bezbednosni HTTP headeri (CSP, X-Frame-Options, Referrer-Policy, nosniff...)
 - Evidencija pokušaja prijave — istorija po korisniku, IP, razlog, datum
 - Korisnici i uloge — admin panel, upravljanje korisnicima
-- Magacin — artikli, kategorije, filtriranje, kritični nivoi zaliha
-- Servisni nalozi — prijem, statusna traka, troškovi, priznanica
+- Magacin — artikli, kategorije, filtriranje, kritični nivoi zaliha, magacinska kartica po artiklu, veza sa dobavljačima, premeštanje artikala
+- Servisni nalozi:
+  - Forma prijema, statusna traka, arhiva
+  - Tok dijagnostike — opis kvara, napomene servisera, urađeno, cena dijagnostike
+  - Delovi i radovi — ugrađeni artikli se skidaju sa lagera; predloženi artikli (ponuda klijentu)
+  - Odobravanje predloga — klijent dobija javni link (QR kod) da prihvati ili odbije predlog sa komentarom
+  - Javna statusna stranica — klijent prati status naloga putem jedinstvenog linka
+  - Dokumenti — radni nalog, predračun, otpremnica, revers, nalepnica za uređaj (QR + Code128 barkod)
+  - Preuzimanje sa naplatom — način plaćanja i iznos avansa
+  - Garancija, predviđen datum završetka, serviser, napomena klijentu
 - Prodajni nalozi — stavke, obračun, priznanica sa podacima firme i klijenta
+- Cenovnik usluga — šifarnik usluga za obračun u servisnim nalozima
+- Troškovi — evidencija troškova po kategoriji i iznosu
 - Nabavke — evidencija nabavki od dobavljača
 - Kalkulacija prodajne cene pri nabavci — marža (globalna, po kategoriji i po artiklu), zavisni troškovi (carina, prevoz...) sa raspodelom na stavke, dvosmerni izračun marža↔prodajna; poštuje status PDV obveznika
 - Nivelacija — promena prodajne cene uz trag (istorija promena: stara→nova, razlog, izvor, korisnik)
@@ -50,7 +60,7 @@ Cilj je jednostavan: sve što servis treba da prati nalazi se na jednom mestu, b
 - Šifarnik PDV stopa
 - Klijenti i dobavljači — baza kontakata
 - Podsetnici — evidencija sa rokom
-- Izveštaji — pregled prihoda, stanje magacina
+- Izveštaji — pregled prihoda, stanje magacina, vrednost zaliha, prometni list, popis (inventura)
 - Podešavanja — naziv, adresa, PIB, logo firme; promena teme
 - Pozadinske slike — login stranica i aplikacija, sa zamućenjem, providnošću i glass efektom
 - Lična tema i pozadina — svaki korisnik može svoju temu i pozadinsku sliku
@@ -83,6 +93,7 @@ Cilj je jednostavan: sve što servis treba da prati nalazi se na jednom mestu, b
 | [Go](https://go.dev)                                                                 | backend jezik                   |
 | [chi](https://github.com/go-chi/chi)                                                 | HTTP ruter                      |
 | [html/template](https://pkg.go.dev/html/template)                                    | serverski šabloni               |
+| [HTMX](https://htmx.org)                                                             | dinamički HTML preko HTTP-a     |
 | [Alpine.js](https://alpinejs.dev)                                                    | UI logika na strani klijenta    |
 | [SQLite](https://sqlite.org) + [modernc.org/sqlite](https://gitlab.com/cznic/sqlite) | glavna baza (čisti Go, bez CGO) |
 | [PostgreSQL](https://www.postgresql.org) + [pgx/v5](https://github.com/jackc/pgx)    | opciona baza za produkciju      |
