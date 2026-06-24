@@ -6,21 +6,21 @@
     <title>Status popravke — {{.Nalog.BrojNaloga}}</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; color: #111; background: #f5f5f7; min-height: 100vh; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; color: #e2e8f0; background: #0f172a; min-height: 100vh; }
 
         .omotac { max-width: 480px; margin: 0 auto; padding: 24px 16px 48px; }
 
         /* zaglavlje firme */
         .zaglavlje { text-align: center; margin-bottom: 24px; }
-        .firma-naziv { font-size: 18px; font-weight: 700; color: #111; }
-        .firma-info { font-size: 12px; color: #666; margin-top: 4px; line-height: 1.6; }
+        .firma-naziv { font-size: 18px; font-weight: 700; color: #f1f5f9; }
+        .firma-info { font-size: 12px; color: #94a3b8; margin-top: 4px; line-height: 1.6; }
 
         /* kartica naloga */
-        .kartica { background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-        .kartica-naslov { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: #999; margin-bottom: 12px; }
+        .kartica { background: #1e293b; border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.35); }
+        .kartica-naslov { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: #94a3b8; margin-bottom: 12px; }
 
-        .uredjaj { font-size: 22px; font-weight: 700; color: #111; line-height: 1.2; }
-        .broj-naloga { font-size: 13px; color: #888; margin-top: 4px; font-family: monospace; }
+        .uredjaj { font-size: 22px; font-weight: 700; color: #f1f5f9; line-height: 1.2; }
+        .broj-naloga { font-size: 13px; color: #94a3b8; margin-top: 4px; font-family: monospace; }
 
         /* status bedž */
         .status-bedz {
@@ -40,39 +40,63 @@
 
         /* napredak */
         .napredak { margin: 16px 0 4px; }
-        .napredak-labela { font-size: 11px; color: #999; margin-bottom: 8px; }
+        .napredak-labela { font-size: 11px; color: #94a3b8; margin-bottom: 8px; }
         .koraci { display: flex; gap: 4px; }
         .korak {
             flex: 1;
             height: 5px;
             border-radius: 3px;
-            background: #e5e7eb;
+            background: #334155;
         }
         .korak.aktivan { background: #10b981; }
         .korak.zavrseno { background: #10b981; }
         .korak.tekuci { background: #f59e0b; }
 
         /* red podataka */
-        .red { display: flex; justify-content: space-between; align-items: flex-start; padding: 10px 0; border-bottom: 0.5px solid #f0f0f0; gap: 12px; }
+        .red { display: flex; justify-content: space-between; align-items: flex-start; padding: 10px 0; border-bottom: 0.5px solid #334155; gap: 12px; }
         .red:last-child { border-bottom: none; }
-        .red-labela { font-size: 12px; color: #888; min-width: 0; overflow-wrap: anywhere; }
-        .red-vrednost { font-size: 13px; color: #111; font-weight: 500; text-align: right; flex-shrink: 0; white-space: nowrap; }
+        .red-labela { font-size: 12px; color: #94a3b8; min-width: 0; overflow-wrap: anywhere; }
+        .red-vrednost { font-size: 13px; color: #f1f5f9; font-weight: 500; text-align: right; flex-shrink: 0; white-space: nowrap; }
 
         /* cena */
-        .cena-blok { background: #f9fafb; border-radius: 10px; padding: 14px 16px; margin-top: 4px; }
+        .cena-blok { background: #0f172a; border-radius: 10px; padding: 14px 16px; margin-top: 4px; }
         .cena-od-do { display: flex; gap: 8px; align-items: center; }
-        .cena-od-do .cena-vrednost { font-size: 20px; font-weight: 700; color: #111; }
-        .cena-od-do .cena-sep { color: #bbb; }
-        .cena-labela { font-size: 11px; color: #888; margin-top: 2px; }
+        .cena-od-do .cena-vrednost { font-size: 20px; font-weight: 700; color: #f1f5f9; }
+        .cena-od-do .cena-sep { color: #475569; }
+        .cena-labela { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+        .cena-vrednost { color: #f1f5f9; }
 
         /* kontakt */
-        .kontakt { background: #fff; border-radius: 16px; padding: 18px 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-        .kontakt-naslov { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: #999; margin-bottom: 12px; }
-        .kontakt-tel { font-size: 18px; font-weight: 700; color: #1a56db; text-decoration: none; display: block; }
-        .kontakt-adresa { font-size: 13px; color: #666; margin-top: 6px; line-height: 1.5; }
+        .kontakt { background: #1e293b; border-radius: 16px; padding: 18px 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.35); }
+        .kontakt-naslov { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: #94a3b8; margin-bottom: 12px; }
+        .kontakt-tel { font-size: 18px; font-weight: 700; color: #60a5fa; text-decoration: none; display: block; }
+        .kontakt-adresa { font-size: 13px; color: #94a3b8; margin-top: 6px; line-height: 1.5; }
 
         /* napomena za klijenta */
-        .napomena-blok { background: #fffbeb; border-radius: 10px; padding: 12px 14px; margin-top: 4px; font-size: 13px; color: #555; line-height: 1.5; }
+        .napomena-blok { background: #0f172a; border-left: 3px solid #f59e0b; border-radius: 8px; padding: 12px 14px; margin-top: 4px; font-size: 13px; color: #cbd5e1; line-height: 1.5; white-space: pre-wrap; }
+
+        /* predlog popravke — istaknuta kartica koju klijent odobrava */
+        .predlog-kartica { border: 1px solid #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.12); }
+
+        /* dugmad za odobravanje */
+        .dugme-prihvati {
+            width: 100%; padding: 12px 16px; border: none; border-radius: 10px;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+            background: #10b981; color: #fff;
+            transition: background 0.2s;
+        }
+        .dugme-prihvati:hover { background: #059669; }
+        .dugme-odbij {
+            width: 100%; padding: 12px 16px; border: 1px solid #475569; border-radius: 10px;
+            font-size: 14px; font-weight: 500; cursor: pointer;
+            background: transparent; color: #94a3b8;
+            transition: background 0.2s, color 0.2s;
+        }
+        .dugme-odbij:hover { background: #334155; color: #e2e8f0; }
+
+        .predlog-bedz { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: #f59e0b; color: #1f1300; }
+        .predlog-ukupno .cena-labela { color: #fcd34d; }
+        .predlog-ukupno .cena-vrednost { color: #fcd34d; }
     </style>
 </head>
 <body>
@@ -134,6 +158,34 @@
             </div>
         </div>
 
+        <!-- kartica: zahtev klijenta (opis kvara, nadogradnje, napomena) -->
+        {{if or .Nalog.OpisKvara (or .Nalog.TrazeneNadogradnje .Nalog.NapomenaKlijentu)}}
+        <div class="kartica">
+            <div class="kartica-naslov">Vaš zahtev</div>
+
+            {{if .Nalog.OpisKvara}}
+            <div style="margin-bottom:12px;">
+                <div class="red-labela" style="margin-bottom:6px;">Opis kvara</div>
+                <div class="napomena-blok">{{.Nalog.OpisKvara}}</div>
+            </div>
+            {{end}}
+
+            {{if .Nalog.TrazeneNadogradnje}}
+            <div style="margin-bottom:12px;">
+                <div class="red-labela" style="margin-bottom:6px;">Tražene nadogradnje</div>
+                <div class="napomena-blok">{{.Nalog.TrazeneNadogradnje}}</div>
+            </div>
+            {{end}}
+
+            {{if .Nalog.NapomenaKlijentu}}
+            <div>
+                <div class="red-labela" style="margin-bottom:6px;">Napomena klijentu</div>
+                <div class="napomena-blok">{{.Nalog.NapomenaKlijentu}}</div>
+            </div>
+            {{end}}
+        </div>
+        {{end}}
+
         <!-- kartica: detalji -->
         <div class="kartica">
             <div class="kartica-naslov">Detalji</div>
@@ -162,12 +214,6 @@
             </div>
             {{end}}
 
-            {{if .Nalog.NapomenaKlijentu}}
-            <div style="margin-top:12px;">
-                <div class="red-labela" style="margin-bottom:6px;">Napomena</div>
-                <div class="napomena-blok">{{.Nalog.NapomenaKlijentu}}</div>
-            </div>
-            {{end}}
         </div>
 
         <!-- kartica: radovi i delovi sa procenom -->
@@ -193,6 +239,62 @@
                 <span class="cena-labela" style="margin:0;">Ukupno (procena)</span>
                 <span class="cena-vrednost">{{dinari .UkupnoSve}} din</span>
             </div>
+
+            {{if .ImaPredlog}}
+            <div class="cena-blok" style="margin-top:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;background:#0f172a;border:1px solid #f59e0b;border-radius:8px;">
+                <span class="cena-labela" style="margin:0;color:#fbbf24;">Sa predlogom</span>
+                <span class="cena-vrednost" style="font-size:16px;font-weight:700;color:#fbbf24;">{{dinari .UkupnoSaPredlogom}} din</span>
+            </div>
+            {{end}}
+        </div>
+        {{end}}
+
+        <!-- kartica: predlog popravke — serviser predložio posle dijagnostike -->
+        {{if .ImaPredlog}}
+        <div class="kartica predlog-kartica">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <span class="kartica-naslov" style="margin:0;">Predlog popravke</span>
+                <span class="predlog-bedz">Predlog</span>
+            </div>
+            <div style="font-size:12px;color:#94a3b8;margin-bottom:10px;line-height:1.5;">
+                Serviser predlaže sledeće radove i delove. Pogledajte i javite nam da li ste saglasni.
+            </div>
+
+            {{range .PredlozeniRadovi}}
+            <div class="red">
+                <span class="red-labela">{{.Naziv}}{{if gt .Kolicina 1.0}} &times;{{.Kolicina}}{{end}}</span>
+                <span class="red-vrednost">{{dinari .Ukupno}} din</span>
+            </div>
+            {{end}}
+
+            {{range .PredlozeniDelovi}}
+            <div class="red">
+                <span class="red-labela">{{.ArtikalNaziv}}{{if gt .Kolicina 1}} &times;{{.Kolicina}}{{end}}</span>
+                <span class="red-vrednost">{{dinari .Ukupno}} din</span>
+            </div>
+            {{end}}
+
+            <div class="cena-blok predlog-ukupno" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;">
+                <span class="cena-labela" style="margin:0;">Predlog ukupno</span>
+                <span class="cena-vrednost">{{dinari .UkupnoPredlog}} din</span>
+            </div>
+
+            <!-- komentar i dugmad -->
+            <form method="POST" style="margin-top:16px;">
+                <textarea name="komentar" placeholder="Poruka serviseru (opciono)..." rows="2"
+                    style="width:100%;padding:10px 12px;border:0.5px solid #334155;border-radius:8px;background:#0f172a;color:#e2e8f0;font-size:13px;font-family:inherit;resize:vertical;margin-bottom:10px;box-sizing:border-box;"></textarea>
+                <div style="display:flex;gap:10px;">
+                    <button type="submit" formaction="/status/{{.Nalog.JavniToken}}/prihvati" class="dugme-prihvati" style="flex:1;">Prihvatam predlog</button>
+                    <button type="submit" formaction="/status/{{.Nalog.JavniToken}}/odbij" class="dugme-odbij" style="flex:1;">Ne prihvatam</button>
+                </div>
+            </form>
+        </div>
+        {{end}}
+
+        {{if .Odgovoreno}}
+        <div class="kartica" style="border-color:#10b981;text-align:center;">
+            <div style="font-size:16px;font-weight:600;color:#10b981;">Hvala na odgovoru!</div>
+            <div style="font-size:12px;color:#94a3b8;margin-top:6px;">Serviser je obavešten o vašoj odluci.</div>
         </div>
         {{end}}
 

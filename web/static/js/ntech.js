@@ -235,7 +235,7 @@ document.addEventListener('alpine:init', () => {
                 const punoIme = ((k.Ime || '') + ' ' + (k.Prezime || '')).trim()
                 const polja = (tip === 'pravno') ? [k.NazivFirme] : [punoIme, k.Ime, k.Prezime]
                 return polja.some(p => (p || '').toLowerCase().startsWith(q))
-            }).slice(0, 8)
+            }).slice(0, 100)
         },
         jeTip(t) {
             return this.tip === t

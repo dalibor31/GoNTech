@@ -166,6 +166,24 @@
                 {{end}}
             </div>
         </div>
+
+        <!-- poruka klijenta uz odluku o predlogu -->
+        {{if .Nalog.KomentarKlijenta}}
+        <div style="margin-bottom:16px;padding:14px 16px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);border-radius:10px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                {{if index .Dozvole "servis.izmeni"}}
+                <form method="POST" action="/servis/{{.Nalog.ID}}/obrisi-komentar-klijenta" style="margin:0;" data-refresh="#nalog-zaglavlje">
+                    <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+                    <button type="submit" data-potvrda="Obrisati poruku klijenta?" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:16px;padding:0 2px;line-height:1;">×</button>
+                </form>
+                {{end}}
+                <span style="font-size:14px;">💬</span>
+                <span style="font-size:12px;font-weight:600;color:#f59e0b;text-transform:uppercase;letter-spacing:0.5px;flex:1;">Poruka klijenta</span>
+            </div>
+            <div style="font-size:14px;color:var(--tekst-glavni);line-height:1.5;white-space:pre-wrap;">{{.Nalog.KomentarKlijenta}}</div>
+        </div>
+        {{end}}
+
         <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:16px;">
             <div>
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Datum prijema</div>
@@ -426,16 +444,18 @@
     {{/* kartice radova/delova se ne prikazuju kad je popravka odbijena (samo dijagnostika)
          ni kad je nalog „Završeno"/„Preuzeto" (posao gotov — sume ostaju u kartici Ukupno) */}}
     {{if and (not .Nalog.PopravkaOdbijena) (ne .Nalog.Status "Završeno") (ne .Nalog.Status "Preuzeto")}}
-    <!-- radovi (usluge) -->
+    <div id="radovi-blok">
+    <!-- radovi (usluge) — traženi pri prijemu -->
     <div class="kartica detalji-kartica animiraj" id="radovi-kartica">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);flex-wrap:wrap;gap:10px;">
             <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Radovi (usluge)</span>
         </div>
 
-        <!-- forma za dodavanje rada iz cenovnika usluga -->
+        <!-- forma za dodavanje rada — u dijagnostici se automatski beleži kao predlog -->
         {{if index .Dozvole "servis.izmeni"}}
-        <form method="POST" action="/servis/{{.Nalog.ID}}/radovi" style="margin-bottom:16px;" data-refresh="#radovi-kartica, #nalog-ukupno">
+        <form method="POST" action="/servis/{{.Nalog.ID}}/radovi" style="margin-bottom:16px;" data-refresh="#radovi-blok, #nalog-ukupno">
             <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+            {{if .ZakljucaniUgradjeni}}<input type="hidden" name="predlozeno" value="1">{{end}}
             <div class="detalji-forma-rad">
                 <div>
                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Usluga</label>
@@ -461,7 +481,7 @@
 
         <!-- lista radova -->
         <div id="radovi-spisak">
-        {{if .ServisniRadovi}}
+        {{if or .ServisniRadovi .PredlozeniRadovi}}
         <div class="tabela-skrol">
         <table class="tabela">
             <thead>
@@ -481,11 +501,31 @@
                     <td style="padding:9px 10px;text-align:right;font-size:14px;color:var(--tekst-glavni);">{{dinari .CenaKomada}} din</td>
                     <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .Ukupno}} din</td>
                     <td style="padding:9px 10px;text-align:center;">
-                        {{if index $.Dozvole "servis.izmeni"}}
-                        <form method="POST" action="/servis/{{$.Nalog.ID}}/radovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#radovi-kartica, #nalog-ukupno">
+                        {{if and (not $.ZakljucaniUgradjeni) (index $.Dozvole "servis.izmeni")}}
+                        <form method="POST" action="/servis/{{$.Nalog.ID}}/radovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#radovi-blok, #nalog-ukupno">
                             <input type="hidden" name="_csrf" value="{{$.CsrfToken}}">
                             <button type="submit"
                                 data-potvrda="Ukloniti rad '{{.Naziv}}'?"
+                                style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px;padding:2px 6px;border-radius:4px;">
+                                ×
+                            </button>
+                        </form>
+                        {{end}}
+                    </td>
+                </tr>
+                {{end}}
+                {{range .PredlozeniRadovi}}
+                <tr style="border-bottom:0.5px solid var(--ivica);background:rgba(245,158,11,0.08);">
+                    <td style="padding:9px 10px;font-size:14px;color:var(--tekst-glavni);">{{.Naziv}} <span class="predlog-bedz" style="font-size:10px;padding:1px 7px;">Predlog</span></td>
+                    <td style="padding:9px 10px;text-align:center;font-size:14px;color:var(--tekst-glavni);">{{.Kolicina}}</td>
+                    <td style="padding:9px 10px;text-align:right;font-size:14px;color:var(--tekst-glavni);">{{dinari .CenaKomada}} din</td>
+                    <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .Ukupno}} din</td>
+                    <td style="padding:9px 10px;text-align:center;">
+                        {{if index $.Dozvole "servis.izmeni"}}
+                        <form method="POST" action="/servis/{{$.Nalog.ID}}/radovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#radovi-blok, #nalog-ukupno">
+                            <input type="hidden" name="_csrf" value="{{$.CsrfToken}}">
+                            <button type="submit"
+                                data-potvrda="Ukloniti predloženi rad '{{.Naziv}}'?"
                                 style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px;padding:2px 6px;border-radius:4px;">
                                 ×
                             </button>
@@ -504,17 +544,20 @@
         {{end}}
         </div>
     </div>
+    </div>
 
     <!-- ugrađeni delovi -->
-    <div class="kartica detalji-kartica animiraj">
+    <div id="delovi-blok">
+    <div class="kartica detalji-kartica animiraj" id="delovi-kartica">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);flex-wrap:wrap;gap:10px;">
-            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Ugrađeni delovi</span>
+            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Delovi</span>
         </div>
 
-        <!-- forma za dodavanje dela -->
+        <!-- forma za dodavanje dela — u dijagnostici se automatski beleži kao predlog -->
         {{if index .Dozvole "servis.izmeni"}}
-        <form method="POST" action="/servis/{{.Nalog.ID}}/delovi" style="margin-bottom:16px;" data-refresh="#delovi-spisak, #nalog-zaglavlje, #nalog-ukupno">
+        <form method="POST" action="/servis/{{.Nalog.ID}}/delovi" style="margin-bottom:16px;" data-refresh="#delovi-blok, #nalog-zaglavlje, #nalog-ukupno">
             <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+            {{if .ZakljucaniUgradjeni}}<input type="hidden" name="predlozeno" value="1">{{end}}
             <div style="margin-bottom:10px;">
                 <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Kategorija</label>
                 <select id="deo-kategorija" style="width:100%;"></select>
@@ -547,7 +590,7 @@
 
         <!-- lista delova -->
         <div id="delovi-spisak">
-        {{if .ServisniDelovi}}
+        {{if or .ServisniDelovi .PredlozeniDelovi}}
         <div class="tabela-skrol">
         <table class="tabela">
             <thead>
@@ -573,11 +616,37 @@
                         {{if .Kolicina}}{{dinari .Ukupno}} din{{else}}—{{end}}
                     </td>
                     <td style="padding:9px 10px;text-align:center;">
-                        {{if and .ID (index $.Dozvole "servis.izmeni")}}
-                        <form method="POST" action="/servis/{{$.Nalog.ID}}/delovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#delovi-spisak, #nalog-zaglavlje, #nalog-ukupno">
+                        {{if and (not $.ZakljucaniUgradjeni) (index $.Dozvole "servis.izmeni")}}
+                        <form method="POST" action="/servis/{{$.Nalog.ID}}/delovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#delovi-blok, #nalog-zaglavlje, #nalog-ukupno">
                             <input type="hidden" name="_csrf" value="{{$.CsrfToken}}">
                             <button type="submit"
                                 data-potvrda="Ukloniti deo '{{.ArtikalNaziv}}'?"
+                                style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px;padding:2px 6px;border-radius:4px;">
+                                ×
+                            </button>
+                        </form>
+                        {{end}}
+                    </td>
+                </tr>
+                {{end}}
+                {{range .PredlozeniDelovi}}
+                <tr data-artikal-id="{{.ArtikalID}}" data-kolicina="{{.Kolicina}}" data-potrazivano="{{.Potrazivano}}" style="border-bottom:0.5px solid var(--ivica);background:rgba(245,158,11,0.08);{{if .Potrazivano}}background:rgba(220,38,38,0.06);{{end}}">
+                    <td style="padding:9px 10px;font-size:14px;color:var(--tekst-glavni);">{{.ArtikalNaziv}} <span class="predlog-bedz" style="font-size:10px;padding:1px 7px;">Predlog</span></td>
+                    <td style="padding:9px 10px;text-align:center;font-size:14px;{{if .Potrazivano}}color:#dc2626;font-weight:600;{{else}}color:var(--tekst-glavni);{{end}}">
+                        {{.Kolicina}}{{if .Potrazivano}}<span style="font-weight:400;"> + {{.Potrazivano}} na čekanju</span>{{end}}
+                    </td>
+                    <td style="padding:9px 10px;text-align:right;font-size:14px;color:var(--tekst-glavni);">
+                        {{if .Kolicina}}{{dinari .CenaKomada}} din{{else}}—{{end}}
+                    </td>
+                    <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">
+                        {{if .Kolicina}}{{dinari .Ukupno}} din{{else}}—{{end}}
+                    </td>
+                    <td style="padding:9px 10px;text-align:center;">
+                        {{if and .ID (index $.Dozvole "servis.izmeni")}}
+                        <form method="POST" action="/servis/{{$.Nalog.ID}}/delovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#delovi-blok, #nalog-zaglavlje, #nalog-ukupno">
+                            <input type="hidden" name="_csrf" value="{{$.CsrfToken}}">
+                            <button type="submit"
+                                data-potvrda="Ukloniti predloženi deo '{{.ArtikalNaziv}}'?"
                                 style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px;padding:2px 6px;border-radius:4px;">
                                 ×
                             </button>
@@ -591,12 +660,15 @@
         </div>
         {{else}}
         <div style="font-size:13px;color:var(--tekst-sporedni);text-align:center;padding:16px 0;">
-            Nema ugrađenih delova za ovaj nalog.
+            Nema delova za ovaj nalog.
         </div>
         {{end}}
         </div>
     </div>
+    </div>
     {{end}}
+
+
 
     <!-- ukupno: zbir usluga (radova) i ugrađenih delova -->
     <div id="nalog-ukupno" class="kartica detalji-kartica animiraj">

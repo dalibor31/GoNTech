@@ -48,12 +48,11 @@
             <div class="kanban-kartice">
                 {{range $.Nalozi}}
                 {{if eq .Status $status}}
-                <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/servis/{{.ID}}" class="kartica kanban-karta">
+                <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/servis/{{.ID}}" class="kartica kanban-karta{{if .ImaPredlog}} kanban-ceka-odobrenje{{end}}">
                     <div style="display:flex;align-items:center;gap:6px;">
+                        {{if .ImaPredlog}}<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0;" title="Čeka odobrenje klijenta"></span>{{end}}
                         <span style="font-size:14px;font-weight:500;color:var(--sb-akcent);font-family:monospace;">{{.BrojNaloga}}</span>
                         {{if .Napomena}}
-                        <!-- dugme uz SN broj otvara internu napomenu (hover na desktopu, tap→focus na mobilnom);
-                             onclick sprečava da klik na dugme otvori sam nalog (kartica je hx-boost link) -->
                         <span class="napomena-omot">
                             <button type="button" class="napomena-dugme" aria-label="Interna napomena"
                                 onclick="event.preventDefault();event.stopPropagation();">
@@ -66,6 +65,13 @@
                                 </svg>
                             </button>
                             <div class="karta-napomena">{{.Napomena}}</div>
+                        </span>
+                        {{end}}
+                        {{if .KomentarKlijenta}}
+                        <span class="napomena-omot">
+                            <button type="button" class="napomena-dugme" aria-label="Poruka klijenta"
+                                onclick="event.preventDefault();event.stopPropagation();">💬</button>
+                            <div class="karta-napomena" style="border-color:#f59e0b;">{{.KomentarKlijenta}}</div>
                         </span>
                         {{end}}
                     </div>

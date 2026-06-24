@@ -86,7 +86,14 @@
         <div class="zg-okvir" style="font-size:12px;line-height:1.6;">
             <div class="polje-labela">Klijent</div>
             <div class="polje-vrednost">{{if .KlijentNaziv}}{{.KlijentNaziv}}{{else}}<span class="prazno">—</span>{{end}}</div>
-            {{if .KlijentTelefon}}<div style="color:#555;">Tel: {{telefon .KlijentTelefon}}</div>{{end}}
+            {{if .Klijent}}
+            <div style="color:#555;">
+                {{if .Klijent.Telefon}}Tel: {{telefon .Klijent.Telefon}}<br>{{end}}
+                {{if .Klijent.Email}}{{.Klijent.Email}}<br>{{end}}
+                {{if .Klijent.Mesto}}{{.Klijent.Mesto}}<br>{{end}}
+                {{if .Klijent.PIB}}PIB: {{.Klijent.PIB}}{{end}}
+            </div>
+            {{end}}
         </div>
         <!-- DESNO: barkod na vrhu, ispod broj + status + datumi + serviser -->
         <div class="zg-okvir" style="flex:1.3;">
@@ -151,10 +158,49 @@
         {{end}}
     </div>
 
+    <!-- utvrđen kvar (rezultat dijagnostike) -->
+    {{if .Nalog.NalazDijagnostike}}
+    <div class="odeljak">
+        <div class="odeljak-naslov">Utvrđeni kvar</div>
+        <div class="polje-tekst">{{.Nalog.NalazDijagnostike}}</div>
+    </div>
+    {{end}}
+
+    <!-- napomena klijentu -->
+    {{if .Nalog.NapomenaKlijentu}}
+    <div class="odeljak">
+        <div class="odeljak-naslov">Napomena klijentu</div>
+        <div class="polje-tekst">{{.Nalog.NapomenaKlijentu}}</div>
+    </div>
+    {{end}}
+
+    <!-- usluge koje serviser treba da uradi — bez cena -->
+    {{if .Radovi}}
+    <div class="odeljak">
+        <div class="odeljak-naslov">Usluge (radovi)</div>
+        <table class="tabela">
+            <thead>
+                <tr>
+                    <th>Usluga</th>
+                    <th class="desno" style="width:90px;">Količina</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Radovi}}
+                <tr>
+                    <td>{{.Naziv}}</td>
+                    <td class="desno">{{.Kolicina}}</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+    {{end}}
+
     <!-- rezervisani/ugrađeni delovi — bez cena -->
     {{if .ServisniDelovi}}
     <div class="odeljak">
-        <div class="odeljak-naslov">Delovi na nalogu</div>
+        <div class="odeljak-naslov">Delovi za ugradnju</div>
         <table class="tabela">
             <thead>
                 <tr>
@@ -173,17 +219,6 @@
         </table>
     </div>
     {{end}}
-
-    <!-- prazna polja za servisera -->
-    <div class="odeljak">
-        <div class="upis-labela">Dijagnoza / utvrđen kvar</div>
-        <div class="upis-okvir upis-veliki"></div>
-    </div>
-
-    <div class="odeljak">
-        <div class="upis-labela">Urađen rad</div>
-        <div class="upis-okvir upis-veliki"></div>
-    </div>
 
     <!-- vreme i potpis -->
     <div class="zavrsetak">

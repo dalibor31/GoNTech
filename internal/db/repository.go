@@ -200,6 +200,7 @@ type ServisRepository interface {
 	AzurirajUradjeno(ctx context.Context, id int64, tekst string) error
 	AzurirajCenaDijagnostike(ctx context.Context, id int64, cena float64) error
 	OdbijPopravku(ctx context.Context, id int64, cena float64) error
+	AzurirajKomentarKlijenta(ctx context.Context, id int64, tekst string) error
 	Obrisi(ctx context.Context, id int64, korisnikID *int64) error
 	SledeciBroj(ctx context.Context) (string, error)
 }
@@ -221,9 +222,13 @@ type ServisniDeloviRepository interface {
 	// UgradiIliPotrazuj atomično (jedna transakcija) čita stanje magacina, ugrađuje
 	// ono što fizički ima (skida sa lagera, lager NE ide u minus), a višak beleži u
 	// potraživane delove. Vraća koliko je ugrađeno i koliko nedostaje.
-	UgradiIliPotrazuj(ctx context.Context, nalogID, artikalID int64, kolicina int, cenaKomada float64, korisnikID *int64) (ugradjeno, nedostaje int, err error)
+	UgradiIliPotrazuj(ctx context.Context, nalogID, artikalID int64, kolicina int, cenaKomada float64, korisnikID *int64, predlozeno bool) (ugradjeno, nedostaje int, err error)
 	DohvatiArtikalID(ctx context.Context, deoID int64) (int64, error)
 	Obrisi(ctx context.Context, id int64, korisnikID *int64) error
+	// PrihvatiPredlozene prebacuje predložene delove (i potraživane) naloga u ugrađene
+	PrihvatiPredlozene(ctx context.Context, nalogID int64) error
+	// ObrisiPredlozene briše sve predložene delove sa naloga (klijent odbio predlog)
+	ObrisiPredlozene(ctx context.Context, nalogID int64) error
 }
 
 // ServisniPotrazivaniDeloviRepository definiše operacije nad delovima koji nedostaju
@@ -240,8 +245,12 @@ type ServisniPotrazivaniDeloviRepository interface {
 // ServisniRadoviRepository definiše operacije nad radovima (uslugama) na nalogu
 type ServisniRadoviRepository interface {
 	DohvatiZaNalog(ctx context.Context, nalogID int64) ([]model.ServisniRad, error)
-	Dodaj(ctx context.Context, nalogID, uslugaID int64, naziv string, kolicina, cenaKomada float64) (int64, error)
+	Dodaj(ctx context.Context, nalogID, uslugaID int64, naziv string, kolicina, cenaKomada float64, predlozeno bool) (int64, error)
 	Obrisi(ctx context.Context, id int64) error
+	// PrihvatiPredlozene prebacuje predložene radove naloga u redovne
+	PrihvatiPredlozene(ctx context.Context, nalogID int64) error
+	// ObrisiPredlozene briše sve predložene radove sa naloga (klijent odbio predlog)
+	ObrisiPredlozene(ctx context.Context, nalogID int64) error
 }
 
 // MagacinskePromeneRepository definiše operacije nad revizijskim tragom magacina

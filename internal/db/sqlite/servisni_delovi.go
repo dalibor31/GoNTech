@@ -23,7 +23,7 @@ func NoviServisniDeloviRepo(db *sql.DB) *ServisniDeloviRepo {
 func (r *ServisniDeloviRepo) DohvatiZaNalog(ctx context.Context, nalogID int64) ([]model.ServisniDeoSaArtiklom, error) {
 	redovi, err := r.db.QueryContext(ctx, `
 		SELECT sd.id, sd.nalog_id, sd.artikal_id, sd.kolicina, sd.cena_komada, sd.datum,
-		       a.naziv
+		       sd.predlozeno, a.naziv
 		FROM servisni_delovi sd
 		JOIN artikli a ON a.id = sd.artikal_id
 		WHERE sd.nalog_id = ?
@@ -38,7 +38,7 @@ func (r *ServisniDeloviRepo) DohvatiZaNalog(ctx context.Context, nalogID int64) 
 		var d model.ServisniDeoSaArtiklom
 		err := redovi.Scan(
 			&d.ID, &d.NalogID, &d.ArtikalID, &d.Kolicina, &d.CenaKomada, &d.Datum,
-			&d.ArtikalNaziv,
+			&d.Predlozeno, &d.ArtikalNaziv,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("ntech: ServisniDeloviRepo.DohvatiZaNalog: scan: %w", err)
@@ -53,7 +53,11 @@ func (r *ServisniDeloviRepo) DohvatiZaNalog(ctx context.Context, nalogID int64) 
 // stanju, a višak beleži u potraživane delove. Stanje se čita i koristi unutar iste
 // transakcije pa lager NIKAD ne ide u minus (nema TOCTOU između čitanja i upisa).
 // Vraća koliko je ugrađeno i koliko nedostaje.
-func (r *ServisniDeloviRepo) UgradiIliPotrazuj(ctx context.Context, nalogID, artikalID int64, kolicina int, cenaKomada float64, korisnikID *int64) (ugradjeno, nedostaje int, err error) {
+func (r *ServisniDeloviRepo) UgradiIliPotrazuj(ctx context.Context, nalogID, artikalID int64, kolicina int, cenaKomada float64, korisnikID *int64, predlozeno bool) (ugradjeno, nedostaje int, err error) {
+	predInt := 0
+	if predlozeno {
+		predInt = 1
+	}
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, 0, fmt.Errorf("ntech: ServisniDeloviRepo.UgradiIliPotrazuj: begin tx: %w", err)
@@ -82,8 +86,8 @@ func (r *ServisniDeloviRepo) UgradiIliPotrazuj(ctx context.Context, nalogID, art
 		var postojeciID int64
 		var postojeciKol int
 		errRed := tx.QueryRowContext(ctx,
-			"SELECT id, kolicina FROM servisni_delovi WHERE nalog_id = ? AND artikal_id = ?",
-			nalogID, artikalID,
+			"SELECT id, kolicina FROM servisni_delovi WHERE nalog_id = ? AND artikal_id = ? AND predlozeno = ?",
+			nalogID, artikalID, predInt,
 		).Scan(&postojeciID, &postojeciKol)
 		if errRed == nil {
 			if _, err = tx.ExecContext(ctx,
@@ -94,9 +98,9 @@ func (r *ServisniDeloviRepo) UgradiIliPotrazuj(ctx context.Context, nalogID, art
 			}
 		} else if errors.Is(errRed, sql.ErrNoRows) {
 			if _, err = tx.ExecContext(ctx, `
-				INSERT INTO servisni_delovi (nalog_id, artikal_id, kolicina, cena_komada)
-				VALUES (?, ?, ?, ?)`,
-				nalogID, artikalID, ugradjeno, cenaKomada,
+				INSERT INTO servisni_delovi (nalog_id, artikal_id, kolicina, cena_komada, predlozeno)
+				VALUES (?, ?, ?, ?, ?)`,
+				nalogID, artikalID, ugradjeno, cenaKomada, predInt,
 			); err != nil {
 				return 0, 0, fmt.Errorf("ntech: ServisniDeloviRepo.UgradiIliPotrazuj: insert: %w", err)
 			}
@@ -121,8 +125,8 @@ func (r *ServisniDeloviRepo) UgradiIliPotrazuj(ctx context.Context, nalogID, art
 		var postojeciID int64
 		var postojeciKol int
 		errRed := tx.QueryRowContext(ctx,
-			"SELECT id, kolicina FROM servisni_potrazivani_delovi WHERE nalog_id = ? AND artikal_id = ?",
-			nalogID, artikalID,
+			"SELECT id, kolicina FROM servisni_potrazivani_delovi WHERE nalog_id = ? AND artikal_id = ? AND predlozeno = ?",
+			nalogID, artikalID, predInt,
 		).Scan(&postojeciID, &postojeciKol)
 		if errRed == nil {
 			if _, err = tx.ExecContext(ctx,
@@ -133,8 +137,8 @@ func (r *ServisniDeloviRepo) UgradiIliPotrazuj(ctx context.Context, nalogID, art
 			}
 		} else if errors.Is(errRed, sql.ErrNoRows) {
 			if _, err = tx.ExecContext(ctx,
-				"INSERT INTO servisni_potrazivani_delovi (nalog_id, artikal_id, kolicina, cena_komada) VALUES (?, ?, ?, ?)",
-				nalogID, artikalID, nedostaje, cenaKomada,
+				"INSERT INTO servisni_potrazivani_delovi (nalog_id, artikal_id, kolicina, cena_komada, predlozeno) VALUES (?, ?, ?, ?, ?)",
+				nalogID, artikalID, nedostaje, cenaKomada, predInt,
 			); err != nil {
 				return 0, 0, fmt.Errorf("ntech: ServisniDeloviRepo.UgradiIliPotrazuj: potraživani insert: %w", err)
 			}
@@ -198,6 +202,57 @@ func (r *ServisniDeloviRepo) Obrisi(ctx context.Context, id int64, korisnikID *i
 		return fmt.Errorf("ntech: ServisniDeloviRepo.Obrisi: commit: %w", err)
 	}
 
+	return nil
+}
+
+// PrihvatiPredlozene prebacuje sve predložene delove (i potraživane) naloga u
+// ugrađene (predlozeno → 0) — poziva se kad klijent prihvati predlog popravke.
+func (r *ServisniDeloviRepo) PrihvatiPredlozene(ctx context.Context, nalogID int64) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("ntech: ServisniDeloviRepo.PrihvatiPredlozene: begin tx: %w", err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx,
+		"UPDATE servisni_delovi SET predlozeno = 0 WHERE nalog_id = ? AND predlozeno = 1", nalogID,
+	); err != nil {
+		return fmt.Errorf("ntech: ServisniDeloviRepo.PrihvatiPredlozene: delovi: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx,
+		"UPDATE servisni_potrazivani_delovi SET predlozeno = 0 WHERE nalog_id = ? AND predlozeno = 1", nalogID,
+	); err != nil {
+		return fmt.Errorf("ntech: ServisniDeloviRepo.PrihvatiPredlozene: potraživani: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("ntech: ServisniDeloviRepo.PrihvatiPredlozene: commit: %w", err)
+	}
+	return nil
+}
+
+// ObrisiPredlozene briše sve predložene delove (i potraživane) sa naloga
+func (r *ServisniDeloviRepo) ObrisiPredlozene(ctx context.Context, nalogID int64) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("ntech: ServisniDeloviRepo.ObrisiPredlozene: begin tx: %w", err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx,
+		"DELETE FROM servisni_delovi WHERE nalog_id = ? AND predlozeno = 1", nalogID,
+	); err != nil {
+		return fmt.Errorf("ntech: ServisniDeloviRepo.ObrisiPredlozene: delovi: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx,
+		"DELETE FROM servisni_potrazivani_delovi WHERE nalog_id = ? AND predlozeno = 1", nalogID,
+	); err != nil {
+		return fmt.Errorf("ntech: ServisniDeloviRepo.ObrisiPredlozene: potraživani: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("ntech: ServisniDeloviRepo.ObrisiPredlozene: commit: %w", err)
+	}
 	return nil
 }
 
