@@ -53,6 +53,11 @@ read -p "6) Push Docker image (Gitea + GitHub)? [d/N]: " DOCKER_IZBOR
 DOCKER_IZBOR="${DOCKER_IZBOR:-n}"
 echo ""
 
+# 7. Fisk Docker push
+read -p "7) Push Fisk mock image (ntech-fisk)? [d/N]: " FISK_IZBOR
+FISK_IZBOR="${FISK_IZBOR:-n}"
+echo ""
+
 # ── Izračunaj vrednosti ──────────────────────────
 if [ "$OKR_IZBOR" = "2" ]; then
     OKRUZENJE="development"
@@ -75,6 +80,7 @@ esac
 if [[ "$UPX_IZBOR"    =~ ^[dDyY] ]]; then UPX_NAZIV="da";  else UPX_NAZIV="ne";  fi
 if [[ "$BUILD_IZBOR"  =~ ^[dDyY] ]]; then BUILD_NAZIV="da"; else BUILD_NAZIV="ne"; fi
 if [[ "$DOCKER_IZBOR" =~ ^[dDyY] ]]; then DOCKER_NAZIV="da"; else DOCKER_NAZIV="ne"; fi
+if [[ "$FISK_IZBOR"   =~ ^[dDyY] ]]; then FISK_NAZIV="da";   else FISK_NAZIV="ne";   fi
 
 # ── Sažetak ──────────────────────────────────────
 echo "──────────────────────────────────────────"
@@ -84,6 +90,7 @@ echo "  Platforma  : ${PLATFORMA_NAZIV}"
 echo "  UPX        : ${UPX_NAZIV}"
 echo "  Build      : ${BUILD_NAZIV}"
 echo "  Docker     : ${DOCKER_NAZIV}"
+echo "  Fisk mock  : ${FISK_NAZIV}"
 echo "──────────────────────────────────────────"
 echo ""
 read -p "Pokrenuti? [D/n]: " POTVRDA
@@ -201,6 +208,30 @@ if [[ "$DOCKER_IZBOR" =~ ^[dDyY] ]]; then
     echo "→ Push na GitHub..."
     docker push "${GITHUB_IMAGE}:${VERZIJA}"
     docker push "${GITHUB_IMAGE}:latest"
+    echo ""
+fi
+
+# ── 7. Fisk Docker push ──────────────────────────
+if [[ "$FISK_IZBOR" =~ ^[dDyY] ]]; then
+    GITEA_FISK="git.vm-net.in.rs/dasko/ntech-fisk"
+    GITHUB_FISK="ghcr.io/dalibor31/ntech-fisk"
+
+    echo "=== Fisk mock Docker ==="
+    echo "→ Build Docker image..."
+    docker build \
+        -t "${GITEA_FISK}:${VERZIJA}" \
+        -t "${GITEA_FISK}:latest" \
+        -t "${GITHUB_FISK}:${VERZIJA}" \
+        -t "${GITHUB_FISK}:latest" \
+        Fisk/
+
+    echo "→ Push na Gitea..."
+    docker push "${GITEA_FISK}:${VERZIJA}"
+    docker push "${GITEA_FISK}:latest"
+
+    echo "→ Push na GitHub..."
+    docker push "${GITHUB_FISK}:${VERZIJA}"
+    docker push "${GITHUB_FISK}:latest"
     echo ""
 fi
 
