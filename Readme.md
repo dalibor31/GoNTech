@@ -38,9 +38,19 @@ The goal is simple: everything the repair shop needs to track is located in one 
 - Security HTTP headers (CSP, X-Frame-Options, Referrer-Policy, nosniff...)
 - Login attempt logging — history by user, IP, reason, date
 - Users and roles — admin panel, user management
-- Inventory — items, categories, filtering, critical stock levels
-- Service orders — intake, status bar, costs, receipt
+- Inventory — items, categories, filtering, critical stock levels, per-item stock card, supplier links, item transfers
+- Service orders:
+  - Intake form, status bar, archive
+  - Diagnostic workflow — fault description, technician notes, work done, diagnostic fee
+  - Parts and services — used items deducted from stock; suggested items (proposal to client)
+  - Client proposal approval — client receives a public link (QR code) to accept or reject a parts/service proposal with a comment
+  - Public status page — client can check order status and receive notifications via a unique link
+  - Documents — work order, pre-invoice (estimate), dispatch note, return slip, device label (QR + Code128 barcode)
+  - Pickup with payment — tracks payment method and advance amount
+  - Guarantee period, expected completion date, technician assignment, client notes
 - Sales orders — items, calculation, receipt with company and client details
+- Services catalog — service price list used for billing in service orders
+- Expenses — expense records with category and amount
 - Procurement — records of purchases from suppliers
 - Sales price calculation on procurement — markup (global, per category, per item), landed costs (customs, shipping...) allocated across items, two-way markup↔price computation; respects VAT-payer status
 - Price revaluation (nivelacija) — sales price changes with an audit trail (old→new, reason, source, user)
@@ -50,7 +60,7 @@ The goal is simple: everything the repair shop needs to track is located in one 
 - VAT rate code list
 - Clients and suppliers — contact database
 - Reminders — records with deadlines
-- Reports — revenue overview, inventory status
+- Reports — revenue overview, inventory status, inventory value report, stock movement list, stocktake (physical count)
 - Settings — company name, address, Tax ID (PIB), logo; theme toggle
 - Background images — login page and app, with blur, transparency and glass effect
 - Personal theme and background — each user can set their own theme and background image
@@ -83,6 +93,7 @@ The goal is simple: everything the repair shop needs to track is located in one 
 | [Go](https://go.dev)                                                                 | backend language                |
 | [chi](https://github.com/go-chi/chi)                                                 | HTTP router                     |
 | [html/template](https://pkg.go.dev/html/template)                                    | server-side templates           |
+| [HTMX](https://htmx.org)                                                             | dynamic HTML over HTTP          |
 | [Alpine.js](https://alpinejs.dev)                                                    | client-side UI logic            |
 | [SQLite](https://sqlite.org) + [modernc.org/sqlite](https://gitlab.com/cznic/sqlite) | main database (pure Go, no CGO) |
 | [PostgreSQL](https://www.postgresql.org) + [pgx/v5](https://github.com/jackc/pgx)    | optional production database    |
