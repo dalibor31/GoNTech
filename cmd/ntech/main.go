@@ -277,6 +277,8 @@ func main() {
 		r.Get("/admin/podesavanja/izgled", h.PodesavanjaIzgled)
 		r.Get("/admin/podesavanja/sistem", h.PodesavanjaSistem)
 		r.Get("/admin/podesavanja/servis", h.PodesavanjaServis)
+		r.Get("/admin/podesavanja/fiskalizacija", h.PodesavanjaFiskalizacija)
+		r.Get("/podesavanja/fiskalizacija/test", h.TestFiskalizacije)
 		r.Get("/admin/podesavanja/kalkulacija-pdv", h.PdvStope)
 		r.With(doz("podesavanja.izmeni")).Post("/podesavanja/pdv-stope/dodaj", h.DodajPdvStopu)
 		r.With(doz("podesavanja.izmeni")).Post("/podesavanja/pdv-stope/{id}/izmeni", h.IzmeniPdvStopu)

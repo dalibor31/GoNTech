@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"encoding/json"
+
 	ntechsqlite "ntech/internal/db/sqlite"
 	"ntech/internal/middleware"
 	"ntech/internal/model"
@@ -69,6 +71,8 @@ type PodaciPodesavanja struct {
 	ServisUslovi                    string
 	ServisKlauzulaPredracuna        string
 	QrBazniUrl                      string
+	PfrUrl                          string
+	PfrTip                          string
 	LoginPozadina                   string
 	LoginPozadinaOpacity            string
 	LoginPozadinaBlurPozadine       string
@@ -324,6 +328,9 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 		"firma_pdv_obveznik":  r.FormValue("firma_pdv_obveznik"),
 		"firma_fiskalizacija": r.FormValue("firma_fiskalizacija"),
 		"firma_rezim":         r.FormValue("firma_rezim"),
+		// fiskalizacija — L-PFR podešavanja
+		"pfr_url": r.FormValue("pfr_url"),
+		"pfr_tip": r.FormValue("pfr_tip"),
 	}
 
 	for kljuc, vrednost := range polja {
@@ -342,6 +349,7 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 		"/admin/podesavanja/sistem":          "/admin/podesavanja/sistem",
 		"/admin/podesavanja/servis":          "/admin/podesavanja/servis",
 		"/admin/podesavanja/kalkulacija-pdv": "/admin/podesavanja/kalkulacija-pdv",
+		"/admin/podesavanja/fiskalizacija":   "/admin/podesavanja/fiskalizacija",
 		"/podesavanja":                       "/podesavanja",
 	}
 	sledeci := "/podesavanja"
@@ -852,6 +860,8 @@ func (h *Handler) napuniPodaciPodesavanja(r *http.Request, naslov string) (Podac
 		ServisUslovi:                    vrednostIliDefault(podesavanja, "servis_uslovi", podrazumevaniUsloviServisa),
 		ServisKlauzulaPredracuna:        vrednostIliDefault(podesavanja, "servis_klauzula_predracuna", podrazumevanaKlauzulaPredracuna),
 		QrBazniUrl:                      podesavanja["qr_bazni_url"],
+		PfrUrl:                          vrednostIliDefault(podesavanja, "pfr_url", "http://127.0.0.1:4566"),
+		PfrTip:                          vrednostIliDefault(podesavanja, "pfr_tip", "teron"),
 	}, nil
 }
 
@@ -881,6 +891,59 @@ func (h *Handler) PodesavanjaIzgled(w http.ResponseWriter, r *http.Request) {
 	}
 	podaci.Stranica = "podesavanja-izgled"
 	h.renderujTemplate(w, "podesavanja_izgled", podaci)
+}
+
+// PodesavanjaFiskalizacija renderuje stranicu sa podešavanjima L-PFR veze
+func (h *Handler) PodesavanjaFiskalizacija(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "podesavanja.pregled"); !ok {
+		return
+	}
+	podaci, err := h.napuniPodaciPodesavanja(r, "Podešavanja — Fiskalizacija")
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
+		return
+	}
+	podaci.Stranica = "podesavanja-fiskalizacija"
+	h.renderujTemplate(w, "podesavanja_fiskalizacija", podaci)
+}
+
+// TestFiskalizacije udara /api/status na konfigurisanom PFR URL-u i vraća HTMX fragment
+func (h *Handler) TestFiskalizacije(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "podesavanja.pregled"); !ok {
+		return
+	}
+	podesavanja, err := ntechsqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	if err != nil {
+		http.Error(w, "Greška", http.StatusInternalServerError)
+		return
+	}
+	pfrURL := vrednostIliDefault(podesavanja, "pfr_url", "http://127.0.0.1:4566")
+
+	klijent := &http.Client{Timeout: 5 * time.Second}
+	resp, err := klijent.Get(pfrURL + "/api/status")
+	if err != nil {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		fmt.Fprintf(w, `<div class="fisk-status greska">&#10007; Nije dostupan — %s</div>`, err.Error())
+		return
+	}
+	defer resp.Body.Close()
+
+	var status map[string]any
+	_ = json.NewDecoder(resp.Body).Decode(&status)
+
+	sdcDateTime, _ := status["sdcDateTime"].(string)
+	lastInvoice, _ := status["lastInvoiceNumber"].(string)
+	tin, _ := status["tin"].(string)
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	fmt.Fprintf(w, `<div class="fisk-status uspeh">
+		&#10003; Povezano — %s
+		<div class="fisk-status-detalji">
+			<span>TIN: %s</span>
+			<span>Poslednji račun: %s</span>
+			<span>Vreme: %s</span>
+		</div>
+	</div>`, pfrURL, tin, lastInvoice, sdcDateTime)
 }
 
 // PodesavanjaSistem renderuje stranicu sa sistemskim podešavanjima (backup)
