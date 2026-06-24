@@ -375,6 +375,7 @@ func main() {
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/obrisi-komentar-klijenta", h.ObrisiKomentarKlijenta)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/delovi", h.DodajDeloNalogu)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/delovi/{deo_id}/obrisi", h.ObrisiDeloNaloga)
+		r.With(doz("servis.izmeni")).Post("/servis/{id}/predlozeni-delovi/{artikal_id}/obrisi", h.ObrisiPredlozeniDeoNaloga)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/radovi", h.DodajRadNalogu)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/radovi/{rad_id}/obrisi", h.ObrisiRadNaloga)
 		r.Get("/izvestaji", h.Izvestaji)

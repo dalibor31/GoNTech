@@ -53,14 +53,19 @@
             .strana { padding: 16px 20px; max-width: 100%; }
             .dugme-stampa { display: none !important; }
             @page { size: A4; margin: 12mm 14mm; }
+            .tabela tr { break-inside: avoid; }
+            .tabela .ukupno-red { break-before: avoid; }
+            .tabela .ukupno-red td { break-before: avoid; }
+            .tabela thead { display: table-header-group; }
+            .zavrsni-blok { break-inside: avoid; }
             /* red tabele se ne sme prelomiti preko granice stranice */
             .tabela tr { break-inside: avoid; }
             /* „Ukupno radovi/delovi" se ne sme odvojiti od stavki iznad — bez preloma pre njega */
             .tabela .ukupno-red { break-before: avoid; }
             .tabela .ukupno-red td { break-before: avoid; }
-            /* zaglavlje tabele se ponavlja na svakoj stranici kad tabela pređe na novu */
+            /* zaglavlje tabele se ponavlja na svakoj stranici */
             .tabela thead { display: table-header-group; }
-            /* od „Ukupno (procena)" do potpisa sve ostaje na jednoj strani — bez preloma */
+            /* od „Ukupno (procena)" do potpisa sve ostaje na jednoj strani */
             .zavrsni-blok { break-inside: avoid; }
         }
         .dugme-stampa { position: fixed; bottom: 24px; right: 24px; background: #111; color: #fff; border: none; padding: 12px 22px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }

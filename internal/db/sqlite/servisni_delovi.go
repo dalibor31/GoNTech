@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"ntech/internal/model"
 )
@@ -23,7 +24,7 @@ func NoviServisniDeloviRepo(db *sql.DB) *ServisniDeloviRepo {
 func (r *ServisniDeloviRepo) DohvatiZaNalog(ctx context.Context, nalogID int64) ([]model.ServisniDeoSaArtiklom, error) {
 	redovi, err := r.db.QueryContext(ctx, `
 		SELECT sd.id, sd.nalog_id, sd.artikal_id, sd.kolicina, sd.cena_komada, sd.datum,
-		       sd.predlozeno, a.naziv
+		       sd.predlozeno, a.naziv, a.sifra
 		FROM servisni_delovi sd
 		JOIN artikli a ON a.id = sd.artikal_id
 		WHERE sd.nalog_id = ?
@@ -38,7 +39,7 @@ func (r *ServisniDeloviRepo) DohvatiZaNalog(ctx context.Context, nalogID int64) 
 		var d model.ServisniDeoSaArtiklom
 		err := redovi.Scan(
 			&d.ID, &d.NalogID, &d.ArtikalID, &d.Kolicina, &d.CenaKomada, &d.Datum,
-			&d.Predlozeno, &d.ArtikalNaziv,
+			&d.Predlozeno, &d.ArtikalNaziv, &d.ArtikalSifra,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("ntech: ServisniDeloviRepo.DohvatiZaNalog: scan: %w", err)
@@ -53,25 +54,52 @@ func (r *ServisniDeloviRepo) DohvatiZaNalog(ctx context.Context, nalogID int64) 
 // stanju, a višak beleži u potraživane delove. Stanje se čita i koristi unutar iste
 // transakcije pa lager NIKAD ne ide u minus (nema TOCTOU između čitanja i upisa).
 // Vraća koliko je ugrađeno i koliko nedostaje.
+//
+// Predloženi delovi (predlozeno=true) ne skidaju sa lagera — sve ide u potraživane
+// do odluke klijenta. Tek PrihvatiPredlozene skida sa lagera.
 func (r *ServisniDeloviRepo) UgradiIliPotrazuj(ctx context.Context, nalogID, artikalID int64, kolicina int, cenaKomada float64, korisnikID *int64, predlozeno bool) (ugradjeno, nedostaje int, err error) {
-	predInt := 0
-	if predlozeno {
-		predInt = 1
-	}
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, 0, fmt.Errorf("ntech: ServisniDeloviRepo.UgradiIliPotrazuj: begin tx: %w", err)
 	}
 	defer tx.Rollback()
 
+	ugradjeno, nedostaje, err = ugradiIliPotrazujTx(ctx, tx, nalogID, artikalID, kolicina, cenaKomada, korisnikID, predlozeno)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return 0, 0, fmt.Errorf("ntech: ServisniDeloviRepo.UgradiIliPotrazuj: commit: %w", err)
+	}
+	return ugradjeno, nedostaje, nil
+}
+
+// ugradiIliPotrazujTx je interna verzija koja radi unutar postojeće transakcije.
+func ugradiIliPotrazujTx(ctx context.Context, tx *sql.Tx, nalogID, artikalID int64, kolicina int, cenaKomada float64, korisnikID *int64, predlozeno bool) (ugradjeno, nedostaje int, err error) {
+	// Predloženi delovi: ne skidaju sa lagera, svaki predlog je poseban red (ne merge)
+	if predlozeno {
+		slog.Info("PREDLOG_INSERT", "nalogID", nalogID, "artikalID", artikalID, "kolicina", kolicina)
+		_, err = tx.ExecContext(ctx,
+			"INSERT INTO servisni_potrazivani_delovi (nalog_id, artikal_id, kolicina, cena_komada, predlozeno) VALUES (?, ?, ?, ?, 1)",
+			nalogID, artikalID, kolicina, cenaKomada,
+		)
+		if err != nil {
+			slog.Error("PREDLOG_INSERT_ERR", "err", err)
+			return 0, 0, fmt.Errorf("ntech: ugradiIliPotrazujTx: predlozeni: %w", err)
+		}
+		slog.Info("PREDLOG_INSERT_OK")
+		return 0, kolicina, nil
+	}
+
+	// Ugrađeni delovi: standardna logika — skidamo sa lagera
 	var stanjePre int
 	if err = tx.QueryRowContext(ctx,
 		"SELECT kolicina FROM artikli WHERE id = ?", artikalID,
 	).Scan(&stanjePre); err != nil {
-		return 0, 0, fmt.Errorf("ntech: ServisniDeloviRepo.UgradiIliPotrazuj: dohvati stanje: %w", err)
+		return 0, 0, fmt.Errorf("ntech: ugradiIliPotrazujTx: dohvati stanje: %w", err)
 	}
 
-	// ugrađujemo najviše onoliko koliko fizički imamo; ostatak ide u potraživane
 	ugradjeno = kolicina
 	if ugradjeno > stanjePre {
 		ugradjeno = stanjePre
@@ -81,75 +109,69 @@ func (r *ServisniDeloviRepo) UgradiIliPotrazuj(ctx context.Context, nalogID, art
 	}
 	nedostaje = kolicina - ugradjeno
 
-	// ugradi ono što imamo: merge u servisni_delovi, skini sa magacina, zabeleži promenu
 	if ugradjeno > 0 {
 		var postojeciID int64
 		var postojeciKol int
 		errRed := tx.QueryRowContext(ctx,
-			"SELECT id, kolicina FROM servisni_delovi WHERE nalog_id = ? AND artikal_id = ? AND predlozeno = ?",
-			nalogID, artikalID, predInt,
+			"SELECT id, kolicina FROM servisni_delovi WHERE nalog_id = ? AND artikal_id = ? AND predlozeno = 0",
+			nalogID, artikalID,
 		).Scan(&postojeciID, &postojeciKol)
 		if errRed == nil {
 			if _, err = tx.ExecContext(ctx,
 				"UPDATE servisni_delovi SET kolicina = ?, cena_komada = ? WHERE id = ?",
 				postojeciKol+ugradjeno, cenaKomada, postojeciID,
 			); err != nil {
-				return 0, 0, fmt.Errorf("ntech: ServisniDeloviRepo.UgradiIliPotrazuj: merge: %w", err)
+				return 0, 0, fmt.Errorf("ntech: ugradiIliPotrazujTx: merge: %w", err)
 			}
 		} else if errors.Is(errRed, sql.ErrNoRows) {
-			if _, err = tx.ExecContext(ctx, `
-				INSERT INTO servisni_delovi (nalog_id, artikal_id, kolicina, cena_komada, predlozeno)
-				VALUES (?, ?, ?, ?, ?)`,
-				nalogID, artikalID, ugradjeno, cenaKomada, predInt,
+			if _, err = tx.ExecContext(ctx,
+				"INSERT INTO servisni_delovi (nalog_id, artikal_id, kolicina, cena_komada, predlozeno) VALUES (?, ?, ?, ?, 0)",
+				nalogID, artikalID, ugradjeno, cenaKomada,
 			); err != nil {
-				return 0, 0, fmt.Errorf("ntech: ServisniDeloviRepo.UgradiIliPotrazuj: insert: %w", err)
+				return 0, 0, fmt.Errorf("ntech: ugradiIliPotrazujTx: insert: %w", err)
 			}
 		} else {
-			return 0, 0, fmt.Errorf("ntech: ServisniDeloviRepo.UgradiIliPotrazuj: proveri: %w", errRed)
+			return 0, 0, fmt.Errorf("ntech: ugradiIliPotrazujTx: proveri: %w", errRed)
 		}
 
 		stanjePosle := stanjePre - ugradjeno
 		if _, err = tx.ExecContext(ctx,
 			"UPDATE artikli SET kolicina = ? WHERE id = ?", stanjePosle, artikalID,
 		); err != nil {
-			return 0, 0, fmt.Errorf("ntech: ServisniDeloviRepo.UgradiIliPotrazuj: update stanje: %w", err)
+			return 0, 0, fmt.Errorf("ntech: ugradiIliPotrazujTx: update stanje: %w", err)
 		}
 		if err = zabeleziMagacinPromenu(ctx, tx, artikalID, model.PromenaIzlazServis,
 			-ugradjeno, stanjePre, stanjePosle, nalogID, korisnikID, ""); err != nil {
-			return 0, 0, fmt.Errorf("ntech: ServisniDeloviRepo.UgradiIliPotrazuj: magacin: %w", err)
+			return 0, 0, fmt.Errorf("ntech: ugradiIliPotrazujTx: magacin: %w", err)
 		}
 	}
 
-	// višak → potraživani delovi (ne skidamo sa lagera dok ne stigne)
 	if nedostaje > 0 {
 		var postojeciID int64
 		var postojeciKol int
 		errRed := tx.QueryRowContext(ctx,
-			"SELECT id, kolicina FROM servisni_potrazivani_delovi WHERE nalog_id = ? AND artikal_id = ? AND predlozeno = ?",
-			nalogID, artikalID, predInt,
+			"SELECT id, kolicina FROM servisni_potrazivani_delovi WHERE nalog_id = ? AND artikal_id = ? AND predlozeno = 0",
+			nalogID, artikalID,
 		).Scan(&postojeciID, &postojeciKol)
 		if errRed == nil {
 			if _, err = tx.ExecContext(ctx,
 				"UPDATE servisni_potrazivani_delovi SET kolicina = ?, cena_komada = ? WHERE id = ?",
 				postojeciKol+nedostaje, cenaKomada, postojeciID,
 			); err != nil {
-				return 0, 0, fmt.Errorf("ntech: ServisniDeloviRepo.UgradiIliPotrazuj: potraživani update: %w", err)
+				return 0, 0, fmt.Errorf("ntech: ugradiIliPotrazujTx: potraživani update: %w", err)
 			}
 		} else if errors.Is(errRed, sql.ErrNoRows) {
 			if _, err = tx.ExecContext(ctx,
-				"INSERT INTO servisni_potrazivani_delovi (nalog_id, artikal_id, kolicina, cena_komada, predlozeno) VALUES (?, ?, ?, ?, ?)",
-				nalogID, artikalID, nedostaje, cenaKomada, predInt,
+				"INSERT INTO servisni_potrazivani_delovi (nalog_id, artikal_id, kolicina, cena_komada, predlozeno) VALUES (?, ?, ?, ?, 0)",
+				nalogID, artikalID, nedostaje, cenaKomada,
 			); err != nil {
-				return 0, 0, fmt.Errorf("ntech: ServisniDeloviRepo.UgradiIliPotrazuj: potraživani insert: %w", err)
+				return 0, 0, fmt.Errorf("ntech: ugradiIliPotrazujTx: potraživani insert: %w", err)
 			}
 		} else {
-			return 0, 0, fmt.Errorf("ntech: ServisniDeloviRepo.UgradiIliPotrazuj: potraživani proveri: %w", errRed)
+			return 0, 0, fmt.Errorf("ntech: ugradiIliPotrazujTx: potraživani proveri: %w", errRed)
 		}
 	}
 
-	if err = tx.Commit(); err != nil {
-		return 0, 0, fmt.Errorf("ntech: ServisniDeloviRepo.UgradiIliPotrazuj: commit: %w", err)
-	}
 	return ugradjeno, nedostaje, nil
 }
 
@@ -207,6 +229,7 @@ func (r *ServisniDeloviRepo) Obrisi(ctx context.Context, id int64, korisnikID *i
 
 // PrihvatiPredlozene prebacuje sve predložene delove (i potraživane) naloga u
 // ugrađene (predlozeno → 0) — poziva se kad klijent prihvati predlog popravke.
+// Sada zaista skida sa lagera: predloženi delovi prethodno nisu dirali lager.
 func (r *ServisniDeloviRepo) PrihvatiPredlozene(ctx context.Context, nalogID int64) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -214,15 +237,51 @@ func (r *ServisniDeloviRepo) PrihvatiPredlozene(ctx context.Context, nalogID int
 	}
 	defer tx.Rollback()
 
-	if _, err := tx.ExecContext(ctx,
-		"UPDATE servisni_delovi SET predlozeno = 0 WHERE nalog_id = ? AND predlozeno = 1", nalogID,
-	); err != nil {
-		return fmt.Errorf("ntech: ServisniDeloviRepo.PrihvatiPredlozene: delovi: %w", err)
+	// Dohvati sve predložene potraživane delove
+	redovi, err := tx.QueryContext(ctx,
+		"SELECT id, artikal_id, kolicina, cena_komada FROM servisni_potrazivani_delovi WHERE nalog_id = ? AND predlozeno = 1",
+		nalogID,
+	)
+	if err != nil {
+		return fmt.Errorf("ntech: ServisniDeloviRepo.PrihvatiPredlozene: dohvati predlozene: %w", err)
 	}
+	defer redovi.Close()
+
+	type predlozeniStavka struct {
+		id         int64
+		artikalID  int64
+		kolicina   int
+		cenaKomada float64
+	}
+	var stavke []predlozeniStavka
+	for redovi.Next() {
+		var s predlozeniStavka
+		if err := redovi.Scan(&s.id, &s.artikalID, &s.kolicina, &s.cenaKomada); err != nil {
+			return fmt.Errorf("ntech: ServisniDeloviRepo.PrihvatiPredlozene: scan: %w", err)
+		}
+		stavke = append(stavke, s)
+	}
+
+	// Za svaki predloženi deo: probaj da ugradiš (skine sa lagera koliko može)
+	for _, s := range stavke {
+		_, _, err := ugradiIliPotrazujTx(ctx, tx, nalogID, s.artikalID, s.kolicina, s.cenaKomada, nil, false)
+		if err != nil {
+			return fmt.Errorf("ntech: ServisniDeloviRepo.PrihvatiPredlozene: ugradi: %w", err)
+		}
+	}
+
+	// Obriši predložene potraživane (prebačeni su u ugrađene/potraživane bez predlozeno)
 	if _, err := tx.ExecContext(ctx,
-		"UPDATE servisni_potrazivani_delovi SET predlozeno = 0 WHERE nalog_id = ? AND predlozeno = 1", nalogID,
+		"DELETE FROM servisni_potrazivani_delovi WHERE nalog_id = ? AND predlozeno = 1", nalogID,
 	); err != nil {
-		return fmt.Errorf("ntech: ServisniDeloviRepo.PrihvatiPredlozene: potraživani: %w", err)
+		return fmt.Errorf("ntech: ServisniDeloviRepo.PrihvatiPredlozene: obrisi potraživane: %w", err)
+	}
+
+	// Očisti i servisni_delovi sa predlozeno=1 (zaostali iz starije verzije)
+	if _, err := tx.ExecContext(ctx,
+		"DELETE FROM servisni_delovi WHERE nalog_id = ? AND predlozeno = 1", nalogID,
+	); err != nil {
+		return fmt.Errorf("ntech: ServisniDeloviRepo.PrihvatiPredlozene: obrisi delove: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {

@@ -21,8 +21,11 @@ func NoviServisniRadoviRepo(baza *sql.DB) *ServisniRadoviRepo {
 // DohvatiZaNalog vraća sve radove (usluge) jednog naloga, redom unosa
 func (r *ServisniRadoviRepo) DohvatiZaNalog(ctx context.Context, nalogID int64) ([]model.ServisniRad, error) {
 	redovi, err := r.db.QueryContext(ctx, `
-		SELECT id, nalog_id, COALESCE(usluga_id, 0), naziv, kolicina, cena_komada, datum, predlozeno
-		FROM servis_radovi WHERE nalog_id = ? ORDER BY id`, nalogID)
+		SELECT sr.id, sr.nalog_id, COALESCE(sr.usluga_id, 0), sr.naziv, sr.kolicina, sr.cena_komada, sr.datum, sr.predlozeno,
+		       COALESCE(u.sifra, '')
+		FROM servis_radovi sr
+		LEFT JOIN usluge u ON u.id = sr.usluga_id
+		WHERE sr.nalog_id = ? ORDER BY sr.id`, nalogID)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: ServisniRadoviRepo.DohvatiZaNalog: %w", err)
 	}
@@ -31,7 +34,7 @@ func (r *ServisniRadoviRepo) DohvatiZaNalog(ctx context.Context, nalogID int64) 
 	var radovi []model.ServisniRad
 	for redovi.Next() {
 		var rad model.ServisniRad
-		if err := redovi.Scan(&rad.ID, &rad.NalogID, &rad.UslugaID, &rad.Naziv, &rad.Kolicina, &rad.CenaKomada, &rad.Datum, &rad.Predlozeno); err != nil {
+		if err := redovi.Scan(&rad.ID, &rad.NalogID, &rad.UslugaID, &rad.Naziv, &rad.Kolicina, &rad.CenaKomada, &rad.Datum, &rad.Predlozeno, &rad.Sifra); err != nil {
 			return nil, fmt.Errorf("ntech: ServisniRadoviRepo.DohvatiZaNalog: %w", err)
 		}
 		radovi = append(radovi, rad)

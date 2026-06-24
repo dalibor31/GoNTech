@@ -50,15 +50,21 @@
         .upis-veliki { min-height: 110px; }
         .upis-labela { font-size: 10px; color: #777; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; }
 
-        /* zavrsetak — vreme i potpis */
-        .zavrsetak { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 28px; padding-top: 16px; border-top: 0.5px solid #ccc; }
-        .linija { border-top: 1px solid #888; margin-top: 40px; padding-top: 6px; font-size: 11px; color: #555; }
+        /* potpis */
+        .zavrsetak { margin-top: 14px; padding-top: 10px; border-top: 0.5px solid #ccc; }
+        .linija { border-top: 1px solid #888; margin-top: 24px; padding-top: 4px; font-size: 11px; color: #555; }
 
         @media print {
             body { font-size: 12px; }
-            .strana { padding: 16px 20px; max-width: 100%; }
+            .strana { padding: 12px 16px; max-width: 100%; }
             .dugme-stampa { display: none !important; }
-            @page { size: A4; margin: 12mm 14mm; }
+            @page { size: A4; margin: 8mm 10mm; }
+            .odeljak { margin-bottom: 10px; }
+            .zaglavlje { margin-bottom: 12px; }
+            .podaci-grid, .podaci-grid-2 { gap: 8px; }
+            .upis-veliki { min-height: 80px; }
+            .upis-okvir { min-height: 50px; }
+            .zavrsetak { margin-top: 10px; padding-top: 8px; break-inside: avoid; }
             /* red tabele se ne sme prelomiti preko granice stranice — prelom pada između stavki */
             .tabela tr { break-inside: avoid; }
             /* zaglavlje tabele se ponavlja na svakoj stranici kad tabela pređe na novu */
@@ -220,12 +226,8 @@
     </div>
     {{end}}
 
-    <!-- vreme i potpis -->
+    <!-- potpis -->
     <div class="zavrsetak">
-        <div>
-            <div class="polje-labela">Datum završetka / utrošeno vreme</div>
-            <div class="linija">&nbsp;</div>
-        </div>
         <div>
             <div class="polje-labela">Potpis servisera</div>
             <div class="linija">&nbsp;</div>

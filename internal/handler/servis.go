@@ -535,8 +535,11 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			for _, nalogID := range otkljucani {
-				if err := h.ServisRepo.AzurirajStatus(r.Context(), nalogID, model.StatusPrimljeno); err != nil {
-					slog.Error("self-heal reset statusa naloga nije uspeo", "nalog_id", nalogID, "error", err)
+				// reset samo ako je nalog čekao delove — ne sme da menja U dijagnostici, U popravci itd.
+				if tekuci, e := h.ServisRepo.DohvatiID(r.Context(), nalogID); e == nil && tekuci != nil && tekuci.Status == model.StatusCekaDelove {
+					if err := h.ServisRepo.AzurirajStatus(r.Context(), nalogID, model.StatusPrimljeno); err != nil {
+						slog.Error("self-heal reset statusa naloga nije uspeo", "nalog_id", nalogID, "error", err)
+					}
 				}
 			}
 		}
@@ -747,11 +750,13 @@ func (h *Handler) DodajDeloNalogu(w http.ResponseWriter, r *http.Request) {
 		imeArtikla = art.Naziv
 	}
 
-	// forma „Predloženi delovi" šalje predlozeno=1; forma „Ugrađeni delovi" ne šalje
-	predlozeno := r.FormValue("predlozeno") == "1"
-
+	// predlog ako status nije „Primljeno" (forma više ne određuje — server odlučuje)
+	nalog, _ := h.ServisRepo.DohvatiID(r.Context(), nalogID)
+	predlozeno := nalog != nil && nalog.Status != model.StatusPrimljeno
+	slog.Info("DODAJ_DEO_IN", "status", nalog.Status, "predlozeno", predlozeno, "kol", kolicina)
 	// atomično: ugradi ono što imamo (skida sa lagera, ne ide u minus), višak u potraživane
 	ugradjeno, nedostaje, err := h.ServisniDeloviRepo.UgradiIliPotrazuj(r.Context(), nalogID, artikalID, kolicina, cena, &k.ID, predlozeno)
+	slog.Info("DODAJ_DEO_OUT", "ugradjeno", ugradjeno, "nedostaje", nedostaje, "err", err)
 	if err != nil {
 		slog.Error("greška pri dodavanju dela", "error", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri dodavanju dela.")
@@ -759,8 +764,9 @@ func (h *Handler) DodajDeloNalogu(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ako nešto nedostaje, prebaci nalog u „Čeka delove" i obavesti korisnika
-	if nedostaje > 0 {
+	// ako nešto nedostaje kod ugrađenog dela, prebaci nalog u „Čeka delove".
+	// Za predložene delove ne menjamo status — to su samo predlozi, ne blokiraju rad.
+	if nedostaje > 0 && !predlozeno {
 		if e := h.ServisRepo.AzurirajStatus(r.Context(), nalogID, model.StatusCekaDelove); e != nil {
 			slog.Error("greška pri prebacivanju naloga u Čeka delove", "error", e)
 		}
@@ -772,6 +778,16 @@ func (h *Handler) DodajDeloNalogu(w http.ResponseWriter, r *http.Request) {
 			middleware.SetFlash(w, r, h.DB, "greska",
 				"Nema „"+imeArtikla+"\" na stanju — potrebno "+strconv.Itoa(nedostaje)+
 					" kom. Nalog je prebačen u „Čeka delove\".")
+		}
+	}
+
+	if nedostaje > 0 && predlozeno {
+		middleware.SetFlash(w, r, h.DB, "uspeh",
+			"Predlog sačuvan — "+strconv.Itoa(kolicina)+" kom. „"+imeArtikla+
+				"\" čeka odobrenje klijenta.")
+		// novi predlog poništava prethodnu odluku klijenta
+		if err := h.ServisRepo.ObrisiOdlukuKlijenta(r.Context(), nalogID); err != nil {
+			slog.Error("greška pri brisanju odluke klijenta", "error", err)
 		}
 	}
 
@@ -795,26 +811,43 @@ func (h *Handler) deloviSaPotrazivanima(ctx context.Context, nalogID int64) ([]m
 		artikalID  int64
 		predlozeno bool
 	}
-	potrMap := make(map[kljucDela]int)
+	type potrVrednost struct {
+		kolicina int
+		cena     float64
+	}
+	potrMap := make(map[kljucDela]potrVrednost)
 	for _, p := range potrazivani {
-		potrMap[kljucDela{p.ArtikalID, p.Predlozeno}] += p.Kolicina
+		k := kljucDela{p.ArtikalID, p.Predlozeno}
+		v := potrMap[k]
+		v.kolicina += p.Kolicina
+		if v.cena == 0 && p.CenaKomada > 0 {
+			v.cena = p.CenaKomada
+		}
+		potrMap[k] = v
 	}
 	for i := range delovi {
 		k := kljucDela{delovi[i].ArtikalID, delovi[i].Predlozeno}
-		if kol, ok := potrMap[k]; ok {
-			delovi[i].Potrazivano = kol
+		if v, ok := potrMap[k]; ok {
+			delovi[i].Potrazivano = v.kolicina
 			delete(potrMap, k)
 		}
 	}
-	for k, kol := range potrMap {
+	for k, v := range potrMap {
 		naziv := ""
+		sifra := ""
 		if art, e := h.Artikli.DohvatiID(ctx, k.artikalID); e == nil && art != nil {
 			naziv = art.Naziv
+			sifra = art.Sifra
 		}
 		delovi = append(delovi, model.ServisniDeoSaArtiklom{
 			ArtikalNaziv: naziv,
-			ServisniDeo:  model.ServisniDeo{ArtikalID: k.artikalID, Predlozeno: k.predlozeno},
-			Potrazivano:  kol,
+			ArtikalSifra: sifra,
+			ServisniDeo: model.ServisniDeo{
+				ArtikalID:  k.artikalID,
+				Kolicina:   v.kolicina,
+				CenaKomada: v.cena,
+				Predlozeno: k.predlozeno,
+			},
 		})
 	}
 	return delovi, nil
@@ -849,6 +882,28 @@ func (h *Handler) ObrisiDeloNaloga(w http.ResponseWriter, r *http.Request) {
 	if err := h.ServisniDeloviRepo.Obrisi(r.Context(), deoID, &k.ID); err != nil {
 		slog.Error("greška pri brisanju dela", "error", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri uklanjanju dela.")
+	}
+	http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
+}
+
+// ObrisiPredlozeniDeoNaloga briše predlozene redove (predlozeno=1) za dati artikal na nalogu
+func (h *Handler) ObrisiPredlozeniDeoNaloga(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "servis.izmeni"); !ok {
+		return
+	}
+	nalogID, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+	artikalID, err := parseID(chi.URLParam(r, "artikal_id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID artikla", http.StatusBadRequest)
+		return
+	}
+	if err := h.ServisniPotrazivaniDeloviRepo.ObrisiPredlozeneZaArtikal(r.Context(), nalogID, artikalID); err != nil {
+		slog.Error("greška pri brisanju predloženog dela", "error", err)
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri uklanjanju predloženog dela.")
 	}
 	http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
 }
@@ -898,14 +953,22 @@ func (h *Handler) DodajRadNalogu(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// forma „Predložene usluge" šalje predlozeno=1; forma „Radovi" ne šalje
-	predlozeno := r.FormValue("predlozeno") == "1"
+	// predlog ako status nije „Primljeno" (server odlučuje, ne forma)
+	nalog, _ := h.ServisRepo.DohvatiID(r.Context(), nalogID)
+	predlozeno := nalog != nil && nalog.Status != model.StatusPrimljeno
 
 	if _, err := h.ServisniRadoviRepo.Dodaj(r.Context(), nalogID, uslugaID, usluga.Naziv, kolicina, cena, predlozeno); err != nil {
 		slog.Error("greška pri dodavanju rada", "error", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri dodavanju rada.")
 		http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
 		return
+	}
+
+	// novi predlog poništava prethodnu odluku klijenta
+	if predlozeno {
+		if err := h.ServisRepo.ObrisiOdlukuKlijenta(r.Context(), nalogID); err != nil {
+			slog.Error("greška pri brisanju odluke klijenta", "error", err)
+		}
 	}
 
 	http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10)+"?sacuvano=1", http.StatusSeeOther)
@@ -1052,10 +1115,26 @@ func (h *Handler) mozdaKreirajKlijenta(ctx context.Context, r *http.Request, nal
 		tipIdent = "jmbg" // prazan unos — podrazumevani tip radi konzistentnosti baze
 	}
 
+	prezime := strings.TrimSpace(r.FormValue("prezime"))
+	telefon := strings.TrimSpace(r.FormValue("telefon"))
+	mestoLok := strings.TrimSpace(r.FormValue("mesto"))
+
+	// prvo proveri da li klijent već postoji u bazi
+	postojeci, err := h.KlijentiRepo.Pronadji(ctx, tip, ime, prezime, nazivFirme, jmbg, telefon, email, mestoLok)
+	if err != nil {
+		slog.Error("greška pri pretrazi klijenta", "error", err)
+		return "Došlo je do greške pri proveri klijenta. Pokušajte ponovo."
+	}
+	if postojeci != nil {
+		nalog.KlijentID = &postojeci.ID
+		return ""
+	}
+
+	// klijent ne postoji — kreiraj novog
 	klijent := model.Klijent{
 		Tip:               tip,
 		Ime:               ime,
-		Prezime:           strings.TrimSpace(r.FormValue("prezime")),
+		Prezime:           prezime,
 		JMBG:              jmbg,
 		TipIdentifikacije: tipIdent,
 		NazivFirme:        nazivFirme,
@@ -2008,24 +2087,24 @@ func (h *Handler) OdbijPopravku(w http.ResponseWriter, r *http.Request) {
 
 // PodaciJavnogStatusa su podaci za javnu status stranicu servisnog naloga
 type PodaciJavnogStatusa struct {
-	Nalog            model.ServisniNalog
-	NazivFirme       string
-	LogoPutanja      string
-	Podnazlov        string
-	Adresa           string
-	Telefon          string
-	PIB              string
-	MaticniBroj      string
-	Radovi           []model.ServisniRad           // ugrađeni/odobreni
-	ServisniDelovi   []model.ServisniDeoSaArtiklom // ugrađeni/odobreni
-	UkupnoSve        float64                       // zbir ugrađenih (radovi + delovi)
-	PredlozeniRadovi []model.ServisniRad
-	PredlozeniDelovi []model.ServisniDeoSaArtiklom
-	UkupnoPredlog    float64 // zbir predloženih (radovi + delovi)
-	ImaPredlog         bool
-	UkupnoSaPredlogom  float64 // ukupno ugrađeno + predloženo
-	Odgovoreno         bool    // klijent već odgovorio (nema predloga, nije „Primljeno")
-	SviStatusi         []string
+	Nalog             model.ServisniNalog
+	NazivFirme        string
+	LogoPutanja       string
+	Podnazlov         string
+	Adresa            string
+	Telefon           string
+	PIB               string
+	MaticniBroj       string
+	Radovi            []model.ServisniRad           // ugrađeni/odobreni
+	ServisniDelovi    []model.ServisniDeoSaArtiklom // ugrađeni/odobreni
+	UkupnoSve         float64                       // zbir ugrađenih (radovi + delovi)
+	PredlozeniRadovi  []model.ServisniRad
+	PredlozeniDelovi  []model.ServisniDeoSaArtiklom
+	UkupnoPredlog     float64 // zbir predloženih (radovi + delovi)
+	ImaPredlog        bool
+	UkupnoSaPredlogom float64 // ukupno ugrađeno + predloženo
+	Odgovoreno        bool    // klijent već odgovorio (nema predloga, nije „Primljeno")
+	SviStatusi        []string
 }
 
 // ServisJavniStatus prikazuje javnu status stranicu — dostupna bez prijave putem QR koda
@@ -2077,24 +2156,24 @@ func (h *Handler) ServisJavniStatus(w http.ResponseWriter, r *http.Request) {
 	podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 
 	h.renderujStandalone(w, "servis_status_javni", PodaciJavnogStatusa{
-		Nalog:            *nalog,
-		NazivFirme:       podesavanja["naziv_firme"],
-		LogoPutanja:      logoZaDokument(podesavanja),
-		Podnazlov:        podesavanja["podnazlov"],
-		Adresa:           podesavanja["adresa"],
-		Telefon:          podesavanja["telefon"],
-		PIB:              podesavanja["pib"],
-		MaticniBroj:      podesavanja["maticni_broj"],
-		Radovi:           ugrRadovi,
-		ServisniDelovi:   ugrDelovi,
-		UkupnoSve:        ukupnoSve,
-		PredlozeniRadovi: predRadovi,
-		PredlozeniDelovi: predDelovi,
-		UkupnoPredlog:    ukupnoPredlog,
+		Nalog:             *nalog,
+		NazivFirme:        podesavanja["naziv_firme"],
+		LogoPutanja:       logoZaDokument(podesavanja),
+		Podnazlov:         podesavanja["podnazlov"],
+		Adresa:            podesavanja["adresa"],
+		Telefon:           podesavanja["telefon"],
+		PIB:               podesavanja["pib"],
+		MaticniBroj:       podesavanja["maticni_broj"],
+		Radovi:            ugrRadovi,
+		ServisniDelovi:    ugrDelovi,
+		UkupnoSve:         ukupnoSve,
+		PredlozeniRadovi:  predRadovi,
+		PredlozeniDelovi:  predDelovi,
+		UkupnoPredlog:     ukupnoPredlog,
 		ImaPredlog:        len(predRadovi) > 0 || len(predDelovi) > 0,
 		UkupnoSaPredlogom: ukupnoSve + ukupnoPredlog,
-		Odgovoreno:        !(len(predRadovi) > 0 || len(predDelovi) > 0) && nalog.Status != model.StatusPrimljeno,
-		SviStatusi:       model.SviStatusi,
+		Odgovoreno:        nalog.OdlukaKlijenta != "" || (!(len(predRadovi) > 0 || len(predDelovi) > 0) && nalog.Status != model.StatusPrimljeno),
+		SviStatusi:        model.SviStatusi,
 	})
 }
 
@@ -2136,6 +2215,12 @@ func (h *Handler) ServisJavniPrihvati(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// odluka je već doneta — ne dozvoljavamo ponovno glasanje
+	if nalog.OdlukaKlijenta != "" {
+		http.Redirect(w, r, "/status/"+token, http.StatusSeeOther)
+		return
+	}
+
 	if err := h.ServisniRadoviRepo.PrihvatiPredlozene(r.Context(), nalog.ID); err != nil {
 		slog.Error("greška pri prihvatanju predloženih radova", "error", err, "nalog_id", nalog.ID)
 		http.Error(w, "Greška pri prihvatanju predloga.", http.StatusInternalServerError)
@@ -2147,11 +2232,9 @@ func (h *Handler) ServisJavniPrihvati(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// sačuvaj komentar klijenta
-	if komentar := strings.TrimSpace(r.FormValue("komentar")); komentar != "" {
-		if err := h.ServisRepo.AzurirajKomentarKlijenta(r.Context(), nalog.ID, komentar); err != nil {
-			slog.Error("greška pri čuvanju komentara klijenta", "error", err, "nalog_id", nalog.ID)
-		}
+	komentar := strings.TrimSpace(r.FormValue("komentar"))
+	if err := h.ServisRepo.SacuvajOdlukuKlijenta(r.Context(), nalog.ID, "prihvaceno", komentar); err != nil {
+		slog.Error("greška pri čuvanju odluke klijenta", "error", err, "nalog_id", nalog.ID)
 	}
 
 	http.Redirect(w, r, "/status/"+token, http.StatusSeeOther)
@@ -2199,6 +2282,12 @@ func (h *Handler) ServisJavniOdbij(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// odluka je već doneta — ne dozvoljavamo ponovno glasanje
+	if nalog.OdlukaKlijenta != "" {
+		http.Redirect(w, r, "/status/"+token, http.StatusSeeOther)
+		return
+	}
+
 	// brišemo predložene stavke — klijent ih je odbio
 	if err := h.ServisniRadoviRepo.ObrisiPredlozene(r.Context(), nalog.ID); err != nil {
 		slog.Error("greška pri brisanju predloženih radova", "error", err, "nalog_id", nalog.ID)
@@ -2207,11 +2296,9 @@ func (h *Handler) ServisJavniOdbij(w http.ResponseWriter, r *http.Request) {
 		slog.Error("greška pri brisanju predloženih delova", "error", err, "nalog_id", nalog.ID)
 	}
 
-	// sačuvaj komentar klijenta
-	if komentar := strings.TrimSpace(r.FormValue("komentar")); komentar != "" {
-		if err := h.ServisRepo.AzurirajKomentarKlijenta(r.Context(), nalog.ID, komentar); err != nil {
-			slog.Error("greška pri čuvanju komentara klijenta", "error", err, "nalog_id", nalog.ID)
-		}
+	komentar := strings.TrimSpace(r.FormValue("komentar"))
+	if err := h.ServisRepo.SacuvajOdlukuKlijenta(r.Context(), nalog.ID, "odbijeno", komentar); err != nil {
+		slog.Error("greška pri čuvanju odluke klijenta", "error", err, "nalog_id", nalog.ID)
 	}
 
 	http.Redirect(w, r, "/status/"+token, http.StatusSeeOther)

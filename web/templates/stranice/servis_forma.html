@@ -95,6 +95,20 @@
                         placeholder="npr. punjač, torbica, miš"
                         style="width:100%;">
                 </div>
+
+                <!-- serviser -->
+                <div>
+                    <label class="polje-labela">Serviser</label>
+                    <select name="tehnicar_id" style="width:100%;">
+                        <option value="">— nedodeljen —</option>
+                        {{range .Tehnicari}}
+                        <option value="{{.ID}}"
+                            {{if eq .ID $.Nalog.TehnicarIDVrednost}}selected{{end}}>
+                            {{.KorisnickoIme}}
+                        </option>
+                        {{end}}
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -236,20 +250,6 @@
                             </div>
                         </div>
                     </template>
-                </div>
-
-                <!-- serviser -->
-                <div>
-                    <label class="polje-labela">Serviser</label>
-                    <select name="tehnicar_id" style="width:100%;">
-                        <option value="">— nedodeljen —</option>
-                        {{range .Tehnicari}}
-                        <option value="{{.ID}}"
-                            {{if eq .ID $.Nalog.TehnicarIDVrednost}}selected{{end}}>
-                            {{.KorisnickoIme}}
-                        </option>
-                        {{end}}
-                    </select>
                 </div>
             </div>
         </div>
