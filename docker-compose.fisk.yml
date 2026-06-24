@@ -6,4 +6,7 @@ services:
     ports:
       - "4566:4566"
     volumes:
-      - ./fisk-data:/app/data
+      - teron-data:/app/data
+
+volumes:
+  teron-data:
