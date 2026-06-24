@@ -721,8 +721,6 @@
     <!-- prihvati/odbij odabrane predlozene stavke (interna forma) -->
     {{if and (index .Dozvole "servis.izmeni") (or .PredlozeniRadovi .PredlozeniDelovi)}}
     <div id="predlozeno-blok" class="kartica detalji-kartica animiraj" style="border-left:3px solid #f59e0b;">
-    {{else}}
-    <div id="predlozeno-blok">
         <div style="margin-bottom:14px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);display:flex;justify-content:space-between;align-items:center;">
             <span style="font-size:15px;font-weight:500;color:#f59e0b;">Predložene stavke</span>
             <span style="font-size:12px;color:var(--tekst-sporedni);">Odštikliraj šta ne prihvataš</span>
@@ -756,6 +754,8 @@
             <button type="submit" class="btn-primarno" style="width:100%;margin-top:14px;">Prihvati odabrano</button>
         </form>
     </div>
+    {{else}}
+    <div id="predlozeno-blok"></div>
     {{end}}
 
     <!-- ukupno: zbir usluga (radova) i ugrađenih delova -->
