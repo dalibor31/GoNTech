@@ -62,9 +62,12 @@ Cilj je jednostavan: sve što servis treba da prati nalazi se na jednom mestu, b
 - Automatski testovi — jedinični i integracioni nad SQLite bazom (kripto, RBAC, tokovi prijave, validatori forme, izveštaji)
 - **Demo mod** (`NTECH_ENV=demo`) — automatski kreiran demo korisnik, pre-popunjeni login, ograničen bekap, blokirana promena lozinke i 2FA
 
+### U toku
+
+- **Fiskalizacija (ESIR/PFR)** — Teron L-PFR mock server dostupan u `Fisk/`; integracija Go klijenta u planu
+
 ### Planirano
 
-- Fiskalizacija (ESIR/PFR)
 - KPO knjiga i dvojno knjigovodstvo (opciono, kasnija faza)
 - Podrška za PostgreSQL (za višekorisničko okruženje)
 - WebAuthn / Passkey prijava (šema baze je pripremljena)
@@ -187,6 +190,78 @@ tvoj.domen.com {
     reverse_proxy ntech:8000
 }
 ```
+
+### Sa Teron L-PFR mokom (testiranje fiskalizacije)
+
+Folder `Fisk/` sadrži Python mock server koji simulira [Teron](https://teron.rs) L-PFR fiskalni uređaj (port 4566). Implementira Teron HTTP API — potpisivanje računa, PDV obračun, generisanje QR koda i brojače po tipu računa — bez potrebe za pravim hardverom ili sertifikatom.
+
+Koristi se uz NTech za razvoj i testiranje fiskalizacije:
+
+```yaml
+# docker-compose.yml
+services:
+  ntech:
+    image: ghcr.io/dalibor31/ntech:latest
+    container_name: ntech
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      NTECH_ENV: production
+      NTECH_PORT: "8000"
+      NTECH_SQLITE: /app/data/ntech.db
+    volumes:
+      - ./data:/app/data
+      - ./uploads:/app/web/static/uploads
+      - ./logs:/var/log/ntech
+      - ./backups:/app/backups
+    networks:
+      - ntech-net
+
+  teron-mock:
+    image: ghcr.io/dalibor31/ntech-fisk:latest
+    container_name: teron_mock
+    restart: unless-stopped
+    volumes:
+      - teron-data:/app/data
+    networks:
+      - ntech-net
+
+volumes:
+  teron-data:
+
+networks:
+  ntech-net:
+```
+
+Servis `teron-mock` je dostupan iz `ntech` kontejnera na adresi `http://teron-mock:4566` preko interne Docker mreže — port nije izložen spolja.
+
+Za lokalno pokretanje moka (bez Dockera):
+
+```bash
+cd Fisk
+pip install -r requirements.txt
+python server.py
+# ili: ./start.sh
+```
+
+#### Teron Mock endpointi
+
+| Metod | Putanja | Opis |
+|-------|---------|------|
+| GET | `/api/status` | Status uređaja i poslednji broj računa |
+| GET | `/api/attention` | Aktivna upozorenja |
+| POST | `/api/pin` | Verifikacija PIN-a (otključavanje BE) |
+| GET | `/api/settings` | Podešavanja uređaja |
+| POST | `/api/invoices` | Izdavanje fiskalnog računa |
+| POST | `/api/invoices/final` | Finalizacija avansnog računa |
+| GET | `/api/invoices/last` | Poslednji izdati račun |
+| GET | `/api/invoices/:invoiceNumber` | Račun po broju |
+| POST | `/api/invoices/search` | Pretraga računa |
+
+Brojači, potpisane priznanice, QR kodovi i JSON podaci o računima čuvaju se u `Fisk/data/`.
+
+---
 
 ### Demo mod
 
