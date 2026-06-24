@@ -23,7 +23,7 @@ func NoviServisniPotrazivaniDeloviRepo(db *sql.DB) *ServisniPotrazivaniDeloviRep
 func (r *ServisniPotrazivaniDeloviRepo) DohvatiZaNalog(ctx context.Context, nalogID int64) ([]model.ServisniPotrazivaniDeo, error) {
 	redovi, err := r.db.QueryContext(ctx, `
 		SELECT spd.id, spd.nalog_id, spd.artikal_id, spd.kolicina, spd.cena_komada, spd.datum,
-		       a.naziv
+		       spd.predlozeno, a.naziv
 		FROM servisni_potrazivani_delovi spd
 		JOIN artikli a ON a.id = spd.artikal_id
 		WHERE spd.nalog_id = ?
@@ -36,7 +36,7 @@ func (r *ServisniPotrazivaniDeloviRepo) DohvatiZaNalog(ctx context.Context, nalo
 	var rezultat []model.ServisniPotrazivaniDeo
 	for redovi.Next() {
 		var d model.ServisniPotrazivaniDeo
-		err := redovi.Scan(&d.ID, &d.NalogID, &d.ArtikalID, &d.Kolicina, &d.CenaKomada, &d.Datum, &d.ArtikalNaziv)
+		err := redovi.Scan(&d.ID, &d.NalogID, &d.ArtikalID, &d.Kolicina, &d.CenaKomada, &d.Datum, &d.Predlozeno, &d.ArtikalNaziv)
 		if err != nil {
 			return nil, fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.DohvatiZaNalog: scan: %w", err)
 		}

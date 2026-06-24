@@ -26,7 +26,7 @@ func TestPotrazivaniTok(t *testing.T) {
 	potrRepo := NoviServisniPotrazivaniDeloviRepo(db)
 
 	// traži 5, na stanju 2 → ugradi 2, nedostaje 3
-	ugradjeno, nedostaje, err := deloviRepo.UgradiIliPotrazuj(ctx, 1, 1, 5, 100, nil)
+	ugradjeno, nedostaje, err := deloviRepo.UgradiIliPotrazuj(ctx, 1, 1, 5, 100, nil, false)
 	if err != nil {
 		t.Fatalf("UgradiIliPotrazuj: %v", err)
 	}

@@ -54,6 +54,7 @@ type ServisniNalog struct {
 	Uradjeno           string  // šta je serviser stvarno uradio tokom popravke
 	CenaDijagnostike   float64 // taksa kad klijent ne prihvati popravku; 0 = ne naplaćuje se
 	PopravkaOdbijena   bool    // klijent odbio popravku posle dijagnostike → naplaćuje se samo dijagnostika
+	KomentarKlijenta   string  // poruka klijenta uz prihvatanje/odbijanje predloga
 	JavniToken         string
 }
 
@@ -65,6 +66,7 @@ type ServisniDeo struct {
 	Kolicina   int
 	CenaKomada float64
 	Datum      time.Time
+	Predlozeno bool // true = serviser predložio posle dijagnostike; čeka odobrenje klijenta
 }
 
 // Ukupno vraća ukupnu vrednost dela (kolicina × cena)
@@ -88,6 +90,7 @@ type ServisniPotrazivaniDeo struct {
 	Kolicina   int
 	CenaKomada float64
 	Datum      time.Time
+	Predlozeno bool
 	// za prikaz:
 	ArtikalNaziv string
 }
@@ -102,6 +105,7 @@ type ServisniRad struct {
 	Kolicina   float64
 	CenaKomada float64
 	Datum      string
+	Predlozeno bool // true = serviser predložio posle dijagnostike; čeka odobrenje klijenta
 }
 
 // Ukupno vraća ukupnu vrednost rada (kolicina × cena)
@@ -113,6 +117,7 @@ func (r ServisniRad) Ukupno() float64 {
 type ServisniNalogSaKlijentom struct {
 	ServisniNalog
 	KlijentNaziv string
+	ImaPredlog   bool // ima predloženih stavki koje čekaju odobrenje klijenta
 }
 
 // KlijentIDVrednost vraća vrednost KlijentID pointera, ili 0 ako je nil

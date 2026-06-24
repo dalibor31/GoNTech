@@ -204,7 +204,6 @@ func main() {
 
 	r := chi.NewRouter()
 	r.Use(ntechmw.BezbednostHeaders())
-	r.Use(ntechmw.CsrfMiddleware)
 	r.Use(middleware.Compress(5))
 	// deljeno zaključavanje baze za vreme zahteva — obnova backupa (VratiBackup)
 	// čeka da svi zahtevi završe pre zamene konekcije (vidi handler.ZakljucajCitanje)
@@ -240,9 +239,12 @@ func main() {
 	r.Post("/setup", h.SacuvajSetup)
 	r.Get("/odjava", h.Odjava)
 	r.Get("/status/{token}", h.ServisJavniStatus)
+	r.Post("/status/{token}/prihvati", h.ServisJavniPrihvati)
+	r.Post("/status/{token}/odbij", h.ServisJavniOdbij)
 
 	// zaštićene rute — zahtevaju prijavljenog korisnika
 	r.Group(func(r chi.Router) {
+		r.Use(ntechmw.CsrfMiddleware)
 		r.Use(ntechmw.RequireAuth(db, totpKljuc))
 
 		// doz vraća middleware koji na ruteru zahteva datu dozvolu za mutirajuću
@@ -370,6 +372,7 @@ func main() {
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/uradjeno", h.SacuvajUradjeno)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/cena-dijagnostike", h.AzurirajCenaDijagnostike)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/odbij-popravku", h.OdbijPopravku)
+		r.With(doz("servis.izmeni")).Post("/servis/{id}/obrisi-komentar-klijenta", h.ObrisiKomentarKlijenta)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/delovi", h.DodajDeloNalogu)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/delovi/{deo_id}/obrisi", h.ObrisiDeloNaloga)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/radovi", h.DodajRadNalogu)

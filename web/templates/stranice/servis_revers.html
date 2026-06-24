@@ -59,6 +59,8 @@
             .strana { padding: 16px 20px; max-width: 100%; }
             .dugme-stampa { display: none !important; }
             @page { size: A4; margin: 12mm 14mm; }
+            /* uslovi servisa (sa potpisima) idu na novu stranicu */
+            .uslovi-strana { break-before: page; }
         }
         .dugme-stampa { position: fixed; bottom: 24px; right: 24px; background: #111; color: #fff; border: none; padding: 12px 22px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
         .dugme-stampa:hover { background: #333; }
@@ -178,7 +180,7 @@
 
     <!-- uslovi servisa -->
     {{if .Uslovi}}
-    <div class="odeljak">
+    <div class="odeljak uslovi-strana">
         <div class="odeljak-naslov">Uslovi servisa</div>
         <div class="uslovi-blok">{{.Uslovi}}</div>
     </div>

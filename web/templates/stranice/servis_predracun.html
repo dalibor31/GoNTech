@@ -122,7 +122,21 @@
         <div class="odeljak-naslov">Uređaj i traženi radovi</div>
         <div style="margin-bottom:6px;"><strong>Uređaj:</strong> {{if .Nalog.Uredjaj}}{{.Nalog.Uredjaj}}{{else}}<span class="prazno">—</span>{{end}}{{if .Nalog.SerijskiBroj}} &middot; S/N: {{.Nalog.SerijskiBroj}}{{end}}</div>
         <div class="polje-tekst"><strong>Zahtev klijenta:</strong> {{if .Nalog.OpisKvara}}{{.Nalog.OpisKvara}}{{else}}<span class="prazno">—</span>{{end}}</div>
+        {{if .Nalog.TrazeneNadogradnje}}
+        <div class="polje-tekst" style="margin-top:6px;"><strong>Tražene nadogradnje:</strong> {{.Nalog.TrazeneNadogradnje}}</div>
+        {{end}}
+        {{if .Nalog.NapomenaKlijentu}}
+        <div class="polje-tekst" style="margin-top:6px;"><strong>Napomena klijentu:</strong> {{.Nalog.NapomenaKlijentu}}</div>
+        {{end}}
     </div>
+
+    <!-- utvrđen kvar (rezultat dijagnostike) -->
+    {{if .Nalog.NalazDijagnostike}}
+    <div class="odeljak">
+        <div class="odeljak-naslov">Utvrđen kvar</div>
+        <div class="polje-tekst">{{.Nalog.NalazDijagnostike}}</div>
+    </div>
+    {{end}}
 
     <!-- radovi -->
     {{if .Radovi}}
