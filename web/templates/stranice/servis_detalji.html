@@ -461,7 +461,7 @@
 
         <!-- forma za dodavanje rada — u dijagnostici se automatski beleži kao predlog -->
         {{if and (index .Dozvole "servis.izmeni") (ne .Nalog.Status "U popravci")}}
-        <form method="POST" action="/servis/{{.Nalog.ID}}/radovi" style="margin-bottom:16px;" data-refresh="#radovi-blok, #nalog-ukupno">
+        <form method="POST" action="/servis/{{.Nalog.ID}}/radovi" style="margin-bottom:16px;" data-refresh="#radovi-blok, #nalog-ukupno, #predlozeno-blok">
             <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
             {{if .ZakljucaniUgradjeni}}<input type="hidden" name="predlozeno" value="1">{{end}}
             <div class="detalji-forma-rad">
@@ -512,7 +512,7 @@
                     <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .Ukupno}} din</td>
                     <td style="padding:9px 10px;text-align:center;">
                         {{if and (not $.ZakljucaniUgradjeni) (index $.Dozvole "servis.izmeni")}}
-                        <form method="POST" action="/servis/{{$.Nalog.ID}}/radovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#radovi-blok, #nalog-ukupno">
+                        <form method="POST" action="/servis/{{$.Nalog.ID}}/radovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#radovi-blok, #nalog-ukupno, #predlozeno-blok">
                             <input type="hidden" name="_csrf" value="{{$.CsrfToken}}">
                             <button type="submit"
                                 data-potvrda="Ukloniti rad '{{.Naziv}}'?"
@@ -533,7 +533,7 @@
                     <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .Ukupno}} din</td>
                     <td style="padding:9px 10px;text-align:center;">
                         {{if and (index $.Dozvole "servis.izmeni") (ne $.Nalog.Status "U popravci")}}
-                        <form method="POST" action="/servis/{{$.Nalog.ID}}/radovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#radovi-blok, #nalog-ukupno">
+                        <form method="POST" action="/servis/{{$.Nalog.ID}}/radovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#radovi-blok, #nalog-ukupno, #predlozeno-blok">
                             <input type="hidden" name="_csrf" value="{{$.CsrfToken}}">
                             <button type="submit"
                                 data-potvrda="Ukloniti predloženi rad '{{.Naziv}}'?"
@@ -571,7 +571,7 @@
 
         <!-- forma za dodavanje dela — u dijagnostici se automatski beleži kao predlog -->
         {{if and (index .Dozvole "servis.izmeni") (ne .Nalog.Status "U popravci")}}
-        <form method="POST" action="/servis/{{.Nalog.ID}}/delovi" style="margin-bottom:16px;" data-refresh="#delovi-blok, #nalog-zaglavlje, #nalog-ukupno">
+        <form method="POST" action="/servis/{{.Nalog.ID}}/delovi" style="margin-bottom:16px;" data-refresh="#delovi-blok, #nalog-zaglavlje, #nalog-ukupno, #predlozeno-blok">
             <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
             {{if .ZakljucaniUgradjeni}}<input type="hidden" name="predlozeno" value="1">{{end}}
             <div style="margin-bottom:10px;">
@@ -635,7 +635,7 @@
                     </td>
                     <td style="padding:9px 10px;text-align:center;">
                         {{if and (not $.ZakljucaniUgradjeni) (index $.Dozvole "servis.izmeni")}}
-                        <form method="POST" action="/servis/{{$.Nalog.ID}}/delovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#delovi-blok, #nalog-zaglavlje, #nalog-ukupno">
+                        <form method="POST" action="/servis/{{$.Nalog.ID}}/delovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#delovi-blok, #nalog-zaglavlje, #nalog-ukupno, #predlozeno-blok">
                             <input type="hidden" name="_csrf" value="{{$.CsrfToken}}">
                             <button type="submit"
                                 data-potvrda="Ukloniti deo '{{.ArtikalNaziv}}'?"
@@ -663,14 +663,14 @@
                     <td style="padding:9px 10px;text-align:center;">
                         {{if and (index $.Dozvole "servis.izmeni") (ne $.Nalog.Status "U popravci")}}
                         {{if .ID}}
-                        <form method="POST" action="/servis/{{$.Nalog.ID}}/delovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#delovi-blok, #nalog-zaglavlje, #nalog-ukupno">
+                        <form method="POST" action="/servis/{{$.Nalog.ID}}/delovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#delovi-blok, #nalog-zaglavlje, #nalog-ukupno, #predlozeno-blok">
                             <input type="hidden" name="_csrf" value="{{$.CsrfToken}}">
                             <button type="submit"
                                 data-potvrda="Ukloniti predloženi deo '{{.ArtikalNaziv}}'?"
                                 style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px;padding:2px 6px;border-radius:4px;">×</button>
                         </form>
                         {{else if .ArtikalID}}
-                        <form method="POST" action="/servis/{{$.Nalog.ID}}/predlozeni-delovi/{{.ArtikalID}}/obrisi" style="display:inline;" data-refresh="#delovi-blok, #nalog-zaglavlje, #nalog-ukupno">
+                        <form method="POST" action="/servis/{{$.Nalog.ID}}/predlozeni-delovi/{{.ArtikalID}}/obrisi" style="display:inline;" data-refresh="#delovi-blok, #nalog-zaglavlje, #nalog-ukupno, #predlozeno-blok">
                             <input type="hidden" name="_csrf" value="{{$.CsrfToken}}">
                             <button type="submit"
                                 data-potvrda="Ukloniti predloženi deo '{{.ArtikalNaziv}}'?"
@@ -720,12 +720,14 @@
 
     <!-- prihvati/odbij odabrane predlozene stavke (interna forma) -->
     {{if and (index .Dozvole "servis.izmeni") (or .PredlozeniRadovi .PredlozeniDelovi)}}
-    <div class="kartica detalji-kartica animiraj" style="border-left:3px solid #f59e0b;">
+    <div id="predlozeno-blok" class="kartica detalji-kartica animiraj" style="border-left:3px solid #f59e0b;">
+    {{else}}
+    <div id="predlozeno-blok">
         <div style="margin-bottom:14px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);display:flex;justify-content:space-between;align-items:center;">
             <span style="font-size:15px;font-weight:500;color:#f59e0b;">Predložene stavke</span>
             <span style="font-size:12px;color:var(--tekst-sporedni);">Odštikliraj šta ne prihvataš</span>
         </div>
-        <form method="POST" action="/servis/{{.Nalog.ID}}/prihvati-odabrano" data-refresh="#radovi-blok, #delovi-blok, #nalog-ukupno">
+        <form method="POST" action="/servis/{{.Nalog.ID}}/prihvati-odabrano" data-refresh="#radovi-blok, #delovi-blok, #nalog-ukupno, #predlozeno-blok">
             <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
             {{if .PredlozeniRadovi}}
             <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--tekst-sporedni);margin-bottom:8px;">Radovi</div>
