@@ -151,6 +151,40 @@ def sada():
     tz = timezone(timedelta(hours=2))
     return datetime.now(tz).strftime("%Y-%m-%dT%H:%M:%S.000+02:00")
 
+# Poreske stope po oznaci — cene su BRUTO (PDV uključen u totalAmount)
+TAX_RATES = {
+    "А": 0.0,  "A": 0.0,   # neobveznici PDV-a / oslobođen
+    "Б": 20.0, "B": 20.0,  # opšta stopa 20%
+    "В": 0.0,  "V": 0.0,   # oslobođen sa pravom odbitka
+    "Г": 0.0,  "G": 0.0,   # oslobođen bez prava odbitka
+    "Д": 0.0,  "D": 0.0,   # nije predmet oporezivanja
+    "Ђ": 10.0,              # autorski honorar (snižena stopa)
+    "Е": 10.0, "E": 10.0,  # posebna snižena stopa 10%
+}
+
+def izracunaj_pdv(items):
+    """Grupiše stavke po poreskoj oznaci i izračunava PDV iz bruto iznosa.
+    Formula: pdv = bruto * stopa / (100 + stopa)"""
+    grupe = {}
+    for item in items:
+        total = float(item.get("totalAmount", 0))
+        for label in item.get("labels", []):
+            rate = TAX_RATES.get(label, 0.0)
+            if label not in grupe:
+                grupe[label] = {"label": label, "rate": rate, "amount": 0.0}
+            if rate > 0:
+                grupe[label]["amount"] += total * rate / (100 + rate)
+    return [
+        {
+            "label": d["label"],
+            "categoryName": "PDV",
+            "categoryType": 0,
+            "rate": d["rate"],
+            "amount": round(d["amount"], 4),
+        }
+        for d in grupe.values()
+    ]
+
 def resp_attention():
     return {"sdcDateTime": sada(), "status": "OK"}
 
@@ -249,12 +283,24 @@ def resp_invoice(request_id, request_body=None):
     full_data.setdefault("district", f["district"])
     full_data.setdefault("cashier", "Marko Marković")
     full_data.setdefault("transactionType", "NSX")
-    full_data.setdefault("totalAmount", sum(item.get("amount", item.get("unitPrice", 0) * item.get("quantity", 0)) for item in full_data.get("items", [])))
+    items = full_data.get("items", [])
+    total_amount = round(sum(float(item.get("totalAmount", 0)) for item in items), 2)
+    full_data.setdefault("totalAmount", total_amount)
     full_data.setdefault("payments", [{"type": "Cash", "amount": full_data["totalAmount"]}])
-    full_data.setdefault("taxItems", [])
-    full_data.setdefault("totalTax", sum(t.get("amount", 0) for t in full_data.get("taxItems", [])))
+    tax_items = izracunaj_pdv(items)
+    full_data["taxItems"] = tax_items
+    full_data["totalTax"] = round(sum(t["amount"] for t in tax_items), 2)
     full_data.setdefault("refund", 0)
     full_data.setdefault("invoiceType", "Normal")
+    # Obogati odgovor koji ide ka ESIR-u (NTech-u)
+    invoice_data["taxItems"] = tax_items
+    invoice_data["totalAmount"] = full_data["totalAmount"]
+    invoice_data["totalTax"] = full_data["totalTax"]
+    invoice_data["messages"] = "Success"
+    invoice_data["businessName"] = full_data.get("company", "")
+    invoice_data["tin"] = full_data.get("tin", "")
+    invoice_data["locationName"] = full_data.get("store", "")
+    invoice_data["address"] = full_data.get("address", "")
 
     # Snimi kompletan račun
     invoice_path = INVOICES_DIR / f"{invoice_number}_{request_id}.json"
