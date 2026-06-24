@@ -1,0 +1,28 @@
+services:
+  ntech:
+    image: ghcr.io/dalibor31/ntech:latest
+    container_name: ntech
+    restart: unless-stopped
+    ports:
+      - 8000:8000
+    environment:
+      - NTECH_ENV=production
+      - NTECH_PORT=8000
+      - NTECH_SQLITE=/app/data/ntech.db
+    volumes:
+      - ./data:/app/data
+      - ./uploads:/app/web/static/uploads
+      - ./logs:/var/log/ntech
+      - ./backups:/app/backups
+
+  teron-mock:
+    image: ghcr.io/dalibor31/ntech-fisk:latest
+    container_name: teron_mock
+    restart: unless-stopped
+    ports:
+      - 4566:4566
+    volumes:
+      - teron-data:/app/data
+
+volumes:
+  teron-data:
