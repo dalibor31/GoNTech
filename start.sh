@@ -175,16 +175,13 @@ if [[ "$BUILD_IZBOR" =~ ^[dDyY] ]]; then
             build_za "windows" "ntech.exe"
             ;;
         3)
-            if [[ "$UPX_IZBOR" =~ ^[dDyY] ]]; then
-                build_za "linux"   "ntech"
-                build_za "windows" "ntech.exe"
-            else
-                build_za "linux"   "ntech"     &
-                PID_LINUX=$!
-                build_za "windows" "ntech.exe" &
-                PID_WIN=$!
-                wait $PID_LINUX $PID_WIN
-            fi
+            mkdir -p /tmp/ntech-build-linux /tmp/ntech-build-windows
+            (build_za "linux"   "/tmp/ntech-build-linux/ntech"     && cp /tmp/ntech-build-linux/ntech     ntech)     &
+            PID_LINUX=$!
+            (build_za "windows" "/tmp/ntech-build-windows/ntech.exe" && cp /tmp/ntech-build-windows/ntech.exe ntech.exe) &
+            PID_WIN=$!
+            wait $PID_LINUX $PID_WIN
+            rm -rf /tmp/ntech-build-linux /tmp/ntech-build-windows
             ;;
         *)
             build_za "linux" "ntech"
