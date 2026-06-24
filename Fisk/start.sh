@@ -6,7 +6,7 @@
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PID_FILE="$SCRIPT_DIR/data/server.pid"
-PORT=8989
+PORT=4566
 
 # Proveri da li server već radi
 check_running() {
