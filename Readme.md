@@ -62,9 +62,12 @@ The goal is simple: everything the repair shop needs to track is located in one 
 - Automated tests — unit and integration over a SQLite database (crypto, RBAC, login flows, form validators, reports)
 - **Demo mode** (`NTECH_ENV=demo`) — auto-created demo user, pre-filled login form, restricted backup count, blocked password/2FA changes
 
+### In Progress
+
+- **Fiscalization (ESIR/PFR)** — Teron L-PFR mock server included in `Fisk/`; Go client integration planned
+
 ### Planned
 
-- Fiscalization (ESIR/PFR)
 - KPO book and double-entry bookkeeping (optional, later phase)
 - PostgreSQL support (for multi-user environments)
 - WebAuthn / Passkey login (database schema is already prepared)
@@ -187,6 +190,78 @@ your.domain.com {
     reverse_proxy ntech:8000
 }
 ```
+
+### With Teron L-PFR Mock (Fiscalization Testing)
+
+The `Fisk/` directory contains a Python mock server that simulates a [Teron](https://teron.rs) L-PFR fiscal device (port 4566). It implements the Teron HTTP API — invoice signing, PDV calculation, QR code generation, and per-type counters — without requiring real hardware or a certificate.
+
+Use it alongside NTech for fiscalization development and testing:
+
+```yaml
+# docker-compose.yml
+services:
+  ntech:
+    image: ghcr.io/dalibor31/ntech:latest
+    container_name: ntech
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      NTECH_ENV: production
+      NTECH_PORT: "8000"
+      NTECH_SQLITE: /app/data/ntech.db
+    volumes:
+      - ./data:/app/data
+      - ./uploads:/app/web/static/uploads
+      - ./logs:/var/log/ntech
+      - ./backups:/app/backups
+    networks:
+      - ntech-net
+
+  teron-mock:
+    image: ghcr.io/dalibor31/ntech-fisk:latest
+    container_name: teron_mock
+    restart: unless-stopped
+    volumes:
+      - teron-data:/app/data
+    networks:
+      - ntech-net
+
+volumes:
+  teron-data:
+
+networks:
+  ntech-net:
+```
+
+The `teron-mock` service is reachable from `ntech` at `http://teron-mock:4566` over the internal Docker network — the port is not exposed to the host.
+
+To run the mock server locally (without Docker):
+
+```bash
+cd Fisk
+pip install -r requirements.txt
+python server.py
+# or: ./start.sh
+```
+
+#### Teron Mock Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/status` | Device status and last invoice number |
+| GET | `/api/attention` | Active alerts |
+| POST | `/api/pin` | PIN verification (BE unlock) |
+| GET | `/api/settings` | Device settings |
+| POST | `/api/invoices` | Issue a fiscal invoice |
+| POST | `/api/invoices/final` | Finalize an advance invoice |
+| GET | `/api/invoices/last` | Last issued invoice |
+| GET | `/api/invoices/:invoiceNumber` | Invoice by number |
+| POST | `/api/invoices/search` | Search invoices |
+
+Counters, signed receipts, QR codes, and JSON invoice data are persisted in `Fisk/data/`.
+
+---
 
 ### Demo Mode
 
