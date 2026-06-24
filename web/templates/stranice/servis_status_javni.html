@@ -261,18 +261,33 @@
                 Serviser predlaže sledeće radove i delove. Pogledajte i javite nam da li ste saglasni.
             </div>
 
+            <form method="POST" action="/status/{{.Nalog.JavniToken}}/odluka-odabrano" style="margin-top:4px;">
+            {{if .PredlozeniRadovi}}
+            <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:#94a3b8;margin-bottom:6px;">Radovi</div>
             {{range .PredlozeniRadovi}}
-            <div class="red">
-                <span class="red-labela">{{.Naziv}}{{if gt .Kolicina 1.0}} &times;{{.Kolicina}}{{end}}</span>
-                <span class="red-vrednost">{{dinari .Ukupno}} din</span>
-            </div>
+            <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:0.5px solid #1e293b;cursor:pointer;">
+                <span style="display:flex;align-items:center;gap:10px;flex:1;">
+                    <input type="checkbox" name="rad_id" value="{{.ID}}" checked
+                        style="width:18px;height:18px;accent-color:#f59e0b;flex-shrink:0;">
+                    <span style="font-size:13px;color:#e2e8f0;">{{.Naziv}}{{if gt .Kolicina 1.0}} &times; {{printf "%.0f" .Kolicina}}{{end}}</span>
+                </span>
+                <span style="font-size:13px;font-weight:600;color:#fbbf24;white-space:nowrap;">{{dinari .Ukupno}} din</span>
+            </label>
+            {{end}}
             {{end}}
 
+            {{if .PredlozeniDelovi}}
+            <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:#94a3b8;margin:10px 0 6px;">Delovi i materijal</div>
             {{range .PredlozeniDelovi}}
-            <div class="red">
-                <span class="red-labela">{{.ArtikalNaziv}}{{if gt .Kolicina 1}} &times;{{.Kolicina}}{{end}}</span>
-                <span class="red-vrednost">{{dinari .Ukupno}} din</span>
-            </div>
+            <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:0.5px solid #1e293b;cursor:pointer;">
+                <span style="display:flex;align-items:center;gap:10px;flex:1;">
+                    <input type="checkbox" name="artikal_id" value="{{.ArtikalID}}" checked
+                        style="width:18px;height:18px;accent-color:#f59e0b;flex-shrink:0;">
+                    <span style="font-size:13px;color:#e2e8f0;">{{.ArtikalNaziv}}{{if gt .Kolicina 1}} &times; {{.Kolicina}}{{end}}</span>
+                </span>
+                <span style="font-size:13px;font-weight:600;color:#fbbf24;white-space:nowrap;">{{dinari .Ukupno}} din</span>
+            </label>
+            {{end}}
             {{end}}
 
             <div class="cena-blok predlog-ukupno" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;">
@@ -280,14 +295,9 @@
                 <span class="cena-vrednost">{{dinari .UkupnoPredlog}} din</span>
             </div>
 
-            <!-- komentar i dugmad -->
-            <form method="POST" style="margin-top:16px;">
-                <textarea name="komentar" placeholder="Poruka serviseru (opciono)..." rows="2"
-                    style="width:100%;padding:10px 12px;border:0.5px solid #334155;border-radius:8px;background:#0f172a;color:#e2e8f0;font-size:13px;font-family:inherit;resize:vertical;margin-bottom:10px;box-sizing:border-box;"></textarea>
-                <div style="display:flex;gap:10px;">
-                    <button type="submit" formaction="/status/{{.Nalog.JavniToken}}/prihvati" class="dugme-prihvati" style="flex:1;">Prihvatam predlog</button>
-                    <button type="submit" formaction="/status/{{.Nalog.JavniToken}}/odbij" class="dugme-odbij" style="flex:1;">Ne prihvatam</button>
-                </div>
+            <textarea name="komentar" placeholder="Poruka serviseru (opciono)..." rows="2"
+                style="width:100%;padding:10px 12px;border:0.5px solid #334155;border-radius:8px;background:#0f172a;color:#e2e8f0;font-size:13px;font-family:inherit;resize:vertical;margin:14px 0 10px;box-sizing:border-box;"></textarea>
+            <button type="submit" class="dugme-prihvati" style="width:100%;">Potvrdi odabrano</button>
             </form>
         </div>
         {{end}}

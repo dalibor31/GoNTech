@@ -1347,6 +1347,7 @@ func (h *Handler) StampaRadnogNaloga(w http.ResponseWriter, r *http.Request) {
 // PodaciOtpremnice su podaci za otpremnicu pri preuzimanju uređaja
 type PodaciOtpremnice struct {
 	Nalog          model.ServisniNalog
+	Radovi         []model.ServisniRad
 	ServisniDelovi []model.ServisniDeoSaArtiklom
 	UkupnoDelovi   float64
 	PreostaloSve   float64
@@ -1376,6 +1377,12 @@ func (h *Handler) StampaOtpremnice(w http.ResponseWriter, r *http.Request) {
 	nalog, err := h.ServisRepo.DohvatiID(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Nalog nije pronađen", http.StatusNotFound)
+		return
+	}
+
+	radovi, err := h.ServisniRadoviRepo.DohvatiZaNalog(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju radova", http.StatusInternalServerError)
 		return
 	}
 
@@ -1452,6 +1459,7 @@ func (h *Handler) StampaOtpremnice(w http.ResponseWriter, r *http.Request) {
 
 	h.renderujStandalone(w, "servis_otpremnica", PodaciOtpremnice{
 		Nalog:          *nalog,
+		Radovi:         radovi,
 		ServisniDelovi: delovi,
 		UkupnoDelovi:   ukupnoDelovi,
 		PreostaloSve:   preostaloSve,
@@ -2357,6 +2365,109 @@ func (h *Handler) ServisJavniPrihvati(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/status/"+token, http.StatusSeeOther)
+}
+
+// ServisJavniOdlukaOdabrano obrađuje selektivno odobrenje predloga sa javne status stranice.
+// Klijent čekira pojedinačne stavke; prihvaćene idu u ugrađene, ostale se brišu.
+func (h *Handler) ServisJavniOdlukaOdabrano(w http.ResponseWriter, r *http.Request) {
+	token := chi.URLParam(r, "token")
+	if token == "" {
+		http.NotFound(w, r)
+		return
+	}
+
+	nalog, err := h.ServisRepo.DohvatiJavniToken(r.Context(), token)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	if nalog.Status == model.StatusPreuzeto {
+		http.NotFound(w, r)
+		return
+	}
+
+	if nalog.OdlukaKlijenta != "" {
+		http.Redirect(w, r, "/status/"+token, http.StatusSeeOther)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Neispravan zahtev.", http.StatusBadRequest)
+		return
+	}
+
+	radIDs := parsInt64s(r.Form["rad_id"])
+	artikalIDs := parsInt64s(r.Form["artikal_id"])
+
+	if err := h.ServisniRadoviRepo.PrihvatiOdabrane(r.Context(), nalog.ID, radIDs); err != nil {
+		slog.Error("greška pri selektivnom prihvatanju radova", "error", err, "nalog_id", nalog.ID)
+		http.Error(w, "Greška pri obradi predloga.", http.StatusInternalServerError)
+		return
+	}
+	if err := h.ServisniDeloviRepo.PrihvatiOdabranePoArtiklu(r.Context(), nalog.ID, artikalIDs); err != nil {
+		slog.Error("greška pri selektivnom prihvatanju delova", "error", err, "nalog_id", nalog.ID)
+		http.Error(w, "Greška pri obradi predloga.", http.StatusInternalServerError)
+		return
+	}
+
+	komentar := strings.TrimSpace(r.FormValue("komentar"))
+	odluka := "prihvaceno"
+	if len(radIDs) == 0 && len(artikalIDs) == 0 {
+		odluka = "odbijeno"
+	}
+	if err := h.ServisRepo.SacuvajOdlukuKlijenta(r.Context(), nalog.ID, odluka, komentar); err != nil {
+		slog.Error("greška pri čuvanju odluke klijenta", "error", err, "nalog_id", nalog.ID)
+	}
+
+	http.Redirect(w, r, "/status/"+token, http.StatusSeeOther)
+}
+
+// PrihvatiOdabraniPredlog je interni handler za selektivno prihvatanje predloga
+// (serviser štiklira stavke u detaljima naloga i klika "Prihvati odabrano").
+func (h *Handler) PrihvatiOdabraniPredlog(w http.ResponseWriter, r *http.Request) {
+	_, ok := h.zahtevajDozvolu(w, r, "servis.izmeni")
+	if !ok {
+		return
+	}
+
+	nalogID, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Neispravan zahtev.", http.StatusBadRequest)
+		return
+	}
+
+	radIDs := parsInt64s(r.Form["rad_id"])
+	artikalIDs := parsInt64s(r.Form["artikal_id"])
+
+	if err := h.ServisniRadoviRepo.PrihvatiOdabrane(r.Context(), nalogID, radIDs); err != nil {
+		slog.Error("greška pri selektivnom prihvatanju radova", "error", err, "nalog_id", nalogID)
+		http.Error(w, "Greška pri obradi predloga.", http.StatusInternalServerError)
+		return
+	}
+	if err := h.ServisniDeloviRepo.PrihvatiOdabranePoArtiklu(r.Context(), nalogID, artikalIDs); err != nil {
+		slog.Error("greška pri selektivnom prihvatanju delova", "error", err, "nalog_id", nalogID)
+		http.Error(w, "Greška pri obradi predloga.", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/servis/"+strconv.FormatInt(nalogID, 10), http.StatusSeeOther)
+}
+
+// parsInt64s konvertuje listu string vrednosti u []int64, preskačući neispravne.
+func parsInt64s(vals []string) []int64 {
+	result := make([]int64, 0, len(vals))
+	for _, v := range vals {
+		if id, err := strconv.ParseInt(v, 10, 64); err == nil && id > 0 {
+			result = append(result, id)
+		}
+	}
+	return result
 }
 
 // ObrisiKomentarKlijenta briše poruku klijenta sa naloga

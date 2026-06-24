@@ -315,6 +315,74 @@ func (r *ServisniDeloviRepo) ObrisiPredlozene(ctx context.Context, nalogID int64
 	return nil
 }
 
+// PrihvatiOdabranePoArtiklu prihvata selektivno predložene delove: artikalIDs su prihvaćeni
+// (idu kroz normalnu ugradnju/lager), svi ostali predlozeni se brišu bez povraćaja lagera.
+func (r *ServisniDeloviRepo) PrihvatiOdabranePoArtiklu(ctx context.Context, nalogID int64, artikalIDs []int64) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("ntech: ServisniDeloviRepo.PrihvatiOdabranePoArtiklu: begin tx: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Dohvati sve predložene potraživane
+	redovi, err := tx.QueryContext(ctx,
+		"SELECT id, artikal_id, kolicina, cena_komada FROM servisni_potrazivani_delovi WHERE nalog_id = ? AND predlozeno = 1",
+		nalogID,
+	)
+	if err != nil {
+		return fmt.Errorf("ntech: ServisniDeloviRepo.PrihvatiOdabranePoArtiklu: dohvati: %w", err)
+	}
+	type stavka struct {
+		id        int64
+		artikalID int64
+		kolicina  int
+		cena      float64
+	}
+	var sve []stavka
+	for redovi.Next() {
+		var s stavka
+		if err := redovi.Scan(&s.id, &s.artikalID, &s.kolicina, &s.cena); err != nil {
+			redovi.Close()
+			return fmt.Errorf("ntech: ServisniDeloviRepo.PrihvatiOdabranePoArtiklu: scan: %w", err)
+		}
+		sve = append(sve, s)
+	}
+	redovi.Close()
+	if err := redovi.Err(); err != nil {
+		return fmt.Errorf("ntech: ServisniDeloviRepo.PrihvatiOdabranePoArtiklu: rows: %w", err)
+	}
+
+	prihvaceni := make(map[int64]bool, len(artikalIDs))
+	for _, id := range artikalIDs {
+		prihvaceni[id] = true
+	}
+
+	for _, s := range sve {
+		if prihvaceni[s.artikalID] {
+			if _, _, err := ugradiIliPotrazujTx(ctx, tx, nalogID, s.artikalID, s.kolicina, s.cena, nil, false); err != nil {
+				return fmt.Errorf("ntech: ServisniDeloviRepo.PrihvatiOdabranePoArtiklu: ugradi: %w", err)
+			}
+		}
+	}
+
+	// Briši sve predlozene potraživane (prihvaćeni su prebačeni, odbijeni se odbacuju)
+	if _, err := tx.ExecContext(ctx,
+		"DELETE FROM servisni_potrazivani_delovi WHERE nalog_id = ? AND predlozeno = 1", nalogID,
+	); err != nil {
+		return fmt.Errorf("ntech: ServisniDeloviRepo.PrihvatiOdabranePoArtiklu: obrisi: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx,
+		"DELETE FROM servisni_delovi WHERE nalog_id = ? AND predlozeno = 1", nalogID,
+	); err != nil {
+		return fmt.Errorf("ntech: ServisniDeloviRepo.PrihvatiOdabranePoArtiklu: obrisi delove: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("ntech: ServisniDeloviRepo.PrihvatiOdabranePoArtiklu: commit: %w", err)
+	}
+	return nil
+}
+
 // DohvatiArtikalID vraća artikal_id za dati servisni deo (pre brisanja)
 func (r *ServisniDeloviRepo) DohvatiArtikalID(ctx context.Context, deoID int64) (int64, error) {
 	var artikalID int64

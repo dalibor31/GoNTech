@@ -241,6 +241,7 @@ func main() {
 	r.Get("/status/{token}", h.ServisJavniStatus)
 	r.Post("/status/{token}/prihvati", h.ServisJavniPrihvati)
 	r.Post("/status/{token}/odbij", h.ServisJavniOdbij)
+	r.Post("/status/{token}/odluka-odabrano", h.ServisJavniOdlukaOdabrano)
 
 	// zaštićene rute — zahtevaju prijavljenog korisnika
 	r.Group(func(r chi.Router) {
@@ -375,6 +376,7 @@ func main() {
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/uradjeno", h.SacuvajUradjeno)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/cena-dijagnostike", h.AzurirajCenaDijagnostike)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/odbij-popravku", h.OdbijPopravku)
+		r.With(doz("servis.izmeni")).Post("/servis/{id}/prihvati-odabrano", h.PrihvatiOdabraniPredlog)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/obrisi-komentar-klijenta", h.ObrisiKomentarKlijenta)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/delovi", h.DodajDeloNalogu)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/delovi/{deo_id}/obrisi", h.ObrisiDeloNaloga)

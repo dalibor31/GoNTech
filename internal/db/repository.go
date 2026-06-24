@@ -232,6 +232,9 @@ type ServisniDeloviRepository interface {
 	PrihvatiPredlozene(ctx context.Context, nalogID int64) error
 	// ObrisiPredlozene briše sve predložene delove sa naloga (klijent odbio predlog)
 	ObrisiPredlozene(ctx context.Context, nalogID int64) error
+	// PrihvatiOdabranePoArtiklu selektivno prihvata predlozene delove po artikal_id;
+	// prihvaćeni idu kroz normalnu ugradnju (skidaju sa lagera), ostali se odbacuju.
+	PrihvatiOdabranePoArtiklu(ctx context.Context, nalogID int64, artikalIDs []int64) error
 }
 
 // ServisniPotrazivaniDeloviRepository definiše operacije nad delovima koji nedostaju
@@ -255,6 +258,9 @@ type ServisniRadoviRepository interface {
 	PrihvatiPredlozene(ctx context.Context, nalogID int64) error
 	// ObrisiPredlozene briše sve predložene radove sa naloga (klijent odbio predlog)
 	ObrisiPredlozene(ctx context.Context, nalogID int64) error
+	// PrihvatiOdabrane selektivno prihvata predlozene radove po ID-u;
+	// prihvaćeni dobijaju predlozeno=0, ostali predlozeni se brišu.
+	PrihvatiOdabrane(ctx context.Context, nalogID int64, ids []int64) error
 }
 
 // MagacinskePromeneRepository definiše operacije nad revizijskim tragom magacina

@@ -164,6 +164,33 @@
         <div class="polje-tekst">{{if .Nalog.OpisKvara}}{{.Nalog.OpisKvara}}{{else}}<span class="prazno">—</span>{{end}}</div>
     </div>
 
+    <!-- radovi -->
+    {{if .Radovi}}
+    <div class="odeljak">
+        <div class="odeljak-naslov">Izvršeni radovi</div>
+        <table class="tabela">
+            <thead>
+                <tr>
+                    <th>Opis rada</th>
+                    <th class="desno" style="width:70px;">Kol.</th>
+                    <th class="desno" style="width:120px;">Cena/kom</th>
+                    <th class="desno" style="width:120px;">Ukupno</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Radovi}}
+                <tr>
+                    <td>{{.Naziv}}</td>
+                    <td class="desno">{{printf "%.0f" .Kolicina}}</td>
+                    <td class="desno">{{dinari .CenaKomada}} din</td>
+                    <td class="desno">{{dinari .Ukupno}} din</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+    {{end}}
+
     <!-- ugrađeni delovi -->
     {{if .ServisniDelovi}}
     <div class="odeljak">

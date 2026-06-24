@@ -718,7 +718,43 @@
     {{end}}
     </div>{{/* kraj stavke-blok */}}
 
-
+    <!-- prihvati/odbij odabrane predlozene stavke (interna forma) -->
+    {{if and (index .Dozvole "servis.izmeni") (or .PredlozeniRadovi .PredlozeniDelovi)}}
+    <div class="kartica detalji-kartica animiraj" style="border-left:3px solid #f59e0b;">
+        <div style="margin-bottom:14px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:15px;font-weight:500;color:#f59e0b;">Predložene stavke</span>
+            <span style="font-size:12px;color:var(--tekst-sporedni);">Odštikliraj šta ne prihvataš</span>
+        </div>
+        <form method="POST" action="/servis/{{.Nalog.ID}}/prihvati-odabrano" data-refresh="#radovi-blok, #delovi-blok, #nalog-ukupno">
+            <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+            {{if .PredlozeniRadovi}}
+            <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--tekst-sporedni);margin-bottom:8px;">Radovi</div>
+            {{range .PredlozeniRadovi}}
+            <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--ivica);cursor:pointer;">
+                <span style="display:flex;align-items:center;gap:10px;flex:1;">
+                    <input type="checkbox" name="rad_id" value="{{.ID}}" checked style="width:16px;height:16px;accent-color:#f59e0b;flex-shrink:0;">
+                    <span style="font-size:13px;color:var(--tekst-glavni);">{{.Naziv}}{{if gt .Kolicina 1.0}} &times; {{printf "%.0f" .Kolicina}}{{end}}</span>
+                </span>
+                <span style="font-size:13px;font-weight:500;color:var(--tekst-glavni);white-space:nowrap;">{{dinari .Ukupno}} din</span>
+            </label>
+            {{end}}
+            {{end}}
+            {{if .PredlozeniDelovi}}
+            <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--tekst-sporedni);margin:{{if .PredlozeniRadovi}}12px{{else}}0px{{end}} 0 8px;">Delovi</div>
+            {{range .PredlozeniDelovi}}
+            <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--ivica);cursor:pointer;">
+                <span style="display:flex;align-items:center;gap:10px;flex:1;">
+                    <input type="checkbox" name="artikal_id" value="{{.ArtikalID}}" checked style="width:16px;height:16px;accent-color:#f59e0b;flex-shrink:0;">
+                    <span style="font-size:13px;color:var(--tekst-glavni);">{{.ArtikalNaziv}}{{if gt .Kolicina 1}} &times; {{.Kolicina}}{{end}}</span>
+                </span>
+                <span style="font-size:13px;font-weight:500;color:var(--tekst-glavni);white-space:nowrap;">{{if .Kolicina}}{{dinari .Ukupno}} din{{else}}—{{end}}</span>
+            </label>
+            {{end}}
+            {{end}}
+            <button type="submit" class="btn-primarno" style="width:100%;margin-top:14px;">Prihvati odabrano</button>
+        </form>
+    </div>
+    {{end}}
 
     <!-- ukupno: zbir usluga (radova) i ugrađenih delova -->
     <div id="nalog-ukupno" class="kartica detalji-kartica animiraj">

@@ -89,6 +89,54 @@ func (r *ServisniRadoviRepo) ObrisiPredlozene(ctx context.Context, nalogID int64
 	return nil
 }
 
+// PrihvatiOdabrane prihvata selektivno predložene radove: ids su prihvaćeni (predlozeno→0),
+// ostali predlozeni se brišu.
+func (r *ServisniRadoviRepo) PrihvatiOdabrane(ctx context.Context, nalogID int64, ids []int64) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("ntech: ServisniRadoviRepo.PrihvatiOdabrane: begin tx: %w", err)
+	}
+	defer tx.Rollback()
+
+	prihvaceni := make(map[int64]bool, len(ids))
+	for _, id := range ids {
+		prihvaceni[id] = true
+	}
+
+	// Dohvati sve predlozene radove
+	redovi, err := tx.QueryContext(ctx, "SELECT id FROM servis_radovi WHERE nalog_id = ? AND predlozeno = 1", nalogID)
+	if err != nil {
+		return fmt.Errorf("ntech: ServisniRadoviRepo.PrihvatiOdabrane: dohvati: %w", err)
+	}
+	var sviIDs []int64
+	for redovi.Next() {
+		var id int64
+		if err := redovi.Scan(&id); err != nil {
+			redovi.Close()
+			return fmt.Errorf("ntech: ServisniRadoviRepo.PrihvatiOdabrane: scan: %w", err)
+		}
+		sviIDs = append(sviIDs, id)
+	}
+	redovi.Close()
+
+	for _, id := range sviIDs {
+		if prihvaceni[id] {
+			if _, err := tx.ExecContext(ctx, "UPDATE servis_radovi SET predlozeno = 0 WHERE id = ?", id); err != nil {
+				return fmt.Errorf("ntech: ServisniRadoviRepo.PrihvatiOdabrane: update: %w", err)
+			}
+		} else {
+			if _, err := tx.ExecContext(ctx, "DELETE FROM servis_radovi WHERE id = ?", id); err != nil {
+				return fmt.Errorf("ntech: ServisniRadoviRepo.PrihvatiOdabrane: delete: %w", err)
+			}
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("ntech: ServisniRadoviRepo.PrihvatiOdabrane: commit: %w", err)
+	}
+	return nil
+}
+
 // Obrisi uklanja jednu stavku rada sa naloga
 func (r *ServisniRadoviRepo) Obrisi(ctx context.Context, id int64) error {
 	if _, err := r.db.ExecContext(ctx, "DELETE FROM servis_radovi WHERE id = ?", id); err != nil {

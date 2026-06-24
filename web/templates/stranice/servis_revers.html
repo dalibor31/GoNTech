@@ -54,14 +54,18 @@
         /* napomena na dnu */
         .dno-info { margin-top: 20px; font-size: 11px; color: #888; text-align: center; }
 
+        @page { size: A4; margin: 12mm 14mm 18mm; }
         @media print {
             body { font-size: 12px; }
             .strana { padding: 16px 20px; max-width: 100%; }
             .dugme-stampa { display: none !important; }
-            @page { size: A4; margin: 12mm 14mm; }
             /* uslovi servisa (sa potpisima) idu na novu stranicu */
             .uslovi-strana { break-before: page; }
+            .stampa-broj-strane { display: block; text-align: center; font-size: 9px; color: #888; margin-top: 16px; }
+            .stampa-samo-ekran { display: none !important; }
         }
+        .stampa-broj-strane { display: none; }
+        .stampa-samo-ekran { display: block; }
         .dugme-stampa { position: fixed; bottom: 24px; right: 24px; background: #111; color: #fff; border: none; padding: 12px 22px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
         .dugme-stampa:hover { background: #333; }
     </style>
@@ -201,6 +205,80 @@
 </div>
 
 <button class="dugme-stampa" onclick="window.print()">Štampaj</button>
+
+<script>
+// Brojevi strana pri štampi — radi u svim browser-ima
+(function() {
+    const sadrzaj = document.querySelector('.strana');
+    if (!sadrzaj) return;
+
+    let originalniHTML = '';
+    // Visina štampane strane (A4 - margine) u px
+    const VISINA_STRANE_PX = (297 - 12 - 18) * 96 / 25.4;
+
+    function izmeriVisinu(el) {
+        const test = el.cloneNode(true);
+        test.style.cssText = 'position:absolute;visibility:hidden;width:' + sadrzaj.offsetWidth + 'px;max-width:none;';
+        document.body.appendChild(test);
+        const h = test.scrollHeight;
+        document.body.removeChild(test);
+        return h;
+    }
+
+    window.addEventListener('beforeprint', function() {
+        if (originalniHTML) return;
+        originalniHTML = sadrzaj.innerHTML;
+
+        const ukupnaVisina = izmeriVisinu(sadrzaj);
+        const brStrana = Math.max(1, Math.ceil(ukupnaVisina / VISINA_STRANE_PX));
+        if (brStrana <= 1) return;
+
+        const deca = Array.from(sadrzaj.children);
+        sadrzaj.innerHTML = '';
+
+        let stranaBr = 1;
+        let visinaTrenutne = 0;
+        let stranaDiv = napraviStranu(stranaBr, brStrana);
+        sadrzaj.appendChild(stranaDiv);
+
+        for (const el of deca) {
+            const h = izmeriVisinu(el);
+            if (visinaTrenutne + h > VISINA_STRANE_PX && visinaTrenutne > 200) {
+                dodajBrojac(stranaDiv, stranaBr, brStrana);
+                stranaBr++;
+                stranaDiv = napraviStranu(stranaBr, brStrana);
+                sadrzaj.appendChild(stranaDiv);
+                visinaTrenutne = 0;
+            }
+            stranaDiv.appendChild(el.cloneNode(true));
+            visinaTrenutne += h;
+        }
+        dodajBrojac(stranaDiv, stranaBr, brStrana);
+    });
+
+    function napraviStranu(br, ukupno) {
+        const d = document.createElement('div');
+        d.className = 'stampa-stranica';
+        d.style.cssText = 'min-height:' + (VISINA_STRANE_PX - 30) + 'px;';
+        if (br < ukupno) d.style.pageBreakAfter = 'always';
+        return d;
+    }
+
+    function dodajBrojac(stranaDiv, br, ukupno) {
+        const brojac = document.createElement('div');
+        brojac.className = 'stampa-broj-strane';
+        brojac.textContent = br + ' / ' + ukupno;
+        stranaDiv.appendChild(brojac);
+    }
+
+    window.addEventListener('afterprint', function() {
+        if (originalniHTML) {
+            sadrzaj.innerHTML = originalniHTML;
+            originalniHTML = '';
+        }
+    });
+})();
+</script>
 
 </body>
 </html>
