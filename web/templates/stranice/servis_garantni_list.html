@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Garantni list — {{.Nalog.BrojNaloga}}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 13px; color: #111; background: #fff; }
+
+        .strana { max-width: 780px; margin: 0 auto; padding: 32px 40px; }
+
+        /* zaglavlje: tri okvira (firma · klijent · dokument) */
+        .zaglavlje { display: flex; align-items: stretch; margin-bottom: 20px; gap: 12px; }
+        .zg-okvir { flex: 1; padding: 12px 14px; border: 1.5px solid #bbb; border-radius: 12px; }
+        .firma-naziv { font-size: 18px; font-weight: 700; }
+        .firma-info { font-size: 11px; color: #555; margin-top: 4px; line-height: 1.7; }
+        .dok-tip { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #555; margin-bottom: 4px; }
+        .dok-broj { font-size: 18px; font-weight: 700; font-family: monospace; }
+        .dok-datum { font-size: 12px; color: #555; margin-top: 4px; }
+
+        /* blok garancije */
+        .garancija-blok { padding: 14px 18px; border: 2px solid #16a34a; border-radius: 10px; background: #f0fdf4; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+        .garancija-tekst { font-size: 13px; color: #15803d; font-weight: 500; }
+        .garancija-datum { font-size: 22px; font-weight: 800; color: #15803d; white-space: nowrap; }
+        .garancija-trajanje { font-size: 12px; color: #166534; margin-top: 3px; }
+
+        /* odeljci */
+        .odeljak { margin-bottom: 18px; }
+        .odeljak-naslov { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: #555; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 0.5px solid #ccc; }
+
+        /* podaci */
+        .podaci-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .polje-labela { font-size: 10px; color: #777; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px; }
+        .polje-vrednost { font-size: 13px; font-weight: 500; }
+        .polje-vrednost-mono { font-family: monospace; font-size: 13px; font-weight: 500; }
+        .polje-tekst { font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
+        .prazno { color: #aaa; font-style: italic; }
+
+        /* tabela stavki */
+        .tabela { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; }
+        .tabela th { text-align: left; padding: 6px 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #666; border-bottom: 1px solid #ddd; font-weight: 600; }
+        .tabela td { padding: 6px 8px; border-bottom: 0.5px solid #eee; vertical-align: top; }
+        .tabela td:last-child { text-align: right; white-space: nowrap; }
+        .tabela th:last-child { text-align: right; }
+        .prazna-poruka { font-size: 12px; color: #aaa; font-style: italic; padding: 8px 0; }
+
+        /* uslovi */
+        .uslovi-blok { font-size: 11px; color: #444; line-height: 1.7; white-space: pre-wrap; }
+
+        /* potpisi */
+        .potpisi { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 36px; padding-top: 16px; border-top: 0.5px solid #ccc; }
+        .potpis-linija { border-top: 1px solid #888; margin-top: 44px; padding-top: 6px; font-size: 11px; color: #555; text-align: center; }
+
+        .dno-info { margin-top: 20px; font-size: 11px; color: #888; text-align: center; }
+
+        @media print {
+            body { font-size: 12px; }
+            .strana { padding: 16px 20px; max-width: 100%; }
+            .dugme-stampa { display: none !important; }
+            @page { size: A4; margin: 12mm 14mm; }
+        }
+        .dugme-stampa { position: fixed; bottom: 24px; right: 24px; background: #111; color: #fff; border: none; padding: 12px 22px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .dugme-stampa:hover { background: #333; }
+    </style>
+</head>
+<body>
+<div class="strana">
+
+    <!-- zaglavlje -->
+    <div class="zaglavlje">
+        <!-- LEVO: firma -->
+        <div class="zg-okvir">
+            {{if .LogoPutanja}}
+            <img src="{{.LogoPutanja}}" alt="Logo" style="max-height:54px;max-width:100%;object-fit:contain;display:block;margin-bottom:8px;">
+            {{else}}
+            <div class="firma-naziv">{{if .NazivFirme}}{{.NazivFirme}}{{else}}— naziv firme —{{end}}</div>
+            {{end}}
+            <div class="firma-info">
+                {{if .Podnazlov}}{{.Podnazlov}}<br>{{end}}
+                {{if .Adresa}}{{.Adresa}}<br>{{end}}
+                {{if .Telefon}}Tel: {{telefon .Telefon}}<br>{{end}}
+                {{if .PIB}}PIB: {{.PIB}}{{end}}{{if .MaticniBroj}}{{if .PIB}} &middot; {{end}}MB: {{.MaticniBroj}}{{end}}
+            </div>
+        </div>
+        <!-- SREDINA: barkod + dokument -->
+        <div class="zg-okvir" style="flex:1.3;">
+            {{if .Barkod}}<img src="data:image/png;base64,{{.Barkod}}" alt="Barkod {{.Nalog.BrojNaloga}}" style="display:block;width:100%;max-height:46px;object-fit:contain;margin-bottom:10px;">{{end}}
+            <div class="dok-tip">Garantni list</div>
+            <div class="dok-broj">{{.Nalog.BrojNaloga}}</div>
+            {{if .Nalog.DatumZavrsetka}}
+            <div class="dok-datum">Datum završetka: {{.Nalog.DatumZavrsetka.Format "02.01.2006."}}</div>
+            {{end}}
+            {{if .TehnicarNaziv}}
+            <div class="dok-datum">Serviser: {{.TehnicarNaziv}}</div>
+            {{end}}
+        </div>
+        <!-- DESNO: klijent -->
+        <div class="zg-okvir">
+            <div class="polje-labela">Klijent</div>
+            {{if .KlijentNaziv}}
+            <div class="polje-vrednost" style="font-size:14px;font-weight:600;margin-top:2px;">{{.KlijentNaziv}}</div>
+            <div style="font-size:12px;color:#555;margin-top:4px;line-height:1.6;">
+                {{if .Klijent}}
+                    {{if .Klijent.Telefon}}Tel: {{telefon .Klijent.Telefon}}<br>{{end}}
+                    {{if .Klijent.Email}}{{.Klijent.Email}}<br>{{end}}
+                    {{if .Klijent.Mesto}}{{.Klijent.Mesto}}{{end}}
+                {{end}}
+            </div>
+            {{else}}
+            <div class="prazno" style="margin-top:4px;">— klijent nije naveden —</div>
+            {{end}}
+        </div>
+    </div>
+
+    <!-- blok garancije -->
+    <div class="garancija-blok">
+        <div>
+            <div class="garancija-tekst">Garancija na izvršeni servis</div>
+            <div class="garancija-trajanje">Trajanje: {{.GarancijaTekst}}</div>
+        </div>
+        <div style="text-align:right;">
+            <div class="garancija-tekst">Važi do:</div>
+            <div class="garancija-datum">{{.GarancijaDo.Format "02.01.2006."}}</div>
+        </div>
+    </div>
+
+    <!-- uređaj -->
+    <div class="odeljak">
+        <div class="odeljak-naslov">Uređaj</div>
+        <div class="podaci-grid">
+            <div>
+                <div class="polje-labela">Naziv uređaja</div>
+                <div class="polje-vrednost">{{if .Nalog.Uredjaj}}{{.Nalog.Uredjaj}}{{else}}<span class="prazno">—</span>{{end}}</div>
+            </div>
+            <div>
+                <div class="polje-labela">Serijski broj</div>
+                <div class="polje-vrednost-mono">{{if .Nalog.SerijskiBroj}}{{.Nalog.SerijskiBroj}}{{else}}<span class="prazno">—</span>{{end}}</div>
+            </div>
+            <div>
+                <div class="polje-labela">Datum prijema</div>
+                <div class="polje-vrednost">{{.Nalog.DatumPrijema.Format "02.01.2006."}}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- urađeni radovi -->
+    <div class="odeljak">
+        <div class="odeljak-naslov">Urađeni radovi</div>
+        {{if .Radovi}}
+        <table class="tabela">
+            <thead>
+                <tr>
+                    <th>Opis rada</th>
+                    <th>Kol.</th>
+                    <th>Cena</th>
+                    <th>Ukupno</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Radovi}}
+                <tr>
+                    <td>{{.Naziv}}</td>
+                    <td style="text-align:right;">{{printf "%.0f" .Kolicina}}</td>
+                    <td style="text-align:right;">{{dinari .CenaKomada}}</td>
+                    <td>{{dinari .Ukupno}}</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+        {{else}}
+        <div class="prazna-poruka">Nisu evidentirani posebni radovi.</div>
+        {{end}}
+    </div>
+
+    <!-- zamenjeni delovi -->
+    <div class="odeljak">
+        <div class="odeljak-naslov">Zamenjeni delovi / materijal</div>
+        {{if .ServisniDelovi}}
+        <table class="tabela">
+            <thead>
+                <tr>
+                    <th>Naziv</th>
+                    <th>Šifra</th>
+                    <th>Kol.</th>
+                    <th>Cena</th>
+                    <th>Ukupno</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .ServisniDelovi}}
+                {{if not .Predlozeno}}
+                <tr>
+                    <td>{{.ArtikalNaziv}}</td>
+                    <td style="font-family:monospace;">{{.ArtikalSifra}}</td>
+                    <td style="text-align:right;">{{.Kolicina}}</td>
+                    <td style="text-align:right;">{{dinari .CenaKomada}}</td>
+                    <td>{{dinari .Ukupno}}</td>
+                </tr>
+                {{end}}
+                {{end}}
+            </tbody>
+        </table>
+        {{else}}
+        <div class="prazna-poruka">Nisu evidentirani zamenjeni delovi.</div>
+        {{end}}
+    </div>
+
+    <!-- napomena -->
+    {{if .Nalog.NapomenaKlijentu}}
+    <div class="odeljak">
+        <div class="odeljak-naslov">Napomena</div>
+        <div class="polje-tekst">{{.Nalog.NapomenaKlijentu}}</div>
+    </div>
+    {{end}}
+
+    <!-- uslovi garancije -->
+    {{if .Uslovi}}
+    <div class="odeljak">
+        <div class="odeljak-naslov">Uslovi garancije</div>
+        <div class="uslovi-blok">{{.Uslovi}}</div>
+    </div>
+    {{end}}
+
+    <!-- potpisi -->
+    <div class="potpisi">
+        <div>
+            <div class="potpis-linija">Preuzeo (klijent)</div>
+        </div>
+        <div>
+            <div class="potpis-linija">Predao (servis)</div>
+        </div>
+    </div>
+
+    <div class="dno-info">Garantni list važi uz predočenje ovog dokumenta i originalnog reversa.</div>
+
+</div>
+<button class="dugme-stampa" onclick="window.print()">Štampaj</button>
+</body>
+</html>

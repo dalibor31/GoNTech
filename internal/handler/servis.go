@@ -1438,6 +1438,18 @@ func (h *Handler) StampaOtpremnice(w http.ResponseWriter, r *http.Request) {
 		qrKodOtpr = base64.StdEncoding.EncodeToString(png)
 	}
 
+	// GarancijaDo se računa od završetka, ne od prijema
+	if nalog.GarancijaDana == nil || *nalog.GarancijaDana <= 0 {
+		nalog.GarancijaDo = nil
+	} else {
+		baza := time.Now()
+		if nalog.DatumZavrsetka != nil {
+			baza = *nalog.DatumZavrsetka
+		}
+		t := baza.AddDate(0, 0, *nalog.GarancijaDana)
+		nalog.GarancijaDo = &t
+	}
+
 	h.renderujStandalone(w, "servis_otpremnica", PodaciOtpremnice{
 		Nalog:          *nalog,
 		ServisniDelovi: delovi,
@@ -1448,6 +1460,113 @@ func (h *Handler) StampaOtpremnice(w http.ResponseWriter, r *http.Request) {
 		Klijent:        klijent,
 		KlijentNaziv:   klijentNaziv,
 		TehnicarNaziv:  tehnicarNaziv,
+		NazivFirme:     podesavanja["naziv_firme"],
+		LogoPutanja:    logoZaDokument(podesavanja),
+		Podnazlov:      podesavanja["podnazlov"],
+		Adresa:         podesavanja["adresa"],
+		Telefon:        podesavanja["telefon"],
+		PIB:            podesavanja["pib"],
+		MaticniBroj:    podesavanja["maticni_broj"],
+		Barkod:         barkodNaloga(nalog.BrojNaloga),
+	})
+}
+
+// PodaciGarantnog su podaci za garantni list koji se predaje klijentu pri preuzimanju.
+type PodaciGarantnog struct {
+	Nalog          model.ServisniNalog
+	GarancijaDo    *time.Time // izračunato od DatumZavrsetka + GarancijaDana
+	GarancijaTekst string     // npr. "60 dana"
+	Radovi         []model.ServisniRad
+	ServisniDelovi []model.ServisniDeoSaArtiklom
+	Klijent        *model.Klijent
+	KlijentNaziv   string
+	TehnicarNaziv  string
+	Uslovi         string
+	NazivFirme     string
+	LogoPutanja    string
+	Podnazlov      string
+	Adresa         string
+	Telefon        string
+	PIB            string
+	MaticniBroj    string
+	Barkod         string
+}
+
+// StampaGarantnog renderuje garantni list (dostupno od statusa Završeno, samo ako ima garancija)
+func (h *Handler) StampaGarantnog(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+
+	nalog, err := h.ServisRepo.DohvatiID(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Nalog nije pronađen", http.StatusNotFound)
+		return
+	}
+
+	if nalog.GarancijaDana == nil || *nalog.GarancijaDana <= 0 {
+		http.Error(w, "Nalog nema definisanu garanciju", http.StatusBadRequest)
+		return
+	}
+
+	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
+		return
+	}
+
+	radovi, err := h.ServisniRadoviRepo.DohvatiZaNalog(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju radova", http.StatusInternalServerError)
+		return
+	}
+
+	delovi, err := h.deloviSaPotrazivanima(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju delova", http.StatusInternalServerError)
+		return
+	}
+
+	var klijent *model.Klijent
+	klijentNaziv := ""
+	if nalog.KlijentID != nil {
+		k, err := h.KlijentiRepo.DohvatiID(r.Context(), *nalog.KlijentID)
+		if err == nil {
+			klijent = k
+			if k.NazivFirme != "" {
+				klijentNaziv = k.NazivFirme
+			} else {
+				klijentNaziv = strings.TrimSpace(k.Ime + " " + k.Prezime)
+			}
+		}
+	}
+
+	tehnicarNaziv := ""
+	if nalog.TehnicarID != nil {
+		tehnicar, err := h.KorisniciRepo.DohvatiPoID(r.Context(), *nalog.TehnicarID)
+		if err == nil {
+			tehnicarNaziv = tehnicar.KorisnickoIme
+		}
+	}
+
+	baza := time.Now()
+	if nalog.DatumZavrsetka != nil {
+		baza = *nalog.DatumZavrsetka
+	}
+	garanDo := baza.AddDate(0, 0, *nalog.GarancijaDana)
+
+	h.renderujStandalone(w, "servis_garantni_list", PodaciGarantnog{
+		Nalog:          *nalog,
+		GarancijaDo:    &garanDo,
+		GarancijaTekst: garancijaUTekst(*nalog.GarancijaDana),
+		Radovi:         radovi,
+		ServisniDelovi: delovi,
+		Klijent:        klijent,
+		KlijentNaziv:   klijentNaziv,
+		TehnicarNaziv:  tehnicarNaziv,
+		Uslovi:         vrednostIliDefault(podesavanja, "servis_uslovi", podrazumevaniUsloviServisa),
 		NazivFirme:     podesavanja["naziv_firme"],
 		LogoPutanja:    logoZaDokument(podesavanja),
 		Podnazlov:      podesavanja["podnazlov"],

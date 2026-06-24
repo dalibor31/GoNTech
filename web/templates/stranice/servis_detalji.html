@@ -149,6 +149,11 @@
                 <a href="/servis/{{.Nalog.ID}}/otpremnica" target="_blank" class="btn-sekundarno">
                     Otpremnica
                 </a>
+                {{if not .BezGarancije}}
+                <a href="/servis/{{.Nalog.ID}}/garantni-list" target="_blank" class="btn-sekundarno">
+                    Garantni list
+                </a>
+                {{end}}
                 {{end}}
                 {{/* Nalepnica je primarna pri prijemu (lepi se na uređaj); reprint dok traje; ne u „Završeno" */}}
                 {{if eq .Nalog.Status "Primljeno"}}
