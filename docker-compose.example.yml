@@ -14,15 +14,20 @@ services:
       - ./uploads:/app/web/static/uploads
       - ./logs:/var/log/ntech
       - ./backups:/app/backups
+    networks:
+      - ntech-net
 
   teron-mock:
     image: ghcr.io/dalibor31/ntech-fisk:latest
     container_name: teron_mock
     restart: unless-stopped
-    ports:
-      - 4566:4566
     volumes:
       - teron-data:/app/data
+    networks:
+      - ntech-net
 
 volumes:
   teron-data:
+
+networks:
+  ntech-net:
