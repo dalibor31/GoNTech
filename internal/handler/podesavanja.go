@@ -912,12 +912,15 @@ func (h *Handler) TestFiskalizacije(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.zahtevajDozvolu(w, r, "podesavanja.pregled"); !ok {
 		return
 	}
-	podesavanja, err := ntechsqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
-	if err != nil {
-		http.Error(w, "Greška", http.StatusInternalServerError)
-		return
+	pfrURL := strings.TrimSpace(r.FormValue("pfr_url"))
+	if pfrURL == "" {
+		podesavanja, err := ntechsqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+		if err != nil {
+			http.Error(w, "Greška", http.StatusInternalServerError)
+			return
+		}
+		pfrURL = vrednostIliDefault(podesavanja, "pfr_url", "http://127.0.0.1:4566")
 	}
-	pfrURL := vrednostIliDefault(podesavanja, "pfr_url", "http://127.0.0.1:4566")
 
 	klijent := &http.Client{Timeout: 5 * time.Second}
 	resp, err := klijent.Get(pfrURL + "/api/status")
