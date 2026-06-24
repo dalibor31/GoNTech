@@ -18,6 +18,33 @@ VERZIJA="${VERZIJA:-$VERZIJA_DEFAULT}"
 if [ "$VERZIJA" != "$VERZIJA_DEFAULT" ]; then
     echo "$VERZIJA" > "$VER_FAJL"
     echo "   → VERSION ažuriran na: $VERZIJA"
+
+    # Git tag + GitHub release
+    TAG="v${VERZIJA}"
+    if git rev-parse "$TAG" >/dev/null 2>&1; then
+        echo "   ⚠️  Tag $TAG već postoji — preskačem"
+    else
+        read -p "   Napraviti git tag $TAG + GitHub release? [D/n]: " TAG_IZBOR
+        TAG_IZBOR="${TAG_IZBOR:-d}"
+        if [[ "$TAG_IZBOR" =~ ^[dDyY] ]]; then
+            git tag -a "$TAG" -m "Release $TAG"
+            git push origin "$TAG"
+            echo "   → Tag $TAG push-ovan"
+            GITEA_REPO="dasko/ntech"
+            if command -v gh &>/dev/null && gh auth status &>/dev/null 2>&1; then
+                gh release create "$TAG" --generate-notes
+                echo "   → GitHub release napravljen sa changelog-om"
+            else
+                echo "   ⚠️  GitHub CLI (gh) nije dostupan — GitHub release nije napravljen"
+            fi
+            if command -v tea &>/dev/null && tea login status 2>/dev/null | grep -q "Logged in"; then
+                tea release create --repo "$GITEA_REPO" --tag "$TAG" --title "$TAG" --note "Release $TAG" --draft
+                echo "   → Gitea release draft napravljen (proveri u Web UI)"
+            else
+                echo "   ⚠️  Gitea CLI (tea) nije dostupan/ulogovan — Gitea release nije napravljen"
+            fi
+        fi
+    fi
 fi
 echo ""
 
@@ -148,11 +175,16 @@ if [[ "$BUILD_IZBOR" =~ ^[dDyY] ]]; then
             build_za "windows" "ntech.exe"
             ;;
         3)
-            build_za "linux"   "ntech"     &
-            PID_LINUX=$!
-            build_za "windows" "ntech.exe" &
-            PID_WIN=$!
-            wait $PID_LINUX $PID_WIN
+            if [[ "$UPX_IZBOR" =~ ^[dDyY] ]]; then
+                build_za "linux"   "ntech"
+                build_za "windows" "ntech.exe"
+            else
+                build_za "linux"   "ntech"     &
+                PID_LINUX=$!
+                build_za "windows" "ntech.exe" &
+                PID_WIN=$!
+                wait $PID_LINUX $PID_WIN
+            fi
             ;;
         *)
             build_za "linux" "ntech"
