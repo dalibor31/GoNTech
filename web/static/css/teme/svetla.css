@@ -1,24 +1,24 @@
 :root {
   color-scheme: light;
-  --pozadina: #e8ebe6;
-  --kartica: #f3f5f2;
-  --kartica-2: #e0e3de;
-  --pozadina-hover: #daddd8;
+  --pozadina: #dde0db;
+  --kartica: #e8ebe6;
+  --kartica-2: #d5d8d3;
+  --pozadina-hover: #ced1cc;
   --tekst-glavni: #2c2f2b;
-  --tekst-sporedni: #5c6059;
+  --tekst-sporedni: #555951;
   --tekst-jak: #1f221e;
-  --ivica: #cccfc9;
-  --ivica-jaka: #9a9d97;
+  --ivica: #c3c6c1;
+  --ivica-jaka: #8f928d;
   --sb-akcent: #2d8a6e;
   --sb-akcent-hover: #38a67a;
-  --sb-aktivan: #daddd8;
+  --sb-aktivan: #ced1cc;
   --uspeh: #1a7f37;
   --upozorenje: #9a6700;
   --greska: #cf222e;
   --info: #0969da;
   --senka: 0 4px 16px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.05);
   --senka-hover: 0 8px 28px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
-  --sidebar-pozadina: #f3f5f2;
+  --sidebar-pozadina: #e8ebe6;
   --poruka-uspeh-bg: rgba(26, 127, 55, 0.1);
   --poruka-uspeh-boja: #1a7f37;
 }
