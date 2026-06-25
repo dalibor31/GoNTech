@@ -25,7 +25,7 @@
     .cust-sel-chevron { font-size: 10px; color: var(--tekst-sporedni); flex-shrink: 0; transition: transform 0.15s; }
     .cust-sel.otvoren .cust-sel-chevron { transform: rotate(180deg); }
     .cust-sel-lista {
-        display: none; position: absolute; top: calc(100% + 3px); left: 0; right: 0; z-index: 500;
+        display: none !important; position: absolute; top: calc(100% + 3px); left: 0; right: 0; z-index: 500;
         background: var(--kartica); border: 0.5px solid var(--ivica); border-radius: 10px;
         max-height: 260px; overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,0.4);
     }
@@ -516,7 +516,7 @@
                             <span class="cust-sel-tekst cso-prazno">— odaberi uslugu —</span>
                             <span class="cust-sel-chevron">▾</span>
                         </div>
-                        <div class="cust-sel-lista" style="display:none">
+                        <div class="cust-sel-lista">
                             <div class="cso" data-val="" data-cena="0"><span class="cso-prazno">— odaberi uslugu —</span></div>
                             {{range .Usluge}}{{if not (index $.KorisceneUsluge .ID)}}<div class="cso" data-val="{{.ID}}" data-cena="{{.Cena}}"><span class="cso-naziv">{{.Naziv}}</span><span class="cso-cena">{{dinari .Cena}} din</span></div>{{end}}{{end}}
                         </div>
@@ -637,7 +637,7 @@
                             <span class="cust-sel-tekst cso-prazno">— odaberi artikal —</span>
                             <span class="cust-sel-chevron">▾</span>
                         </div>
-                        <div class="cust-sel-lista" style="display:none"></div>
+                        <div class="cust-sel-lista"></div>
                     </div>
                     <input type="hidden" name="artikal_id" id="deo-artikal">
                 </div>
@@ -931,7 +931,7 @@ function _custZatvoriSve() {
     document.querySelectorAll('.cust-sel.otvoren').forEach(function (el) {
         el.classList.remove('otvoren');
         var lista = el.querySelector('.cust-sel-lista');
-        if (lista) lista.style.display = 'none';
+        if (lista) lista.style.setProperty('display', 'none', 'important');
         var k = el.closest('.kartica');
         if (k) k.classList.remove('cust-aktivan');
     });
@@ -945,7 +945,7 @@ document.addEventListener('click', function (e) {
         if (!bio) {
             cust.classList.add('otvoren');
             var lista2 = cust.querySelector('.cust-sel-lista');
-            if (lista2) lista2.style.display = 'block';
+            if (lista2) lista2.style.setProperty('display', 'block', 'important');
             var k = cust.closest('.kartica');
             if (k) k.classList.add('cust-aktivan');
         }
@@ -975,7 +975,7 @@ document.addEventListener('click', function (e) {
         }
         cust.classList.remove('otvoren');
         var lista3 = cust.querySelector('.cust-sel-lista');
-        if (lista3) lista3.style.display = 'none';
+        if (lista3) lista3.style.setProperty('display', 'none', 'important');
         var k2 = cust.closest('.kartica');
         if (k2) k2.classList.remove('cust-aktivan');
         return;
