@@ -829,7 +829,8 @@
                 <span style="font-size:14px;color:var(--tekst-glavni);">{{dinari .Nalog.CenaDijagnostike}} din</span>
             </div>
             {{else}}
-            <!-- Radovi — listing pa subtotal -->
+            <!-- Radovi — listing pa subtotal: samo za Završeno/Preuzeto -->
+            {{if or (eq .Nalog.Status "Završeno") (eq .Nalog.Status "Preuzeto")}}
             {{if .ServisniRadovi}}
             <div>
                 <div style="font-size:13px;font-weight:600;color:var(--tekst-glavni);margin-bottom:10px;padding:7px 12px;background:rgba(128,128,128,0.20);border-radius:6px;">
@@ -849,7 +850,7 @@
                 </div>
             </div>
             {{end}}
-            <!-- Delovi — listing pa subtotal -->
+            <!-- Delovi — listing pa subtotal: samo za Završeno/Preuzeto -->
             {{if .ServisniDelovi}}
             <div style="margin-top:6px;padding-top:12px;border-top:0.5px solid var(--ivica);">
                 <div style="font-size:13px;font-weight:600;color:var(--tekst-glavni);margin-bottom:10px;padding:7px 12px;background:rgba(128,128,128,0.20);border-radius:6px;">
@@ -867,6 +868,16 @@
                     <span style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">Ukupno delovi</span>
                     <span style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .UkupnoDelovi}} din</span>
                 </div>
+            </div>
+            {{end}}
+            {{else}}
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:14px;color:var(--tekst-sporedni);">Usluge (rad)</span>
+                <span style="font-size:14px;color:var(--tekst-glavni);">{{dinari .UkupnoRadovi}} din</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:14px;color:var(--tekst-sporedni);">Ugrađeni delovi</span>
+                <span style="font-size:14px;color:var(--tekst-glavni);">{{dinari .UkupnoDelovi}} din</span>
             </div>
             {{end}}
             {{end}}
