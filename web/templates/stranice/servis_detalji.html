@@ -189,7 +189,7 @@
                     Radni nalog
                 </a>
                 {{end}}
-                {{if eq .Nalog.Status "Završeno"}}
+                {{if or (eq .Nalog.Status "Završeno") (eq .Nalog.Status "Preuzeto")}}
                 <a href="/servis/{{.Nalog.ID}}/otpremnica" target="_blank" class="btn-sekundarno">
                     Otpremnica
                 </a>
