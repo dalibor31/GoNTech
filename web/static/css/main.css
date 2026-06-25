@@ -1274,7 +1274,8 @@ select {
     align-items: flex-start;
 }
 .kanban-kolona {
-    flex: 0 0 250px;
+    flex: 1 1 0;
+    min-width: 220px;
     display: flex;
     flex-direction: column;
     gap: 10px;

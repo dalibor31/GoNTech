@@ -161,11 +161,15 @@
     <!-- opis izvršenih radova -->
     <div class="odeljak">
         <div class="odeljak-naslov">Opis izvršenih radova</div>
+        {{if .Nalog.PopravkaOdbijena}}
+        <div class="polje-tekst">Izvršena je samo dijagnostika — klijent nije prihvatio ponuđenu popravku.</div>
+        {{else}}
         <div class="polje-tekst">{{if .Nalog.OpisKvara}}{{.Nalog.OpisKvara}}{{else}}<span class="prazno">—</span>{{end}}</div>
+        {{end}}
     </div>
 
-    <!-- radovi -->
-    {{if .Radovi}}
+    <!-- radovi — samo ako nije odbijena popravka -->
+    {{if and .Radovi (not .Nalog.PopravkaOdbijena)}}
     <div class="odeljak">
         <div class="odeljak-naslov">Izvršeni radovi</div>
         <table class="tabela">
@@ -191,8 +195,8 @@
     </div>
     {{end}}
 
-    <!-- ugrađeni delovi -->
-    {{if .ServisniDelovi}}
+    <!-- ugrađeni delovi — samo ako nije odbijena popravka -->
+    {{if and .ServisniDelovi (not .Nalog.PopravkaOdbijena)}}
     <div class="odeljak">
         <div class="odeljak-naslov">Ugrađeni delovi i materijal</div>
         <table class="tabela">
@@ -223,7 +227,29 @@
     {{end}}
 
     <!-- iznos za naplatu -->
-    {{if .Nalog.CenaKonacna}}
+    {{if .Nalog.PopravkaOdbijena}}
+    <div class="odeljak">
+        <div class="odeljak-naslov">Obračun</div>
+        <table class="tabela" style="margin-bottom:10px;">
+            <tbody>
+                <tr>
+                    <td>Dijagnostika (popravka odbijena)</td>
+                    <td class="desno" style="width:160px;">{{.Nalog.CenaDijagnostikeStr}} din</td>
+                </tr>
+                {{if .ImaAvans}}
+                <tr>
+                    <td>Avans (plaćeno)</td>
+                    <td class="desno">− {{.Nalog.AvansStr}} din</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+        <div class="naplata-blok">
+            <div class="naplata-labela">Za naplatu pri preuzimanju:</div>
+            <div class="naplata-iznos">{{dinari .PreostaloSve}} din</div>
+        </div>
+    </div>
+    {{else if .Nalog.CenaKonacna}}
     <div class="odeljak">
         <div class="odeljak-naslov">Obračun</div>
         <table class="tabela" style="margin-bottom:10px;">

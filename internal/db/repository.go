@@ -367,3 +367,10 @@ type PodsetnikRepository interface {
 	Obrisi(ctx context.Context, id int64) error
 	BrojAktivnih(ctx context.Context, filter PodsetnikFilter) (int, error)
 }
+
+// FiskalRepository definiše operacije nad fiskalnim računima (Teron L-PFR).
+// Svaki prodajni nalog ima najviše jedan fiskalni račun (UNIQUE prodaja_id).
+type FiskalRepository interface {
+	Kreiraj(ctx context.Context, fr *model.FiskalniRacun) (int64, error)
+	DohvatiPoProdaji(ctx context.Context, prodajaID int64) (*model.FiskalniRacun, error)
+}

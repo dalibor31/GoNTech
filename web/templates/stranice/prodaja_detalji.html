@@ -246,6 +246,29 @@
       </div>
       {{end}}
 
+      {{if .FiskalniRacun}}
+      <div class="fiskalni-racun" style="padding-top:14px;border-top:0.5px solid var(--ivica);">
+        <h3 style="margin:0 0 8px 0;font-size:16px;">Fiskalni račun</h3>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
+          <div style="flex:1;min-width:200px;">
+            <p style="margin:0 0 4px 0;"><strong>PFR broj:</strong> {{.FiskalniRacun.PfrBroj}}</p>
+            <p style="margin:0 0 4px 0;"><strong>Vreme:</strong> {{.FiskalniRacun.PfrVreme}}</p>
+            <p style="margin:0 0 4px 0;color:var(--tekst-sekundarno);"><strong>Brojač:</strong> {{.FiskalniRacun.Brojac}}</p>
+            {{if .FiskalniRacun.UrlVerifikacija}}
+            <p style="margin:4px 0 0 0;font-size:13px;">
+              <a href="{{.FiskalniRacun.UrlVerifikacija}}" target="_blank" rel="noopener noreferrer" class="spoljni-link">Provera na PURS-u →</a>
+            </p>
+            {{end}}
+          </div>
+          {{if .FiskalniRacun.QRKod}}
+          <div>
+            <img src="data:image/png;base64,{{.FiskalniRacun.QRKod}}" alt="QR kod za proveru fiskalnog računa" style="width:25mm;height:25mm;">
+          </div>
+          {{end}}
+        </div>
+      </div>
+      {{end}}
+
       {{if index $.Dozvole "prodaja.obrisi"}}
       <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;padding-top:14px;border-top:0.5px solid var(--ivica);">
         <div style="flex:1;min-width:200px;">

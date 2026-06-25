@@ -10,8 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"ntech/internal/config"
 	appdb "ntech/internal/db"
 	"ntech/internal/db/sqlite"
+	"ntech/internal/fiskal"
 	"ntech/internal/middleware"
 	"ntech/internal/model"
 
@@ -39,10 +41,11 @@ type PodaciFormeProdaje struct {
 // PodaciDetaljiProdaje su podaci za pregled jedne prodaje sa stavkama
 type PodaciDetaljiProdaje struct {
 	model.PodaciStranice
-	Nalog        model.ProdajniNalog
-	Stavke       []model.StavkaProdajeSaArtiklom
-	KlijentNaziv string
-	Sacuvano     bool
+	Nalog         model.ProdajniNalog
+	Stavke        []model.StavkaProdajeSaArtiklom
+	KlijentNaziv  string
+	FiskalniRacun *model.FiskalniRacun // nil ako nije fiskalizovano
+	Sacuvano      bool
 }
 
 // PodaciStampeProdaje su podaci za stranicu za štampanje priznanice
@@ -213,6 +216,63 @@ func (h *Handler) SacuvajProdaju(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Fiskalizacija — ako je modul uključen (best-effort: prodaja ostaje validna i bez fiskalizacije)
+	if h.modulUkljucen(r.Context(), config.ModulFiskalizacija) {
+		klijent := h.fiskalKlijent()
+		if klijent != nil {
+			// učitaj nalog sa ID-jem (potreban za buyerId)
+			spremljen, e := h.ProdajaRepo.DohvatiID(r.Context(), id)
+			if e == nil {
+				spremljeneStavke, e2 := h.ProdajaRepo.DohvatiStavke(r.Context(), id)
+				if e2 == nil {
+					kasir, _ := sqlite.DohvatiPodesavanje(r.Context(), h.DB, "pfr_kasir")
+					if kasir == "" {
+						kasir = "NTech"
+					}
+
+					var pib, jmbg string
+					if spremljen.KlijentID != nil {
+						if kk, e3 := h.KlijentiRepo.DohvatiID(r.Context(), *spremljen.KlijentID); e3 == nil {
+							pib, jmbg = kk.PIB, kk.JMBG
+						}
+					}
+
+					zahtev := fiskal.NapraviZahtev(*spremljen, spremljeneStavke, pib, jmbg, kasir)
+
+					odgovor, errFisk := klijent.IzdajRacun(r.Context(), zahtev)
+					if errFisk != nil {
+						slog.Error("fiskalizacija nije uspela", "prodaja_id", id, "error", errFisk)
+					} else {
+						poreskeJSON, _ := json.Marshal(odgovor.TaxItems)
+						siroviJSON, _ := json.Marshal(odgovor)
+
+						fr := &model.FiskalniRacun{
+							ProdajaID:         id,
+							TipRacuna:         "Normal",
+							TipTransakcije:    "Sale",
+							PfrBroj:           odgovor.InvoiceNumber,
+							PfrVreme:          odgovor.SdcDateTime,
+							Brojac:            odgovor.InvoiceCounter,
+							EkstenzijaBrojaca: odgovor.InvoiceCounterExtension,
+							UrlVerifikacija:   odgovor.VerificationURL,
+							QRKod:             odgovor.VerificationQRCode,
+							PoreskeStavke:     string(poreskeJSON),
+							UkupnoZaNaplatu:   odgovor.TotalAmount,
+							UkupanPorez:       odgovor.TotalTax,
+							SiroviOdgovor:     string(siroviJSON),
+							Potpisao:          odgovor.SignedBy,
+							Zatrazio:          odgovor.RequestedBy,
+							Poruka:            odgovor.Messages,
+						}
+						if _, errFisk := h.FiskalRepo.Kreiraj(r.Context(), fr); errFisk != nil {
+							slog.Error("greška pri čuvanju fiskalnog računa", "prodaja_id", id, "error", errFisk)
+						}
+					}
+				}
+			}
+		}
+	}
+
 	http.Redirect(w, r, "/prodaja/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)
 }
 
@@ -254,6 +314,9 @@ func (h *Handler) DetaljiProdaje(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// učitaj fiskalni račun ako postoji
+	fr, _ := h.FiskalRepo.DohvatiPoProdaji(r.Context(), id)
+
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "prodaja"
 	ps.NaslovStranice = "Detalji prodaje"
@@ -262,6 +325,7 @@ func (h *Handler) DetaljiProdaje(w http.ResponseWriter, r *http.Request) {
 		Nalog:          *nalog,
 		Stavke:         stavke,
 		KlijentNaziv:   klijentNaziv,
+		FiskalniRacun:  fr,
 		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
 	}
 

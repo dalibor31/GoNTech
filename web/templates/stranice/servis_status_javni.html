@@ -207,6 +207,13 @@
                 <span class="red-vrednost">{{garancijaTekst .Nalog.GarancijaDana}}</span>
             </div>
 
+            {{if .Nalog.DatumZavrsetka}}
+            <div class="red">
+                <span class="red-labela">Datum završetka</span>
+                <span class="red-vrednost">{{.Nalog.DatumZavrsetka.Format "02.01.2006."}}</span>
+            </div>
+            {{end}}
+
             {{if .Nalog.NalazDijagnostike}}
             <div style="margin-top:12px;">
                 <div class="red-labela" style="margin-bottom:6px;">Utvrđeno na dijagnostici</div>
@@ -215,6 +222,18 @@
             {{end}}
 
         </div>
+
+        {{if .Nalog.PopravkaOdbijena}}
+        <!-- klijent odbio popravku — samo dijagnostika -->
+        <div class="kartica" style="border-color:#ef4444;">
+            <div class="kartica-naslov" style="color:#ef4444;">✕ Popravka je odbijena</div>
+            <p style="font-size:13px;color:#94a3b8;margin:8px 0 0;">Klijent nije prihvatio ponuđenu popravku.</p>
+            <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#1e293b;border-radius:6px;">
+                <span style="font-size:13px;color:#94a3b8;">Cena dijagnostike</span>
+                <span style="font-size:16px;font-weight:700;color:#fbbf24;">{{.Nalog.CenaDijagnostikeStr}} din</span>
+            </div>
+        </div>
+        {{end}}
 
         <!-- kartica: radovi i delovi sa procenom -->
         {{if or .Radovi .ServisniDelovi}}
