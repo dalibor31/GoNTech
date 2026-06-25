@@ -924,15 +924,18 @@ func (h *Handler) TestFiskalizacije(w http.ResponseWriter, r *http.Request) {
 		pfrURL = vrednostIliDefault(podesavanja, "pfr_url", "http://127.0.0.1:4566")
 	}
 
-	// Dozvoljavamo samo localhost/loopback da sprečimo SSRF
+	// Samo localhost/loopback — SSRF zaštita. Pošto SAST alati (CodeQL) ne
+	// priznaju validaciju kroz url.Parse kao dovoljnu sanitizaciju, URL
+	// rekonstruišemo eksplicitno iz validiranih delova, a ne iz korisničkog unosa.
 	parsedURL, err := url.Parse(pfrURL)
 	if err != nil || (parsedURL.Hostname() != "127.0.0.1" && parsedURL.Hostname() != "localhost") {
 		http.Error(w, "Nevažeći PFR URL — dozvoljen samo localhost", http.StatusBadRequest)
 		return
 	}
+	statusURL := url.URL{Scheme: "http", Host: parsedURL.Host, Path: "/api/status"}
 
 	klijent := &http.Client{Timeout: 5 * time.Second}
-	resp, err := klijent.Get(pfrURL + "/api/status")
+	resp, err := klijent.Get(statusURL.String())
 	if err != nil {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		fmt.Fprintf(w, `<div class="fisk-status greska">&#10007; Nije dostupan — %s</div>`, html.EscapeString(err.Error()))
