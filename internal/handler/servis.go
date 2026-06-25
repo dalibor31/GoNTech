@@ -1426,7 +1426,19 @@ func (h *Handler) StampaOtpremnice(w http.ResponseWriter, r *http.Request) {
 	}
 	var preostaloSve float64
 	var imaAvans bool
-	if nalog.CenaKonacna != nil {
+	if nalog.PopravkaOdbijena {
+		// klijent odbio popravku — naplaćuje se samo dijagnostika
+		ukupnoSve := nalog.CenaDijagnostike
+		avans := 0.0
+		if nalog.Avans != nil && *nalog.Avans > 0 {
+			avans = *nalog.Avans
+			imaAvans = true
+		}
+		preostaloSve = ukupnoSve - avans
+		if preostaloSve < 0 {
+			preostaloSve = 0
+		}
+	} else if nalog.CenaKonacna != nil {
 		ukupnoSve := *nalog.CenaKonacna + ukupnoDelovi
 		avans := 0.0
 		if nalog.Avans != nil && *nalog.Avans > 0 {
