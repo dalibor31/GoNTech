@@ -76,6 +76,11 @@
                 </span>
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                     {{template "status-badge-detalji" .Nalog.Status}}
+                    {{if .Nalog.PopravkaOdbijena}}
+                    <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:color-mix(in srgb, var(--crvena, #ef4444) 12%, transparent);border:0.5px solid color-mix(in srgb, var(--crvena, #ef4444) 30%, transparent);border-radius:6px;font-size:11px;font-weight:500;color:var(--crvena, #ef4444);">
+                        ✕ Klijent odbio popravku
+                    </span>
+                    {{end}}
                     {{if eq .Nalog.Status "Primljeno"}}
                     <!-- serviser preuzima uređaj u rad → status prelazi u „U dijagnostici";
                          promena statusa menja kartice i dugmad, pa osvežavamo ceo sadržaj (#sadrzaj) -->
