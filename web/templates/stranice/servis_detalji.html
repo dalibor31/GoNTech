@@ -931,11 +931,13 @@ function _custZatvoriSve() {
     document.querySelectorAll('.cust-sel.otvoren').forEach(function (el) {
         el.classList.remove('otvoren');
         var lista = el.querySelector('.cust-sel-lista');
-        if (lista) lista.style.setProperty('display', 'none', 'important');
+        if (lista) lista.style.removeProperty('display');
         var k = el.closest('.kartica');
         if (k) k.classList.remove('cust-aktivan');
     });
 }
+// Sakrij sve liste odmah na startu (čisti zaostale inline blokove)
+document.querySelectorAll('.cust-sel-lista').forEach(function(l) { l.style.removeProperty('display'); });
 document.addEventListener('click', function (e) {
     var btn = e.target.closest('.cust-sel-btn');
     if (btn) {
@@ -975,7 +977,7 @@ document.addEventListener('click', function (e) {
         }
         cust.classList.remove('otvoren');
         var lista3 = cust.querySelector('.cust-sel-lista');
-        if (lista3) lista3.style.setProperty('display', 'none', 'important');
+        if (lista3) lista3.style.removeProperty('display');
         var k2 = cust.closest('.kartica');
         if (k2) k2.classList.remove('cust-aktivan');
         return;
