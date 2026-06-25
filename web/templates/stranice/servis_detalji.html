@@ -74,13 +74,14 @@
                 <span style="font-size:20px;font-weight:600;color:var(--tekst-glavni);font-family:monospace;">
                     {{.Nalog.BrojNaloga}}
                 </span>
+                {{if .Nalog.PopravkaOdbijena}}
+                <div style="padding:8px 14px;background:color-mix(in srgb, var(--crvena, #ef4444) 14%, transparent);border:1px solid color-mix(in srgb, var(--crvena, #ef4444) 35%, transparent);border-radius:8px;">
+                    <span style="font-size:15px;font-weight:700;color:var(--crvena, #ef4444);">✕ Klijent je odbio popravku</span>
+                    <span style="display:block;margin-top:2px;font-size:12px;color:var(--crvena, #dc2626);">Naplaćuje se samo dijagnostika</span>
+                </div>
+                {{end}}
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                     {{template "status-badge-detalji" .Nalog.Status}}
-                    {{if .Nalog.PopravkaOdbijena}}
-                    <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:color-mix(in srgb, var(--crvena, #ef4444) 12%, transparent);border:0.5px solid color-mix(in srgb, var(--crvena, #ef4444) 30%, transparent);border-radius:6px;font-size:11px;font-weight:500;color:var(--crvena, #ef4444);">
-                        ✕ Klijent odbio popravku
-                    </span>
-                    {{end}}
                     {{if eq .Nalog.Status "Primljeno"}}
                     <!-- serviser preuzima uređaj u rad → status prelazi u „U dijagnostici";
                          promena statusa menja kartice i dugmad, pa osvežavamo ceo sadržaj (#sadrzaj) -->
