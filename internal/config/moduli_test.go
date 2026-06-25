@@ -44,12 +44,12 @@ func TestModulUkljucen(t *testing.T) {
 		{"pun + obveznik da", pun, ModulPdv, true},
 		{"pun + obveznik ne (čak i doo)", izmeni(pun, KljucPdvObveznik, "ne"), ModulPdv, false},
 
-		// kpo — samo paušalac
+		// kpo — paušalac i preduzetnik knjigaš (proste knjige)
 		{"pun + paušalac → kpo", izmeni(pun, KljucPravniOblik, "pausalac"), ModulKpo, true},
 		{"pun + doo → nema kpo", pun, ModulKpo, false},
-		{"pun + preduzetnik → nema kpo", izmeni(pun, KljucPravniOblik, "preduzetnik_knjige"), ModulKpo, false},
+		{"pun + preduzetnik → kpo", izmeni(pun, KljucPravniOblik, "preduzetnik_knjige"), ModulKpo, true},
 
-		// dvojno — samo doo
+		// dvojno — doo uvek, preduzetnik opciono (budući toggle)
 		{"pun + doo → dvojno", pun, ModulDvojno, true},
 		{"pun + paušalac → nema dvojno", izmeni(pun, KljucPravniOblik, "pausalac"), ModulDvojno, false},
 		{"pun + preduzetnik → nema dvojno (buduća podela)", izmeni(pun, KljucPravniOblik, "preduzetnik_knjige"), ModulDvojno, false},

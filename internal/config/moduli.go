@@ -16,10 +16,10 @@ const (
 
 // Nazivi modula koje program pali/gasi prema profilu firme.
 const (
-	ModulPdv           = "pdv"
-	ModulFiskalizacija = "fiskalizacija"
-	ModulKpo           = "kpo"
-	ModulDvojno        = "dvojno"
+	ModulPdv           = "pdv"           // KIR/KPR evidencija, PDV obračun
+	ModulFiskalizacija = "fiskalizacija" // Teron L-PFR, fiskalni računi
+	ModulKpo           = "kpo"           // Knjiga o ostvarenom prometu (paušalci)
+	ModulDvojno        = "dvojno"        // Dvojno knjigovodstvo (DOO, preduzetnici koji ga vode)
 )
 
 // ModulUkljucen vraća da li je dati zakonski modul aktivan za firmu, na osnovu
@@ -36,20 +36,30 @@ func ModulUkljucen(podesavanja map[string]string, modul string) bool {
 		return false
 	}
 
+	pravniOblik := podesavanja[KljucPravniOblik]
+
 	switch modul {
 	case ModulFiskalizacija:
-		// fiskalizacija je nezavisna od pravnog oblika — zaseban prekidač
-		// „izdaje li račune građanima" (Project.md §3, napomena *).
+		// Fiskalizacija je obavezna za SVE koji izdaju račune građanima (maloprodaja),
+		// bez obzira na pravni oblik. Nezavisan prekidač.
 		return podesavanja[KljucFiskalizacija] == "da"
+
 	case ModulPdv:
-		// PDV evidencija se vodi kad je firma u sistemu PDV-a.
+		// PDV evidencija se vodi kad je firma u sistemu PDV-a (obavezno preko 8M,
+		// ili dobrovoljno). Dostupno svim pravnim oblicima.
 		return podesavanja[KljucPdvObveznik] == "da"
+
 	case ModulKpo:
-		// KPO (knjiga o ostvarenom prometu) je samo za paušalce.
-		return podesavanja[KljucPravniOblik] == "pausalac"
+		// KPO (knjiga o ostvarenom prometu) vode paušalci i preduzetnici
+		// koji vode proste poslovne knjige (ne dvojno).
+		return pravniOblik == "pausalac" || pravniOblik == "preduzetnik_knjige"
+
 	case ModulDvojno:
-		// dvojno knjigovodstvo je za DOO (za preduzetnike je buduća podela, Project.md §8).
-		return podesavanja[KljucPravniOblik] == "doo"
+		// Dvojno knjigovodstvo je obavezno za DOO. Preduzetnici koji vode
+		// knjige mogu birati prosto ili dvojno — dvojno je opciono
+		// (budući toggle: firma_knjigovodstvo = "dvojno").
+		return pravniOblik == "doo"
+
 	default:
 		return false
 	}
