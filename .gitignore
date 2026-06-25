@@ -43,3 +43,6 @@ Fisk/data/counter.txt
 .idea/
 *.swp
 
+
+# Fisk mock server runtime podaci
+Fisk/data/
