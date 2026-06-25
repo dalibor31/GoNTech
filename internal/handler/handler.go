@@ -11,6 +11,7 @@ import (
 	"ntech/internal/config"
 	"ntech/internal/db"
 	"ntech/internal/db/sqlite"
+	"ntech/internal/fiskal"
 	"ntech/internal/middleware"
 	"ntech/internal/model"
 )
@@ -44,6 +45,7 @@ type Handler struct {
 	PdvKirRepo                    db.PdvKirRepository
 	PdvKprRepo                    db.PdvKprRepository
 	NivelacijaRepo                db.NivelacijaRepository
+	FiskalRepo                    db.FiskalRepository
 	Verzija                       string
 	JelDemo                       bool
 	AssetV                        string // verzija statičkih fajlova za cache-busting (postavlja se pri pokretanju)
@@ -112,6 +114,7 @@ func Novi(baza *sql.DB, totpKljuc []byte) *Handler {
 		PdvKirRepo:                    sqlite.NoviPdvKirRepo(baza),
 		PdvKprRepo:                    sqlite.NoviPdvKprRepo(baza),
 		NivelacijaRepo:                sqlite.NoviNivelacijaRepo(baza),
+		FiskalRepo:                    sqlite.NoviFiskalRepo(baza),
 	}
 }
 
@@ -145,6 +148,7 @@ func (h *Handler) reinicijalizujRepozitorijume(novaDB *sql.DB) {
 	h.PdvKirRepo = sqlite.NoviPdvKirRepo(novaDB)
 	h.PdvKprRepo = sqlite.NoviPdvKprRepo(novaDB)
 	h.NivelacijaRepo = sqlite.NoviNivelacijaRepo(novaDB)
+	h.FiskalRepo = sqlite.NoviFiskalRepo(novaDB)
 }
 
 // modulUkljucen vraća da li je zakonski modul (npr. „pdv") uključen za firmu prema profilu.
@@ -231,4 +235,19 @@ func (h *Handler) popuniPodaciStranice(r *http.Request, podesavanja map[string]s
 	}
 
 	return ps
+}
+
+// fiskalKlijent vraća inicijalizovan fiskalni HTTP klijent na osnovu trenutnih
+// podešavanja. Vraća nil ako pfr_url nije podešen. URL se čita dinamički pri
+// svakom pozivu — nema keširanja, pa promena podešavanja stupa na snagu odmah.
+func (h *Handler) fiskalKlijent() *fiskal.Klijent {
+	url, _ := sqlite.DohvatiPodesavanje(context.Background(), h.DB, "pfr_url")
+	key, _ := sqlite.DohvatiPodesavanje(context.Background(), h.DB, "pfr_api_key")
+	if url == "" {
+		return nil
+	}
+	if key == "" {
+		key = "test"
+	}
+	return fiskal.NoviKlijent(url, key)
 }
