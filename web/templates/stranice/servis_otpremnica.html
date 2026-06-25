@@ -161,7 +161,11 @@
     <!-- opis izvršenih radova -->
     <div class="odeljak">
         <div class="odeljak-naslov">Opis izvršenih radova</div>
+        {{if .Nalog.PopravkaOdbijena}}
+        <div class="polje-tekst">Izvršena je samo dijagnostika — klijent nije prihvatio ponuđenu popravku.</div>
+        {{else}}
         <div class="polje-tekst">{{if .Nalog.OpisKvara}}{{.Nalog.OpisKvara}}{{else}}<span class="prazno">—</span>{{end}}</div>
+        {{end}}
     </div>
 
     <!-- radovi — samo ako nije odbijena popravka -->
