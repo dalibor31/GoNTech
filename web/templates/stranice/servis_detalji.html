@@ -25,7 +25,7 @@
     .cust-sel-chevron { font-size: 10px; color: var(--tekst-sporedni); flex-shrink: 0; transition: transform 0.15s; }
     .cust-sel.otvoren .cust-sel-chevron { transform: rotate(180deg); }
     .cust-sel-lista {
-        display: none !important; position: absolute; top: calc(100% + 3px); left: 0; right: 0; z-index: 500;
+        display: none; position: absolute; top: calc(100% + 3px); left: 0; right: 0; z-index: 500;
         background: var(--kartica); border: 0.5px solid var(--ivica); border-radius: 10px;
         max-height: 260px; overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,0.4);
     }
@@ -930,14 +930,10 @@
 function _custZatvoriSve() {
     document.querySelectorAll('.cust-sel.otvoren').forEach(function (el) {
         el.classList.remove('otvoren');
-        var lista = el.querySelector('.cust-sel-lista');
-        if (lista) lista.style.removeProperty('display');
         var k = el.closest('.kartica');
         if (k) k.classList.remove('cust-aktivan');
     });
 }
-// Sakrij sve liste odmah na startu (čisti zaostale inline blokove)
-document.querySelectorAll('.cust-sel-lista').forEach(function(l) { l.style.removeProperty('display'); });
 document.addEventListener('click', function (e) {
     var btn = e.target.closest('.cust-sel-btn');
     if (btn) {
@@ -946,8 +942,6 @@ document.addEventListener('click', function (e) {
         _custZatvoriSve();
         if (!bio) {
             cust.classList.add('otvoren');
-            var lista2 = cust.querySelector('.cust-sel-lista');
-            if (lista2) lista2.style.setProperty('display', 'block', 'important');
             var k = cust.closest('.kartica');
             if (k) k.classList.add('cust-aktivan');
         }
@@ -976,8 +970,6 @@ document.addEventListener('click', function (e) {
             inp.dispatchEvent(new Event('change', { bubbles: true }));
         }
         cust.classList.remove('otvoren');
-        var lista3 = cust.querySelector('.cust-sel-lista');
-        if (lista3) lista3.style.removeProperty('display');
         var k2 = cust.closest('.kartica');
         if (k2) k2.classList.remove('cust-aktivan');
         return;
