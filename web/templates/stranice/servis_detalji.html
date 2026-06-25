@@ -833,11 +833,6 @@
                     <span style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .UkupnoRadovi}} din</span>
                 </div>
             </div>
-            {{else}}
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:14px;color:var(--tekst-sporedni);">Usluge (rad)</span>
-                <span style="font-size:14px;color:var(--tekst-glavni);">{{dinari .UkupnoRadovi}} din</span>
-            </div>
             {{end}}
             <!-- Delovi — listing pa subtotal -->
             {{if .ServisniDelovi}}
@@ -857,11 +852,6 @@
                     <span style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">Ukupno delovi</span>
                     <span style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .UkupnoDelovi}} din</span>
                 </div>
-            </div>
-            {{else}}
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:14px;color:var(--tekst-sporedni);">Ugrađeni delovi</span>
-                <span style="font-size:14px;color:var(--tekst-glavni);">{{dinari .UkupnoDelovi}} din</span>
             </div>
             {{end}}
             {{end}}
