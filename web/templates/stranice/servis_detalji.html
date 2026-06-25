@@ -516,7 +516,7 @@
                             <span class="cust-sel-tekst cso-prazno">— odaberi uslugu —</span>
                             <span class="cust-sel-chevron">▾</span>
                         </div>
-                        <div class="cust-sel-lista">
+                        <div class="cust-sel-lista" style="display:none">
                             <div class="cso" data-val="" data-cena="0"><span class="cso-prazno">— odaberi uslugu —</span></div>
                             {{range .Usluge}}{{if not (index $.KorisceneUsluge .ID)}}<div class="cso" data-val="{{.ID}}" data-cena="{{.Cena}}"><span class="cso-naziv">{{.Naziv}}</span><span class="cso-cena">{{dinari .Cena}} din</span></div>{{end}}{{end}}
                         </div>
@@ -637,7 +637,7 @@
                             <span class="cust-sel-tekst cso-prazno">— odaberi artikal —</span>
                             <span class="cust-sel-chevron">▾</span>
                         </div>
-                        <div class="cust-sel-lista"></div>
+                        <div class="cust-sel-lista" style="display:none"></div>
                     </div>
                     <input type="hidden" name="artikal_id" id="deo-artikal">
                 </div>
@@ -930,6 +930,8 @@
 function _custZatvoriSve() {
     document.querySelectorAll('.cust-sel.otvoren').forEach(function (el) {
         el.classList.remove('otvoren');
+        var lista = el.querySelector('.cust-sel-lista');
+        if (lista) lista.style.display = 'none';
         var k = el.closest('.kartica');
         if (k) k.classList.remove('cust-aktivan');
     });
@@ -942,6 +944,8 @@ document.addEventListener('click', function (e) {
         _custZatvoriSve();
         if (!bio) {
             cust.classList.add('otvoren');
+            var lista2 = cust.querySelector('.cust-sel-lista');
+            if (lista2) lista2.style.display = 'block';
             var k = cust.closest('.kartica');
             if (k) k.classList.add('cust-aktivan');
         }
@@ -970,6 +974,8 @@ document.addEventListener('click', function (e) {
             inp.dispatchEvent(new Event('change', { bubbles: true }));
         }
         cust.classList.remove('otvoren');
+        var lista3 = cust.querySelector('.cust-sel-lista');
+        if (lista3) lista3.style.display = 'none';
         var k2 = cust.closest('.kartica');
         if (k2) k2.classList.remove('cust-aktivan');
         return;
