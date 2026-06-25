@@ -1548,3 +1548,33 @@ select {
     .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .md\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }
+
+/* Custom dropdown (servis detalji — deljen preko HTMX-a) */
+.cust-sel { position: relative; }
+.cust-sel-btn {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    height: 38px; padding: 0 10px; box-sizing: border-box; cursor: pointer;
+    border: 0.5px solid var(--ivica) !important; border-radius: 8px; font-size: 14px;
+    background: var(--kartica) !important; color: var(--tekst-glavni) !important;
+    user-select: none;
+}
+.cust-sel-btn:focus { border-color: #3b82f6 !important; outline: none; }
+.cust-sel-tekst { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cust-sel-chevron { font-size: 10px; color: var(--tekst-sporedni); flex-shrink: 0; transition: transform 0.15s; }
+.cust-sel.otvoren .cust-sel-chevron { transform: rotate(180deg); }
+.cust-sel-lista {
+    position: absolute; top: calc(100% + 3px); left: -9999px; right: auto; z-index: 500;
+    background: var(--kartica); border: 0.5px solid var(--ivica); border-radius: 10px;
+    max-height: 260px; overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+}
+.cust-sel.otvoren .cust-sel-lista { left: 0; right: 0; }
+.cso {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 8px 12px; cursor: pointer; border-bottom: 0.5px solid var(--ivica); font-size: 13px;
+}
+.cso:last-child { border-bottom: none; }
+.cso:hover, .cso.izabran { background: rgba(255,255,255,0.06); }
+.cso-naziv { color: var(--tekst-glavni); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cso-cena { color: #f59e0b; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+.cso-prazno { color: var(--tekst-sporedni); }
+.kartica.cust-aktivan { position: relative; z-index: 100; }
