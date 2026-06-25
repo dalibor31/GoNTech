@@ -67,9 +67,9 @@
                             Odobri popravku
                         </button>
                     </form>
-                    <form method=”POST” action=”/servis/{{.Nalog.ID}}/odbij-popravku” style=”margin:0;” data-full-reload>
-                        <input type=”hidden” name=”_csrf” value=”{{.CsrfToken}}”>
-                        <button type=”submit” class=”btn-sekundarno” style=”padding:3px 12px;font-size:12px;”
+                    <form method="POST" action="/servis/{{.Nalog.ID}}/odbij-popravku" style="margin:0;" data-full-reload>
+                        <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+                        <button type="submit" class="btn-sekundarno" style="padding:3px 12px;font-size:12px;"
                             data-potvrda="Klijent ne prihvata popravku? Nalog prelazi u Zavrseno, naplacuje se samo dijagnostika.">
                             Klijent ne prihvata
                         </button>
