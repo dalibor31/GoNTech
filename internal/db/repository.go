@@ -206,6 +206,7 @@ type ServisRepository interface {
 	ObrisiOdlukuKlijenta(ctx context.Context, id int64) error
 	Obrisi(ctx context.Context, id int64, korisnikID *int64) error
 	SledeciBroj(ctx context.Context) (string, error)
+	SacuvajNaplatu(ctx context.Context, id int64, nacinPlacanja string, naplaceno float64) error
 }
 
 // ProdajaRepository definiše operacije nad prodajnim nalozima

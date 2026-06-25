@@ -58,7 +58,7 @@ func (r *ServisRepo) Lista(ctx context.Context, pretraga, status string) ([]mode
 			sn.id, sn.klijent_id, sn.tehnicar_id, sn.broj_naloga, sn.uredjaj, sn.serijski_broj,
 			sn.opis_kvara, sn.trazene_nadogradnje, sn.status, sn.cena_od, sn.cena_do, sn.cena_konacna,
 			sn.avans, sn.napomena, sn.garancija_do, sn.garancija_dana, sn.datum_prijema, sn.datum_zavrsetka, sn.predvidjen_datum,
-			sn.ostecenja, sn.pin_uredjaja, sn.pribor, sn.napomena_klijentu, sn.nalaz_dijagnostike, sn.uradjeno, sn.cena_dijagnostike, sn.popravka_odbijena, sn.javni_token, sn.komentar_klijenta, sn.odluka_klijenta, sn.datum_odluke,
+			sn.ostecenja, sn.pin_uredjaja, sn.pribor, sn.napomena_klijentu, sn.nalaz_dijagnostike, sn.uradjeno, sn.cena_dijagnostike, sn.popravka_odbijena, sn.javni_token, sn.komentar_klijenta, sn.odluka_klijenta, sn.datum_odluke, sn.nacin_placanja, sn.naplaceno,
 			COALESCE(kp.naziv, '') AS klijent_naziv,
 			(EXISTS(SELECT 1 FROM servis_radovi sr WHERE sr.nalog_id = sn.id AND sr.predlozeno = 1)
 			 OR EXISTS(SELECT 1 FROM servisni_delovi sd WHERE sd.nalog_id = sn.id AND sd.predlozeno = 1)
@@ -108,7 +108,7 @@ func (r *ServisRepo) DohvatiID(ctx context.Context, id int64) (*model.ServisniNa
 			id, klijent_id, tehnicar_id, broj_naloga, uredjaj, serijski_broj,
 			opis_kvara, trazene_nadogradnje, status, cena_od, cena_do, cena_konacna,
 			avans, napomena, garancija_do, garancija_dana, datum_prijema, datum_zavrsetka, predvidjen_datum,
-			ostecenja, pin_uredjaja, pribor, napomena_klijentu, nalaz_dijagnostike, uradjeno, cena_dijagnostike, popravka_odbijena, javni_token, komentar_klijenta, odluka_klijenta, datum_odluke
+			ostecenja, pin_uredjaja, pribor, napomena_klijentu, nalaz_dijagnostike, uradjeno, cena_dijagnostike, popravka_odbijena, javni_token, komentar_klijenta, odluka_klijenta, datum_odluke, nacin_placanja, naplaceno
 		FROM servisni_nalozi WHERE id = ?`, id)
 
 	var n model.ServisniNalog
@@ -160,7 +160,7 @@ func (r *ServisRepo) DohvatiJavniToken(ctx context.Context, token string) (*mode
 			id, klijent_id, tehnicar_id, broj_naloga, uredjaj, serijski_broj,
 			opis_kvara, trazene_nadogradnje, status, cena_od, cena_do, cena_konacna,
 			avans, napomena, garancija_do, garancija_dana, datum_prijema, datum_zavrsetka, predvidjen_datum,
-			ostecenja, pin_uredjaja, pribor, napomena_klijentu, nalaz_dijagnostike, uradjeno, cena_dijagnostike, popravka_odbijena, javni_token, komentar_klijenta, odluka_klijenta, datum_odluke
+			ostecenja, pin_uredjaja, pribor, napomena_klijentu, nalaz_dijagnostike, uradjeno, cena_dijagnostike, popravka_odbijena, javni_token, komentar_klijenta, odluka_klijenta, datum_odluke, nacin_placanja, naplaceno
 		FROM servisni_nalozi WHERE javni_token = ?`, token)
 
 	var n model.ServisniNalog
@@ -451,6 +451,18 @@ func (r *ServisRepo) Obrisi(ctx context.Context, id int64, korisnikID *int64) er
 	return nil
 }
 
+// SacuvajNaplatu beleži način plaćanja i naplaćeni iznos pri preuzimanju uređaja.
+func (r *ServisRepo) SacuvajNaplatu(ctx context.Context, id int64, nacinPlacanja string, naplaceno float64) error {
+	_, err := r.db.ExecContext(ctx,
+		"UPDATE servisni_nalozi SET nacin_placanja = ?, naplaceno = ? WHERE id = ?",
+		nacinPlacanja, naplaceno, id,
+	)
+	if err != nil {
+		return fmt.Errorf("ntech: ServisRepo.SacuvajNaplatu: %w", err)
+	}
+	return nil
+}
+
 // scanNalog čita redove iz upita u ServisniNalog struct —
 // klijentNaziv je opcioni pokazivač, nil kada se čita bez JOIN-a
 func scanNalog(scan func(...any) error, n *model.ServisniNalog, klijentNaziv *string, imaPredlog *bool) error {
@@ -461,11 +473,15 @@ func scanNalog(scan func(...any) error, n *model.ServisniNalog, klijentNaziv *st
 	var garancijaDana sql.NullInt64
 	var popravkaOdbijena sql.NullInt64
 
+	var nacinPlacanja sql.NullString
+	var naplaceno sql.NullFloat64
+
 	args := []any{
 		&n.ID, &klijentID, &tehnicarID, &n.BrojNaloga, &n.Uredjaj, &serijskiBroj,
 		&n.OpisKvara, &n.TrazeneNadogradnje, &n.Status, &cenaOd, &cenaDo, &cenaKonacna,
 		&avans, &napomena, &garancijaDo, &garancijaDana, &n.DatumPrijema, &datumZavrsetka, &predvidjenDatum,
 		&ostecenja, &pinUredjaja, &pribor, &napomenaKlijentu, &nalazDijagnostike, &uradjeno, &n.CenaDijagnostike, &popravkaOdbijena, &javniToken, &komentarKlijenta, &odlukaKlijenta, &datumOdluke,
+		&nacinPlacanja, &naplaceno,
 	}
 
 	if klijentNaziv != nil {
@@ -534,6 +550,10 @@ func scanNalog(scan func(...any) error, n *model.ServisniNalog, klijentNaziv *st
 	if datumOdluke.Valid {
 		v := datumOdluke.Time
 		n.DatumOdluke = &v
+	}
+	n.NacinPlacanja = nacinPlacanja.String
+	if naplaceno.Valid {
+		n.Naplaceno = naplaceno.Float64
 	}
 
 	return nil

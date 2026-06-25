@@ -58,6 +58,8 @@ type ServisniNalog struct {
 	OdlukaKlijenta     string     // '' / 'prihvaceno' / 'odbijeno'
 	DatumOdluke        *time.Time // kada je klijent doneo odluku
 	JavniToken         string
+	NacinPlacanja      string  // način plaćanja pri preuzimanju (Gotovina, Kartica, Virman...)
+	Naplaceno          float64 // iznos koji je naplaćen pri preuzimanju
 }
 
 // ServisniDeo predstavlja jedan artikal ugrađen u servisni nalog

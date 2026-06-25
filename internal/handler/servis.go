@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"image/png"
 	"log/slog"
@@ -12,8 +13,10 @@ import (
 	"strings"
 	"time"
 
+	"ntech/internal/config"
 	appdbPkg "ntech/internal/db"
 	"ntech/internal/db/sqlite"
+	"ntech/internal/fiskal"
 	"ntech/internal/middleware"
 	"ntech/internal/model"
 
@@ -1935,10 +1938,154 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Greška pri promeni statusa", http.StatusInternalServerError)
 		return
 	}
+
+	// pri prelasku u Preuzeto — sačuvaj naplatu i fiskalizuj
+	if noviStatus == model.StatusPreuzeto {
+		nacin := strings.TrimSpace(r.FormValue("nacin_placanja"))
+		if nacin == "" {
+			nacin = "Gotovina"
+		}
+		iznosStr := strings.TrimSpace(r.FormValue("naplaceno"))
+		iznos := 0.0
+		if iznosStr != "" {
+			if v, e := strconv.ParseFloat(iznosStr, 64); e == nil && v > 0 {
+				iznos = v
+			}
+		}
+		if iznos == 0 {
+			// izračunaj iz za naplatu ako nije prosleđen
+			nalog, _ := h.ServisRepo.DohvatiID(r.Context(), id)
+			if nalog != nil {
+				iznos = nalog.CenaDijagnostike
+				if !nalog.PopravkaOdbijena && nalog.CenaKonacna != nil {
+					delovi, _ := h.ServisniDeloviRepo.DohvatiZaNalog(r.Context(), id)
+					ukupnoDelovi := 0.0
+					for _, d := range delovi {
+						ukupnoDelovi += d.Ukupno()
+					}
+					iznos = *nalog.CenaKonacna + ukupnoDelovi
+				}
+				if nalog.Avans != nil {
+					iznos -= *nalog.Avans
+				}
+				if iznos < 0 {
+					iznos = 0
+				}
+			}
+		}
+		_ = h.ServisRepo.SacuvajNaplatu(r.Context(), id, nacin, iznos)
+
+		// fiskalizacija servisa — ako je modul uključen
+		if h.modulUkljucen(r.Context(), config.ModulFiskalizacija) {
+			klijent := h.fiskalKlijent()
+			if klijent != nil && iznos > 0 {
+				h.fiskalizujServis(r.Context(), id, klijent, nacin, iznos)
+			}
+		}
+	}
+
 	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)
 }
 
-// AzurirajGaranciju ažurira datum garancije na servisnom nalogu
+// fiskalizujServis šalje fiskalni zahtev za servisni nalog pri preuzimanju.
+// Best-effort: greške se loguju, ne zaustavljaju promenu statusa.
+func (h *Handler) fiskalizujServis(ctx context.Context, servisID int64, klijent *fiskal.Klijent, nacinPlacanja string, iznos float64) {
+	nalog, err := h.ServisRepo.DohvatiID(ctx, servisID)
+	if err != nil {
+		slog.Error("fiskalizujServis: nije pronađen nalog", "id", servisID, "error", err)
+		return
+	}
+
+	radovi, _ := h.ServisniRadoviRepo.DohvatiZaNalog(ctx, servisID)
+	delovi, _ := h.deloviSaPotrazivanima(ctx, servisID)
+
+	// napravi stavke za fiskalni račun
+	items := make([]fiskal.InvoiceItem, 0)
+	for _, r := range radovi {
+		if r.Predlozeno {
+			continue
+		}
+		stopa := 20.0 // podrazumevano — servisne usluge su 20% PDV
+		items = append(items, fiskal.InvoiceItem{
+			Name:        r.Naziv,
+			Labels:      []string{fiskal.OznakaPDV(stopa)},
+			TotalAmount: fiskal.BrutoCena(r.Ukupno(), stopa),
+			UnitPrice:   fiskal.BrutoCena(r.CenaKomada, stopa),
+			Quantity:    r.Kolicina,
+		})
+	}
+	for _, d := range delovi {
+		if d.Predlozeno {
+			continue
+		}
+		stopa := 20.0
+		items = append(items, fiskal.InvoiceItem{
+			Name:        d.ArtikalNaziv,
+			Labels:      []string{fiskal.OznakaPDV(stopa)},
+			TotalAmount: fiskal.BrutoCena(d.Ukupno(), stopa),
+			UnitPrice:   fiskal.BrutoCena(d.CenaKomada, stopa),
+			Quantity:    float64(d.Kolicina),
+		})
+	}
+
+	pib := ""
+	if nalog.KlijentID != nil {
+		if k, e := h.KlijentiRepo.DohvatiID(ctx, *nalog.KlijentID); e == nil {
+			pib = k.PIB
+		}
+	}
+
+	kasir, _ := sqlite.DohvatiPodesavanje(ctx, h.DB, "pfr_kasir")
+	if kasir == "" {
+		kasir = "NTech"
+	}
+
+	zahtev := fiskal.InvoiceRequest{
+		InvoiceRequest: fiskal.InvoiceRequestBody{
+			InvoiceType:     "Normal",
+			TransactionType: "Sale",
+			Payment: []fiskal.PaymentItem{
+				{Amount: iznos, PaymentType: fiskal.TipPlacanja(nacinPlacanja)},
+			},
+			Items:   items,
+			Cashier: kasir,
+		},
+	}
+	if pib != "" {
+		zahtev.InvoiceRequest.BuyerID = "10:" + pib
+	}
+
+	odgovor, errFisk := klijent.IzdajRacun(ctx, zahtev)
+	if errFisk != nil {
+		slog.Error("fiskalizacija servisa nije uspela", "servis_id", servisID, "error", errFisk)
+		return
+	}
+
+	// sačuvaj fiskalni račun (kao i za prodaju, ali bez veze prodaja_id — koristimo negativan ID)
+	poreskeJSON, _ := json.Marshal(odgovor.TaxItems)
+	siroviJSON, _ := json.Marshal(odgovor)
+	fr := &model.FiskalniRacun{
+		ProdajaID:         -servisID, // negativan ID za servis (razlikuje se od prodaje)
+		TipRacuna:         "Normal",
+		TipTransakcije:    "Sale",
+		PfrBroj:           odgovor.InvoiceNumber,
+		PfrVreme:          odgovor.SdcDateTime,
+		Brojac:            odgovor.InvoiceCounter,
+		EkstenzijaBrojaca: odgovor.InvoiceCounterExtension,
+		UrlVerifikacija:   odgovor.VerificationURL,
+		QRKod:             odgovor.VerificationQRCode,
+		PoreskeStavke:     string(poreskeJSON),
+		UkupnoZaNaplatu:   odgovor.TotalAmount,
+		UkupanPorez:       odgovor.TotalTax,
+		SiroviOdgovor:     string(siroviJSON),
+		Potpisao:          odgovor.SignedBy,
+		Zatrazio:          odgovor.RequestedBy,
+		Poruka:            odgovor.Messages,
+	}
+	if _, err := h.FiskalRepo.Kreiraj(ctx, fr); err != nil {
+		slog.Error("greška pri čuvanju fiskalnog računa za servis", "servis_id", servisID, "error", err)
+	}
+}
 func (h *Handler) AzurirajGaranciju(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.zahtevajDozvolu(w, r, "servis.izmeni"); !ok {
 		return

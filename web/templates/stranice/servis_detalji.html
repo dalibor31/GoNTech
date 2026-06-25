@@ -150,6 +150,15 @@
                             <form method="POST" action="/servis/{{.Nalog.ID}}/status" data-refresh="#sadrzaj" style="margin-top:8px;">
                                 <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
                                 <input type="hidden" name="status" value="Preuzeto">
+                                <input type="hidden" name="naplaceno" value="{{printf "%.2f" .PreostaloSve}}">
+                                <div style="margin-bottom:10px;">
+                                    <label class="polje-labela">Način plaćanja</label>
+                                    <select name="nacin_placanja" style="width:100%;padding:8px 12px;background:var(--pozadina);border:0.5px solid var(--ivica);border-radius:8px;color:var(--tekst-glavni);font-size:13px;">
+                                        <option value="Gotovina">Gotovina</option>
+                                        <option value="Kartica">Kartica</option>
+                                        <option value="Virman">Virman</option>
+                                    </select>
+                                </div>
                                 <button type="submit" class="btn-primarno" style="width:100%;">Naplati i preuzmi</button>
                             </form>
                         </div>
