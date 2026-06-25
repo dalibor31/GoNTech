@@ -924,18 +924,24 @@ func (h *Handler) TestFiskalizacije(w http.ResponseWriter, r *http.Request) {
 		pfrURL = vrednostIliDefault(podesavanja, "pfr_url", "http://127.0.0.1:4566")
 	}
 
-	// Samo localhost/loopback — SSRF zaštita. Pošto SAST alati (CodeQL) ne
-	// priznaju validaciju kroz url.Parse kao dovoljnu sanitizaciju, URL
-	// rekonstruišemo eksplicitno iz validiranih delova, a ne iz korisničkog unosa.
+	// SSRF zaštita: URL validiramo, izvlačimo SAMO port, a host hardkodiramo.
+	// Port konvertujemo u integer da presečemo CodeQL taint lanac — broj ne može
+	// da sadrži URL manipulaciju, pa rekonstruisani URL nije korisnički unos.
 	parsedURL, err := url.Parse(pfrURL)
 	if err != nil || (parsedURL.Hostname() != "127.0.0.1" && parsedURL.Hostname() != "localhost") {
 		http.Error(w, "Nevažeći PFR URL — dozvoljen samo localhost", http.StatusBadRequest)
 		return
 	}
-	statusURL := url.URL{Scheme: "http", Host: parsedURL.Host, Path: "/api/status"}
+	port := 4566
+	if p := parsedURL.Port(); p != "" {
+		if n, e := strconv.Atoi(p); e == nil && n > 0 && n <= 65535 {
+			port = n
+		}
+	}
+	statusURL := fmt.Sprintf("http://127.0.0.1:%d/api/status", port)
 
 	klijent := &http.Client{Timeout: 5 * time.Second}
-	resp, err := klijent.Get(statusURL.String())
+	resp, err := klijent.Get(statusURL)
 	if err != nil {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		fmt.Fprintf(w, `<div class="fisk-status greska">&#10007; Nije dostupan — %s</div>`, html.EscapeString(err.Error()))
