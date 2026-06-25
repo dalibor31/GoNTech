@@ -830,29 +830,29 @@
             </div>
 
             {{if or (eq .Nalog.Status "Završeno") (eq .Nalog.Status "Preuzeto")}}
-            {{if .Radovi}}
+            {{if .ServisniRadovi}}
             <div style="margin-top:16px;padding-top:14px;border-top:0.5px solid var(--ivica);">
                 <div style="font-size:13px;font-weight:500;color:var(--tekst-glavni);margin-bottom:8px;">Obavljeni radovi</div>
                 <div class="kolona" style="gap:6px;">
-                    {{range .Radovi}}{{if not .Predlozeno}}
+                    {{range .ServisniRadovi}}
                     <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
                         <span style="color:var(--tekst-glavni);">{{.Naziv}}{{if gt .Kolicina 1.0}} ×{{.Kolicina}}{{end}}</span>
                         <span style="color:var(--tekst-sporedni);">{{dinari .Ukupno}} din</span>
                     </div>
-                    {{end}}{{end}}
+                    {{end}}
                 </div>
             </div>
             {{end}}
-            {{if .Delovi}}
+            {{if .ServisniDelovi}}
             <div style="margin-top:16px;padding-top:14px;border-top:0.5px solid var(--ivica);">
                 <div style="font-size:13px;font-weight:500;color:var(--tekst-glavni);margin-bottom:8px;">Ugrađeni delovi</div>
                 <div class="kolona" style="gap:6px;">
-                    {{range .Delovi}}{{if and (not .Predlozeno) .ArtikalNaziv}}
+                    {{range .ServisniDelovi}}
                     <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
                         <span style="color:var(--tekst-glavni);">{{.ArtikalNaziv}}{{if gt .Kolicina 1}} ×{{.Kolicina}}{{end}}</span>
                         <span style="color:var(--tekst-sporedni);">{{dinari .Ukupno}} din</span>
                     </div>
-                    {{end}}{{end}}
+                    {{end}}
                 </div>
             </div>
             {{end}}
