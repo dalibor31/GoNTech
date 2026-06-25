@@ -243,7 +243,7 @@
             {{if .ImaPredlog}}
             <div class="cena-blok" style="margin-top:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;background:#0f172a;border:1px solid #f59e0b;border-radius:8px;">
                 <span class="cena-labela" style="margin:0;color:#fbbf24;">Sa predlogom</span>
-                <span class="cena-vrednost" style="font-size:16px;font-weight:700;color:#fbbf24;">{{dinari .UkupnoSaPredlogom}} din</span>
+                <span class="cena-vrednost" id="sa-predlogom-zbir" data-base="{{printf "%.2f" .UkupnoSve}}" style="font-size:16px;font-weight:700;color:#fbbf24;">{{dinari .UkupnoSaPredlogom}} din</span>
             </div>
             {{end}}
         </div>
@@ -267,7 +267,7 @@
             {{range .PredlozeniRadovi}}
             <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:0.5px solid #1e293b;cursor:pointer;">
                 <span style="display:flex;align-items:center;gap:10px;flex:1;">
-                    <input type="checkbox" name="rad_id" value="{{.ID}}" checked
+                    <input type="checkbox" name="rad_id" value="{{.ID}}" checked data-iznos="{{printf "%.2f" .Ukupno}}"
                         style="width:18px;height:18px;accent-color:#f59e0b;flex-shrink:0;">
                     <span style="font-size:13px;color:#e2e8f0;">{{.Naziv}}{{if gt .Kolicina 1.0}} &times; {{printf "%.0f" .Kolicina}}{{end}}</span>
                 </span>
@@ -281,7 +281,7 @@
             {{range .PredlozeniDelovi}}
             <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:0.5px solid #1e293b;cursor:pointer;">
                 <span style="display:flex;align-items:center;gap:10px;flex:1;">
-                    <input type="checkbox" name="artikal_id" value="{{.ArtikalID}}" checked
+                    <input type="checkbox" name="artikal_id" value="{{.ArtikalID}}" checked data-iznos="{{printf "%.2f" .Ukupno}}"
                         style="width:18px;height:18px;accent-color:#f59e0b;flex-shrink:0;">
                     <span style="font-size:13px;color:#e2e8f0;">{{.ArtikalNaziv}}{{if gt .Kolicina 1}} &times; {{.Kolicina}}{{end}}</span>
                 </span>
@@ -292,7 +292,7 @@
 
             <div class="cena-blok predlog-ukupno" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;">
                 <span class="cena-labela" style="margin:0;">Predlog ukupno</span>
-                <span class="cena-vrednost">{{dinari .UkupnoPredlog}} din</span>
+                <span class="cena-vrednost" id="predlog-zbir">{{dinari .UkupnoPredlog}} din</span>
             </div>
 
             <textarea name="komentar" placeholder="Poruka serviseru (opciono)..." rows="2"
@@ -320,5 +320,37 @@
         {{end}}
 
     </div>
+<script>
+(function () {
+    var zbir = document.getElementById('predlog-zbir');
+    if (!zbir) return;
+    var forma = zbir.closest('form');
+    if (!forma) return;
+    function fmt(v) {
+        var s = Math.round(v * 100);
+        var dec = String(s % 100).padStart(2, '0');
+        var cel = String(Math.floor(s / 100));
+        var r = '';
+        for (var i = 0; i < cel.length; i++) {
+            if (i > 0 && (cel.length - i) % 3 === 0) r += '.';
+            r += cel[i];
+        }
+        return r + ',' + dec + ' din';
+    }
+    var saPredlogom = document.getElementById('sa-predlogom-zbir');
+    var bazaUkupno = saPredlogom ? parseFloat(saPredlogom.getAttribute('data-base')) || 0 : 0;
+    function preracunaj() {
+        var suma = 0;
+        forma.querySelectorAll('input[type="checkbox"][data-iznos]').forEach(function (cb) {
+            if (cb.checked) suma += parseFloat(cb.getAttribute('data-iznos')) || 0;
+        });
+        zbir.textContent = fmt(suma);
+        if (saPredlogom) saPredlogom.textContent = fmt(bazaUkupno + suma);
+    }
+    forma.addEventListener('change', function (e) {
+        if (e.target && e.target.type === 'checkbox') preracunaj();
+    });
+})();
+</script>
 </body>
 </html>
