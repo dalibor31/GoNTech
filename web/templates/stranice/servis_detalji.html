@@ -809,25 +809,14 @@
         </div>
         <div class="kolona" style="gap:10px;">
             {{if .Nalog.PopravkaOdbijena}}
-            {{/* klijent odbio popravku — naplaćuje se samo dijagnostika */}}
             <div style="display:flex;justify-content:space-between;align-items:center;">
                 <span style="font-size:14px;color:var(--tekst-sporedni);">Dijagnostika</span>
                 <span style="font-size:14px;color:var(--tekst-glavni);">{{dinari .Nalog.CenaDijagnostike}} din</span>
             </div>
             {{else}}
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:14px;color:var(--tekst-sporedni);">Usluge (rad)</span>
-                <span style="font-size:14px;color:var(--tekst-glavni);">{{dinari .UkupnoRadovi}} din</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:14px;color:var(--tekst-sporedni);">Ugrađeni delovi</span>
-                <span style="font-size:14px;color:var(--tekst-glavni);">{{dinari .UkupnoDelovi}} din</span>
-            </div>
-            {{end}}
-
-            {{if or (eq .Nalog.Status "Završeno") (eq .Nalog.Status "Preuzeto")}}
+            <!-- Radovi — listing pa subtotal -->
             {{if .ServisniRadovi}}
-            <div style="margin-top:12px;padding-top:12px;border-top:0.5px solid var(--ivica);">
+            <div>
                 <div style="font-size:13px;font-weight:500;color:var(--tekst-glavni);margin-bottom:8px;">Obavljeni radovi</div>
                 <div class="kolona" style="gap:6px;">
                     {{range .ServisniRadovi}}
@@ -837,10 +826,20 @@
                     </div>
                     {{end}}
                 </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:0.5px solid var(--ivica);">
+                    <span style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">Ukupno rad</span>
+                    <span style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .UkupnoRadovi}} din</span>
+                </div>
+            </div>
+            {{else}}
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:14px;color:var(--tekst-sporedni);">Usluge (rad)</span>
+                <span style="font-size:14px;color:var(--tekst-glavni);">{{dinari .UkupnoRadovi}} din</span>
             </div>
             {{end}}
+            <!-- Delovi — listing pa subtotal -->
             {{if .ServisniDelovi}}
-            <div style="margin-top:12px;padding-top:12px;border-top:0.5px solid var(--ivica);">
+            <div style="margin-top:6px;padding-top:12px;border-top:0.5px solid var(--ivica);">
                 <div style="font-size:13px;font-weight:500;color:var(--tekst-glavni);margin-bottom:8px;">Ugrađeni delovi</div>
                 <div class="kolona" style="gap:6px;">
                     {{range .ServisniDelovi}}
@@ -850,13 +849,21 @@
                     </div>
                     {{end}}
                 </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:0.5px solid var(--ivica);">
+                    <span style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">Ukupno delovi</span>
+                    <span style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .UkupnoDelovi}} din</span>
+                </div>
+            </div>
+            {{else}}
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:14px;color:var(--tekst-sporedni);">Ugrađeni delovi</span>
+                <span style="font-size:14px;color:var(--tekst-glavni);">{{dinari .UkupnoDelovi}} din</span>
             </div>
             {{end}}
             {{end}}
-
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:12px;border-top:0.5px solid var(--ivica);">
-                <span style="font-size:16px;font-weight:600;color:var(--tekst-glavni);">Ukupno</span>
-                <span style="font-size:18px;font-weight:600;color:var(--tekst-glavni);">{{dinari .UkupnoSve}} din</span>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:14px;border-top:1px solid var(--ivica);">
+                <span style="font-size:16px;font-weight:700;color:var(--tekst-glavni);">UKUPNO</span>
+                <span style="font-size:20px;font-weight:700;color:var(--tekst-glavni);">{{dinari .UkupnoSve}} din</span>
             </div>
         </div>
     </div>
