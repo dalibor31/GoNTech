@@ -824,14 +824,10 @@
                 <span style="font-size:14px;color:var(--tekst-glavni);">{{dinari .UkupnoDelovi}} din</span>
             </div>
             {{end}}
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:12px;border-top:0.5px solid var(--ivica);">
-                <span style="font-size:16px;font-weight:600;color:var(--tekst-glavni);">Ukupno</span>
-                <span style="font-size:18px;font-weight:600;color:var(--tekst-glavni);">{{dinari .UkupnoSve}} din</span>
-            </div>
 
             {{if or (eq .Nalog.Status "Završeno") (eq .Nalog.Status "Preuzeto")}}
             {{if .ServisniRadovi}}
-            <div style="margin-top:16px;padding-top:14px;border-top:0.5px solid var(--ivica);">
+            <div style="margin-top:12px;padding-top:12px;border-top:0.5px solid var(--ivica);">
                 <div style="font-size:13px;font-weight:500;color:var(--tekst-glavni);margin-bottom:8px;">Obavljeni radovi</div>
                 <div class="kolona" style="gap:6px;">
                     {{range .ServisniRadovi}}
@@ -844,7 +840,7 @@
             </div>
             {{end}}
             {{if .ServisniDelovi}}
-            <div style="margin-top:16px;padding-top:14px;border-top:0.5px solid var(--ivica);">
+            <div style="margin-top:12px;padding-top:12px;border-top:0.5px solid var(--ivica);">
                 <div style="font-size:13px;font-weight:500;color:var(--tekst-glavni);margin-bottom:8px;">Ugrađeni delovi</div>
                 <div class="kolona" style="gap:6px;">
                     {{range .ServisniDelovi}}
@@ -857,6 +853,11 @@
             </div>
             {{end}}
             {{end}}
+
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:12px;border-top:0.5px solid var(--ivica);">
+                <span style="font-size:16px;font-weight:600;color:var(--tekst-glavni);">Ukupno</span>
+                <span style="font-size:18px;font-weight:600;color:var(--tekst-glavni);">{{dinari .UkupnoSve}} din</span>
+            </div>
         </div>
     </div>
 
