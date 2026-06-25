@@ -1988,6 +1988,59 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 				h.fiskalizujServis(r.Context(), id, klijent, nacin, iznos)
 			}
 		}
+
+		// automatski upis u KIR ako je firma PDV obveznik
+		if h.modulUkljucen(r.Context(), "pdv") {
+			nalog, _ := h.ServisRepo.DohvatiID(r.Context(), id)
+			if nalog != nil && !nalog.PopravkaOdbijena {
+				kupacNaziv, kupacPib, kupacMesto := "", "", ""
+				if nalog.KlijentID != nil {
+					if k, e := h.KlijentiRepo.DohvatiID(r.Context(), *nalog.KlijentID); e == nil {
+						kupacNaziv = k.PunoIme()
+						kupacPib = k.PIB
+						kupacMesto = k.Mesto
+					}
+				}
+				radovi, _ := h.ServisniRadoviRepo.DohvatiZaNalog(r.Context(), id)
+				delovi, _ := h.ServisniDeloviRepo.DohvatiZaNalog(r.Context(), id)
+
+				kir := model.PdvKir{
+					DatumPrometa:   time.Now(),
+					DatumKnjizenja: time.Now(),
+					BrojDokumenta:  nalog.BrojNaloga,
+					KupacNaziv:     kupacNaziv,
+					KupacPib:       kupacPib,
+					KupacMesto:     kupacMesto,
+					Izvor:          "servis",
+					IzvorID:        &id,
+				}
+				for _, r := range radovi {
+					if r.Predlozeno {
+						continue
+					}
+					osnovica := r.Ukupno() / 1.2 // 20% PDV
+					pdv := r.Ukupno() - osnovica
+					kir.OsnovicaOpsta += osnovica
+					kir.PdvOpsta += pdv
+					kir.Ukupno += r.Ukupno()
+				}
+				for _, d := range delovi {
+					if d.Predlozeno {
+						continue
+					}
+					osnovica := d.Ukupno() / 1.2
+					pdv := d.Ukupno() - osnovica
+					kir.OsnovicaOpsta += osnovica
+					kir.PdvOpsta += pdv
+					kir.Ukupno += d.Ukupno()
+				}
+				if kir.Ukupno > 0 {
+					if _, e := h.PdvKirRepo.Kreiraj(r.Context(), &kir); e != nil {
+						slog.Error("auto-upis u KIR za servis nije uspeo", "servis_id", id, "error", e)
+					}
+				}
+			}
+		}
 	}
 
 	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)
