@@ -7,6 +7,7 @@ import (
 	"html"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -924,12 +925,12 @@ func (h *Handler) TestFiskalizacije(w http.ResponseWriter, r *http.Request) {
 		pfrURL = vrednostIliDefault(podesavanja, "pfr_url", "http://127.0.0.1:4566")
 	}
 
-	// SSRF zaštita: URL validiramo, izvlačimo SAMO port, a host hardkodiramo.
-	// Port konvertujemo u integer da presečemo CodeQL taint lanac — broj ne može
-	// da sadrži URL manipulaciju, pa rekonstruisani URL nije korisnički unos.
+	// SSRF zaštita: dozvoljeni su samo localhost i privatne mreže (192.168.x.x,
+	// 10.x.x.x, 172.16-31.x.x, 127.x.x.x). Port izvlačimo kao integer da presečemo
+	// CodeQL taint lanac — broj ne može da sadrži URL manipulaciju.
 	parsedURL, err := url.Parse(pfrURL)
-	if err != nil || (parsedURL.Hostname() != "127.0.0.1" && parsedURL.Hostname() != "localhost") {
-		http.Error(w, "Nevažeći PFR URL — dozvoljen samo localhost", http.StatusBadRequest)
+	if err != nil || !jePrivatnaAdresa(parsedURL.Hostname()) {
+		http.Error(w, "Nevažeći PFR URL — dozvoljeni su samo lokalni/privatni hostovi (127.x, 192.168.x, 10.x, 172.16-31.x)", http.StatusBadRequest)
 		return
 	}
 	port := 4566
@@ -938,7 +939,7 @@ func (h *Handler) TestFiskalizacije(w http.ResponseWriter, r *http.Request) {
 			port = n
 		}
 	}
-	statusURL := fmt.Sprintf("http://127.0.0.1:%d/api/status", port)
+	statusURL := fmt.Sprintf("http://%s:%d/api/status", parsedURL.Hostname(), port)
 
 	klijent := &http.Client{Timeout: 5 * time.Second}
 	resp, err := klijent.Get(statusURL)
@@ -965,6 +966,26 @@ func (h *Handler) TestFiskalizacije(w http.ResponseWriter, r *http.Request) {
 			<span>Vreme: %s</span>
 		</div>
 	</div>`, html.EscapeString(pfrURL), html.EscapeString(tin), html.EscapeString(lastInvoice), html.EscapeString(sdcDateTime))
+}
+
+// jePrivatnaAdresa proverava da li je hostname u opsegu privatnih/lokalnih mreža.
+// Dozvoljeni: 127.x.x.x, localhost, 10.x.x.x, 172.16-31.x.x, 192.168.x.x.
+func jePrivatnaAdresa(hostname string) bool {
+	if hostname == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(hostname)
+	if ip == nil {
+		return false
+	}
+	ip4 := ip.To4()
+	if ip4 == nil {
+		return false
+	}
+	return ip4[0] == 127 || // loopback
+		ip4[0] == 10 || // privatna klasa A
+		(ip4[0] == 172 && ip4[1] >= 16 && ip4[1] <= 31) || // privatna klasa B
+		(ip4[0] == 192 && ip4[1] == 168) // privatna klasa C
 }
 
 // PodesavanjaSistem renderuje stranicu sa sistemskim podešavanjima (backup)
