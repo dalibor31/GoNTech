@@ -469,7 +469,7 @@
                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Usluga</label>
                     <select name="usluga_id" id="rad-usluga" style="width:100%;" required>
                         <option value="">— odaberi uslugu —</option>
-                        {{range .Usluge}}{{if not (index $.KorisceneUsluge .ID)}}<option value="{{.ID}}" data-cena="{{.Cena}}">{{.Naziv}}</option>{{end}}{{end}}
+                        {{range .Usluge}}{{if not (index $.KorisceneUsluge .ID)}}<option value="{{.ID}}" data-cena="{{.Cena}}">{{.Naziv}} — {{dinari .Cena}} din</option>{{end}}{{end}}
                     </select>
                 </div>
                 <div>
@@ -704,7 +704,7 @@
             var ka=k?k.value:'';
             a.innerHTML='<option value="">— odaberi artikal —</option>';
         var aa=window._ntechArtikli||[];
-        aa.forEach(function(x){if(!ka||(x.KategorijaNaziv||'')===ka)a.innerHTML+='<option value="'+x.ID+'" data-cena="'+x.ProdajnaCena+'" data-stanje="'+(x.Kolicina||0)+'">'+x.Naziv+'</option>'})
+        aa.forEach(function(x){if(!ka||(x.KategorijaNaziv||'')===ka)a.innerHTML+='<option value="'+x.ID+'" data-cena="'+x.ProdajnaCena+'" data-stanje="'+(x.Kolicina||0)+'">'+x.Naziv+' — '+parseFloat(x.ProdajnaCena||0).toFixed(2)+' din</option>'})
     }
     if(k){var aa2=window._ntechArtikli||[];var kgs=[];aa2.forEach(function(x){var n=x.KategorijaNaziv||'';if(n&&kgs.indexOf(n)===-1)kgs.push(n)})
         k.innerHTML='<option value="">— sve kategorije —</option>'+kgs.map(function(x){return'<option value="'+x+'">'+x+'</option>'}).join('');k.onchange=pop}
@@ -866,7 +866,7 @@ document.addEventListener('change', function (e) {
             ARTIKLI.filter(function (a) { return !izabrana || (a.KategorijaNaziv || '') === izabrana; })
                 .map(function (a) {
                     return '<option value="' + a.ID + '" data-cena="' + a.ProdajnaCena +
-                        '" data-stanje="' + a.Kolicina + '">' + a.Naziv + '</option>';
+                        '" data-stanje="' + a.Kolicina + '">' + a.Naziv + ' — ' + parseFloat(a.ProdajnaCena||0).toFixed(2) + ' din</option>';
                 }).join('');
         if (umagacinu) umagacinu.textContent = '—';
     }
