@@ -216,6 +216,14 @@
 
         </div>
 
+        {{if .Nalog.PopravkaOdbijena}}
+        <!-- klijent odbio popravku — samo dijagnostika -->
+        <div class="kartica" style="border-color:#ef4444;">
+            <div class="kartica-naslov" style="color:#ef4444;">✕ Popravka je odbijena</div>
+            <p style="font-size:13px;color:#94a3b8;margin:8px 0 0;">Klijent nije prihvatio ponuđenu popravku. Naplaćuje se samo cena dijagnostike.</p>
+        </div>
+        {{end}}
+
         <!-- kartica: radovi i delovi sa procenom -->
         {{if or .Radovi .ServisniDelovi}}
         <div class="kartica">

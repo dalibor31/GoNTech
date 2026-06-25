@@ -2294,6 +2294,16 @@ func (h *Handler) ServisJavniStatus(w http.ResponseWriter, r *http.Request) {
 
 	podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 
+	// kad je klijent odbio popravku, ne prikazujemo radove i delove
+	if nalog.PopravkaOdbijena {
+		ugrRadovi = nil
+		ugrDelovi = nil
+		predRadovi = nil
+		predDelovi = nil
+		ukupnoSve = 0
+		ukupnoPredlog = 0
+	}
+
 	h.renderujStandalone(w, "servis_status_javni", PodaciJavnogStatusa{
 		Nalog:             *nalog,
 		NazivFirme:        podesavanja["naziv_firme"],
