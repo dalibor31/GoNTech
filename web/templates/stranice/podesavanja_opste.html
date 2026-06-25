@@ -213,7 +213,7 @@
                 </div>
 
                 <!-- PDV obveznik -->
-                <div>
+                <div id="pdv-grupa">
                     <label class="polje-labela">U sistemu PDV-a</label>
                     <div style="display:flex;gap:10px;flex-wrap:wrap;">
                         <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:0.5px solid var(--ivica);border-radius:8px;cursor:pointer;flex:1;{{if eq .FirmaPdvObveznik "da"}}border-color:var(--sb-akcent);background:var(--pozadina);{{end}}">
@@ -320,30 +320,45 @@
 {{end}}
 
 <script>
-// Fiskalizacija ima smisla samo u punom režimu. Kad je „samo evidencija", grupa se
-// zasivi i forsira na „Ne". Ne koristimo disabled (jer disabled polje se ne šalje u
-// POST pa bi stara vrednost ostala u bazi) — umesto toga pointer-events:none, a radio
-// „Ne" ostaje aktivan i čekiran, pa se uredno sačuva „ne".
+// „Samo evidencija" gasi ceo zakonski sloj — PDV i Fiskalizacija se zasive i forsiraju na „Ne".
+// Ne koristimo disabled (disabled polje se ne šalje u POST) — umesto toga pointer-events:none.
 (function() {
     var rezim = document.querySelectorAll('input[name="firma_rezim"]');
-    var grupa = document.getElementById('fiskalizacija-grupa');
-    var fisk = document.querySelectorAll('input[name="firma_fiskalizacija"]');
-    if (!grupa || !rezim.length) return;
+    var fiskGrupa = document.getElementById('fiskalizacija-grupa');
+    var pdvGrupa = document.getElementById('pdv-grupa');
+    if (!rezim.length) return;
+
+    function lockGrupa(grupa, radioName) {
+        if (!grupa) return;
+        grupa.style.opacity = '0.45';
+        grupa.style.pointerEvents = 'none';
+        // forsiraj radio na vrednost „ne"
+        var radio = grupa.querySelectorAll('input[name="' + radioName + '"]');
+        radio.forEach(function(r) {
+            r.checked = (r.value === 'ne');
+            var lab = r.closest('label');
+            if (lab) {
+                lab.style.borderColor = r.checked ? 'var(--sb-akcent)' : 'var(--ivica)';
+                lab.style.background = r.checked ? 'var(--pozadina)' : 'transparent';
+            }
+        });
+    }
+
+    function unlockGrupa(grupa) {
+        if (!grupa) return;
+        grupa.style.opacity = '';
+        grupa.style.pointerEvents = '';
+    }
 
     function azuriraj() {
         var izabran = document.querySelector('input[name="firma_rezim"]:checked');
         var samoEvidencija = izabran && izabran.value === 'samo_evidencija';
-        grupa.style.opacity = samoEvidencija ? '0.45' : '';
-        grupa.style.pointerEvents = samoEvidencija ? 'none' : '';
         if (samoEvidencija) {
-            fisk.forEach(function(r) {
-                r.checked = (r.value === 'ne');
-                var lab = r.closest('label');
-                if (lab) {
-                    lab.style.borderColor = r.checked ? 'var(--sb-akcent)' : 'var(--ivica)';
-                    lab.style.background = r.checked ? 'var(--pozadina)' : 'transparent';
-                }
-            });
+            lockGrupa(fiskGrupa, 'firma_fiskalizacija');
+            lockGrupa(pdvGrupa, 'firma_pdv_obveznik');
+        } else {
+            unlockGrupa(fiskGrupa);
+            unlockGrupa(pdvGrupa);
         }
     }
 
