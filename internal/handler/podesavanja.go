@@ -4,9 +4,11 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"html"
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -922,11 +924,18 @@ func (h *Handler) TestFiskalizacije(w http.ResponseWriter, r *http.Request) {
 		pfrURL = vrednostIliDefault(podesavanja, "pfr_url", "http://127.0.0.1:4566")
 	}
 
+	// Dozvoljavamo samo localhost/loopback da sprečimo SSRF
+	parsedURL, err := url.Parse(pfrURL)
+	if err != nil || (parsedURL.Hostname() != "127.0.0.1" && parsedURL.Hostname() != "localhost") {
+		http.Error(w, "Nevažeći PFR URL — dozvoljen samo localhost", http.StatusBadRequest)
+		return
+	}
+
 	klijent := &http.Client{Timeout: 5 * time.Second}
 	resp, err := klijent.Get(pfrURL + "/api/status")
 	if err != nil {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprintf(w, `<div class="fisk-status greska">&#10007; Nije dostupan — %s</div>`, err.Error())
+		fmt.Fprintf(w, `<div class="fisk-status greska">&#10007; Nije dostupan — %s</div>`, html.EscapeString(err.Error()))
 		return
 	}
 	defer resp.Body.Close()
@@ -946,7 +955,7 @@ func (h *Handler) TestFiskalizacije(w http.ResponseWriter, r *http.Request) {
 			<span>Poslednji račun: %s</span>
 			<span>Vreme: %s</span>
 		</div>
-	</div>`, pfrURL, tin, lastInvoice, sdcDateTime)
+	</div>`, html.EscapeString(pfrURL), html.EscapeString(tin), html.EscapeString(lastInvoice), html.EscapeString(sdcDateTime))
 }
 
 // PodesavanjaSistem renderuje stranicu sa sistemskim podešavanjima (backup)
