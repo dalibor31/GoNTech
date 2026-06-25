@@ -817,7 +817,9 @@
             <!-- Radovi — listing pa subtotal -->
             {{if .ServisniRadovi}}
             <div>
-                <div style="font-size:13px;font-weight:500;color:var(--tekst-glavni);margin-bottom:8px;">Obavljeni radovi</div>
+                <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;background:color-mix(in srgb, var(--sb-akcent) 10%, transparent);border-left:3px solid var(--sb-akcent);border-radius:6px;font-size:13px;font-weight:600;color:var(--tekst-glavni);margin-bottom:10px;">
+                    🔧 Obavljeni radovi
+                </div>
                 <div class="kolona" style="gap:6px;">
                     {{range .ServisniRadovi}}
                     <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
@@ -840,7 +842,9 @@
             <!-- Delovi — listing pa subtotal -->
             {{if .ServisniDelovi}}
             <div style="margin-top:6px;padding-top:12px;border-top:0.5px solid var(--ivica);">
-                <div style="font-size:13px;font-weight:500;color:var(--tekst-glavni);margin-bottom:8px;">Ugrađeni delovi</div>
+                <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;background:color-mix(in srgb, var(--zelena, #22c55e) 10%, transparent);border-left:3px solid var(--zelena, #22c55e);border-radius:6px;font-size:13px;font-weight:600;color:var(--tekst-glavni);margin-bottom:10px;">
+                    💾 Ugrađeni delovi
+                </div>
                 <div class="kolona" style="gap:6px;">
                     {{range .ServisniDelovi}}
                     <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
