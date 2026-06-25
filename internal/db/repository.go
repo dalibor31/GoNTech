@@ -374,4 +374,5 @@ type PodsetnikRepository interface {
 type FiskalRepository interface {
 	Kreiraj(ctx context.Context, fr *model.FiskalniRacun) (int64, error)
 	DohvatiPoProdaji(ctx context.Context, prodajaID int64) (*model.FiskalniRacun, error)
+	DohvatiPoServisu(ctx context.Context, servisID int64) (*model.FiskalniRacun, error)
 }

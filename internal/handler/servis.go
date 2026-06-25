@@ -77,6 +77,7 @@ type PodaciDetaljiNaloga struct {
 	CenaDijagnostikePredlog string         // podrazumevana cena dijagnostike iz podešavanja (za prefill input-a)
 	KorisceneUsluge         map[int64]bool // ID-evi usluga već dodatih na nalog — izostavljaju se iz dropdown-a
 	SviStatusi              []string
+	FiskalniRacun           *model.FiskalniRacun // nil ako nije fiskalizovano
 }
 
 // Servis renderuje listu servisnih naloga sa opcionom pretragom i filterom statusa
@@ -696,6 +697,11 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 		CenaDijagnostikePredlog: podesavanja["servis_cena_dijagnostike"],
 		KorisceneUsluge:         korisceneUsluge,
 		SviStatusi:              model.SviStatusi,
+	}
+
+	// učitaj fiskalni račun ako postoji (za prikaz u detaljima)
+	if fr, _ := h.FiskalRepo.DohvatiPoServisu(r.Context(), id); fr != nil {
+		podaci.FiskalniRacun = fr
 	}
 
 	h.renderujTemplate(w, "servis_detalji", podaci)
