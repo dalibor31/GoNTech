@@ -2065,7 +2065,7 @@ func (h *Handler) fiskalizujServis(ctx context.Context, servisID int64, klijent 
 	poreskeJSON, _ := json.Marshal(odgovor.TaxItems)
 	siroviJSON, _ := json.Marshal(odgovor)
 	fr := &model.FiskalniRacun{
-		ProdajaID:         -servisID, // negativan ID za servis (razlikuje se od prodaje)
+		ServisID:          servisID,
 		TipRacuna:         "Normal",
 		TipTransakcije:    "Sale",
 		PfrBroj:           odgovor.InvoiceNumber,

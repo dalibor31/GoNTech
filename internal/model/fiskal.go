@@ -4,7 +4,8 @@ package model
 // Polja prate tačno ono što Fisk server vraća u JSON odgovoru (vidi NtechFisk.md §3.2).
 type FiskalniRacun struct {
 	ID                int64
-	ProdajaID         int64
+	ProdajaID         int64   // 0 ako nije vezan za prodaju (npr. servisni nalog)
+	ServisID          int64   // 0 ako nije vezan za servis (npr. prodajni nalog)
 	TipRacuna         string  // "Normal", "Advance", "Copy", "Training"
 	TipTransakcije    string  // "Sale", "Refund"
 	PfrBroj           string  // invoiceNumber — jedinstven broj fiskalnog računa
