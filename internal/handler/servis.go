@@ -1969,8 +1969,23 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// pri prelasku u Preuzeto — sačuvaj naplatu i fiskalizuj
+	// pri prelasku u Preuzeto — auto-izračunaj cenu_konacnu ako nije uneta, pa sačuvaj naplatu i fiskalizuj
 	if noviStatus == model.StatusPreuzeto {
+		nalog, _ := h.ServisRepo.DohvatiID(r.Context(), id)
+		if nalog != nil && nalog.CenaKonacna == nil {
+			// auto-izračunaj: dijagnostika + radovi + delovi
+			radovi, _ := h.ServisniRadoviRepo.DohvatiZaNalog(r.Context(), id)
+			delovi, _ := h.ServisniDeloviRepo.DohvatiZaNalog(r.Context(), id)
+			ukupno := nalog.CenaDijagnostike
+			for _, rad := range radovi {
+				ukupno += rad.Ukupno()
+			}
+			for _, d := range delovi {
+				ukupno += d.Ukupno()
+			}
+			h.ServisRepo.AzurirajCenuKonacnu(r.Context(), id, ukupno)
+			nalog.CenaKonacna = &ukupno
+		}
 		nacin := strings.TrimSpace(r.FormValue("nacin_placanja"))
 		if nacin == "" {
 			nacin = "Gotovina"

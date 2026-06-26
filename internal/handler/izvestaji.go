@@ -264,9 +264,10 @@ func (h *Handler) PrometniListMagacina(w http.ResponseWriter, r *http.Request) {
 // PodaciStanjaZaliha su podaci za izveštaj o stanju zaliha
 type PodaciStanjaZaliha struct {
 	model.PodaciStranice
-	Zalihe         []model.StanjeZalihaRed
-	UkupnaVrednost float64
-	BrojArtikala   int
+	Zalihe              []model.StanjeZalihaRed
+	UkupnaVrednost      float64
+	UkupnaVrednostSaPdv float64
+	BrojArtikala        int
 }
 
 // StanjeZalihaIzvestaj renderuje izveštaj o trenutnom stanju zaliha
@@ -282,8 +283,10 @@ func (h *Handler) StanjeZalihaIzvestaj(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var ukupnaVrednost float64
+	var ukupnaVrednostSaPdv float64
 	for _, z := range zalihe {
 		ukupnaVrednost += z.VrednostZalihe
+		ukupnaVrednostSaPdv += z.VrednostSaPdv
 	}
 
 	podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
@@ -292,10 +295,11 @@ func (h *Handler) StanjeZalihaIzvestaj(w http.ResponseWriter, r *http.Request) {
 	ps.NaslovStranice = "Stanje zaliha"
 
 	h.renderujTemplate(w, "stanje_zaliha", PodaciStanjaZaliha{
-		PodaciStranice: ps,
-		Zalihe:         zalihe,
-		UkupnaVrednost: ukupnaVrednost,
-		BrojArtikala:   len(zalihe),
+		PodaciStranice:      ps,
+		Zalihe:              zalihe,
+		UkupnaVrednost:      ukupnaVrednost,
+		UkupnaVrednostSaPdv: ukupnaVrednostSaPdv,
+		BrojArtikala:        len(zalihe),
 	})
 }
 

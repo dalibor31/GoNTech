@@ -27,7 +27,7 @@ func (r *sqliteIzvestajRepo) BrojArtikala(ctx context.Context) (int, error) {
 func (r *sqliteIzvestajRepo) BrojAktivnihServisa(ctx context.Context) (int, error) {
 	var n int
 	err := r.db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM servisni_nalozi WHERE status != 'Završeno'`).Scan(&n)
+		`SELECT COUNT(*) FROM servisni_nalozi WHERE status NOT IN ('Završeno', 'Preuzeto')`).Scan(&n)
 	if err != nil {
 		return 0, fmt.Errorf("ntech: izvestaj.BrojAktivnihServisa: %w", err)
 	}
@@ -145,7 +145,7 @@ func (r *sqliteIzvestajRepo) MesecniPrihodProdaja(ctx context.Context) ([]model.
 
 func (r *sqliteIzvestajRepo) MesecniPrihodServis(ctx context.Context) ([]model.MesecniIznos, error) {
 	return r.mesecniPrihod(ctx, `
-		SELECT substr(datum_zavrsetka, 1, 7), SUM(cena_konacna)
+		SELECT substr(datum_zavrsetka, 1, 7), SUM(COALESCE(cena_konacna, 0))
 		FROM servisni_nalozi
 		WHERE datum_zavrsetka IS NOT NULL
 		  AND status = 'Preuzeto'
@@ -269,7 +269,9 @@ func (r *sqliteIzvestajRepo) StanjeZaliha(ctx context.Context) ([]model.StanjeZa
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT a.naziv, COALESCE(a.sifra, ''), COALESCE(k.naziv, ''),
 		       a.kolicina, a.kolicina_min, a.nabavna_cena, a.prodajna_cena,
-		       a.kolicina * a.nabavna_cena AS vrednost
+		       a.cena_sa_pdv,
+		       a.kolicina * a.nabavna_cena AS vrednost,
+		       a.kolicina * a.cena_sa_pdv AS vrednost_sa_pdv
 		FROM artikli a
 		LEFT JOIN kategorije k ON k.id = a.kategorija_id
 		ORDER BY k.naziv ASC, a.naziv ASC`,
@@ -283,7 +285,8 @@ func (r *sqliteIzvestajRepo) StanjeZaliha(ctx context.Context) ([]model.StanjeZa
 	for rows.Next() {
 		var s model.StanjeZalihaRed
 		if err := rows.Scan(&s.Naziv, &s.Sifra, &s.Kategorija,
-			&s.Kolicina, &s.KolicinMin, &s.NabavnaCena, &s.ProdajnaCena, &s.VrednostZalihe); err != nil {
+			&s.Kolicina, &s.KolicinMin, &s.NabavnaCena, &s.ProdajnaCena,
+			&s.CenaSaPdv, &s.VrednostZalihe, &s.VrednostSaPdv); err != nil {
 			return nil, fmt.Errorf("ntech: IzvestajRepo.StanjeZaliha: scan: %w", err)
 		}
 		lista = append(lista, s)

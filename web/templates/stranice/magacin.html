@@ -79,8 +79,9 @@
                         <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-jak);">Naziv</th>
                         <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-jak);">Kategorija</th>
                         <th style="padding:12px 16px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-jak);">Količina</th>
-                        <th style="padding:12px 16px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-jak);">Prodajna</th>
-                        {{if index .Moduli "pdv"}}<th style="padding:12px 16px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-jak);">Sa PDV-om</th>{{end}}
+                        <th style="padding:12px 16px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-jak);cursor:pointer;white-space:nowrap;" id="cena-zaglavlje" onclick="toggleCenaPdv()">
+                            Cena <span id="cena-toggle" style="font-size:10px;color:var(--sb-akcent);">▾ bez PDV</span>
+                        </th>
                         <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-jak);">Lokacija</th>
                         <th style="padding:12px 16px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-jak);">Akcije</th>
                     </tr>
@@ -102,8 +103,9 @@
                             <span style="font-size:12px;color:var(--tekst-sporedni);">{{if eq .Tip "usluga"}}usluga{{else}}trošak{{end}}</span>
                             {{end}}
                         </td>
-                        <td style="padding:12px 16px;text-align:right;font-size:14px;color:var(--tekst-glavni);">{{dinari .ProdajnaCena}} din</td>
-                        {{if index $.Moduli "pdv"}}<td style="padding:12px 16px;text-align:right;font-size:14px;color:var(--tekst-glavni);">{{dinari .CenaSaPdv}} din</td>{{end}}
+                        <td style="padding:12px 16px;text-align:right;font-size:14px;color:var(--tekst-glavni);">
+                            <span class="cena-bez-pdv">{{dinari .ProdajnaCena}}</span><span class="cena-sa-pdv" style="display:none">{{dinari .CenaSaPdv}}</span> din
+                        </td>
                         <td style="padding:12px 16px;font-size:13px;color:var(--tekst-sporedni);">
                             {{if .Lokacija}}{{.Lokacija}}{{else}}—{{end}}
                         </td>
@@ -136,7 +138,7 @@
                     </tr>
                     {{else}}
                     <tr>
-                        <td colspan="{{if index .Moduli "pdv"}}8{{else}}7{{end}}" style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
+                        <td colspan="7" style="padding:32px;text-align:center;font-size:14px;color:var(--tekst-sporedni);">
                             {{if or $.Filter.Pretraga $.KategorijaIDStr $.Filter.SamoKriticni}}Za datu pretragu nema stavki u bazi.{{else}}Nema stavki. <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/magacin/novi?tip={{$.Tip}}" style="color:var(--sb-akcent);">Dodaj prvu.</a>{{end}}
                         </td>
                     </tr>
@@ -194,13 +196,9 @@
                     {{end}}
                 </div>
                 <div class="pomocni-tekst">
-                    <span style="color:var(--tekst-glavni);font-weight:500;">Cena:</span> {{dinari .ProdajnaCena}} din
+                    <span style="color:var(--tekst-glavni);font-weight:500;">Cena:</span>
+                    <span class="cena-bez-pdv">{{dinari .ProdajnaCena}}</span><span class="cena-sa-pdv" style="display:none">{{dinari .CenaSaPdv}}</span> din
                 </div>
-                {{if index $.Moduli "pdv"}}
-                <div class="pomocni-tekst">
-                    <span style="color:var(--tekst-glavni);font-weight:500;">Sa PDV:</span> {{dinari .CenaSaPdv}} din
-                </div>
-                {{end}}
                 {{if .Lokacija}}
                 <div class="pomocni-tekst">
                     <span style="color:var(--tekst-glavni);font-weight:500;">Lokacija:</span> {{.Lokacija}}
@@ -260,6 +258,18 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
     void rez.offsetHeight;
     rez.classList.remove('bez-anim');
 });
+
+// toggle cena: bez PDV ↔ sa PDV
+var cenaPdvRezim = false; // false = bez PDV
+function toggleCenaPdv() {
+    cenaPdvRezim = !cenaPdvRezim;
+    var bez = document.querySelectorAll('.cena-bez-pdv');
+    var sa  = document.querySelectorAll('.cena-sa-pdv');
+    var tgl = document.getElementById('cena-toggle');
+    for (var i = 0; i < bez.length; i++) { bez[i].style.display = cenaPdvRezim ? 'none' : ''; }
+    for (var j = 0; j < sa.length; j++)  { sa[j].style.display  = cenaPdvRezim ? '' : 'none'; }
+    if (tgl) tgl.textContent = cenaPdvRezim ? '▾ sa PDV' : '▾ bez PDV';
+}
 </script>
 {{end}}
 

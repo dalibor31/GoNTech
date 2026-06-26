@@ -200,6 +200,7 @@ type ServisRepository interface {
 	AzurirajNalazDijagnostike(ctx context.Context, id int64, tekst string) error
 	AzurirajUradjeno(ctx context.Context, id int64, tekst string) error
 	AzurirajCenaDijagnostike(ctx context.Context, id int64, cena float64) error
+	AzurirajCenuKonacnu(ctx context.Context, id int64, cena float64) error
 	OdbijPopravku(ctx context.Context, id int64, cena float64) error
 	AzurirajKomentarKlijenta(ctx context.Context, id int64, tekst string) error
 	SacuvajOdlukuKlijenta(ctx context.Context, id int64, odluka string, odgovor string) error

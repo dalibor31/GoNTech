@@ -14,13 +14,13 @@
             </a>
         </div>
         <div style="display:flex;gap:16px;flex-wrap:wrap;">
-            <div style="text-align:right;">
-                <div style="font-size:12px;color:var(--tekst-slabi);">Broj artikala</div>
-                <div style="font-size:18px;font-weight:600;color:var(--tekst-glavni);">{{.BrojArtikala}}</div>
+            <div style="text-align:right;background:rgba(0,0,0,0.35);padding:8px 14px;border-radius:8px;backdrop-filter:blur(4px);">
+                <div style="font-size:12px;color:rgba(255,255,255,0.8);">Broj artikala</div>
+                <div style="font-size:18px;font-weight:600;color:#fff;">{{.BrojArtikala}}</div>
             </div>
-            <div style="text-align:right;">
-                <div style="font-size:12px;color:var(--tekst-slabi);">Ukupna vrednost zalihe</div>
-                <div style="font-size:18px;font-weight:600;color:var(--tekst-glavni);">{{dinari .UkupnaVrednost}} din</div>
+            <div style="text-align:right;background:rgba(0,0,0,0.35);padding:8px 14px;border-radius:8px;backdrop-filter:blur(4px);">
+                <div style="font-size:12px;color:rgba(255,255,255,0.8);">Ukupna vrednost zalihe</div>
+                <div style="font-size:18px;font-weight:600;color:#fff;">{{dinari .UkupnaVrednost}} din</div>
             </div>
         </div>
     </div>
@@ -47,7 +47,9 @@
                         <th style="text-align:right;">Min.</th>
                         <th style="text-align:right;">Nab. cena</th>
                         <th style="text-align:right;">Prod. cena</th>
+                        {{if index .Moduli "pdv"}}<th style="text-align:right;">Cena sa PDV</th>{{end}}
                         <th style="text-align:right;">Vrednost</th>
+                        {{if index .Moduli "pdv"}}<th style="text-align:right;">Vred. sa PDV</th>{{end}}
                     </tr>
                 </thead>
                 <tbody>
@@ -60,14 +62,17 @@
                     <td style="text-align:right;font-size:12px;color:var(--tekst-slabi);">{{.KolicinMin}}</td>
                     <td style="text-align:right;font-family:monospace;font-size:12px;">{{dinari .NabavnaCena}}</td>
                     <td style="text-align:right;font-family:monospace;font-size:12px;">{{dinari .ProdajnaCena}}</td>
+                    {{if index $.Moduli "pdv"}}<td style="text-align:right;font-family:monospace;font-size:12px;">{{dinari .CenaSaPdv}}</td>{{end}}
                     <td style="text-align:right;font-family:monospace;font-weight:500;">{{dinari .VrednostZalihe}}</td>
+                    {{if index $.Moduli "pdv"}}<td style="text-align:right;font-family:monospace;font-weight:500;">{{dinari .VrednostSaPdv}}</td>{{end}}
                 </tr>
                 {{end}}
                 </tbody>
                 <tfoot>
                     <tr style="border-top:1.5px solid var(--ivica);font-weight:600;">
-                        <td colspan="7" style="padding:10px 12px;font-size:13px;">Ukupna vrednost zalihe</td>
+                        <td colspan="{{if index .Moduli "pdv"}}8{{else}}7{{end}}" style="padding:10px 12px;font-size:13px;">Ukupna vrednost zalihe</td>
                         <td style="text-align:right;padding:10px 12px;font-family:monospace;">{{dinari .UkupnaVrednost}} din</td>
+                        {{if index .Moduli "pdv"}}<td style="text-align:right;padding:10px 12px;font-family:monospace;">{{dinari .UkupnaVrednostSaPdv}} din</td>{{end}}
                     </tr>
                 </tfoot>
             </table>

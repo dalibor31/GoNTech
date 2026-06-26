@@ -192,9 +192,9 @@
               ">
               Cena/kom
             </th>
-            <th style="padding:10px 20px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:80px;">
+            {{if index .Moduli "pdv"}}<th style="padding:10px 20px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:80px;">
               PDV %
-            </th>
+            </th>{{end}}
             <th style="padding:10px 20px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:120px;">
               Ukupno
             </th>
@@ -206,9 +206,9 @@
             <td style="padding:10px 20px;font-size:14px;color:var(--tekst-glavni);">{{.ArtikalNaziv}}</td>
             <td style="padding:10px 20px;text-align:center;font-size:14px;color:var(--tekst-glavni);">{{.Kolicina}}</td>
             <td style="padding:10px 20px;text-align:right;font-size:14px;color:var(--tekst-sporedni);">{{dinari .CenaPoKomadu}} din</td>
-            <td style="padding:10px 20px;text-align:center;font-size:13px;color:var(--tekst-sporedni);">
+            {{if index $.Moduli "pdv"}}<td style="padding:10px 20px;text-align:center;font-size:13px;color:var(--tekst-sporedni);">
               {{if .PdvStopa}}{{printf "%.0f" .PdvStopa}}%{{else}}—{{end}}
-            </td>
+            </td>{{end}}
             <td style="padding:10px 20px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .Ukupno}} din</td>
           </tr>
           {{end}}

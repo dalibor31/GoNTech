@@ -339,6 +339,16 @@ func (r *ServisRepo) AzurirajCenaDijagnostike(ctx context.Context, id int64, cen
 	return nil
 }
 
+func (r *ServisRepo) AzurirajCenuKonacnu(ctx context.Context, id int64, cena float64) error {
+	_, err := r.db.ExecContext(ctx,
+		"UPDATE servisni_nalozi SET cena_konacna = ? WHERE id = ?", cena, id,
+	)
+	if err != nil {
+		return fmt.Errorf("ntech: ServisRepo.AzurirajCenuKonacnu: %w", err)
+	}
+	return nil
+}
+
 // AzurirajKomentarKlijenta čuva poruku klijenta uz prihvatanje/odbijanje predloga
 func (r *ServisRepo) AzurirajKomentarKlijenta(ctx context.Context, id int64, tekst string) error {
 	_, err := r.db.ExecContext(ctx,

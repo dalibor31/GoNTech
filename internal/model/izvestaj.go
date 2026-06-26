@@ -81,5 +81,7 @@ type StanjeZalihaRed struct {
 	KolicinMin     int
 	NabavnaCena    float64
 	ProdajnaCena   float64
+	CenaSaPdv      float64
 	VrednostZalihe float64 // kolicina × nabavna_cena
+	VrednostSaPdv  float64 // kolicina × cena_sa_pdv
 }

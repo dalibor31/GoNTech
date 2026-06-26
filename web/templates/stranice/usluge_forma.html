@@ -50,6 +50,7 @@
                         <input type="number" name="cena" min="0" step="0.01"
                             value="{{if .Usluga.Cena}}{{.Usluga.Cena}}{{end}}" placeholder="0" style="width:100%;">
                     </div>
+                    {{if index .Moduli "pdv"}}
                     <div>
                         <label class="polje-labela">PDV stopa</label>
                         {{$pdv := .Usluga.PdvStopa}}
@@ -59,6 +60,7 @@
                             <option value="0" {{if eq $pdv 0.0}}selected{{end}}>0%</option>
                         </select>
                     </div>
+                    {{end}}
                 </div>
 
                 <div>
