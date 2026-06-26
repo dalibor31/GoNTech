@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verifikacija fiskalnog računa</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; color: #1e293b; background: #f1f5f9; min-height: 100vh; }
+
+        .omotac { max-width: 520px; margin: 0 auto; padding: 0 0 48px; }
+
+        /* baner */
+        .baner { padding: 20px 20px 16px; text-align: center; }
+        .baner.ok    { background: #16a34a; color: #fff; }
+        .baner.greska { background: #dc2626; color: #fff; }
+        .baner-ikona { font-size: 36px; line-height: 1; margin-bottom: 6px; }
+        .baner-tekst { font-size: 18px; font-weight: 700; }
+        .baner-podnaslov { font-size: 13px; margin-top: 4px; opacity: 0.85; }
+
+        /* zaglavlje firme */
+        .zaglavlje { background: #fff; padding: 16px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; }
+        .firma-naziv { font-size: 16px; font-weight: 700; color: #0f172a; }
+        .firma-info { font-size: 12px; color: #64748b; margin-top: 4px; line-height: 1.6; }
+
+        /* kartica */
+        .kartica { background: #fff; margin: 12px 12px 0; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden; }
+        .kartica-naslov { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; color: #64748b; padding: 12px 16px 8px; border-bottom: 1px solid #f1f5f9; }
+
+        /* red podataka */
+        .red { display: flex; justify-content: space-between; align-items: flex-start; padding: 9px 16px; border-bottom: 1px solid #f1f5f9; gap: 12px; }
+        .red:last-child { border-bottom: none; }
+        .red-labela { font-size: 12px; color: #64748b; }
+        .red-vrednost { font-size: 13px; color: #0f172a; font-weight: 500; text-align: right; }
+        .red-vrednost.mono { font-family: monospace; font-size: 12px; word-break: break-all; }
+
+        /* stavke */
+        .stavke-zaglavlje { display: flex; justify-content: space-between; padding: 7px 16px; background: #f8fafc; font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stavka { display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 16px; border-bottom: 1px solid #f1f5f9; gap: 8px; }
+        .stavka:last-child { border-bottom: none; }
+        .stavka-naziv { font-size: 13px; color: #1e293b; flex: 1; }
+        .stavka-kolicina { font-size: 12px; color: #64748b; text-align: center; min-width: 40px; }
+        .stavka-iznos { font-size: 13px; color: #0f172a; font-weight: 500; text-align: right; min-width: 80px; }
+
+        /* PDV tabela */
+        .pdv-red { display: flex; justify-content: space-between; padding: 7px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #374151; }
+        .pdv-red:last-child { border-bottom: none; }
+        .pdv-label { color: #64748b; }
+
+        /* ukupno */
+        .ukupno-blok { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: #0f172a; }
+        .ukupno-labela { font-size: 13px; color: #94a3b8; }
+        .ukupno-iznos { font-size: 22px; font-weight: 700; color: #fff; }
+
+        /* načini plaćanja */
+        .placanje-red { display: flex; justify-content: space-between; padding: 7px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+        .placanje-red:last-child { border-bottom: none; }
+
+        /* tip računa bedž */
+        .tip-bedz { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .tip-fiskalni  { background: #dcfce7; color: #166534; }
+        .tip-nefiskalni { background: #fef3c7; color: #92400e; }
+
+        /* podnožje */
+        .podnozje { text-align: center; padding: 20px 16px 8px; font-size: 11px; color: #94a3b8; line-height: 1.6; }
+        .podnozje a { color: #64748b; text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="omotac">
+
+{{if .Greska}}
+<div class="baner greska">
+    <div class="baner-ikona">✕</div>
+    <div class="baner-tekst">Greška pri čitanju računa</div>
+    <div class="baner-podnaslov">{{.Greska}}</div>
+</div>
+{{else}}
+
+{{if .JeFiskalni}}
+<div class="baner ok">
+    <div class="baner-ikona">✓</div>
+    <div class="baner-tekst">Račun je verifikovan</div>
+    <div class="baner-podnaslov">Fiskalni račun je evidentiran u sistemu</div>
+</div>
+{{else}}
+<div class="baner" style="background:#f59e0b;color:#1c1917;">
+    <div class="baner-ikona">ℹ</div>
+    <div class="baner-tekst">Ovo nije fiskalni račun</div>
+    <div class="baner-podnaslov">{{.Podaci.InvoiceType}}</div>
+</div>
+{{end}}
+
+{{with .Podaci}}
+
+<!-- firma -->
+<div class="zaglavlje">
+    <div class="firma-naziv">{{.Company}}</div>
+    <div class="firma-info">
+        {{if .Store}}{{.Store}}<br>{{end}}
+        {{if .Address}}{{.Address}}{{if .City}}, {{.City}}{{end}}<br>{{end}}
+        PIB: {{.TIN}}
+    </div>
+</div>
+
+<!-- osnovno -->
+<div class="kartica">
+    <div class="kartica-naslov">Podaci o računu</div>
+    <div class="red">
+        <span class="red-labela">Broj računa</span>
+        <span class="red-vrednost mono">{{.InvoiceNumber}}</span>
+    </div>
+    <div class="red">
+        <span class="red-labela">Redni broj</span>
+        <span class="red-vrednost mono">{{.InvoiceCounter}}</span>
+    </div>
+    <div class="red">
+        <span class="red-labela">Datum i vreme</span>
+        <span class="red-vrednost">{{.DateTime}}</span>
+    </div>
+    {{if .Cashier}}
+    <div class="red">
+        <span class="red-labela">Kasir</span>
+        <span class="red-vrednost">{{.Cashier}}</span>
+    </div>
+    {{end}}
+    {{if .BuyerID}}
+    <div class="red">
+        <span class="red-labela">ID kupca</span>
+        <span class="red-vrednost mono">{{.BuyerID}}</span>
+    </div>
+    {{end}}
+    <div class="red">
+        <span class="red-labela">Tip</span>
+        <span class="red-vrednost">
+            {{if eq .InvoiceType "Normal"}}
+                <span class="tip-bedz tip-fiskalni">Promet</span>
+            {{else if eq .InvoiceType "Advance"}}
+                <span class="tip-bedz tip-fiskalni">Avans</span>
+            {{else if eq .InvoiceType "Copy"}}
+                <span class="tip-bedz tip-nefiskalni">Kopija</span>
+            {{else if eq .InvoiceType "Training"}}
+                <span class="tip-bedz tip-nefiskalni">Obuka</span>
+            {{else if eq .InvoiceType "Proforma"}}
+                <span class="tip-bedz tip-nefiskalni">Predračun</span>
+            {{else}}
+                <span class="tip-bedz tip-nefiskalni">{{.InvoiceType}}</span>
+            {{end}}
+            {{if eq .TransactionType "Refund"}}
+            &nbsp;<span class="tip-bedz tip-nefiskalni">Refundacija</span>
+            {{end}}
+        </span>
+    </div>
+</div>
+
+<!-- stavke -->
+{{if .Items}}
+<div class="kartica">
+    <div class="kartica-naslov">Stavke</div>
+    <div class="stavke-zaglavlje">
+        <span>Naziv</span>
+        <span>Kol.</span>
+        <span style="text-align:right;">Iznos</span>
+    </div>
+    {{range .Items}}
+    <div class="stavka">
+        <span class="stavka-naziv">{{.Name}}</span>
+        <span class="stavka-kolicina">{{printf "%.0f" .Quantity}}</span>
+        <span class="stavka-iznos">{{dinari .TotalAmount}}</span>
+    </div>
+    {{end}}
+    <div class="ukupno-blok">
+        <span class="ukupno-labela">Ukupno za plaćanje</span>
+        <span class="ukupno-iznos">{{dinari .TotalAmount}} din</span>
+    </div>
+</div>
+{{else}}
+<div class="kartica">
+    <div class="ukupno-blok">
+        <span class="ukupno-labela">Ukupno za plaćanje</span>
+        <span class="ukupno-iznos">{{dinari .TotalAmount}} din</span>
+    </div>
+</div>
+{{end}}
+
+<!-- načini plaćanja -->
+{{if .Payments}}
+<div class="kartica">
+    <div class="kartica-naslov">Plaćanje</div>
+    {{range .Payments}}
+    <div class="placanje-red">
+        <span style="color:#374151;">
+            {{if eq .Type "Cash"}}Gotovina
+            {{else if eq .Type "Card"}}Kartica
+            {{else if eq .Type "Check"}}Ček
+            {{else if eq .Type "WireTransfer"}}Prenos
+            {{else if eq .Type "Voucher"}}Vaučer
+            {{else if eq .Type "MobileMoney"}}Mobilno plaćanje
+            {{else}}{{.Type}}{{end}}
+        </span>
+        <span style="font-weight:600;">{{dinari .Amount}} din</span>
+    </div>
+    {{end}}
+</div>
+{{end}}
+
+<!-- PDV -->
+{{if .TaxItems}}
+<div class="kartica">
+    <div class="kartica-naslov">Porez</div>
+    {{range .TaxItems}}
+    <div class="pdv-red">
+        <span class="pdv-label">{{if .CategoryName}}{{.CategoryName}} ({{.Label}}){{else}}{{.Label}}{{end}} {{printf "%.0f" .Rate}}%</span>
+        <span>Osnovica: {{dinari .Base}}</span>
+        <span style="font-weight:600;">PDV: {{dinari .Amount}} din</span>
+    </div>
+    {{end}}
+</div>
+{{end}}
+
+{{end}}{{/* with .Podaci */}}
+
+<div class="podnozje">
+    Fiskalizacija — NTech sistem<br>
+    <span style="font-size:10px;color:#cbd5e1;">Poreski identifikacioni broj se proverava kod Poreske uprave RS</span>
+</div>
+
+{{end}}{{/* if .Greska */}}
+
+</div>
+</body>
+</html>

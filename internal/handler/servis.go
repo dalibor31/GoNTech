@@ -526,23 +526,37 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 	// self-heal: ako u međuvremenu ima stanja na magacinu za potraživane artikle,
 	// povuci ih (delimično ili u celosti) i otključaj nalog ako je sve pokriveno.
 	// Hvata sve načine na koje stanje poraste, ne samo nabavku/izmenu/popis.
-	if potrazivani, e := h.ServisniPotrazivaniDeloviRepo.DohvatiZaNalog(r.Context(), id); e == nil && len(potrazivani) > 0 {
-		vidjeni := map[int64]bool{}
-		for _, p := range potrazivani {
-			if vidjeni[p.ArtikalID] {
-				continue
+	// Samo predlozeno=false redovi blokiraju nalog — predloženi se ignorišu.
+	if potrazivaniSvi, e := h.ServisniPotrazivaniDeloviRepo.DohvatiZaNalog(r.Context(), id); e == nil {
+		var potrazivani []model.ServisniPotrazivaniDeo
+		for _, p := range potrazivaniSvi {
+			if !p.Predlozeno {
+				potrazivani = append(potrazivani, p)
 			}
-			vidjeni[p.ArtikalID] = true
-			otkljucani, err := h.ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal(r.Context(), p.ArtikalID)
-			if err != nil {
-				slog.Error("self-heal potraživanih delova nije uspeo", "artikal_id", p.ArtikalID, "error", err)
-				continue
+		}
+		if len(potrazivani) == 0 && nalog.Status == model.StatusCekaDelove {
+			// nema predlozeno=0 redova koji blokiraju — resetuj status odmah
+			if err := h.ServisRepo.AzurirajStatus(r.Context(), id, model.StatusPrimljeno); err != nil {
+				slog.Error("self-heal reset statusa (nema predlozeno=0) nije uspeo", "nalog_id", id, "error", err)
 			}
-			for _, nalogID := range otkljucani {
-				// reset samo ako je nalog čekao delove — ne sme da menja U dijagnostici, U popravci itd.
-				if tekuci, e := h.ServisRepo.DohvatiID(r.Context(), nalogID); e == nil && tekuci != nil && tekuci.Status == model.StatusCekaDelove {
-					if err := h.ServisRepo.AzurirajStatus(r.Context(), nalogID, model.StatusPrimljeno); err != nil {
-						slog.Error("self-heal reset statusa naloga nije uspeo", "nalog_id", nalogID, "error", err)
+		} else if len(potrazivani) > 0 {
+			vidjeni := map[int64]bool{}
+			for _, p := range potrazivani {
+				if vidjeni[p.ArtikalID] {
+					continue
+				}
+				vidjeni[p.ArtikalID] = true
+				otkljucani, err := h.ServisniPotrazivaniDeloviRepo.ProveriIPocistiZaArtikal(r.Context(), p.ArtikalID)
+				if err != nil {
+					slog.Error("self-heal potraživanih delova nije uspeo", "artikal_id", p.ArtikalID, "error", err)
+					continue
+				}
+				for _, nalogID := range otkljucani {
+					// reset samo ako je nalog čekao delove — ne sme da menja U dijagnostici, U popravci itd.
+					if tekuci, e := h.ServisRepo.DohvatiID(r.Context(), nalogID); e == nil && tekuci != nil && tekuci.Status == model.StatusCekaDelove {
+						if err := h.ServisRepo.AzurirajStatus(r.Context(), nalogID, model.StatusPrimljeno); err != nil {
+							slog.Error("self-heal reset statusa naloga nije uspeo", "nalog_id", nalogID, "error", err)
+						}
 					}
 				}
 			}
@@ -1929,11 +1943,19 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// zabrana izlaska iz „Čeka delove" dok postoje potraživani delovi —
-	// prvo nabaviti delove, pa obrisati iz potraživanih (ili kroz nabavku)
+	// zabrana izlaska iz „Čeka delove" dok postoje potraživani delovi (predlozeno=false) —
+	// predloženi delovi (predlozeno=true) ne blokiraju nalog
 	if e == nil && trenutni.Status == model.StatusCekaDelove && noviStatus != model.StatusCekaDelove {
-		potrazivani, err := h.ServisniPotrazivaniDeloviRepo.DohvatiZaNalog(r.Context(), id)
-		if err == nil && len(potrazivani) > 0 {
+		sviPotrazivani, err := h.ServisniPotrazivaniDeloviRepo.DohvatiZaNalog(r.Context(), id)
+		var blokirajuci int
+		if err == nil {
+			for _, p := range sviPotrazivani {
+				if !p.Predlozeno {
+					blokirajuci++
+				}
+			}
+		}
+		if blokirajuci > 0 {
 			middleware.SetFlash(w, r, h.DB, "greska",
 				"Nalog ne može da napusti „Čeka delove\" dok ima delova koji nedostaju. Obrišite ih iz tabele ili dopunite zalihe.")
 			http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
@@ -2096,7 +2118,17 @@ func (h *Handler) fiskalizujServis(ctx context.Context, servisID int64, klijent 
 		}
 	}
 
-	kasir, _ := sqlite.DohvatiPodesavanje(ctx, h.DB, "pfr_kasir")
+	kasir := ""
+	if kor := middleware.KorisnikIzKonteksta(ctx); kor != nil {
+		if kor.Ime != "" || kor.Prezime != "" {
+			kasir = strings.TrimSpace(kor.Ime + " " + kor.Prezime)
+		} else {
+			kasir = kor.KorisnickoIme
+		}
+	}
+	if kasir == "" {
+		kasir, _ = sqlite.DohvatiPodesavanje(ctx, h.DB, "pfr_kasir")
+	}
 	if kasir == "" {
 		kasir = "NTech"
 	}
@@ -2159,11 +2191,6 @@ func (h *Handler) StampaFiskalnog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	nalog, _ := h.ServisRepo.DohvatiID(r.Context(), id)
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	fmt.Fprint(w, `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Fiskalni račun</title>
-<style>body{font-family:monospace;font-size:12px;white-space:pre;padding:20px;max-width:400px;margin:0 auto;}
-@media print{body{font-size:11px;padding:10px}}</style></head><body>`)
-
 	journal := ""
 	if fr.SiroviOdgovor != "" {
 		var raw map[string]any
@@ -2173,17 +2200,35 @@ func (h *Handler) StampaFiskalnog(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-
-	// zameni QR placeholder pravim QR kodom
-	if fr.QRKod != "" && strings.Contains(journal, "{{{{QR-KOD}}}}") {
-		qrImg := `<img src="data:image/png;base64,` + fr.QRKod + `" style="width:25mm;height:25mm;display:block;margin:8px auto;">`
-		journal = strings.ReplaceAll(journal, "{{{{QR-KOD}}}}", qrImg)
-	}
-
-	fmt.Fprint(w, journal)
 	if nalog != nil {
-		fmt.Fprintf(w, "\n\n--- NTech servisni nalog: %s ---\n", nalog.BrojNaloga)
+		journal += "\n\n--- NTech servisni nalog: " + nalog.BrojNaloga + " ---\n"
 	}
+
+	// Podeli journal na deo pre i posle QR placeholder-a
+	const qrPlaceholder = "{{{{QR-KOD}}}}"
+	pre, post, hasQR := strings.Cut(journal, qrPlaceholder)
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	fmt.Fprint(w, `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Fiskalni račun</title>
+<style>
+*{box-sizing:border-box;}
+body{font-family:monospace;font-size:12px;padding:20px;max-width:max-content;margin:0 auto;}
+pre{white-space:pre;margin:0;padding:0;font-family:inherit;font-size:inherit;display:block;}
+@media print{body{font-size:11px;padding:10px;}}
+</style></head><body>`)
+
+	fmt.Fprint(w, `<pre>`)
+	fmt.Fprint(w, pre)
+	fmt.Fprint(w, `</pre>`)
+
+	if hasQR && fr.QRKod != "" {
+		fmt.Fprintf(w, `<div style="margin:10px 0;"><img src="data:image/png;base64,%s" style="display:block;margin:0 auto;width:72mm;height:72mm;"></div>`, fr.QRKod)
+	}
+
+	fmt.Fprint(w, `<pre>`)
+	fmt.Fprint(w, post)
+	fmt.Fprint(w, `</pre>`)
+
 	fmt.Fprint(w, `<p style="margin-top:16px;"><button onclick="window.print()" style="padding:8px 16px;">Štampaj</button></p></body></html>`)
 }
 func (h *Handler) AzurirajGaranciju(w http.ResponseWriter, r *http.Request) {

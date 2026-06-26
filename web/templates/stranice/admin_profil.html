@@ -1,6 +1,27 @@
 {{ template "base" . }} {{ define "naslov" }}Moj profil — NTech{{ end }}
 {{ define "sadrzaj" }}
 <div class="stranica-stack" style="display: flex; flex-direction: column; gap: 16px; max-width: 560px">
+	<!-- ime i prezime -->
+	<div class="kartica animiraj">
+		<div style="font-size: 15px; font-weight: 500; color: var(--tekst-glavni); margin-bottom: 16px; padding-bottom: 12px; border-bottom: 0.5px solid var(--ivica)">Ime i prezime</div>
+		<form method="POST" action="/admin/profil/ime-prezime">
+			<div style="display: flex; flex-direction: column; gap: 12px">
+				<div>
+					<label class="polje-labela">Ime</label>
+					<input type="text" name="ime" value="{{.Ime}}" placeholder="npr. Petar" style="width: 100%; box-sizing: border-box" />
+				</div>
+				<div>
+					<label class="polje-labela">Prezime</label>
+					<input type="text" name="prezime" value="{{.Prezime}}" placeholder="npr. Petrović" style="width: 100%; box-sizing: border-box" />
+				</div>
+				<div class="pomocni-tekst">Koristi se kao „Kasir" na fiskalnom računu.</div>
+				<div>
+					<button type="submit" class="btn-primarno">Sačuvaj</button>
+				</div>
+			</div>
+		</form>
+	</div>
+
 	<!-- promena lozinke -->
 	<div class="kartica animiraj">
 		<div style="font-size: 15px; font-weight: 500; color: var(--tekst-glavni); margin-bottom: 16px; padding-bottom: 12px; border-bottom: 0.5px solid var(--ivica)">Promena lozinke</div>

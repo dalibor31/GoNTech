@@ -6,6 +6,8 @@ import "time"
 type Korisnik struct {
 	ID                          int64
 	KorisnickoIme               string
+	Ime                         string
+	Prezime                     string
 	LozinkaHash                 string
 	Uloga                       string // "superadmin" | "admin" | "radnik"
 	Aktivan                     bool

@@ -33,6 +33,8 @@ type korisnikOpcije struct {
 	lokalnaAnimacija            sql.NullString
 	lokalniHover                sql.NullString
 	lokalnaBrzinaAnimacije      sql.NullString
+	ime                         sql.NullString
+	prezime                     sql.NullString
 }
 
 // dodeliOpcijeKorisnika prenosi vrednosti iz korisnikOpcije na model.Korisnik
@@ -50,6 +52,8 @@ func dodeliOpcijeKorisnika(k *model.Korisnik, o korisnikOpcije) {
 	k.LokalnaAnimacija = o.lokalnaAnimacija.String
 	k.LokalniHover = o.lokalniHover.String
 	k.LokalnaBrzinaAnimacije = o.lokalnaBrzinaAnimacije.String
+	k.Ime = o.ime.String
+	k.Prezime = o.prezime.String
 }
 
 // skeniraiKorisnika čita jedan red iz baze i popunjava model.Korisnik
@@ -62,6 +66,7 @@ func skeniraiKorisnika(row interface{ Scan(...any) error }) (*model.Korisnik, er
 		&o.lokalnaPozadina, &o.lokalnaPozadinaOpacity, &o.lokalnaPozadinaBlur,
 		&o.lokalnaPozadinaBlurPozadine, &o.lokalnaPozadinaGlassOpacity, &o.avatarPutanja,
 		&o.lokalnaAnimacija, &o.lokalniHover, &o.lokalnaBrzinaAnimacije,
+		&o.ime, &o.prezime,
 	); err != nil {
 		return nil, err
 	}
@@ -107,7 +112,8 @@ func (r *sqliteKorisniciRepo) DohvatiPoImenu(ctx context.Context, korisnickoIme 
 		        COALESCE(lokalna_pozadina_blur, '12'), COALESCE(lokalna_pozadina_blur_pozadine, '0'),
 		        COALESCE(lokalna_pozadina_glass_opacity, '10'), COALESCE(avatar_putanja, ''),
 		        COALESCE(lokalna_animacija, ''), COALESCE(lokalni_hover, ''),
-		        COALESCE(lokalna_brzina_animacije, '')
+		        COALESCE(lokalna_brzina_animacije, ''),
+		        COALESCE(ime, ''), COALESCE(prezime, '')
 		 FROM korisnici WHERE korisnicko_ime = ?`, korisnickoIme)
 	k, err := skeniraiKorisnika(row)
 	if err != nil {
@@ -125,7 +131,8 @@ func (r *sqliteKorisniciRepo) DohvatiPoID(ctx context.Context, id int64) (*model
 		        COALESCE(lokalna_pozadina_blur, '12'), COALESCE(lokalna_pozadina_blur_pozadine, '0'),
 		        COALESCE(lokalna_pozadina_glass_opacity, '10'), COALESCE(avatar_putanja, ''),
 		        COALESCE(lokalna_animacija, ''), COALESCE(lokalni_hover, ''),
-		        COALESCE(lokalna_brzina_animacije, '')
+		        COALESCE(lokalna_brzina_animacije, ''),
+		        COALESCE(ime, ''), COALESCE(prezime, '')
 		 FROM korisnici WHERE id = ?`, id)
 	k, err := skeniraiKorisnika(row)
 	if err != nil {
@@ -143,7 +150,8 @@ func (r *sqliteKorisniciRepo) Lista(ctx context.Context) ([]model.Korisnik, erro
 		        COALESCE(lokalna_pozadina_blur, '12'), COALESCE(lokalna_pozadina_blur_pozadine, '0'),
 		        COALESCE(lokalna_pozadina_glass_opacity, '10'), COALESCE(avatar_putanja, ''),
 		        COALESCE(lokalna_animacija, ''), COALESCE(lokalni_hover, ''),
-		        COALESCE(lokalna_brzina_animacije, '')
+		        COALESCE(lokalna_brzina_animacije, ''),
+		        COALESCE(ime, ''), COALESCE(prezime, '')
 		 FROM korisnici ORDER BY datum_kreiranja ASC`)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: korisnici.Lista: %w", err)
@@ -159,6 +167,7 @@ func (r *sqliteKorisniciRepo) Lista(ctx context.Context) ([]model.Korisnik, erro
 			&o.lokalnaPozadina, &o.lokalnaPozadinaOpacity, &o.lokalnaPozadinaBlur,
 			&o.lokalnaPozadinaBlurPozadine, &o.lokalnaPozadinaGlassOpacity, &o.avatarPutanja,
 			&o.lokalnaAnimacija, &o.lokalniHover, &o.lokalnaBrzinaAnimacije,
+			&o.ime, &o.prezime,
 		); err != nil {
 			return nil, fmt.Errorf("ntech: korisnici.Lista: %w", err)
 		}
@@ -167,6 +176,15 @@ func (r *sqliteKorisniciRepo) Lista(ctx context.Context) ([]model.Korisnik, erro
 		lista = append(lista, k)
 	}
 	return lista, nil
+}
+
+func (r *sqliteKorisniciRepo) AzurirajImePrezime(ctx context.Context, id int64, ime, prezime string) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE korisnici SET ime = ?, prezime = ? WHERE id = ?`, ime, prezime, id)
+	if err != nil {
+		return fmt.Errorf("ntech: korisnici.AzurirajImePrezime: %w", err)
+	}
+	return nil
 }
 
 func (r *sqliteKorisniciRepo) SacuvajAvatar(ctx context.Context, id int64, putanja string) error {

@@ -277,6 +277,7 @@ type KorisniciRepository interface {
 	Lista(ctx context.Context) ([]model.Korisnik, error)
 	AzurirajUlogu(ctx context.Context, id int64, uloga string) error
 	AzurirajAktivan(ctx context.Context, id int64, aktivan bool) error
+	AzurirajImePrezime(ctx context.Context, id int64, ime, prezime string) error
 	PromeniLozinku(ctx context.Context, id int64, hash string) error
 	SacuvajTotpTajnu(ctx context.Context, id int64, tajna string) error
 	SacuvajLokalnuTemu(ctx context.Context, id int64, lokalnaTema string, koristi bool) error

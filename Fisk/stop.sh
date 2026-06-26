@@ -3,7 +3,7 @@
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PID_FILE="$SCRIPT_DIR/data/server.pid"
-PORT=8989
+PORT=4566
 
 echo "⏹  Zaustavljam fiskalni mock server..."
 

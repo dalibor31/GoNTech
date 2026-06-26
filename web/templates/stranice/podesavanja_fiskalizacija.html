@@ -26,6 +26,24 @@
                 </div>
 
                 <div>
+                    <label for="fiskalni_pismo" class="polje-labela">Pismo fiskalnog računa</label>
+                    <select id="fiskalni_pismo" name="fiskalni_pismo"
+                        style="width:100%;padding:8px 12px;background:var(--pozadina);border:0.5px solid var(--ivica);border-radius:8px;color:var(--tekst-glavni);font-size:14px;">
+                        <option value="latin" {{if ne .FiskalPismo "cyrillic"}}selected{{end}}>Latinica</option>
+                        <option value="cyrillic" {{if eq .FiskalPismo "cyrillic"}}selected{{end}}>Ćirilica</option>
+                    </select>
+                    <div class="pomocni-tekst" style="margin-top:4px;">Pismo kojim Fisk štampa tekst računa. Stupi na snagu posle restarta Fisk servera. Env var <code>FISKALNI_PISMO</code> ima prednost.</div>
+                </div>
+
+                <div>
+                    <label for="pfr_kasir" class="polje-labela">Kasir (ime na računu)</label>
+                    <input type="text" id="pfr_kasir" name="pfr_kasir" value="{{.PfrKasir}}"
+                        placeholder="npr. Petar Petrović"
+                        style="width:100%;padding:8px 12px;background:var(--pozadina);border:0.5px solid var(--ivica);border-radius:8px;color:var(--tekst-glavni);font-size:14px;box-sizing:border-box;">
+                    <div class="pomocni-tekst" style="margin-top:4px;">Ime koje se štampa u redu „Kasir" na fiskalnom računu. Prazno = prikazuje se „NTech".</div>
+                </div>
+
+                <div>
                     <label for="pfr_url" class="polje-labela">URL fiskalnog servera</label>
                     <input type="text" id="pfr_url" name="pfr_url" value="{{.PfrUrl}}"
                         placeholder="http://127.0.0.1:4566"
@@ -57,6 +75,103 @@
         </form>
 
         <div id="fisk-test-rezultat" style="margin-top:16px;"></div>
+
+    </div>
+
+    <!-- Kartica emulator -->
+    <div class="kartica animiraj">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sb-akcent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M7 15h.01"/><path d="M11 15h2"/></svg>
+            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Kartica emulator (BE)</span>
+        </div>
+        <div class="pomocni-tekst" style="margin-bottom:16px;">
+            Bezbednosni element — drži PIN, limite i brojače. Radi kao goroutine unutar NTech-a (port 4567).
+            Promene PIN-a i limita stupaju na snagu tek posle restarta servera.
+        </div>
+
+        <form method="POST" action="/podesavanja/sacuvaj">
+            <input type="hidden" name="_next" value="/admin/podesavanja/fiskalizacija">
+
+            <div style="display:flex;flex-direction:column;gap:16px;max-width:480px;">
+
+                <div>
+                    <label for="be_enabled" class="polje-labela">Kartica emulator</label>
+                    <select id="be_enabled" name="be_enabled"
+                        style="width:100%;padding:8px 12px;background:var(--pozadina);border:0.5px solid var(--ivica);border-radius:8px;color:var(--tekst-glavni);font-size:14px;">
+                        <option value="true" {{if ne .BeEnabled "false"}}selected{{end}}>Uključen (mock kartica)</option>
+                        <option value="false" {{if eq .BeEnabled "false"}}selected{{end}}>Isključen (pravi Teron uređaj)</option>
+                    </select>
+                    <div class="pomocni-tekst" style="margin-top:4px;">Isključi kad koristiš pravi Teron/fizički L-PFR. Stupi na snagu posle restarta servera. Env var <code>BE_ENABLED=false</code> ima prednost.</div>
+                </div>
+
+                <div>
+                    <label for="be_pin" class="polje-labela">PIN kartice</label>
+                    <input type="text" id="be_pin" name="be_pin" value="{{.BePin}}"
+                        maxlength="8" placeholder="1234"
+                        style="width:100%;padding:8px 12px;background:var(--pozadina);border:0.5px solid var(--ivica);border-radius:8px;color:var(--tekst-glavni);font-size:14px;box-sizing:border-box;font-family:monospace;">
+                    <div class="pomocni-tekst" style="margin-top:4px;">PIN koji Fisk šalje pri verify_pin komandi. Podrazumevano: <code>1234</code>. Env var <code>BE_PIN</code> ima prednost.</div>
+                </div>
+
+                <div>
+                    <label for="be_limit" class="polje-labela">Limit iščitavanja (din)</label>
+                    <input type="number" id="be_limit" name="be_limit" value="{{.BeLimit}}"
+                        min="1000" step="1000" placeholder="500000"
+                        style="width:100%;padding:8px 12px;background:var(--pozadina);border:0.5px solid var(--ivica);border-radius:8px;color:var(--tekst-glavni);font-size:14px;box-sizing:border-box;">
+                    <div class="pomocni-tekst" style="margin-top:4px;">Maksimalni neisčitani promet pre blokade kartice. Podrazumevano: <code>500 000</code>. Env var <code>BE_LIMIT</code> ima prednost.</div>
+                </div>
+
+                <div>
+                    <label for="verify_host" class="polje-labela">Domen za verifikacioni QR link</label>
+                    <input type="text" id="verify_host" name="verify_host" value="{{.VerifyHost}}"
+                        placeholder="ntech.moja-firma.rs:3000"
+                        style="width:100%;padding:8px 12px;background:var(--pozadina);border:0.5px solid var(--ivica);border-radius:8px;color:var(--tekst-glavni);font-size:14px;box-sizing:border-box;">
+                    <div class="pomocni-tekst" style="margin-top:4px;">
+                        Npr. <code>192.168.1.10:3000</code> ili <code>ntech.firma.rs</code>.
+                        Prazno = QR vodi na <code>sandbox.suf.purs.gov.rs</code>.
+                        Env var <code>VERIFY_HOST</code> ima prednost nad ovim poljem.
+                        Fisk čita ovu vrednost pri pokretanju.
+                    </div>
+                </div>
+
+                <div>
+                    <button type="submit"
+                        style="padding:9px 18px;background:var(--sb-akcent);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:500;cursor:pointer;">
+                        Sačuvaj
+                    </button>
+                </div>
+
+            </div>
+        </form>
+
+        <!-- Status kartice (live) -->
+        <div style="margin-top:20px;padding-top:16px;border-top:0.5px solid var(--ivica);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;flex-wrap:wrap;">
+                <span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--tekst-sporedni);">Status kartice</span>
+                <div style="display:flex;gap:8px;">
+                    <button type="button"
+                        hx-post="/podesavanja/fiskalizacija/be-reset-audit"
+                        hx-target="#be-status-panel"
+                        hx-swap="innerHTML"
+                        hx-confirm="Simulirati Proof of Audit? Ovo će resetovati neisčitani iznos na 0."
+                        style="padding:5px 12px;background:transparent;border:0.5px solid var(--ivica);border-radius:6px;color:var(--tekst-sporedni);font-size:12px;cursor:pointer;">
+                        Resetuj limit
+                    </button>
+                    <button type="button"
+                        hx-get="/podesavanja/fiskalizacija/be-status"
+                        hx-target="#be-status-panel"
+                        hx-swap="innerHTML"
+                        style="padding:5px 12px;background:transparent;border:0.5px solid var(--ivica);border-radius:6px;color:var(--tekst-sporedni);font-size:12px;cursor:pointer;">
+                        Osveži
+                    </button>
+                </div>
+            </div>
+            <div id="be-status-panel"
+                hx-get="/podesavanja/fiskalizacija/be-status"
+                hx-trigger="load"
+                hx-swap="innerHTML">
+                <span style="font-size:12px;color:var(--tekst-sporedni);">Učitavanje...</span>
+            </div>
+        </div>
 
     </div>
 

@@ -18,6 +18,7 @@ import (
 
 	"ntech"
 	"ntech/internal/auth"
+	"ntech/internal/be"
 	"ntech/internal/config"
 	"ntech/internal/db"
 	"ntech/internal/db/sqlite"
@@ -168,6 +169,13 @@ func main() {
 		slog.Info("keš šablona kreiran", "broj", len(kes))
 	}
 
+	// kartica emulator — TCP listener za Fisk (L-PFR mock); preskačemo ako je isključen
+	if be.JeUkljucen(db) {
+		go be.Pokreni(db)
+	} else {
+		slog.Info("kartica emulator isključen (be_enabled=false)")
+	}
+
 	// Pozadinske gorutine se pokreću posle kreiranja h i rade preko h.SaBazom,
 	// pa uvek koriste TRENUTNU konekciju baze (posle obnove backupa h.DB se menja).
 
@@ -242,6 +250,7 @@ func main() {
 	r.Post("/status/{token}/prihvati", h.ServisJavniPrihvati)
 	r.Post("/status/{token}/odbij", h.ServisJavniOdbij)
 	r.Post("/status/{token}/odluka-odabrano", h.ServisJavniOdlukaOdabrano)
+	r.Get("/v/", h.FiskalVerifikacija)
 
 	// zaštićene rute — zahtevaju prijavljenog korisnika
 	r.Group(func(r chi.Router) {
@@ -280,6 +289,8 @@ func main() {
 		r.Get("/admin/podesavanja/servis", h.PodesavanjaServis)
 		r.Get("/admin/podesavanja/fiskalizacija", h.PodesavanjaFiskalizacija)
 		r.Get("/podesavanja/fiskalizacija/test", h.TestFiskalizacije)
+		r.Get("/podesavanja/fiskalizacija/be-status", h.BeStatus)
+		r.Post("/podesavanja/fiskalizacija/be-reset-audit", h.BeResetAudit)
 		r.Get("/admin/podesavanja/kalkulacija-pdv", h.PdvStope)
 		r.With(doz("podesavanja.izmeni")).Post("/podesavanja/pdv-stope/dodaj", h.DodajPdvStopu)
 		r.With(doz("podesavanja.izmeni")).Post("/podesavanja/pdv-stope/{id}/izmeni", h.IzmeniPdvStopu)
@@ -362,6 +373,7 @@ func main() {
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "servis.pregled")).Get("/servis/{id}", h.DetaljiNaloga)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "servis.pregled")).Get("/servis/{id}/radni-nalog", h.StampaRadnogNaloga)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "servis.pregled")).Get("/servis/{id}/otpremnica", h.StampaOtpremnice)
+		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "servis.pregled")).Get("/servis/{id}/fiskalni-racun", h.StampaFiskalnog)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "servis.pregled")).Get("/servis/{id}/revers", h.StampaReversa)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "servis.pregled")).Get("/servis/{id}/predracun", h.StampaPredracuna)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "servis.pregled")).Get("/servis/{id}/nalepnica", h.StampaNalepnice)
@@ -427,6 +439,7 @@ func main() {
 		})
 		r.Get("/admin/profil", h.AdminProfil)
 		r.Post("/admin/profil/lozinka", h.AdminPromeniLozinku)
+		r.Post("/admin/profil/ime-prezime", h.AdminSacuvajImePrezime)
 		r.Get("/admin/profil/totp/pokreni", h.AdminTotpPokreni)
 		r.Post("/admin/profil/totp/aktiviraj", h.AdminTotpAktivacija)
 		r.Post("/admin/profil/totp/deaktiviraj", h.AdminTotpDeaktivacija)

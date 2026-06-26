@@ -25,21 +25,26 @@ def load_locale(lang="latin"):
             locale[key.strip()] = value.strip()
     return locale
 
+def _sr(n, decimals=2):
+    """Srpski format: tačka za hiljade, zarez za decimale — 2.967,17"""
+    s = f"{n:,.{decimals}f}"
+    return s.replace(",", "\x00").replace(".", ",").replace("\x00", ".")
+
 def price(n):
-    """Formatira cenu: ###,###.00"""
-    return f"{n:,.2f}"
+    """Formatira cenu: ###.###,00"""
+    return _sr(n, 2)
 
 def qty(n):
-    """Formatira količinu: ###,###.000"""
-    return f"{n:,.3f}"
+    """Formatira količinu: ###.###,000"""
+    return _sr(n, 3)
 
 def amount(n):
-    """Formatira iznos: ###,###.00"""
-    return f"{n:,.2f}"
+    """Formatira iznos: ###.###,00"""
+    return _sr(n, 2)
 
 def number(n):
-    """Formatira broj: ###,###"""
-    return f"{n:,.0f}"
+    """Formatira broj: ###.###"""
+    return _sr(n, 0)
 
 def dt(iso_string):
     """Konvertuje ISO datetime u format: dd.MM.yyyy. HH:mm:ss"""
@@ -103,6 +108,20 @@ TRANSACTION_TYPES_LAT = {
     "PSX": "PREDRAČUN - PRODAJA", "PRX": "PREDRAČUN - REFUNDACIJA",
     "TSX": "OBUKA - PRODAJA", "TRX": "OBUKA - REFUNDACIJA",
 }
+# NTech šalje invoiceType+transactionType kao reči (Normal/Sale) umesto koda (NSX)
+_INV_TX_TO_CODE = {
+    ("Normal",   "Sale"):   "NSX", ("Normal",   "Refund"): "NRX",
+    ("Advance",  "Sale"):   "ASX", ("Advance",  "Refund"): "ARX",
+    ("Copy",     "Sale"):   "CSX", ("Copy",     "Refund"): "CRX",
+    ("Training", "Sale"):   "TSX", ("Training", "Refund"): "TRX",
+    ("Proforma", "Sale"):   "PSX", ("Proforma", "Refund"): "PRX",
+}
+
+def _tx_code(inv):
+    """Vraća 3-slovni kod transakcije (NSX, NRX...) iz full_data rečnika."""
+    it = inv.get("invoiceType", "Normal")
+    tt = inv.get("transactionType", "Sale")
+    return _INV_TX_TO_CODE.get((it, tt), tt)
 
 # ── Glavna funkcija ─────────────────────────────────────────
 
@@ -118,6 +137,7 @@ def generate_receipt(invoice_data, lang="latin"):
     tx_types = TRANSACTION_TYPES_LAT if lang == "latin" else TRANSACTION_TYPES_CYR
     W = 48
     inv = invoice_data
+    tx_label = tx_types.get(_tx_code(inv), _tx_code(inv))
     lines = []
 
     # ── PREAMBLE ──
@@ -160,8 +180,6 @@ def generate_receipt(invoice_data, lang="latin"):
         lines.append(layout(m.get("ref-doc-dt", "Ref. vreme"), dt(inv["referentDocumentDT"]), W))
 
     # ── TIP TRANSAKCIJE ──
-    tx_code = inv.get("transactionType", "NSX")
-    tx_label = tx_types.get(tx_code, tx_code)
     lines.append(title(tx_label, "-", W))
 
     # ── ARTIKLI ──
@@ -215,7 +233,8 @@ def generate_receipt(invoice_data, lang="latin"):
 
     if not is_covered_by_advance:
         for p in inv.get("payments", []):
-            ptype = m.get(p.get("type", ""), p.get("type", "Drugo"))
+            pt = p.get("paymentType", p.get("type", ""))
+            ptype = m.get(pt, pt or "Drugo")
             lines.append(layout(ptype, amount(float(p.get("amount", 0))), W))
         if inv.get("invoiceType") == "Proforma":
             lines.append(layout(m.get("refund", "Povraćaj"), amount(0), W))
@@ -249,7 +268,7 @@ def generate_receipt(invoice_data, lang="latin"):
     # ── PFR VREDNOSTI ──
     lines.append(layout(m.get("sdc-time", "PFR vreme"), dt(inv.get("sdcDateTime", "")), W))
     lines.append(layout(m.get("sdc-invoice-number", "PFR broj računa"), str(inv.get("invoiceNumber", "")), W))
-    lines.append(layout(m.get("sdc-invoice-counter", "Brojač računa"), str(inv.get("invoiceNumber", "")), W))
+    lines.append(layout(m.get("sdc-invoice-counter", "Brojač računa"), str(inv.get("invoiceCounter", "")), W))
     lines.append(separator("=", W))
 
     # ── QR KOD ──
@@ -290,8 +309,7 @@ def generate_receipt_html(invoice_data, lang="latin"):
     tx_types = TRANSACTION_TYPES_LAT if lang == "latin" else TRANSACTION_TYPES_CYR
     inv = invoice_data
 
-    tx_code = inv.get("transactionType", "NSX")
-    tx_label = tx_types.get(tx_code, tx_code)
+    tx_label = tx_types.get(_tx_code(inv), _tx_code(inv))
     is_fiscal = inv.get("isFiscal", True)
     is_refund = inv.get("transactionType") == "Refund"
     inv_type = inv.get("invoiceType", "Normal")
@@ -331,7 +349,8 @@ def generate_receipt_html(invoice_data, lang="latin"):
         payments_rows += f'<tr><td class="l">{m.get("advance-tax", "PDV na avans")}</td><td class="r">{amount(advance_tax)}</td></tr>'
     if not covered:
         for p in inv.get("payments", []):
-            ptype = m.get(p.get("type", ""), p.get("type", "Drugo"))
+            pt = p.get("paymentType", p.get("type", ""))
+            ptype = m.get(pt, pt or "Drugo")
             payments_rows += f'<tr><td class="l">{ptype}</td><td class="r">{amount(float(p.get("amount", 0)))}</td></tr>'
         if inv_type == "Proforma":
             payments_rows += f'<tr><td class="l">{m.get("refund", "Povraćaj")}</td><td class="r">{amount(0)}</td></tr>'
@@ -404,7 +423,7 @@ def generate_receipt_html(invoice_data, lang="latin"):
   .hdr-sub {{ font-size: 11pt; font-weight: bold; }}
   .title {{ font-weight: bold; font-size: 12pt; margin: 1.5mm 0; }}
   .qr {{ text-align: center; margin: 2mm 0; }}
-  .qr img {{ width: 25mm; height: 25mm; }}
+  .qr img {{ width: 60mm; height: 60mm; }}
   .preamble {{ font-style: italic; margin: 1mm 0; font-size: 7pt; }}
   .row {{ display: flex; justify-content: space-between; }}
   .col-left {{ width: 72%; }}
@@ -472,7 +491,7 @@ def generate_receipt_html(invoice_data, lang="latin"):
 <table>
 <tr><td class="l">{m.get('sdc-time', 'PFR vreme')}</td><td class="r">{dt(inv.get('sdcDateTime', ''))}</td></tr>
 <tr><td class="l">{m.get('sdc-invoice-number', 'PFR broj računa')}</td><td class="r">{inv.get('invoiceNumber', '')}</td></tr>
-<tr><td class="l">{m.get('sdc-invoice-counter', 'Brojač računa')}</td><td class="r">{inv.get('invoiceNumber', '')}</td></tr>
+<tr><td class="l">{m.get('sdc-invoice-counter', 'Brojač računa')}</td><td class="r">{inv.get('invoiceCounter', '')}</td></tr>
 </table>
 <div class="sep-double"></div>
 

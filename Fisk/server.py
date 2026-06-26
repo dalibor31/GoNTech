@@ -17,6 +17,9 @@ import time
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
+import socket
+import urllib.parse
+
 import qrcode
 from receipt import generate_receipt, generate_receipt_html, generate_report, load_locale
 
@@ -24,7 +27,10 @@ from receipt import generate_receipt, generate_receipt_html, generate_report, lo
 PORT  = 4566          # Teron standard port
 HOST  = "0.0.0.0"
 ESIR_ID = "NTECH001"  # naš 8-char ESIR identifikator
-BE_ID   = "TRNMOCK1"  # simulirani BE/LPFR identifikator
+
+# Kartica emulator (NTech goroutine)
+BE_HOST = os.environ.get("BE_HOST", "127.0.0.1")
+BE_PORT = int(os.environ.get("BE_PORT", "4567"))
 
 DATA_DIR     = Path(__file__).parent / "data"
 INVOICES_DIR = DATA_DIR / "invoices"
@@ -36,11 +42,93 @@ COUNTER_DIR  = DATA_DIR / "counters"
 for d in [DATA_DIR, INVOICES_DIR, QR_DIR, RECEIPTS_DIR, COUNTER_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
-# Test PIN (pravi Teron traži PIN za BE karticu)
-PIN_BE = "1234"
-
-# NTech SQLite baza (read-only) — čita podatke o firmi
+# NTech SQLite baza (read-only) — fallback kad kartica emulator nije dostupan
 NTECH_DB = os.environ.get("NTECH_SQLITE") or str(Path(__file__).parent.parent / "ntech.db")
+
+def _ucitaj_verify_host():
+    """Čita verify_host iz env, pa iz NTech SQLite baze."""
+    if v := os.environ.get("VERIFY_HOST", ""):
+        return v
+    try:
+        con = sqlite3.connect(f"file:{NTECH_DB}?mode=ro", uri=True)
+        try:
+            cur = con.execute("SELECT vrednost FROM podesavanja WHERE kljuc='verify_host'")
+            row = cur.fetchone()
+            return row[0] if row and row[0] else ""
+        finally:
+            con.close()
+    except Exception:
+        return ""
+
+# Host za verifikacioni link na QR kodu (npr. "ntech.moja-firma.rs:3000").
+# Ako je prazno, koristi se sandbox.suf.purs.gov.rs.
+VERIFY_HOST = _ucitaj_verify_host()
+
+def _ucitaj_fiskalni_pismo():
+    """Čita fiskalni_pismo iz env var FISKALNI_PISMO ili iz NTech SQLite baze.
+    Vrednosti: 'latin' (podrazumevano) ili 'cyrillic'."""
+    if v := os.environ.get("FISKALNI_PISMO", ""):
+        return v if v in ("latin", "cyrillic") else "latin"
+    try:
+        con = sqlite3.connect(f"file:{NTECH_DB}?mode=ro", uri=True)
+        try:
+            cur = con.execute("SELECT vrednost FROM podesavanja WHERE kljuc='fiskalni_pismo'")
+            row = cur.fetchone()
+            v = row[0] if row and row[0] else "latin"
+            return v if v in ("latin", "cyrillic") else "latin"
+        finally:
+            con.close()
+    except Exception:
+        return "latin"
+
+# Pismo fiskalnog računa: 'latin' ili 'cyrillic'
+FISKALNI_PISMO = _ucitaj_fiskalni_pismo()
+
+
+def be_command(cmd: dict) -> dict:
+    """Šalje JSON komandu kartica emulatoru (NTech TCP :4567) i vraća odgovor."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(3)
+            s.connect((BE_HOST, BE_PORT))
+            s.sendall((json.dumps(cmd) + "\n").encode("utf-8"))
+            buf = b""
+            while True:
+                chunk = s.recv(4096)
+                if not chunk:
+                    break
+                buf += chunk
+                if b"\n" in buf:
+                    break
+        return json.loads(buf.decode("utf-8").strip())
+    except Exception as e:
+        log(f"  ⚠️  be_command({cmd.get('command')}) greška: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+def build_vl(full_data):
+    """Gradi base64-kodirani payload za vl parametar verifikacionog URL-a."""
+    payload = {
+        "n":  full_data.get("invoiceNumber", ""),
+        "ic": full_data.get("invoiceCounter", ""),
+        "t":  full_data.get("sdcDateTime", ""),
+        "a":  full_data.get("totalAmount", 0),
+        "c":  full_data.get("tin", ""),
+        "co": full_data.get("company", ""),
+        "lo": full_data.get("store", ""),
+        "ad": full_data.get("address", ""),
+        "g":  full_data.get("city", ""),
+        "di": full_data.get("district", ""),
+        "it": full_data.get("invoiceType", "Normal"),
+        "tr": full_data.get("transactionType", "Sale"),
+        "tx": full_data.get("taxItems", []),
+        "pm": full_data.get("payments", []),
+        "ca": full_data.get("cashier", ""),
+        "bi": full_data.get("buyerId", ""),
+        "items": full_data.get("items", []),
+    }
+    j = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+    return base64.b64encode(j.encode("utf-8")).decode("ascii")
 
 # ── Firma ───────────────────────────────────────────────────
 
@@ -178,17 +266,20 @@ def resp_attention():
     return {"sdcDateTime": sada(), "status": "OK"}
 
 def resp_status():
-    f = ucitaj_firmu()
-    last = peek_counter("total")
-    last_num = f"{ESIR_ID}-{BE_ID}-{last}" if last >= 1 else ""
+    st = be_command({"command": "status"})
+    cert = be_command({"command": "certificate"})
+    total = st.get("total_counter", 0)
+    jid = cert.get("jid", "UNKNOWN")
+    tin = cert.get("tin", "RS000000000")
+    last_num = f"{ESIR_ID}-{jid}-{total}" if total >= 1 else ""
     return {
-        "isPinRequired": False,
+        "isPinRequired": st.get("pin_required", False),
         "auditRequired": False,
         "sdcDateTime": sada(),
         "lastInvoiceNumber": last_num,
         "protocolVersion": "1.0.0",
         "serialNumber": ESIR_ID,
-        "tin": f["tin"],
+        "tin": tin,
     }
 
 def resp_verify_pin(request_body=None):
@@ -197,11 +288,12 @@ def resp_verify_pin(request_body=None):
         uneti = str(request_body.get("pin", "")).strip()
     elif isinstance(request_body, str):
         uneti = request_body.strip().strip('"')
-    if uneti == PIN_BE:
+    resp = be_command({"command": "verify_pin", "pin": uneti})
+    if resp.get("status") == "ok":
         log("  🔓 PIN ispravan")
         return {"status": "OK", "message": "PIN verifikovan"}
     log("  🔒 Pogrešan PIN")
-    return {"status": "ERROR", "code": "2100", "message": "Pogrešan PIN"}
+    return {"status": "ERROR", "code": resp.get("code", "2100"), "message": resp.get("message", "Pogrešan PIN")}
 
 def resp_settings_get():
     return {
@@ -219,14 +311,14 @@ def resp_settings_post():
     return {"status": "OK", "message": "Podešavanja sačuvana"}
 
 def resp_certificate():
-    f = ucitaj_firmu()
+    c = be_command({"command": "certificate"})
     return {
-        "serialNumber": BE_ID,
-        "tin": f["tin"],
-        "name": f["name"],
-        "validFrom": "2024-01-01T00:00:00+01:00",
-        "validTo":   "2027-01-01T00:00:00+01:00",
-        "issuer": "Poreska uprava RS",
+        "serialNumber": c.get("jid", ESIR_ID),
+        "tin":          c.get("tin", "RS000000000"),
+        "name":         c.get("name", ""),
+        "validFrom":    c.get("valid_from", "2024-01-01T00:00:00+01:00"),
+        "validTo":      c.get("valid_to",   "2027-01-01T00:00:00+01:00"),
+        "issuer":       c.get("issuer", "Poreska uprava RS"),
     }
 
 def _build_invoice_response(req, request_id):
@@ -238,27 +330,77 @@ def _build_invoice_response(req, request_id):
     transaction_type = inv_req.get("transactionType", "Sale")
     items = inv_req.get("items", [])
 
-    # Brojači
-    total_cnt = get_counter("total")
-    ext, tip_key = counter_ext(invoice_type, transaction_type)
-    type_cnt  = get_counter(tip_key)
-
-    invoice_number   = f"{ESIR_ID}-{BE_ID}-{total_cnt}"
-    invoice_counter  = f"{type_cnt}/{total_cnt}{ext}"
-    verification_url = f"https://sandbox.suf.purs.gov.rs/v/?vl={invoice_number}"
-    qr_b64 = generate_qr(verification_url)
-
     # PDV i ukupan iznos
     tax_items   = izracunaj_pdv(items)
     total_amount = round(sum(float(i.get("totalAmount", 0)) for i in items), 2)
     total_tax   = round(sum(t["amount"] for t in tax_items), 2)
 
-    firma = ucitaj_firmu()
+    # Kartica emulator: podatke firme i potpis/brojače
+    cert = be_command({"command": "certificate"})
+    sign = be_command({
+        "command":          "sign",
+        "invoice_type":     invoice_type,
+        "transaction_type": transaction_type,
+        "total_amount":     total_amount,
+    })
+
+    if sign.get("status") == "blocked":
+        raise RuntimeError(f"Kartica blokirana: {sign.get('message')}")
+
+    jid          = cert.get("jid", ESIR_ID)
+    total_cnt    = sign.get("counter", 1)
+    type_cnt     = sign.get("type_counter", 1)
+    ext          = sign.get("counter_extension", "ПП")
+
+    invoice_number   = f"{ESIR_ID}-{jid}-{total_cnt}"
+    invoice_counter  = f"{type_cnt}/{total_cnt}{ext}"
+
+    # firma podaci sa kartice
+    firma = {
+        "tinPlain":    cert.get("tin_plain", "000000000"),
+        "tin":         cert.get("tin", "RS000000000"),
+        "name":        cert.get("name", "Test Company DOO"),
+        "locationName": cert.get("location_name", cert.get("name", "Test Company DOO")),
+        "address":     cert.get("address", "Test Adresa 1"),
+        "city":        cert.get("city", "Beograd"),
+        "district":    cert.get("district", "Savski Venac"),
+    }
+
+    # Verifikacioni URL i QR kod
+    if VERIFY_HOST:
+        vl_payload = {
+            "n":  invoice_number,
+            "ic": invoice_counter,
+            "t":  sada(),
+            "a":  total_amount,
+            "c":  firma["tinPlain"],
+            "co": firma["name"],
+            "lo": firma["locationName"],
+            "ad": firma["address"],
+            "g":  firma["city"],
+            "di": firma["district"],
+            "it": invoice_type,
+            "tr": transaction_type,
+            "tx": tax_items,
+            "pm": inv_req.get("payment", [{"type": "Cash", "amount": total_amount}]),
+            "ca": inv_req.get("cashier", "Kasir"),
+            "bi": inv_req.get("buyerId", ""),
+            "items": items,
+        }
+        vl = base64.b64encode(
+            json.dumps(vl_payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        ).decode("ascii")
+        scheme = "https" if VERIFY_HOST.startswith("https://") else "http"
+        host = VERIFY_HOST.removeprefix("https://").removeprefix("http://")
+        verification_url = f"{scheme}://{host}/v/?vl={urllib.parse.quote(vl, safe='')}"
+    else:
+        verification_url = f"https://sandbox.suf.purs.gov.rs/v/?vl={invoice_number}"
+    qr_b64 = generate_qr(verification_url)
 
     # Odgovor koji ide ka NTech-u (ESIR-u)
     odgovor = {
         "requestedBy":          ESIR_ID,
-        "signedBy":             BE_ID,
+        "signedBy":             jid,
         "sdcDateTime":          sada(),
         "invoiceCounter":       invoice_counter,
         "invoiceCounterExtension": ext,
@@ -304,12 +446,12 @@ def _build_invoice_response(req, request_id):
     with open(qr_path, "wb") as fh:
         fh.write(base64.b64decode(qr_b64))
 
-    # Generiši tekst i HTML račun
-    receipt_text = generate_receipt(full_data, "latin")
+    # Generiši tekst i HTML račun (pismo određuje podešavanje fiskalni_pismo)
+    receipt_text = generate_receipt(full_data, FISKALNI_PISMO)
     txt_path = RECEIPTS_DIR / f"{total_cnt:06d}_{request_id}.txt"
     txt_path.write_text(receipt_text, encoding="utf-8")
 
-    html_txt = generate_receipt_html(full_data, "latin")
+    html_txt = generate_receipt_html(full_data, FISKALNI_PISMO)
     html_path = RECEIPTS_DIR / f"{total_cnt:06d}_{request_id}.html"
     html_path.write_text(html_txt, encoding="utf-8")
 
@@ -505,7 +647,10 @@ class FiscalHandler(http.server.BaseHTTPRequestHandler):
 # ── Main ─────────────────────────────────────────────────────
 
 def main():
-    firma = ucitaj_firmu()
+    cert = be_command({"command": "certificate"})
+    jid  = cert.get("jid", "?")
+    tin  = cert.get("tin_plain", "?")
+    name = cert.get("name", "?")
     log("╔══════════════════════════════════════════════════╗")
     log("║   🧾  Teron L-PFR Mock Server                  ║")
     log(f"║   http://{HOST}:{PORT}/                      ║")
@@ -514,9 +659,8 @@ def main():
     log(f"  🧾 Računi:   {INVOICES_DIR}")
     log(f"  📱 QR PNG:   {QR_DIR}")
     log(f"  📝 Log:      {LOG_FILE}")
-    log(f"  🏢 Firma:    {firma['name']} | PIB: {firma['tinPlain']}")
-    log(f"  🆔 ESIR ID:  {ESIR_ID}  |  BE ID: {BE_ID}")
-    log(f"  🔑 Test PIN: {PIN_BE}")
+    log(f"  🏢 Firma:    {name} | PIB: {tin}")
+    log(f"  🆔 ESIR ID:  {ESIR_ID}  |  BE JID: {jid}  (kartica: {BE_HOST}:{BE_PORT})")
     log("  ▶  Server pokrenut. Ctrl+C za gašenje.")
 
     server = http.server.HTTPServer((HOST, PORT), FiscalHandler)

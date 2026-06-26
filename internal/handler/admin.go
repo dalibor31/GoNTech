@@ -36,6 +36,8 @@ type podaciAdminProfil struct {
 	LokalnaTema        string
 	KoristiLokalnuTemu bool
 	JelDemo            bool
+	Ime                string
+	Prezime            string
 }
 
 type podaciProfilTema struct {
@@ -310,6 +312,8 @@ func (h *Handler) AdminProfil(w http.ResponseWriter, r *http.Request) {
 		LokalnaTema:        svezi.LokalnaTema,
 		KoristiLokalnuTemu: svezi.KoristiLokalnuTemu,
 		JelDemo:            h.JelDemo,
+		Ime:                svezi.Ime,
+		Prezime:            svezi.Prezime,
 	})
 }
 
@@ -403,6 +407,29 @@ func (h *Handler) AdminPromeniLozinku(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/admin/profil?sacuvano=1", http.StatusSeeOther)
+}
+
+// AdminSacuvajImePrezime snima ime i prezime prijavljenog korisnika
+func (h *Handler) AdminSacuvajImePrezime(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+	if k == nil {
+		http.Redirect(w, r, "/prijava", http.StatusSeeOther)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška. Pokušajte ponovo.")
+		http.Redirect(w, r, "/admin/profil", http.StatusSeeOther)
+		return
+	}
+	ime := r.FormValue("ime")
+	prezime := r.FormValue("prezime")
+	if err := h.KorisniciRepo.AzurirajImePrezime(r.Context(), k.ID, ime, prezime); err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju. Pokušajte ponovo.")
+		http.Redirect(w, r, "/admin/profil", http.StatusSeeOther)
+		return
+	}
+	middleware.SetFlash(w, r, h.DB, "uspeh", "Ime i prezime su sačuvani.")
+	http.Redirect(w, r, "/admin/profil", http.StatusSeeOther)
 }
 
 // AdminTotpPokreni generiše TOTP tajnu i prikazuje QR kod

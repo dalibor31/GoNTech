@@ -76,6 +76,12 @@ type PodaciPodesavanja struct {
 	QrBazniUrl                      string
 	PfrUrl                          string
 	PfrTip                          string
+	PfrKasir                        string
+	VerifyHost                      string
+	BePin                           string
+	BeLimit                         string
+	BeEnabled                       string
+	FiskalPismo                     string
 	LoginPozadina                   string
 	LoginPozadinaOpacity            string
 	LoginPozadinaBlurPozadine       string
@@ -331,9 +337,15 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 		"firma_pdv_obveznik":  r.FormValue("firma_pdv_obveznik"),
 		"firma_fiskalizacija": r.FormValue("firma_fiskalizacija"),
 		"firma_rezim":         r.FormValue("firma_rezim"),
-		// fiskalizacija — L-PFR podešavanja
-		"pfr_url": r.FormValue("pfr_url"),
-		"pfr_tip": r.FormValue("pfr_tip"),
+		// fiskalizacija — L-PFR i kartica emulator podešavanja
+		"pfr_url":        r.FormValue("pfr_url"),
+		"pfr_tip":        r.FormValue("pfr_tip"),
+		"pfr_kasir":      r.FormValue("pfr_kasir"),
+		"verify_host":    r.FormValue("verify_host"),
+		"be_pin":         r.FormValue("be_pin"),
+		"be_limit":       r.FormValue("be_limit"),
+		"be_enabled":     r.FormValue("be_enabled"),
+		"fiskalni_pismo": r.FormValue("fiskalni_pismo"),
 	}
 
 	for kljuc, vrednost := range polja {
@@ -865,6 +877,12 @@ func (h *Handler) napuniPodaciPodesavanja(r *http.Request, naslov string) (Podac
 		QrBazniUrl:                      podesavanja["qr_bazni_url"],
 		PfrUrl:                          vrednostIliDefault(podesavanja, "pfr_url", "http://127.0.0.1:4566"),
 		PfrTip:                          vrednostIliDefault(podesavanja, "pfr_tip", "teron"),
+		PfrKasir:                        podesavanja["pfr_kasir"],
+		VerifyHost:                      podesavanja["verify_host"],
+		BePin:                           vrednostIliDefault(podesavanja, "be_pin", "1234"),
+		BeLimit:                         vrednostIliDefault(podesavanja, "be_limit", "500000"),
+		BeEnabled:                       vrednostIliDefault(podesavanja, "be_enabled", "true"),
+		FiskalPismo:                     vrednostIliDefault(podesavanja, "fiskalni_pismo", "latin"),
 	}, nil
 }
 
@@ -966,6 +984,95 @@ func (h *Handler) TestFiskalizacije(w http.ResponseWriter, r *http.Request) {
 			<span>Vreme: %s</span>
 		</div>
 	</div>`, html.EscapeString(pfrURL), html.EscapeString(tin), html.EscapeString(lastInvoice), html.EscapeString(sdcDateTime))
+}
+
+// BeStatus se spaja na lokalni kartica emulator (TCP :4567) i vraća HTMX fragment sa statusom.
+func (h *Handler) BeStatus(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "podesavanja.pregled"); !ok {
+		return
+	}
+
+	bePort := os.Getenv("BE_PORT")
+	if bePort == "" {
+		bePort = "4567"
+	}
+	addr := "127.0.0.1:" + bePort
+
+	conn, err := net.DialTimeout("tcp", addr, 2*time.Second)
+	if err != nil {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		fmt.Fprintf(w, `<div class="fisk-status greska">&#10007; Emulator nije dostupan na %s — %s</div>`,
+			html.EscapeString(addr), html.EscapeString(err.Error()))
+		return
+	}
+	defer conn.Close()
+
+	cmd := `{"command":"status"}` + "\n"
+	conn.Write([]byte(cmd))
+	conn.SetDeadline(time.Now().Add(2 * time.Second))
+	buf := make([]byte, 4096)
+	n, _ := conn.Read(buf)
+	conn.Close()
+
+	var st map[string]any
+	if err := json.Unmarshal(buf[:n], &st); err != nil {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		fmt.Fprintf(w, `<div class="fisk-status greska">&#10007; Neispravan odgovor</div>`)
+		return
+	}
+
+	total, _ := st["total_counter"].(float64)
+	unread, _ := st["unread_amount"].(float64)
+	limit, _ := st["limit"].(float64)
+	pinReq, _ := st["pin_required"].(bool)
+
+	pinTekst := "PIN unesen"
+	if pinReq {
+		pinTekst = "Čeka PIN"
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	fmt.Fprintf(w, `<div class="fisk-status uspeh">
+		&#10003; Kartica emulator aktivan
+		<div class="fisk-status-detalji">
+			<span>Ukupno računa: %d</span>
+			<span>Neisčitano: %s / %s din</span>
+			<span>%s</span>
+		</div>
+	</div>`,
+		int(total),
+		html.EscapeString(formatirajDinare(unread, 0)),
+		html.EscapeString(formatirajDinare(limit, 0)),
+		html.EscapeString(pinTekst),
+	)
+}
+
+// BeResetAudit šalje reset_audit komandu kartica emulatoru i vraća HTMX fragment.
+func (h *Handler) BeResetAudit(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "podesavanja.izmena"); !ok {
+		return
+	}
+	bePort := os.Getenv("BE_PORT")
+	if bePort == "" {
+		bePort = "4567"
+	}
+	conn, err := net.DialTimeout("tcp", "127.0.0.1:"+bePort, 2*time.Second)
+	if err != nil {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		fmt.Fprintf(w, `<div class="fisk-status greska">&#10007; Emulator nije dostupan</div>`)
+		return
+	}
+	conn.Write([]byte(`{"command":"reset_audit"}` + "\n"))
+	conn.SetDeadline(time.Now().Add(2 * time.Second))
+	buf := make([]byte, 512)
+	n, _ := conn.Read(buf)
+	conn.Close()
+
+	var resp map[string]any
+	json.Unmarshal(buf[:n], &resp)
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	fmt.Fprintf(w, `<div class="fisk-status uspeh">&#10003; Neisčitani iznos resetovan na 0 (Proof of Audit simuliran)</div>`)
 }
 
 // jePrivatnaAdresa proverava da li je hostname u opsegu privatnih/lokalnih mreža.
