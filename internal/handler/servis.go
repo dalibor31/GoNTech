@@ -2180,21 +2180,6 @@ func (h *Handler) StampaFiskalnog(w http.ResponseWriter, r *http.Request) {
 		journal = strings.ReplaceAll(journal, "{{{{QR-KOD}}}}", qrImg)
 	}
 
-	// zameni mock podatke firme stvarnim iz podešavanja
-	podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
-	naziv := podesavanja["naziv_firme"]
-	adresa := podesavanja["adresa"]
-	mesto := podesavanja["mesto"]
-	if naziv != "" {
-		journal = strings.ReplaceAll(journal, "Test Company DOO", naziv)
-	}
-	if adresa != "" {
-		journal = strings.ReplaceAll(journal, "Test Address 1", adresa)
-	}
-	if mesto != "" {
-		journal = strings.ReplaceAll(journal, "Savski Venac", mesto)
-	}
-
 	fmt.Fprint(w, journal)
 	if nalog != nil {
 		fmt.Fprintf(w, "\n\n--- NTech servisni nalog: %s ---\n", nalog.BrojNaloga)
