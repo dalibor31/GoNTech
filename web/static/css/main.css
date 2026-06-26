@@ -359,6 +359,36 @@ body {
     border-color: var(--ivica-jaka);
 }
 
+/* custom dropdown (servis_detalji, prodaja_forma) — naziv levo, cena desno */
+.cust-sel { position: relative; }
+.cust-sel-btn {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    height: 38px; padding: 0 10px; box-sizing: border-box; cursor: pointer;
+    border: 0.5px solid var(--ivica) !important; border-radius: 8px; font-size: 14px;
+    background: var(--kartica) !important; color: var(--tekst-glavni) !important;
+    user-select: none;
+}
+.cust-sel-btn:focus { border-color: #3b82f6 !important; outline: none; }
+.cust-sel-tekst { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cust-sel-chevron { font-size: 10px; color: var(--tekst-sporedni); flex-shrink: 0; transition: transform 0.15s; }
+.cust-sel.otvoren .cust-sel-chevron { transform: rotate(180deg); }
+.cust-sel-lista {
+    position: absolute; top: calc(100% + 3px); left: -9999px; right: auto; z-index: 500;
+    background: var(--kartica); border: 0.5px solid var(--ivica); border-radius: 10px;
+    max-height: 260px; overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+}
+.cust-sel.otvoren .cust-sel-lista { left: 0; right: 0; }
+.cso {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 8px 12px; cursor: pointer; border-bottom: 0.5px solid var(--ivica); font-size: 13px;
+}
+.cso:last-child { border-bottom: none; }
+.cso:hover, .cso.izabran { background: rgba(255,255,255,0.06); }
+.cso-naziv { color: var(--tekst-glavni); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cso-cena { color: #f59e0b; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+.cso-prazno { color: var(--tekst-sporedni); }
+.kartica.cust-aktivan { position: relative; z-index: 100; }
+
 /* hover varijante po korisničkoj preferenciji.
    Selektor je [data-hover] (ne body[data-hover]) da bi isti CSS
    radio i globalno (body) i lokalno na preview wrapperima. */
@@ -1377,13 +1407,15 @@ select {
     font-size: 11px; font-weight: 600; background: #f59e0b; color: #fff;
 }
 @media (max-width: 600px) {
-    /* na telefonu: dve kolone, dugme preko cele širine */
+    /* na telefonu: polja jedno ispod drugog, dugme preko cele širine */
     .detalji-forma-rad,
-    .detalji-forma-deo { grid-template-columns: 1fr 1fr; }
+    .detalji-forma-deo { grid-template-columns: 1fr; }
     .detalji-forma-rad > :last-child,
     .detalji-forma-deo > :last-child { grid-column: 1 / -1; }
     .detalji-forma-rad > :last-child .btn-primarno,
     .detalji-forma-deo > :last-child .btn-primarno { width: 100%; }
+    /* dropdown lista preko cele širine na mobilnom */
+    .cust-sel-lista { max-height: 220px; }
 }
 
 @media (max-width: 768px) {

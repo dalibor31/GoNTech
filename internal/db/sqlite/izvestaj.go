@@ -37,8 +37,15 @@ func (r *sqliteIzvestajRepo) BrojAktivnihServisa(ctx context.Context) (int, erro
 func (r *sqliteIzvestajRepo) PrihodTekuciMesec(ctx context.Context) (float64, error) {
 	var iznos float64
 	err := r.db.QueryRowContext(ctx, `
-		SELECT COALESCE(SUM(ukupno), 0) FROM prodajni_nalozi
-		WHERE substr(datum, 1, 7) = strftime('%Y-%m', 'now', 'localtime')`).Scan(&iznos)
+		SELECT COALESCE(
+			(SELECT SUM(ukupno) FROM prodajni_nalozi
+			 WHERE substr(datum, 1, 7) = strftime('%Y-%m', 'now', 'localtime')),
+			0)
+		+ COALESCE(
+			(SELECT SUM(cena_konacna) FROM servisni_nalozi
+			 WHERE status = 'Preuzeto'
+			   AND substr(datum_zavrsetka, 1, 7) = strftime('%Y-%m', 'now', 'localtime')),
+			0)`).Scan(&iznos)
 	if err != nil {
 		return 0, fmt.Errorf("ntech: izvestaj.PrihodTekuciMesec: %w", err)
 	}
