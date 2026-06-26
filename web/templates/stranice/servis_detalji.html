@@ -889,29 +889,30 @@
     </div>
 
     {{if .FiskalniRacun}}
-    <div class="kartica detalji-kartica animiraj">
-        <div style="margin-bottom:12px;padding-bottom:10px;border-bottom:0.5px solid var(--ivica);">
-            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Fiskalni račun</span>
-        </div>
-        <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
-            <div style="flex:1;min-width:200px;">
-                <p style="margin:0 0 4px 0;"><strong>PFR broj:</strong> {{.FiskalniRacun.PfrBroj}}</p>
-                <p style="margin:0 0 4px 0;"><strong>Vreme:</strong> {{.FiskalniRacun.PfrVreme}}</p>
-                <p style="margin:0 0 4px 0;color:var(--tekst-sporedno);"><strong>Brojač:</strong> {{.FiskalniRacun.Brojac}}</p>
-                {{if .FiskalniRacun.UrlVerifikacija}}
-                <p style="margin:4px 0 0 0;font-size:13px;">
-                    <a href="{{.FiskalniRacun.UrlVerifikacija}}" target="_blank" rel="noopener noreferrer" style="color:var(--sb-akcent);">Provera na PURS-u →</a>
-                </p>
+        <div class="kartica detalji-kartica animiraj">
+            <div style="margin-bottom:12px;padding-bottom:10px;border-bottom:0.5px solid var(--ivica);display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Fiskalni račun</span>
+                <a href="/servis/{{.Nalog.ID}}/fiskalni-racun" target="_blank" class="btn-sekundarno" style="font-size:12px;padding:4px 12px;">Štampaj kopiju</a>
+            </div>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
+                <div style="flex:1;min-width:200px;">
+                    <p style="margin:0 0 4px 0;"><strong>PFR broj:</strong> {{.FiskalniRacun.PfrBroj}}</p>
+                    <p style="margin:0 0 4px 0;"><strong>Vreme:</strong> {{.FiskalniRacun.PfrVreme}}</p>
+                    <p style="margin:0 0 4px 0;color:var(--tekst-sporedno);"><strong>Brojač:</strong> {{.FiskalniRacun.Brojac}}</p>
+                    {{if .FiskalniRacun.UrlVerifikacija}}
+                    <p style="margin:4px 0 0 0;font-size:13px;">
+                        <a href="{{.FiskalniRacun.UrlVerifikacija}}" target="_blank" rel="noopener noreferrer" style="color:var(--sb-akcent);">Provera na PURS-u →</a>
+                    </p>
+                    {{end}}
+                </div>
+                {{if .FiskalniRacun.QRKod}}
+                <div>
+                    <img src="data:image/png;base64,{{.FiskalniRacun.QRKod}}" alt="QR kod" style="width:25mm;height:25mm;">
+                </div>
                 {{end}}
             </div>
-            {{if .FiskalniRacun.QRKod}}
-            <div>
-                <img src="data:image/png;base64,{{.FiskalniRacun.QRKod}}" alt="QR kod" style="width:25mm;height:25mm;">
-            </div>
-            {{end}}
         </div>
-    </div>
-    {{end}}
+        {{end}}
 
     <!-- zona za brisanje -->
     {{/* Brisanje je moguće samo dok je „Primljeno" (greška pri unosu); čim uđe u proceduru naplaćuje se dijagnostika */}}
