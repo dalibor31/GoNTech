@@ -2147,6 +2147,60 @@ func (h *Handler) fiskalizujServis(ctx context.Context, servisID int64, klijent 
 		slog.Error("greška pri čuvanju fiskalnog računa za servis", "servis_id", servisID, "error", err)
 	}
 }
+func (h *Handler) StampaFiskalnog(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID", http.StatusBadRequest)
+		return
+	}
+	fr, err := h.FiskalRepo.DohvatiPoServisu(r.Context(), id)
+	if err != nil || fr == nil {
+		http.Error(w, "Fiskalni račun nije pronađen", http.StatusNotFound)
+		return
+	}
+	nalog, _ := h.ServisRepo.DohvatiID(r.Context(), id)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	fmt.Fprint(w, `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Fiskalni račun</title>
+<style>body{font-family:monospace;font-size:12px;white-space:pre;padding:20px;max-width:400px;margin:0 auto;}
+@media print{body{font-size:11px;padding:10px}}</style></head><body>`)
+
+	journal := ""
+	if fr.SiroviOdgovor != "" {
+		var raw map[string]any
+		if json.Unmarshal([]byte(fr.SiroviOdgovor), &raw) == nil {
+			if j, ok := raw["journal"].(string); ok {
+				journal = j
+			}
+		}
+	}
+
+	// zameni QR placeholder pravim QR kodom
+	if fr.QRKod != "" && strings.Contains(journal, "{{{{QR-KOD}}}}") {
+		qrImg := `<img src="data:image/png;base64,` + fr.QRKod + `" style="width:25mm;height:25mm;display:block;margin:8px auto;">`
+		journal = strings.ReplaceAll(journal, "{{{{QR-KOD}}}}", qrImg)
+	}
+
+	// zameni mock podatke firme stvarnim iz podešavanja
+	podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	naziv := podesavanja["naziv_firme"]
+	adresa := podesavanja["adresa"]
+	mesto := podesavanja["mesto"]
+	if naziv != "" {
+		journal = strings.ReplaceAll(journal, "Test Company DOO", naziv)
+	}
+	if adresa != "" {
+		journal = strings.ReplaceAll(journal, "Test Address 1", adresa)
+	}
+	if mesto != "" {
+		journal = strings.ReplaceAll(journal, "Savski Venac", mesto)
+	}
+
+	fmt.Fprint(w, journal)
+	if nalog != nil {
+		fmt.Fprintf(w, "\n\n--- NTech servisni nalog: %s ---\n", nalog.BrojNaloga)
+	}
+	fmt.Fprint(w, `<p style="margin-top:16px;"><button onclick="window.print()" style="padding:8px 16px;">Štampaj</button></p></body></html>`)
+}
 func (h *Handler) AzurirajGaranciju(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.zahtevajDozvolu(w, r, "servis.izmeni"); !ok {
 		return
