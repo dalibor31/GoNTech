@@ -700,8 +700,10 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// učitaj fiskalni račun ako postoji (za prikaz u detaljima)
-	if fr, _ := h.FiskalRepo.DohvatiPoServisu(r.Context(), id); fr != nil {
+	if fr, err := h.FiskalRepo.DohvatiPoServisu(r.Context(), id); fr != nil {
 		podaci.FiskalniRacun = fr
+	} else if err != nil {
+		slog.Error("greška pri učitavanju fiskalnog računa za servis", "servis_id", id, "error", err)
 	}
 
 	h.renderujTemplate(w, "servis_detalji", podaci)
