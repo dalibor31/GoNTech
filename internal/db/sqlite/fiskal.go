@@ -86,7 +86,7 @@ func (r *FiskalRepo) DohvatiPoProdaji(ctx context.Context, prodajaID int64) (*mo
 func (r *FiskalRepo) DohvatiPoServisu(ctx context.Context, servisID int64) (*model.FiskalniRacun, error) {
 	fr := &model.FiskalniRacun{}
 	var storniran int
-	var sID sql.NullInt64
+	var sID, pID sql.NullInt64
 	err := r.db.QueryRowContext(ctx, `
 		SELECT id, prodaja_id, servis_id, tip_racuna, tip_transakcije, pfr_broj, pfr_vreme,
 			   brojac, ekstenzija_brojaca, url_verifikacija, qr_kod,
@@ -94,7 +94,7 @@ func (r *FiskalRepo) DohvatiPoServisu(ctx context.Context, servisID int64) (*mod
 			   sirovi_odgovor, potpisao, zatrazio, poruka, storniran, vreme_kreiranja
 		FROM fiskalni_racuni WHERE servis_id = ?
 	`, servisID).Scan(
-		&fr.ID, &fr.ProdajaID, &sID, &fr.TipRacuna, &fr.TipTransakcije, &fr.PfrBroj, &fr.PfrVreme,
+		&fr.ID, &pID, &sID, &fr.TipRacuna, &fr.TipTransakcije, &fr.PfrBroj, &fr.PfrVreme,
 		&fr.Brojac, &fr.EkstenzijaBrojaca, &fr.UrlVerifikacija, &fr.QRKod,
 		&fr.PoreskeStavke, &fr.UkupnoZaNaplatu, &fr.UkupanPorez,
 		&fr.SiroviOdgovor, &fr.Potpisao, &fr.Zatrazio, &fr.Poruka, &storniran, &fr.VremeKreiranja,
@@ -104,6 +104,9 @@ func (r *FiskalRepo) DohvatiPoServisu(ctx context.Context, servisID int64) (*mod
 	}
 	if err != nil {
 		return nil, fmt.Errorf("ntech: FiskalRepo.DohvatiPoServisu: %w", err)
+	}
+	if pID.Valid {
+		fr.ProdajaID = pID.Int64
 	}
 	if sID.Valid {
 		fr.ServisID = sID.Int64
