@@ -15,19 +15,20 @@ func ptr(v float64) *float64 { return &v }
 func TestArtikalCenaBezPdvIPdvIznos(t *testing.T) {
 	testovi := []struct {
 		naziv        string
-		prodajna     float64
+		prodajna     float64 // neto
+		cenaSaPdv    float64 // bruto
 		stopa        float64
 		ocekBezPdv   float64
 		ocekPdvIznos float64
 	}{
-		{"stopa 20%", 120, 20, 100, 20},
-		{"stopa 0%", 100, 0, 100, 0},
-		{"stopa 10%", 110, 10, 100, 10},
-		{"nula cena", 0, 20, 0, 0},
+		{"stopa 20%", 100, 120, 20, 100, 20},
+		{"stopa 0%", 100, 100, 0, 100, 0},
+		{"stopa 10%", 100, 110, 10, 100, 10},
+		{"nula cena", 0, 0, 20, 0, 0},
 	}
 	for _, tt := range testovi {
 		t.Run(tt.naziv, func(t *testing.T) {
-			a := Artikal{ProdajnaCena: tt.prodajna, PdvStopa: tt.stopa}
+			a := Artikal{ProdajnaCena: tt.prodajna, CenaSaPdv: tt.cenaSaPdv, PdvStopa: tt.stopa}
 			if got := a.CenaBezPdv(); !jednako(got, tt.ocekBezPdv) {
 				t.Errorf("CenaBezPdv() = %v, očekivano %v", got, tt.ocekBezPdv)
 			}

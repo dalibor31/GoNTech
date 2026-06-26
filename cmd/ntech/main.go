@@ -159,7 +159,7 @@ func main() {
 	// čuva odabrani FS (disk ili embed) za hot-reload u razvoju i za keš u produkciji
 	h.TemplatesFS = templFS
 
-	if ntechEnv := os.Getenv("NTECH_ENV"); ntechEnv == "production" || ntechEnv == "demo" {
+	if ntechEnv := os.Getenv("NTECH_ENV"); ntechEnv == "production" {
 		kes, err := handler.KreirajKes(templFS)
 		if err != nil {
 			slog.Error("Greška pri kreiranju keša šablona", "error", err)

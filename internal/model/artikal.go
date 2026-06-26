@@ -25,6 +25,7 @@ type Artikal struct {
 	NabavnaCena  float64
 	ProdajnaCena float64
 	PdvStopa     float64
+	CenaSaPdv    float64  // prodajna cena sa PDV-om (bruto); = ProdajnaCena * (1 + PdvStopa/100)
 	Marza        *float64 // podrazumevana marža (%) za kalkulaciju; NULL = nije postavljeno
 	Napomena     string
 	DatumUnosa   time.Time
@@ -37,14 +38,14 @@ func (a Artikal) PratiLager() bool {
 	return a.Tip == TipProizvod || a.Tip == ""
 }
 
-// CenaBezPdv izračunava prodajnu cenu bez PDV-a
+// CenaBezPdv vraća prodajnu cenu bez PDV-a (neto)
 func (a Artikal) CenaBezPdv() float64 {
-	return a.ProdajnaCena / (1 + a.PdvStopa/100)
+	return a.ProdajnaCena
 }
 
 // PdvIznos izračunava iznos PDV-a za jednu jedinicu
 func (a Artikal) PdvIznos() float64 {
-	return a.ProdajnaCena - a.CenaBezPdv()
+	return a.CenaSaPdv - a.ProdajnaCena
 }
 
 // Kategorija predstavlja kategoriju artikala

@@ -43,44 +43,42 @@
                     </div>
                 </div>
 
-                <!-- naziv -->
-                <div>
-                    <label class="polje-labela">
-                        Naziv <span style="color:#dc2626;">*</span>
-                    </label>
-                    <input type="text" name="naziv" value="{{.Artikal.Naziv}}"
-                        placeholder="npr. RAM DDR4 8GB Kingston"
-                        style="width:100%;">
-                </div>
-
+                <!-- naziv / jedinica mere / kategorija — u 1 redu -->
                 <!-- Magacin je isključivo za proizvode (prate lager); usluge i troškovi
                      imaju svoje module, zato ovde tip više nije izbor -->
                 <input type="hidden" name="tip" value="proizvod">
-                <!-- jedinica mere -->
-                <div>
-                    <label class="polje-labela">Jedinica mere</label>
-                    {{$jm := .Artikal.JedinicaMere}}
-                    <select name="jedinica_mere" style="width:100%;">
-                        <option value="kom" {{if eq $jm "kom"}}selected{{end}}>kom</option>
-                        <option value="sat" {{if eq $jm "sat"}}selected{{end}}>sat</option>
-                        <option value="set" {{if eq $jm "set"}}selected{{end}}>set</option>
-                        <option value="m" {{if eq $jm "m"}}selected{{end}}>m</option>
-                        <option value="m2" {{if eq $jm "m2"}}selected{{end}}>m²</option>
-                        <option value="l" {{if eq $jm "l"}}selected{{end}}>l</option>
-                        <option value="kg" {{if eq $jm "kg"}}selected{{end}}>kg</option>
-                        <option value="pak" {{if eq $jm "pak"}}selected{{end}}>pak</option>
-                    </select>
-                </div>
-
-                <!-- kategorija -->
-                <div>
-                    <label class="polje-labela">Kategorija</label>
-                    <select name="kategorija_id" style="width:100%;">
-                        <option value="">— bez kategorije —</option>
-                        {{range .Kategorije}}
-                        <option value="{{.ID}}" {{if eq (printf "%d" .ID) $.KategorijaIDStr}}selected{{end}}>{{.Naziv}}</option>
-                        {{end}}
-                    </select>
+                <div style="display:grid;grid-template-columns:1fr 110px 1fr;gap:12px;">
+                    <div>
+                        <label class="polje-labela">
+                            Naziv <span style="color:#dc2626;">*</span>
+                        </label>
+                        <input type="text" name="naziv" value="{{.Artikal.Naziv}}"
+                            placeholder="npr. RAM DDR4 8GB Kingston"
+                            style="width:100%;">
+                    </div>
+                    <div>
+                        <label class="polje-labela">Jed. mere</label>
+                        {{$jm := .Artikal.JedinicaMere}}
+                        <select name="jedinica_mere" style="width:100%;">
+                            <option value="kom" {{if eq $jm "kom"}}selected{{end}}>kom</option>
+                            <option value="sat" {{if eq $jm "sat"}}selected{{end}}>sat</option>
+                            <option value="set" {{if eq $jm "set"}}selected{{end}}>set</option>
+                            <option value="m" {{if eq $jm "m"}}selected{{end}}>m</option>
+                            <option value="m2" {{if eq $jm "m2"}}selected{{end}}>m²</option>
+                            <option value="l" {{if eq $jm "l"}}selected{{end}}>l</option>
+                            <option value="kg" {{if eq $jm "kg"}}selected{{end}}>kg</option>
+                            <option value="pak" {{if eq $jm "pak"}}selected{{end}}>pak</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="polje-labela">Kategorija</label>
+                        <select name="kategorija_id" style="width:100%;">
+                            <option value="">— bez kategorije —</option>
+                            {{range .Kategorije}}
+                            <option value="{{.ID}}" {{if eq (printf "%d" .ID) $.KategorijaIDStr}}selected{{end}}>{{.Naziv}}</option>
+                            {{end}}
+                        </select>
+                    </div>
                 </div>
 
                 <!-- opis -->
@@ -103,15 +101,38 @@
                     </div>
                 </div>
 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <!-- PDV stopa -->
+                {{if index .Moduli "pdv"}}
+                <div>
+                    <label class="polje-labela">PDV stopa</label>
+                    <select name="pdv_stopa" id="pdv-stopa"
+                        style="width:100%;padding:8px 12px;background:var(--pozadina);border:0.5px solid var(--ivica);border-radius:8px;color:var(--tekst-glavni);font-size:14px;">
+                        <option value="20" {{if eq .Artikal.PdvStopa 20.0}}selected{{end}}>Opšta stopa — 20%</option>
+                        <option value="10" {{if eq .Artikal.PdvStopa 10.0}}selected{{end}}>Posebna stopa — 10%</option>
+                        <option value="0"  {{if eq .Artikal.PdvStopa  0.0}}selected{{end}}>Oslobođeno — 0%</option>
+                    </select>
+                </div>
+                {{end}}
+
+                <!-- cene: nabavna / prodajna / sa PDV -->
+                <div style="display:grid;grid-template-columns:1fr 1fr{{if index .Moduli "pdv"}} 1fr{{end}};gap:12px;">
                     <div>
                         <label class="polje-labela">Nabavna cena (din)</label>
-                        <input type="number" name="nabavna_cena" value="{{.Artikal.NabavnaCena}}" min="0" step="0.01" style="width:100%;">
+                        <input type="number" id="nabavna-cena" name="nabavna_cena"
+                               value="{{printf "%.2f" .Artikal.NabavnaCena}}" min="0" step="0.01" style="width:100%;">
                     </div>
                     <div>
                         <label class="polje-labela">Prodajna cena (din)</label>
-                        <input type="number" name="prodajna_cena" value="{{.Artikal.ProdajnaCena}}" min="0" step="0.01" style="width:100%;">
+                        <input type="number" id="prodajna-cena" name="prodajna_cena"
+                               value="{{printf "%.2f" .Artikal.ProdajnaCena}}" min="0" step="0.01" style="width:100%;">
                     </div>
+                    {{if index .Moduli "pdv"}}
+                    <div>
+                        <label class="polje-labela">Cena sa PDV-om (din)</label>
+                        <input type="number" id="cena-sa-pdv" name="cena_sa_pdv"
+                               value="{{printf "%.2f" .Artikal.CenaSaPdv}}" min="0" step="0.01" style="width:100%;">
+                    </div>
+                    {{end}}
                 </div>
 
                 <!-- marža za kalkulaciju; prazno = nasleđuje maržu kategorije ili globalnu -->
@@ -184,26 +205,66 @@
         });
     }
 
-    // dvosmerno povezivanje: nabavna + marža → prodajna, i prodajna → marža
-    var nabavna = document.querySelector('[name="nabavna_cena"]');
-    var prodajna = document.querySelector('[name="prodajna_cena"]');
-    var marza = document.querySelector('[name="marza"]');
-    function broj(el) { return parseFloat(el.value) || 0; }
-    // postavljanje .value programski ne okida 'input', pa nema beskonačne petlje
+    // dvosmerno povezivanje: nabavna + marža → prodajna, prodajna ↔ cena sa PDV
+    var nabavna  = document.getElementById('nabavna-cena');
+    var prodajna = document.getElementById('prodajna-cena');
+    var saPdv    = document.getElementById('cena-sa-pdv');
+    var pdvSel   = document.getElementById('pdv-stopa');
+    var marza    = document.querySelector('[name="marza"]');
+
+    function pdv() { return parseFloat(pdvSel.value) || 0; }
+    function br(el) { return parseFloat(el.value) || 0; }
+
+    // prodajna → cena sa PDV
     function izProdajne() {
-        var n = broj(nabavna);
-        if (n <= 0) return;
-        prodajna.value = (n * (1 + broj(marza) / 100)).toFixed(2);
+        var p = br(prodajna);
+        if (p > 0) saPdv.value = (p * (1 + pdv() / 100)).toFixed(2);
+        izMarze();
     }
+    // cena sa PDV → prodajna
+    function izSaPdv() {
+        var s = br(saPdv);
+        if (s > 0) prodajna.value = (s / (1 + pdv() / 100)).toFixed(2);
+        izMarze();
+    }
+    // nabavna + marža → prodajna (i onda prodajna → sa PDV)
+    function izMarzeKalc() {
+        var n = br(nabavna), m = br(marza);
+        if (n > 0 && marza.value !== '') {
+            prodajna.value = (n * (1 + m / 100)).toFixed(2);
+            izProdajne();
+        }
+    }
+    // prodajna + nabavna → marža
     function izMarze() {
-        var n = broj(nabavna), p = broj(prodajna);
-        if (n <= 0) { marza.value = ''; return; }
-        marza.value = ((p / n - 1) * 100).toFixed(2);
+        var n = br(nabavna), p = br(prodajna);
+        if (n > 0) marza.value = ((p / n - 1) * 100).toFixed(2);
     }
-    if (nabavna && prodajna && marza) {
-        marza.addEventListener('input', izProdajne);
-        nabavna.addEventListener('input', izProdajne);
-        prodajna.addEventListener('input', izMarze);
+    // pri promeni PDV stope — preračunaj cena sa PDV iz prodajne
+    function izPdvStope() {
+        if (prodajna.value !== '') izProdajne();
+    }
+
+    if (nabavna && prodajna && saPdv && marza && pdvSel) {
+        prodajna.addEventListener('input', izProdajne);
+        saPdv.addEventListener('input', izSaPdv);
+        nabavna.addEventListener('input', izMarzeKalc);
+        marza.addEventListener('input', izMarzeKalc);
+        pdvSel.addEventListener('change', izPdvStope);
+    } else if (nabavna && prodajna && marza) {
+        // bez PDV modula — samo osnovna kalkulacija nabavna+marža↔prodajna
+        marza.addEventListener('input', function() {
+            var n = br(nabavna);
+            if (n > 0) prodajna.value = (n * (1 + br(marza) / 100)).toFixed(2);
+        });
+        nabavna.addEventListener('input', function() {
+            var n = br(nabavna);
+            if (n > 0 && marza.value !== '') prodajna.value = (n * (1 + br(marza) / 100)).toFixed(2);
+        });
+        prodajna.addEventListener('input', function() {
+            var n = br(nabavna);
+            if (n > 0) marza.value = ((br(prodajna) / n - 1) * 100).toFixed(2);
+        });
     }
 })();
 </script>

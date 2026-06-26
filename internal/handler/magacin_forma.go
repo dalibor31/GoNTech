@@ -62,7 +62,7 @@ func (h *Handler) NoviArtikal(w http.ResponseWriter, r *http.Request) {
 		PodaciStranice: ps,
 		Kategorije:     kategorije,
 		Dobavljaci:     dobavljaci,
-		Artikal:        model.Artikal{Sifra: predlogSifre, Tip: tip, JedinicaMere: "kom"},
+		Artikal:        model.Artikal{Sifra: predlogSifre, Tip: tip, JedinicaMere: "kom", PdvStopa: 20.0},
 		Izmena:         false,
 	})
 }
@@ -389,6 +389,15 @@ func parseFormuArtikla(r *http.Request) (model.Artikal, string) {
 		artikal.NabavnaCena = v
 	}
 
+	// PDV stopa — podrazumevano 20%
+	pdvStopa := 20.0
+	if p := r.FormValue("pdv_stopa"); p != "" {
+		if v, err := strconv.ParseFloat(p, 64); err == nil && v >= 0 {
+			pdvStopa = v
+		}
+	}
+	artikal.PdvStopa = pdvStopa
+
 	if c := r.FormValue("prodajna_cena"); c != "" {
 		v, err := strconv.ParseFloat(c, 64)
 		if err != nil || v < 0 {
@@ -411,6 +420,21 @@ func parseFormuArtikla(r *http.Request) (model.Artikal, string) {
 		if err == nil {
 			artikal.KategorijaID = &id
 		}
+	}
+
+	// kalkulacija cena_sa_pdv na osnovu unetog polja
+	if c := r.FormValue("cena_sa_pdv"); c != "" {
+		// korisnik je uneo bruto cenu → izračunaj neto
+		if v, err := strconv.ParseFloat(c, 64); err == nil && v >= 0 {
+			artikal.CenaSaPdv = v
+			// ako prodajna_cena nije uneta ručno, izračunaj je
+			if r.FormValue("prodajna_cena") == "" {
+				artikal.ProdajnaCena = v / (1 + artikal.PdvStopa/100)
+			}
+		}
+	} else {
+		// korisnik je uneo neto cenu → izračunaj bruto
+		artikal.CenaSaPdv = artikal.ProdajnaCena * (1 + artikal.PdvStopa/100)
 	}
 
 	return artikal, ""

@@ -30,7 +30,7 @@ func (r *ArtikalRepo) Lista(ctx context.Context, filter db.ArtikalFilter) ([]mod
 		SELECT
 			a.id, a.kategorija_id, a.sifra, a.barkod, a.naziv, a.opis, a.tip, a.jedinica_mere,
 			a.kolicina, a.kolicina_min, a.lokacija,
-			a.nabavna_cena, a.prodajna_cena, a.pdv_stopa, a.marza, a.napomena, a.datum_unosa, a.arhiviran,
+			a.nabavna_cena, a.prodajna_cena, a.pdv_stopa, a.cena_sa_pdv, a.marza, a.napomena, a.datum_unosa, a.arhiviran,
 			COALESCE(k.naziv, '') as kategorija_naziv, k.marza as kategorija_marza
 		FROM artikli a
 		LEFT JOIN kategorije k ON a.kategorija_id = k.id
@@ -93,7 +93,7 @@ func (r *ArtikalRepo) Lista(ctx context.Context, filter db.ArtikalFilter) ([]mod
 		err := redovi.Scan(
 			&a.ID, &kategorijaID, &sifra, &barkod, &a.Naziv, &a.Opis, &a.Tip, &a.JedinicaMere,
 			&a.Kolicina, &a.KolicinMin, &a.Lokacija,
-			&a.NabavnaCena, &a.ProdajnaCena, &a.PdvStopa, &marza, &a.Napomena, &a.DatumUnosa, &arhiviran,
+			&a.NabavnaCena, &a.ProdajnaCena, &a.PdvStopa, &a.CenaSaPdv, &marza, &a.Napomena, &a.DatumUnosa, &arhiviran,
 			&a.KategorijaNaziv, &katMarza,
 		)
 		if err != nil {
@@ -136,11 +136,11 @@ func (r *ArtikalRepo) DohvatiID(ctx context.Context, id int64) (*model.Artikal, 
 
 	err := r.db.QueryRowContext(ctx, `
 		SELECT id, kategorija_id, sifra, barkod, naziv, opis, tip, jedinica_mere, kolicina, kolicina_min,
-		       lokacija, nabavna_cena, prodajna_cena, pdv_stopa, marza, napomena, datum_unosa, arhiviran
+		       lokacija, nabavna_cena, prodajna_cena, pdv_stopa, cena_sa_pdv, marza, napomena, datum_unosa, arhiviran
 		FROM artikli WHERE id = ?`, id).Scan(
 		&a.ID, &kategorijaID, &sifra, &barkod, &a.Naziv, &a.Opis, &a.Tip, &a.JedinicaMere,
 		&a.Kolicina, &a.KolicinMin, &a.Lokacija,
-		&a.NabavnaCena, &a.ProdajnaCena, &a.PdvStopa, &marza, &a.Napomena, &a.DatumUnosa, &arhiviran,
+		&a.NabavnaCena, &a.ProdajnaCena, &a.PdvStopa, &a.CenaSaPdv, &marza, &a.Napomena, &a.DatumUnosa, &arhiviran,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: ArtikalRepo.DohvatiID: %w", err)
@@ -176,10 +176,10 @@ func (r *ArtikalRepo) Kreiraj(ctx context.Context, a *model.Artikal) (int64, err
 	rezultat, err := r.db.ExecContext(ctx, `
 		INSERT INTO artikli
 			(kategorija_id, sifra, barkod, naziv, opis, tip, jedinica_mere, kolicina, kolicina_min, lokacija,
-			 nabavna_cena, prodajna_cena, pdv_stopa, marza, napomena)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			nabavna_cena, prodajna_cena, pdv_stopa, cena_sa_pdv, marza, napomena)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		a.KategorijaID, sifra, barkod, a.Naziv, a.Opis, a.Tip, a.JedinicaMere, a.Kolicina, a.KolicinMin,
-		a.Lokacija, a.NabavnaCena, a.ProdajnaCena, a.PdvStopa, a.Marza, a.Napomena,
+		a.Lokacija, a.NabavnaCena, a.ProdajnaCena, a.PdvStopa, a.CenaSaPdv, a.Marza, a.Napomena,
 	)
 	if err != nil {
 		return 0, fmt.Errorf("ntech: ArtikalRepo.Kreiraj: %w", err)
@@ -207,11 +207,11 @@ func (r *ArtikalRepo) Izmeni(ctx context.Context, a *model.Artikal) error {
 		UPDATE artikli SET
 			kategorija_id = ?, sifra = ?, barkod = ?, naziv = ?, opis = ?, tip = ?, jedinica_mere = ?,
 			kolicina = ?, kolicina_min = ?, lokacija = ?,
-			nabavna_cena = ?, prodajna_cena = ?, pdv_stopa = ?, marza = ?, napomena = ?
-		WHERE id = ?`,
+			nabavna_cena = ?, prodajna_cena = ?, pdv_stopa = ?, cena_sa_pdv = ?, marza = ?, napomena = ?
+			WHERE id = ?`,
 		a.KategorijaID, sifra, barkod, a.Naziv, a.Opis, a.Tip, a.JedinicaMere,
 		a.Kolicina, a.KolicinMin, a.Lokacija,
-		a.NabavnaCena, a.ProdajnaCena, a.PdvStopa, a.Marza, a.Napomena, a.ID,
+		a.NabavnaCena, a.ProdajnaCena, a.PdvStopa, a.CenaSaPdv, a.Marza, a.Napomena, a.ID,
 	)
 	if err != nil {
 		return fmt.Errorf("ntech: ArtikalRepo.Izmeni: %w", err)
