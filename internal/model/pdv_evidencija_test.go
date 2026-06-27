@@ -41,6 +41,35 @@ func TestKirIzProdaje(t *testing.T) {
 	}
 }
 
+// TestPdvKirDodajNeto: osnovica zadata kao NETO (servisni rad/deo) se NE deli,
+// PDV se dodaje naviše po stvarnoj stopi i razvrstava u opštu/posebnu/oslobođen.
+func TestPdvKirDodajNeto(t *testing.T) {
+	var k PdvKir
+
+	// rad 1000 neto @ 20% → osnovica 1000 (NE 833.33!), PDV 200, ukupno bruto 1200
+	k.DodajNeto(1000, 20)
+	if !blizu(k.OsnovicaOpsta, 1000) || !blizu(k.PdvOpsta, 200) {
+		t.Errorf("20%%: osnovica=%v pdv=%v, očekivano 1000/200 (neto se ne deli)", k.OsnovicaOpsta, k.PdvOpsta)
+	}
+
+	// deo 1000 neto @ 10% → posebna osnovica 1000, PDV 100
+	k.DodajNeto(1000, 10)
+	if !blizu(k.OsnovicaPosebna, 1000) || !blizu(k.PdvPosebna, 100) {
+		t.Errorf("10%%: osnovica=%v pdv=%v, očekivano 1000/100", k.OsnovicaPosebna, k.PdvPosebna)
+	}
+
+	// usluga 500 neto @ 0% → oslobođen promet, bez PDV
+	k.DodajNeto(500, 0)
+	if !blizu(k.OslobodenSaPravom, 500) {
+		t.Errorf("0%%: oslobođeno=%v, očekivano 500", k.OslobodenSaPravom)
+	}
+
+	// ukupno (bruto) = 1200 + 1100 + 500 = 2800
+	if !blizu(k.Ukupno, 2800) {
+		t.Errorf("ukupno=%v, očekivano 2800 (1200+1100+500)", k.Ukupno)
+	}
+}
+
 func TestKprIzNabavke(t *testing.T) {
 	nabavka := Nabavka{ID: 3, Napomena: "test", Datum: time.Date(2026, 6, 2, 0, 0, 0, 0, time.UTC)}
 	stavke := []NabavkaStavkaPdv{

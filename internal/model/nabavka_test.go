@@ -56,6 +56,26 @@ func TestRasporediTroskove(t *testing.T) {
 			metod:   "kolicina",
 			ocekuje: []float64{50},
 		},
+		{
+			// negativan trošak (odobreni popust) — cena ostaje nepromenjena
+			naziv:   "negativan trosak",
+			stavke:  stavke,
+			trosak:  -100,
+			metod:   "vrednost",
+			ocekuje: []float64{100, 200},
+		},
+		{
+			// trošak 10 na 3 stavke po kolicini (9 kom ukupno) → 10/9/3 ≈ 1.111/kom
+			naziv: "zaokruzivanje na 2 decimale",
+			stavke: []StavkaNabavke{
+				{Kolicina: 3, CenaPoKomadu: 100},
+				{Kolicina: 3, CenaPoKomadu: 200},
+				{Kolicina: 3, CenaPoKomadu: 50},
+			},
+			trosak:  10,
+			metod:   "kolicina",
+			ocekuje: []float64{101.11, 201.11, 51.11},
+		},
 	}
 
 	for _, s := range slucajevi {

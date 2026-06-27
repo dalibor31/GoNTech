@@ -36,7 +36,6 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var brojArtikala, aktivniServisi, kriticnaZaliha, aktivniPodsetnici int
-	var prihodOvogMeseca float64
 
 	if n, err := h.IzvestajRepo.BrojArtikala(ctx); err != nil {
 		slog.Error("dashboard: broj artikala", "error", err)
@@ -50,15 +49,7 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		aktivniServisi = n
 	}
 
-	// prihod se dohvata samo ako korisnik ima dozvolu dashboard.prihod
 	korisnikDash := middleware.KorisnikIzKonteksta(ctx)
-	if h.DozvoleRepo.ImaDozvolu(ctx, korisnikDash.Uloga, "dashboard.prihod") {
-		if v, err := h.IzvestajRepo.PrihodTekuciMesec(ctx); err != nil {
-			slog.Error("dashboard: prihod ovog meseca", "error", err)
-		} else {
-			prihodOvogMeseca = v
-		}
-	}
 
 	if n, err := h.IzvestajRepo.BrojKriticnihZaliha(ctx); err != nil {
 		slog.Error("dashboard: kriticna zaliha", "error", err)
@@ -133,7 +124,6 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		PodaciStranice:    ps,
 		BrojArtikala:      brojArtikala,
 		AktivniServisi:    aktivniServisi,
-		PrihodOvogMeseca:  prihodOvogMeseca,
 		KriticnaZaliha:    kriticnaZaliha,
 		AktivniPodsetnici: aktivniPodsetnici,
 		PoslednjiServisi:  poslednjiServisi,

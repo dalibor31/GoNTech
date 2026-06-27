@@ -39,11 +39,13 @@ func (r *sqliteIzvestajRepo) PrihodTekuciMesec(ctx context.Context) (float64, er
 	err := r.db.QueryRowContext(ctx, `
 		SELECT COALESCE(
 			(SELECT SUM(ukupno) FROM prodajni_nalozi
-			 WHERE substr(datum, 1, 7) = strftime('%Y-%m', 'now', 'localtime')),
+			 WHERE stornirano = 0
+			   AND substr(datum, 1, 7) = strftime('%Y-%m', 'now', 'localtime')),
 			0)
 		+ COALESCE(
-			(SELECT SUM(cena_konacna) FROM servisni_nalozi
+			(SELECT SUM(naplaceno + COALESCE(avans, 0)) FROM servisni_nalozi
 			 WHERE status = 'Preuzeto'
+			   AND (naplaceno > 0 OR avans > 0)
 			   AND substr(datum_zavrsetka, 1, 7) = strftime('%Y-%m', 'now', 'localtime')),
 			0)`).Scan(&iznos)
 	if err != nil {
@@ -108,6 +110,7 @@ func (r *sqliteIzvestajRepo) PoslednjeProdaje(ctx context.Context, limit int) ([
 			COALESCE(kp.naziv, '') AS klijent_naziv
 		FROM prodajni_nalozi pn
 		LEFT JOIN klijent_prikaz kp ON kp.id = pn.klijent_id
+		WHERE pn.stornirano = 0
 		ORDER BY pn.datum DESC LIMIT ?`, limit)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: izvestaj.PoslednjeProdaje: %w", err)
@@ -146,16 +149,18 @@ func (r *sqliteIzvestajRepo) MesecniPrihodProdaja(ctx context.Context) ([]model.
 	return r.mesecniPrihod(ctx, `
 		SELECT substr(datum, 1, 7), SUM(ukupno)
 		FROM prodajni_nalozi
-		WHERE substr(datum, 1, 10) >= date('now', '-11 months', 'start of month')
+		WHERE stornirano = 0
+		  AND substr(datum, 1, 10) >= date('now', '-11 months', 'start of month')
 		GROUP BY substr(datum, 1, 7)`, "MesecniPrihodProdaja")
 }
 
 func (r *sqliteIzvestajRepo) MesecniPrihodServis(ctx context.Context) ([]model.MesecniIznos, error) {
 	return r.mesecniPrihod(ctx, `
-		SELECT substr(datum_zavrsetka, 1, 7), SUM(COALESCE(cena_konacna, 0))
+		SELECT substr(datum_zavrsetka, 1, 7), SUM(naplaceno + COALESCE(avans, 0))
 		FROM servisni_nalozi
 		WHERE datum_zavrsetka IS NOT NULL
 		  AND status = 'Preuzeto'
+		  AND (naplaceno > 0 OR avans > 0)
 		  AND substr(datum_zavrsetka, 1, 10) >= date('now', '-11 months', 'start of month')
 		GROUP BY substr(datum_zavrsetka, 1, 7)`, "MesecniPrihodServis")
 }
@@ -218,11 +223,11 @@ func (r *sqliteIzvestajRepo) TopKlijenti(ctx context.Context, limit int) ([]mode
 		LEFT JOIN klijent_prikaz kp ON kp.id = k.id
 		LEFT JOIN (
 		    SELECT klijent_id, SUM(ukupno) AS ukupno_prodaja, COUNT(*) AS broj_prodaja
-		    FROM prodajni_nalozi GROUP BY klijent_id
+		    FROM prodajni_nalozi WHERE stornirano = 0 GROUP BY klijent_id
 		) p ON p.klijent_id = k.id
 		LEFT JOIN (
-		    SELECT klijent_id, SUM(cena_konacna) AS ukupno_servis, COUNT(*) AS broj_servisa
-		    FROM servisni_nalozi WHERE cena_konacna IS NOT NULL GROUP BY klijent_id
+		    SELECT klijent_id, SUM(naplaceno + COALESCE(avans, 0)) AS ukupno_servis, COUNT(*) AS broj_servisa
+		    FROM servisni_nalozi WHERE status = 'Preuzeto' AND (naplaceno > 0 OR avans > 0) GROUP BY klijent_id
 		) s ON s.klijent_id = k.id
 		WHERE COALESCE(p.ukupno_prodaja, 0) + COALESCE(s.ukupno_servis, 0) > 0
 		ORDER BY ukupno_vrednost DESC

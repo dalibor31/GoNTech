@@ -2035,15 +2035,11 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 	if noviStatus == model.StatusPreuzeto {
 		nalog, _ := h.ServisRepo.DohvatiID(r.Context(), id)
 		if nalog != nil && nalog.CenaKonacna == nil {
-			// auto-izračunaj: dijagnostika + radovi + delovi
+			// auto-izračunaj: dijagnostika + radovi (delovi se računaju posebno)
 			radovi, _ := h.ServisniRadoviRepo.DohvatiZaNalog(r.Context(), id)
-			delovi, _ := h.ServisniDeloviRepo.DohvatiZaNalog(r.Context(), id)
 			ukupno := nalog.CenaDijagnostike
 			for _, rad := range radovi {
 				ukupno += rad.Ukupno()
-			}
-			for _, d := range delovi {
-				ukupno += d.Ukupno()
 			}
 			h.ServisRepo.AzurirajCenuKonacnu(r.Context(), id, ukupno)
 			nalog.CenaKonacna = &ukupno
@@ -2115,25 +2111,18 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 					Izvor:          "servis",
 					IzvorID:        &id,
 				}
+				// cena_komada rada/dela je NETO; PDV se dodaje naviše po stvarnoj stopi
 				for _, r := range radovi {
 					if r.Predlozeno {
 						continue
 					}
-					osnovica := r.Ukupno() / 1.2 // 20% PDV
-					pdv := r.Ukupno() - osnovica
-					kir.OsnovicaOpsta += osnovica
-					kir.PdvOpsta += pdv
-					kir.Ukupno += r.Ukupno()
+					kir.DodajNeto(r.Ukupno(), r.PdvStopa)
 				}
 				for _, d := range delovi {
 					if d.Predlozeno {
 						continue
 					}
-					osnovica := d.Ukupno() / 1.2
-					pdv := d.Ukupno() - osnovica
-					kir.OsnovicaOpsta += osnovica
-					kir.PdvOpsta += pdv
-					kir.Ukupno += d.Ukupno()
+					kir.DodajNeto(d.Ukupno(), d.PdvStopa)
 				}
 				if kir.Ukupno > 0 {
 					if _, e := h.PdvKirRepo.Kreiraj(r.Context(), &kir); e != nil {

@@ -28,6 +28,19 @@ func formatujMesec(yyyymm string) string {
 	return fmt.Sprintf("%s %d", srpskaImenaMeseci[mes], god)
 }
 
+// kljuceviMeseci vraća ključeve ("2006-01") za poslednjih n meseci zaključno sa
+// mesecom datuma `sada`, hronološki (najstariji prvi). Sidri na prvi u mesecu —
+// inače AddDate prelije dan (npr. 31. mart − 1 mesec = „31. feb" → 3. mart) i neki
+// mesec bi se preskočio ili duplirao na 29–31. u mesecu.
+func kljuceviMeseci(sada time.Time, n int) []string {
+	prvi := time.Date(sada.Year(), sada.Month(), 1, 0, 0, 0, 0, sada.Location())
+	kljucevi := make([]string, 0, n)
+	for i := n - 1; i >= 0; i-- {
+		kljucevi = append(kljucevi, prvi.AddDate(0, -i, 0).Format("2006-01"))
+	}
+	return kljucevi
+}
+
 // PodaciIzvestaja su podaci za stranicu izveštaja
 type PodaciIzvestaja struct {
 	model.PodaciStranice
@@ -108,15 +121,12 @@ func (h *Handler) Izvestaji(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// gradimo niz za poslednjih 12 meseci (hronološki)
-	sada := time.Now()
 	var mesecniPrihodi []MesecniPrihod
 	var grafikonLabele []string
 	var grafikonProdaja []float64
 	var grafikonServis []float64
 
-	for i := 11; i >= 0; i-- {
-		t := sada.AddDate(0, -i, 0)
-		kljuc := t.Format("2006-01")
+	for _, kljuc := range kljuceviMeseci(time.Now(), 12) {
 		prod := prodajaPoMesecu[kljuc]
 		serv := servisPoMesecu[kljuc]
 		mesecniPrihodi = append(mesecniPrihodi, MesecniPrihod{

@@ -91,7 +91,7 @@ func main() {
 
 	port := os.Getenv("NTECH_PORT")
 	if port == "" {
-		port = "8080"
+		port = "3000"
 	}
 
 	db, err := sqlite.OtvoriDB(putanjaBaze)
