@@ -53,6 +53,8 @@ type PodaciStampeProdaje struct {
 	Nalog        model.ProdajniNalog
 	Stavke       []model.StavkaProdajeSaArtiklom
 	KlijentNaziv string
+	Moduli       map[string]bool
+	UkupnoBezPdv float64
 	NazivFirme   string
 	Podnazlov    string
 	Adresa       string
@@ -370,10 +372,18 @@ func (h *Handler) StampaProdaje(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	moduli := config.SviModuli(podesavanja)
+	var ukupnoBezPdv float64
+	for _, s := range stavke {
+		ukupnoBezPdv += s.CenaBezPdv * float64(s.Kolicina)
+	}
+
 	podaci := PodaciStampeProdaje{
 		Nalog:        *nalog,
 		Stavke:       stavke,
 		KlijentNaziv: klijentNaziv,
+		Moduli:       moduli,
+		UkupnoBezPdv: ukupnoBezPdv,
 		NazivFirme:   podesavanja["naziv_firme"],
 		Podnazlov:    podesavanja["podnazlov"],
 		Adresa:       podesavanja["adresa"],

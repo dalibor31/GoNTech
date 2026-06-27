@@ -70,9 +70,13 @@ type PodaciDetaljiNaloga struct {
 	Sacuvano                bool
 	UkupnoDelovi            float64
 	UkupnoRadovi            float64
+	UkupnoDeloviSaPdv       float64
+	UkupnoRadoviSaPdv       float64
 	UkupnoSve               float64
+	UkupnoSveSaPdv          float64
 	Avans                   float64
 	PreostaloSve            float64
+	PreostaloSveSaPdv       float64
 	ZakljucanStatus         bool           // onemogući promenu statusa dok ima potraživanih delova
 	CenaDijagnostikePredlog string         // podrazumevana cena dijagnostike iz podešavanja (za prefill input-a)
 	KorisceneUsluge         map[int64]bool // ID-evi usluga već dodatih na nalog — izostavljaju se iz dropdown-a
@@ -645,13 +649,16 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var ukupnoDelovi, ukupnoRadovi float64
+	var ukupnoDeloviSaPdv, ukupnoRadoviSaPdv float64
 	for _, d := range delovi {
 		ukupnoDelovi += d.Ukupno()
+		ukupnoDeloviSaPdv += d.CenaSaPdv * float64(d.Kolicina)
 	}
 	// skup već dodatih usluga — izostavljaju se iz dropdown-a da se ista usluga ne doda dvaput
 	korisceneUsluge := make(map[int64]bool, len(radovi))
 	for _, rad := range radovi {
 		ukupnoRadovi += rad.Ukupno()
+		ukupnoRadoviSaPdv += rad.CenaSaPdv * rad.Kolicina
 		if rad.UslugaID != 0 {
 			korisceneUsluge[rad.UslugaID] = true
 		}
@@ -665,6 +672,14 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 	} else {
 		ukupnoSve = ukupnoRadovi + ukupnoDelovi
 	}
+	// ukupno sa PDV-om —suma CenaSaPdv za radove i delove
+	var ukupnoSveSaPdv float64
+	for _, rad := range radovi {
+		ukupnoSveSaPdv += rad.CenaSaPdv * rad.Kolicina
+	}
+	for _, d := range delovi {
+		ukupnoSveSaPdv += d.CenaSaPdv * float64(d.Kolicina)
+	}
 	avans := 0.0
 	if nalog.Avans != nil {
 		avans = *nalog.Avans
@@ -672,6 +687,10 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 	preostaloSve := ukupnoSve - avans
 	if preostaloSve < 0 {
 		preostaloSve = 0
+	}
+	preostaloSveSaPdv := ukupnoSveSaPdv - avans
+	if preostaloSveSaPdv < 0 {
+		preostaloSveSaPdv = 0
 	}
 
 	zakljucanStatus := false
@@ -704,9 +723,13 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 		Sacuvano:                r.URL.Query().Get("sacuvano") == "1",
 		UkupnoDelovi:            ukupnoDelovi,
 		UkupnoRadovi:            ukupnoRadovi,
+		UkupnoDeloviSaPdv:       ukupnoDeloviSaPdv,
+		UkupnoRadoviSaPdv:       ukupnoRadoviSaPdv,
 		UkupnoSve:               ukupnoSve,
+		UkupnoSveSaPdv:          ukupnoSveSaPdv,
 		Avans:                   avans,
 		PreostaloSve:            preostaloSve,
+		PreostaloSveSaPdv:       preostaloSveSaPdv,
 		ZakljucanStatus:         zakljucanStatus,
 		CenaDijagnostikePredlog: podesavanja["servis_cena_dijagnostike"],
 		KorisceneUsluge:         korisceneUsluge,
@@ -1371,24 +1394,29 @@ func (h *Handler) StampaRadnogNaloga(w http.ResponseWriter, r *http.Request) {
 
 // PodaciOtpremnice su podaci za otpremnicu pri preuzimanju uređaja
 type PodaciOtpremnice struct {
-	Nalog          model.ServisniNalog
-	Radovi         []model.ServisniRad
-	ServisniDelovi []model.ServisniDeoSaArtiklom
-	UkupnoDelovi   float64
-	PreostaloSve   float64
-	ImaAvans       bool
-	QRKod          string
-	Klijent        *model.Klijent
-	KlijentNaziv   string
-	TehnicarNaziv  string
-	NazivFirme     string
-	LogoPutanja    string
-	Podnazlov      string
-	Adresa         string
-	Telefon        string
-	PIB            string
-	MaticniBroj    string
-	Barkod         string // base64 PNG Code128 barkoda broja naloga
+	Nalog             model.ServisniNalog
+	Radovi            []model.ServisniRad
+	ServisniDelovi    []model.ServisniDeoSaArtiklom
+	UkupnoDelovi      float64
+	UkupnoDeloviSaPdv float64
+	UkupnoSve         float64
+	UkupnoSveSaPdv    float64
+	PreostaloSve      float64
+	PreostaloSveSaPdv float64
+	ImaAvans          bool
+	QRKod             string
+	Klijent           *model.Klijent
+	KlijentNaziv      string
+	TehnicarNaziv     string
+	Moduli            map[string]bool
+	NazivFirme        string
+	LogoPutanja       string
+	Podnazlov         string
+	Adresa            string
+	Telefon           string
+	PIB               string
+	MaticniBroj       string
+	Barkod            string // base64 PNG Code128 barkoda broja naloga
 }
 
 // StampaOtpremnice renderuje otpremnicu pri preuzimanju uređaja od strane klijenta
@@ -1446,14 +1474,17 @@ func (h *Handler) StampaOtpremnice(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var ukupnoDelovi float64
+	var ukupnoDeloviSaPdv float64
 	for _, d := range delovi {
 		ukupnoDelovi += d.Ukupno()
+		ukupnoDeloviSaPdv += d.CenaSaPdv * float64(d.Kolicina)
 	}
-	var preostaloSve float64
+	var ukupnoSve, ukupnoSveSaPdv, preostaloSve, preostaloSveSaPdv float64
 	var imaAvans bool
 	if nalog.PopravkaOdbijena {
 		// klijent odbio popravku — naplaćuje se samo dijagnostika
-		ukupnoSve := nalog.CenaDijagnostike
+		ukupnoSve = nalog.CenaDijagnostike
+		ukupnoSveSaPdv = nalog.CenaDijagnostike
 		avans := 0.0
 		if nalog.Avans != nil && *nalog.Avans > 0 {
 			avans = *nalog.Avans
@@ -1463,8 +1494,10 @@ func (h *Handler) StampaOtpremnice(w http.ResponseWriter, r *http.Request) {
 		if preostaloSve < 0 {
 			preostaloSve = 0
 		}
+		preostaloSveSaPdv = preostaloSve
 	} else if nalog.CenaKonacna != nil {
-		ukupnoSve := *nalog.CenaKonacna + ukupnoDelovi
+		ukupnoSve = *nalog.CenaKonacna + ukupnoDelovi
+		ukupnoSveSaPdv = *nalog.CenaKonacna + ukupnoDeloviSaPdv
 		avans := 0.0
 		if nalog.Avans != nil && *nalog.Avans > 0 {
 			avans = *nalog.Avans
@@ -1473,8 +1506,14 @@ func (h *Handler) StampaOtpremnice(w http.ResponseWriter, r *http.Request) {
 		preostaloSve = ukupnoSve - avans
 		if preostaloSve < 0 {
 			preostaloSve = 0
+		}
+		preostaloSveSaPdv = ukupnoSveSaPdv - avans
+		if preostaloSveSaPdv < 0 {
+			preostaloSveSaPdv = 0
 		}
 	}
+
+	moduli := config.SviModuli(podesavanja)
 
 	nalogURL := qrNalogURL(r, nalog.JavniToken, podesavanja["qr_bazni_url"])
 	var qrKodOtpr string
@@ -1495,24 +1534,29 @@ func (h *Handler) StampaOtpremnice(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.renderujStandalone(w, "servis_otpremnica", PodaciOtpremnice{
-		Nalog:          *nalog,
-		Radovi:         radovi,
-		ServisniDelovi: delovi,
-		UkupnoDelovi:   ukupnoDelovi,
-		PreostaloSve:   preostaloSve,
-		ImaAvans:       imaAvans,
-		QRKod:          qrKodOtpr,
-		Klijent:        klijent,
-		KlijentNaziv:   klijentNaziv,
-		TehnicarNaziv:  tehnicarNaziv,
-		NazivFirme:     podesavanja["naziv_firme"],
-		LogoPutanja:    logoZaDokument(podesavanja),
-		Podnazlov:      podesavanja["podnazlov"],
-		Adresa:         podesavanja["adresa"],
-		Telefon:        podesavanja["telefon"],
-		PIB:            podesavanja["pib"],
-		MaticniBroj:    podesavanja["maticni_broj"],
-		Barkod:         barkodNaloga(nalog.BrojNaloga),
+		Nalog:             *nalog,
+		Radovi:            radovi,
+		ServisniDelovi:    delovi,
+		UkupnoDelovi:      ukupnoDelovi,
+		UkupnoDeloviSaPdv: ukupnoDeloviSaPdv,
+		UkupnoSve:         ukupnoSve,
+		UkupnoSveSaPdv:    ukupnoSveSaPdv,
+		PreostaloSve:      preostaloSve,
+		PreostaloSveSaPdv: preostaloSveSaPdv,
+		ImaAvans:          imaAvans,
+		QRKod:             qrKodOtpr,
+		Klijent:           klijent,
+		KlijentNaziv:      klijentNaziv,
+		TehnicarNaziv:     tehnicarNaziv,
+		Moduli:            moduli,
+		NazivFirme:        podesavanja["naziv_firme"],
+		LogoPutanja:       logoZaDokument(podesavanja),
+		Podnazlov:         podesavanja["podnazlov"],
+		Adresa:            podesavanja["adresa"],
+		Telefon:           podesavanja["telefon"],
+		PIB:               podesavanja["pib"],
+		MaticniBroj:       podesavanja["maticni_broj"],
+		Barkod:            barkodNaloga(nalog.BrojNaloga),
 	})
 }
 
@@ -1527,6 +1571,7 @@ type PodaciGarantnog struct {
 	KlijentNaziv   string
 	TehnicarNaziv  string
 	Uslovi         string
+	Moduli         map[string]bool
 	NazivFirme     string
 	LogoPutanja    string
 	Podnazlov      string
@@ -1612,6 +1657,7 @@ func (h *Handler) StampaGarantnog(w http.ResponseWriter, r *http.Request) {
 		KlijentNaziv:   klijentNaziv,
 		TehnicarNaziv:  tehnicarNaziv,
 		Uslovi:         vrednostIliDefault(podesavanja, "servis_uslovi", podrazumevaniUsloviServisa),
+		Moduli:         config.SviModuli(podesavanja),
 		NazivFirme:     podesavanja["naziv_firme"],
 		LogoPutanja:    logoZaDokument(podesavanja),
 		Podnazlov:      podesavanja["podnazlov"],
@@ -1717,27 +1763,31 @@ func (h *Handler) StampaReversa(w http.ResponseWriter, r *http.Request) {
 // PodaciPredracuna su podaci za predračun — procenu cene za tražene radove i delove,
 // koju klijent odobrava pre popravke. Gradi se iz stavki radova i delova na nalogu.
 type PodaciPredracuna struct {
-	Nalog          model.ServisniNalog
-	Radovi         []model.ServisniRad
-	UkupnoRad      float64
-	ServisniDelovi []model.ServisniDeoSaArtiklom
-	UkupnoDelovi   float64
-	UkupnoSve      float64
-	DatumIzdavanja time.Time
-	VaziDo         time.Time
-	Klauzula       string
-	QRKod          string
-	Klijent        *model.Klijent
-	KlijentNaziv   string
-	TehnicarNaziv  string
-	NazivFirme     string
-	LogoPutanja    string
-	Podnazlov      string
-	Adresa         string
-	Telefon        string
-	PIB            string
-	MaticniBroj    string
-	Barkod         string // base64 PNG Code128 barkoda broja naloga
+	Nalog             model.ServisniNalog
+	Radovi            []model.ServisniRad
+	UkupnoRad         float64
+	UkupnoRadSaPdv    float64
+	ServisniDelovi    []model.ServisniDeoSaArtiklom
+	UkupnoDelovi      float64
+	UkupnoDeloviSaPdv float64
+	UkupnoSve         float64
+	UkupnoSveSaPdv    float64
+	DatumIzdavanja    time.Time
+	VaziDo            time.Time
+	Klauzula          string
+	QRKod             string
+	Klijent           *model.Klijent
+	KlijentNaziv      string
+	TehnicarNaziv     string
+	Moduli            map[string]bool
+	NazivFirme        string
+	LogoPutanja       string
+	Podnazlov         string
+	Adresa            string
+	Telefon           string
+	PIB               string
+	MaticniBroj       string
+	Barkod            string // base64 PNG Code128 barkoda broja naloga
 }
 
 // StampaPredracuna renderuje predračun (procenu cene) na osnovu traženih radova i delova
@@ -1791,13 +1841,21 @@ func (h *Handler) StampaPredracuna(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var ukupnoRad float64
+	var ukupnoRadSaPdv float64
 	for _, rd := range radovi {
 		ukupnoRad += rd.Ukupno()
+		ukupnoRadSaPdv += rd.CenaSaPdv * rd.Kolicina
 	}
 	var ukupnoDelovi float64
+	var ukupnoDeloviSaPdv float64
 	for _, d := range delovi {
 		ukupnoDelovi += d.Ukupno()
+		ukupnoDeloviSaPdv += d.CenaSaPdv * float64(d.Kolicina)
 	}
+
+	ukupnoSve := ukupnoRad + ukupnoDelovi
+	ukupnoSveSaPdv := ukupnoRadSaPdv + ukupnoDeloviSaPdv
+	moduli := config.SviModuli(podesavanja)
 
 	// rok važenja iz podešavanja (default 7 dana)
 	rok := 7
@@ -1814,27 +1872,31 @@ func (h *Handler) StampaPredracuna(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.renderujStandalone(w, "servis_predracun", PodaciPredracuna{
-		Nalog:          *nalog,
-		Radovi:         radovi,
-		UkupnoRad:      ukupnoRad,
-		ServisniDelovi: delovi,
-		UkupnoDelovi:   ukupnoDelovi,
-		UkupnoSve:      ukupnoRad + ukupnoDelovi,
-		DatumIzdavanja: datumIzdavanja,
-		VaziDo:         vaziDo,
-		Klauzula:       vrednostIliDefault(podesavanja, "servis_klauzula_predracuna", podrazumevanaKlauzulaPredracuna),
-		QRKod:          qrKod,
-		Klijent:        klijent,
-		KlijentNaziv:   klijentNaziv,
-		TehnicarNaziv:  tehnicarNaziv,
-		NazivFirme:     podesavanja["naziv_firme"],
-		LogoPutanja:    logoZaDokument(podesavanja),
-		Podnazlov:      podesavanja["podnazlov"],
-		Adresa:         podesavanja["adresa"],
-		Telefon:        podesavanja["telefon"],
-		PIB:            podesavanja["pib"],
-		MaticniBroj:    podesavanja["maticni_broj"],
-		Barkod:         barkodNaloga(nalog.BrojNaloga),
+		Nalog:             *nalog,
+		Radovi:            radovi,
+		UkupnoRad:         ukupnoRad,
+		UkupnoRadSaPdv:    ukupnoRadSaPdv,
+		ServisniDelovi:    delovi,
+		UkupnoDelovi:      ukupnoDelovi,
+		UkupnoDeloviSaPdv: ukupnoDeloviSaPdv,
+		UkupnoSve:         ukupnoSve,
+		UkupnoSveSaPdv:    ukupnoSveSaPdv,
+		DatumIzdavanja:    datumIzdavanja,
+		VaziDo:            vaziDo,
+		Klauzula:          vrednostIliDefault(podesavanja, "servis_klauzula_predracuna", podrazumevanaKlauzulaPredracuna),
+		QRKod:             qrKod,
+		Klijent:           klijent,
+		KlijentNaziv:      klijentNaziv,
+		TehnicarNaziv:     tehnicarNaziv,
+		Moduli:            moduli,
+		NazivFirme:        podesavanja["naziv_firme"],
+		LogoPutanja:       logoZaDokument(podesavanja),
+		Podnazlov:         podesavanja["podnazlov"],
+		Adresa:            podesavanja["adresa"],
+		Telefon:           podesavanja["telefon"],
+		PIB:               podesavanja["pib"],
+		MaticniBroj:       podesavanja["maticni_broj"],
+		Barkod:            barkodNaloga(nalog.BrojNaloga),
 	})
 }
 
@@ -2533,24 +2595,28 @@ func (h *Handler) OdbijPopravku(w http.ResponseWriter, r *http.Request) {
 
 // PodaciJavnogStatusa su podaci za javnu status stranicu servisnog naloga
 type PodaciJavnogStatusa struct {
-	Nalog             model.ServisniNalog
-	NazivFirme        string
-	LogoPutanja       string
-	Podnazlov         string
-	Adresa            string
-	Telefon           string
-	PIB               string
-	MaticniBroj       string
-	Radovi            []model.ServisniRad           // ugrađeni/odobreni
-	ServisniDelovi    []model.ServisniDeoSaArtiklom // ugrađeni/odobreni
-	UkupnoSve         float64                       // zbir ugrađenih (radovi + delovi)
-	PredlozeniRadovi  []model.ServisniRad
-	PredlozeniDelovi  []model.ServisniDeoSaArtiklom
-	UkupnoPredlog     float64 // zbir predloženih (radovi + delovi)
-	ImaPredlog        bool
-	UkupnoSaPredlogom float64 // ukupno ugrađeno + predloženo
-	Odgovoreno        bool    // klijent već odgovorio (nema predloga, nije „Primljeno")
-	SviStatusi        []string
+	Nalog                  model.ServisniNalog
+	NazivFirme             string
+	LogoPutanja            string
+	Podnazlov              string
+	Adresa                 string
+	Telefon                string
+	PIB                    string
+	MaticniBroj            string
+	Radovi                 []model.ServisniRad           // ugrađeni/odobreni
+	ServisniDelovi         []model.ServisniDeoSaArtiklom // ugrađeni/odobreni
+	UkupnoSve              float64                       // zbir ugrađenih (radovi + delovi)
+	UkupnoSveSaPdv         float64
+	PredlozeniRadovi       []model.ServisniRad
+	PredlozeniDelovi       []model.ServisniDeoSaArtiklom
+	UkupnoPredlog          float64 // zbir predloženih (radovi + delovi)
+	UkupnoPredlogSaPdv     float64
+	ImaPredlog             bool
+	UkupnoSaPredlogom      float64 // ukupno ugrađeno + predloženo
+	UkupnoSaPredlogomSaPdv float64
+	Odgovoreno             bool // klijent vec odgovorio (nema predloga, nije "Primljeno")
+	Moduli                 map[string]bool
+	SviStatusi             []string
 }
 
 // ServisJavniStatus prikazuje javnu status stranicu — dostupna bez prijave putem QR koda
@@ -2578,14 +2644,16 @@ func (h *Handler) ServisJavniStatus(w http.ResponseWriter, r *http.Request) {
 
 	// razdvajamo ugrađene/odobrene od predloženih (čekaju odluku klijenta)
 	var ugrRadovi, predRadovi []model.ServisniRad
-	var ukupnoSve, ukupnoPredlog float64
+	var ukupnoSve, ukupnoSveSaPdv, ukupnoPredlog, ukupnoPredlogSaPdv float64
 	for _, rd := range radovi {
 		if rd.Predlozeno {
 			predRadovi = append(predRadovi, rd)
 			ukupnoPredlog += rd.Ukupno()
+			ukupnoPredlogSaPdv += rd.UkupnoSaPdv()
 		} else {
 			ugrRadovi = append(ugrRadovi, rd)
 			ukupnoSve += rd.Ukupno()
+			ukupnoSveSaPdv += rd.UkupnoSaPdv()
 		}
 	}
 	var ugrDelovi, predDelovi []model.ServisniDeoSaArtiklom
@@ -2593,13 +2661,16 @@ func (h *Handler) ServisJavniStatus(w http.ResponseWriter, r *http.Request) {
 		if d.Predlozeno {
 			predDelovi = append(predDelovi, d)
 			ukupnoPredlog += d.Ukupno()
+			ukupnoPredlogSaPdv += d.UkupnoSaPdv()
 		} else {
 			ugrDelovi = append(ugrDelovi, d)
 			ukupnoSve += d.Ukupno()
+			ukupnoSveSaPdv += d.UkupnoSaPdv()
 		}
 	}
 
 	podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	moduli := config.SviModuli(podesavanja)
 
 	// kad je klijent odbio popravku, ne prikazujemo radove i delove
 	if nalog.PopravkaOdbijena {
@@ -2608,28 +2679,34 @@ func (h *Handler) ServisJavniStatus(w http.ResponseWriter, r *http.Request) {
 		predRadovi = nil
 		predDelovi = nil
 		ukupnoSve = 0
+		ukupnoSveSaPdv = 0
 		ukupnoPredlog = 0
+		ukupnoPredlogSaPdv = 0
 	}
 
 	h.renderujStandalone(w, "servis_status_javni", PodaciJavnogStatusa{
-		Nalog:             *nalog,
-		NazivFirme:        podesavanja["naziv_firme"],
-		LogoPutanja:       logoZaDokument(podesavanja),
-		Podnazlov:         podesavanja["podnazlov"],
-		Adresa:            podesavanja["adresa"],
-		Telefon:           podesavanja["telefon"],
-		PIB:               podesavanja["pib"],
-		MaticniBroj:       podesavanja["maticni_broj"],
-		Radovi:            ugrRadovi,
-		ServisniDelovi:    ugrDelovi,
-		UkupnoSve:         ukupnoSve,
-		PredlozeniRadovi:  predRadovi,
-		PredlozeniDelovi:  predDelovi,
-		UkupnoPredlog:     ukupnoPredlog,
-		ImaPredlog:        len(predRadovi) > 0 || len(predDelovi) > 0,
-		UkupnoSaPredlogom: ukupnoSve + ukupnoPredlog,
-		Odgovoreno:        nalog.OdlukaKlijenta != "" || (!(len(predRadovi) > 0 || len(predDelovi) > 0) && nalog.Status != model.StatusPrimljeno),
-		SviStatusi:        model.SviStatusi,
+		Nalog:                  *nalog,
+		NazivFirme:             podesavanja["naziv_firme"],
+		LogoPutanja:            logoZaDokument(podesavanja),
+		Podnazlov:              podesavanja["podnazlov"],
+		Adresa:                 podesavanja["adresa"],
+		Telefon:                podesavanja["telefon"],
+		PIB:                    podesavanja["pib"],
+		MaticniBroj:            podesavanja["maticni_broj"],
+		Radovi:                 ugrRadovi,
+		ServisniDelovi:         ugrDelovi,
+		UkupnoSve:              ukupnoSve,
+		UkupnoSveSaPdv:         ukupnoSveSaPdv,
+		PredlozeniRadovi:       predRadovi,
+		PredlozeniDelovi:       predDelovi,
+		UkupnoPredlog:          ukupnoPredlog,
+		UkupnoPredlogSaPdv:     ukupnoPredlogSaPdv,
+		ImaPredlog:             len(predRadovi) > 0 || len(predDelovi) > 0,
+		UkupnoSaPredlogom:      ukupnoSve + ukupnoPredlog,
+		UkupnoSaPredlogomSaPdv: ukupnoSveSaPdv + ukupnoPredlogSaPdv,
+		Odgovoreno:             nalog.OdlukaKlijenta != "" || (!(len(predRadovi) > 0 || len(predDelovi) > 0) && nalog.Status != model.StatusPrimljeno),
+		Moduli:                 moduli,
+		SviStatusi:             model.SviStatusi,
 	})
 }
 

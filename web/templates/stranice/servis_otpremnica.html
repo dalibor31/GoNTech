@@ -6,7 +6,7 @@
     <title>Otpremnica — {{.Nalog.BrojNaloga}}</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 13px; color: #111; background: #fff; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 13px; color: #111; background: #fff; min-width: 780px; }
 
         .strana { max-width: 780px; margin: 0 auto; padding: 32px 40px; }
 
@@ -66,7 +66,7 @@
 
         @media print {
             body { font-size: 12px; }
-            .strana { padding: 16px 20px; max-width: 100%; }
+            .strana { padding: 32px 40px; max-width: 780px; }
             .dugme-stampa { display: none !important; }
             @page { size: A4; margin: 12mm 14mm; }
             /* red tabele se ne sme prelomiti preko granice stranice — prelom pada između stavki */
@@ -177,8 +177,8 @@
                 <tr>
                     <th>Opis rada</th>
                     <th class="desno" style="width:70px;">Kol.</th>
-                    <th class="desno" style="width:120px;">Cena/kom</th>
-                    <th class="desno" style="width:120px;">Ukupno</th>
+                    <th class="desno" style="width:120px;">Cena/kom{{if index .Moduli "pdv"}} sa PDV{{end}}</th>
+                    <th class="desno" style="width:120px;">Ukupno{{if index .Moduli "pdv"}} sa PDV{{end}}</th>
                 </tr>
             </thead>
             <tbody>
@@ -186,8 +186,8 @@
                 <tr>
                     <td>{{.Naziv}}</td>
                     <td class="desno">{{printf "%.0f" .Kolicina}}</td>
-                    <td class="desno">{{dinari .CenaKomada}} din</td>
-                    <td class="desno">{{dinari .Ukupno}} din</td>
+                    <td class="desno">{{if index $.Moduli "pdv"}}{{dinari .CenaSaPdv}}{{else}}{{dinari .CenaKomada}}{{end}} din</td>
+                    <td class="desno">{{if index $.Moduli "pdv"}}{{dinari .UkupnoSaPdv}}{{else}}{{dinari .Ukupno}}{{end}} din</td>
                 </tr>
                 {{end}}
             </tbody>
@@ -204,8 +204,8 @@
                 <tr>
                     <th>Artikal</th>
                     <th class="desno" style="width:70px;">Kol.</th>
-                    <th class="desno" style="width:120px;">Cena/kom</th>
-                    <th class="desno" style="width:120px;">Ukupno</th>
+                    <th class="desno" style="width:120px;">Cena/kom{{if index .Moduli "pdv"}} sa PDV{{end}}</th>
+                    <th class="desno" style="width:120px;">Ukupno{{if index .Moduli "pdv"}} sa PDV{{end}}</th>
                 </tr>
             </thead>
             <tbody>
@@ -213,13 +213,13 @@
                 <tr>
                     <td>{{.ArtikalNaziv}}</td>
                     <td class="desno">{{.Kolicina}}</td>
-                    <td class="desno">{{dinari .CenaKomada}} din</td>
-                    <td class="desno">{{dinari .Ukupno}} din</td>
+                    <td class="desno">{{if index $.Moduli "pdv"}}{{dinari .CenaSaPdv}}{{else}}{{dinari .CenaKomada}}{{end}} din</td>
+                    <td class="desno">{{if index $.Moduli "pdv"}}{{dinari .UkupnoSaPdv}}{{else}}{{dinari .Ukupno}}{{end}} din</td>
                 </tr>
                 {{end}}
                 <tr class="ukupno-red">
                     <td colspan="3">Ukupno delovi</td>
-                    <td class="desno">{{dinari .UkupnoDelovi}} din</td>
+                    <td class="desno">{{if index .Moduli "pdv"}}{{dinari .UkupnoDeloviSaPdv}}{{else}}{{dinari .UkupnoDelovi}}{{end}} din</td>
                 </tr>
             </tbody>
         </table>
@@ -246,7 +246,7 @@
         </table>
         <div class="naplata-blok">
             <div class="naplata-labela">Za naplatu pri preuzimanju:</div>
-            <div class="naplata-iznos">{{dinari .PreostaloSve}} din</div>
+            <div class="naplata-iznos">{{if index .Moduli "pdv"}}{{dinari .PreostaloSveSaPdv}}{{else}}{{dinari .PreostaloSve}}{{end}} din</div>
         </div>
     </div>
     {{else if .Nalog.CenaKonacna}}
@@ -261,7 +261,7 @@
                 {{if gt .UkupnoDelovi 0.0}}
                 <tr>
                     <td>Ugrađeni delovi i materijal</td>
-                    <td class="desno">{{dinari .UkupnoDelovi}} din</td>
+                    <td class="desno">{{if index .Moduli "pdv"}}{{dinari .UkupnoDeloviSaPdv}}{{else}}{{dinari .UkupnoDelovi}}{{end}} din</td>
                 </tr>
                 {{end}}
                 {{if .ImaAvans}}
@@ -274,7 +274,7 @@
         </table>
         <div class="naplata-blok">
             <div class="naplata-labela">Za naplatu pri preuzimanju:</div>
-            <div class="naplata-iznos">{{dinari .PreostaloSve}} din</div>
+            <div class="naplata-iznos">{{if index .Moduli "pdv"}}{{dinari .PreostaloSveSaPdv}}{{else}}{{dinari .PreostaloSve}}{{end}} din</div>
         </div>
     </div>
     {{end}}

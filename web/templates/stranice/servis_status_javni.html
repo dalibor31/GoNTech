@@ -243,26 +243,26 @@
             {{range .Radovi}}
             <div class="red">
                 <span class="red-labela">{{.Naziv}}{{if gt .Kolicina 1.0}} &times;{{.Kolicina}}{{end}}</span>
-                <span class="red-vrednost">{{dinari .Ukupno}} din</span>
+                <span class="red-vrednost">{{if index $.Moduli "pdv"}}{{dinari .UkupnoSaPdv}}{{else}}{{dinari .Ukupno}}{{end}} din</span>
             </div>
             {{end}}
 
             {{range .ServisniDelovi}}
             <div class="red">
                 <span class="red-labela">{{.ArtikalNaziv}}{{if gt .Kolicina 1}} &times;{{.Kolicina}}{{end}}</span>
-                <span class="red-vrednost">{{dinari .Ukupno}} din</span>
+                <span class="red-vrednost">{{if index $.Moduli "pdv"}}{{dinari .UkupnoSaPdv}}{{else}}{{dinari .Ukupno}}{{end}} din</span>
             </div>
             {{end}}
 
             <div class="cena-blok" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;">
                 <span class="cena-labela" style="margin:0;">Ukupno (procena)</span>
-                <span class="cena-vrednost">{{dinari .UkupnoSve}} din</span>
+                <span class="cena-vrednost">{{if index .Moduli "pdv"}}{{dinari .UkupnoSveSaPdv}}{{else}}{{dinari .UkupnoSve}}{{end}} din</span>
             </div>
 
             {{if .ImaPredlog}}
             <div class="cena-blok" style="margin-top:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;background:#0f172a;border:1px solid #f59e0b;border-radius:8px;">
                 <span class="cena-labela" style="margin:0;color:#fbbf24;">Sa predlogom</span>
-                <span class="cena-vrednost" id="sa-predlogom-zbir" data-base="{{printf "%.2f" .UkupnoSve}}" style="font-size:16px;font-weight:700;color:#fbbf24;">{{dinari .UkupnoSaPredlogom}} din</span>
+                <span class="cena-vrednost" id="sa-predlogom-zbir" data-base="{{if index .Moduli "pdv"}}{{printf "%.2f" .UkupnoSveSaPdv}}{{else}}{{printf "%.2f" .UkupnoSve}}{{end}}" style="font-size:16px;font-weight:700;color:#fbbf24;">{{if index .Moduli "pdv"}}{{dinari .UkupnoSaPredlogomSaPdv}}{{else}}{{dinari .UkupnoSaPredlogom}}{{end}} din</span>
             </div>
             {{end}}
         </div>
@@ -286,11 +286,11 @@
             {{range .PredlozeniRadovi}}
             <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:0.5px solid #1e293b;cursor:pointer;">
                 <span style="display:flex;align-items:center;gap:10px;flex:1;">
-                    <input type="checkbox" name="rad_id" value="{{.ID}}" checked data-iznos="{{printf "%.2f" .Ukupno}}"
+                    <input type="checkbox" name="rad_id" value="{{.ID}}" checked data-iznos="{{if index $.Moduli "pdv"}}{{printf "%.2f" .UkupnoSaPdv}}{{else}}{{printf "%.2f" .Ukupno}}{{end}}"
                         style="width:18px;height:18px;accent-color:#f59e0b;flex-shrink:0;">
                     <span style="font-size:13px;color:#e2e8f0;">{{.Naziv}}{{if gt .Kolicina 1.0}} &times; {{printf "%.0f" .Kolicina}}{{end}}</span>
                 </span>
-                <span style="font-size:13px;font-weight:600;color:#fbbf24;white-space:nowrap;">{{dinari .Ukupno}} din</span>
+                <span style="font-size:13px;font-weight:600;color:#fbbf24;white-space:nowrap;">{{if index $.Moduli "pdv"}}{{dinari .UkupnoSaPdv}}{{else}}{{dinari .Ukupno}}{{end}} din</span>
             </label>
             {{end}}
             {{end}}
@@ -300,18 +300,18 @@
             {{range .PredlozeniDelovi}}
             <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:0.5px solid #1e293b;cursor:pointer;">
                 <span style="display:flex;align-items:center;gap:10px;flex:1;">
-                    <input type="checkbox" name="artikal_id" value="{{.ArtikalID}}" checked data-iznos="{{printf "%.2f" .Ukupno}}"
+                    <input type="checkbox" name="artikal_id" value="{{.ArtikalID}}" checked data-iznos="{{if index $.Moduli "pdv"}}{{printf "%.2f" .UkupnoSaPdv}}{{else}}{{printf "%.2f" .Ukupno}}{{end}}"
                         style="width:18px;height:18px;accent-color:#f59e0b;flex-shrink:0;">
                     <span style="font-size:13px;color:#e2e8f0;">{{.ArtikalNaziv}}{{if gt .Kolicina 1}} &times; {{.Kolicina}}{{end}}</span>
                 </span>
-                <span style="font-size:13px;font-weight:600;color:#fbbf24;white-space:nowrap;">{{dinari .Ukupno}} din</span>
+                <span style="font-size:13px;font-weight:600;color:#fbbf24;white-space:nowrap;">{{if index $.Moduli "pdv"}}{{dinari .UkupnoSaPdv}}{{else}}{{dinari .Ukupno}}{{end}} din</span>
             </label>
             {{end}}
             {{end}}
 
             <div class="cena-blok predlog-ukupno" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;">
                 <span class="cena-labela" style="margin:0;">Predlog ukupno</span>
-                <span class="cena-vrednost" id="predlog-zbir">{{dinari .UkupnoPredlog}} din</span>
+                <span class="cena-vrednost" id="predlog-zbir">{{if index .Moduli "pdv"}}{{dinari .UkupnoPredlogSaPdv}}{{else}}{{dinari .UkupnoPredlog}}{{end}} din</span>
             </div>
 
             <textarea name="komentar" placeholder="Poruka serviseru (opciono)..." rows="2"

@@ -22,7 +22,7 @@ func NoviServisniRadoviRepo(baza *sql.DB) *ServisniRadoviRepo {
 func (r *ServisniRadoviRepo) DohvatiZaNalog(ctx context.Context, nalogID int64) ([]model.ServisniRad, error) {
 	redovi, err := r.db.QueryContext(ctx, `
 		SELECT sr.id, sr.nalog_id, COALESCE(sr.usluga_id, 0), sr.naziv, sr.kolicina, sr.cena_komada, sr.datum, sr.predlozeno,
-		       COALESCE(u.sifra, '')
+		       COALESCE(u.sifra, ''), COALESCE(u.pdv_stopa, 20.0)
 		FROM servis_radovi sr
 		LEFT JOIN usluge u ON u.id = sr.usluga_id
 		WHERE sr.nalog_id = ? ORDER BY sr.id`, nalogID)
@@ -34,9 +34,10 @@ func (r *ServisniRadoviRepo) DohvatiZaNalog(ctx context.Context, nalogID int64) 
 	var radovi []model.ServisniRad
 	for redovi.Next() {
 		var rad model.ServisniRad
-		if err := redovi.Scan(&rad.ID, &rad.NalogID, &rad.UslugaID, &rad.Naziv, &rad.Kolicina, &rad.CenaKomada, &rad.Datum, &rad.Predlozeno, &rad.Sifra); err != nil {
+		if err := redovi.Scan(&rad.ID, &rad.NalogID, &rad.UslugaID, &rad.Naziv, &rad.Kolicina, &rad.CenaKomada, &rad.Datum, &rad.Predlozeno, &rad.Sifra, &rad.PdvStopa); err != nil {
 			return nil, fmt.Errorf("ntech: ServisniRadoviRepo.DohvatiZaNalog: %w", err)
 		}
+		rad.CenaSaPdv = rad.CenaKomada * (1 + rad.PdvStopa/100)
 		radovi = append(radovi, rad)
 	}
 	return radovi, redovi.Err()

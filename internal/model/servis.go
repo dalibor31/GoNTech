@@ -78,11 +78,18 @@ func (d ServisniDeo) Ukupno() float64 {
 	return float64(d.Kolicina) * d.CenaKomada
 }
 
+// UkupnoSaPdv vraća ukupnu vrednost dela sa PDV-om (kolicina × cena_sa_pdv)
+func (d ServisniDeoSaArtiklom) UkupnoSaPdv() float64 {
+	return float64(d.Kolicina) * d.CenaSaPdv
+}
+
 // ServisniDeoSaArtiklom je servisni deo sa nazivom artikla — za prikaz
 type ServisniDeoSaArtiklom struct {
 	ServisniDeo
 	ArtikalNaziv string
 	ArtikalSifra string
+	PdvStopa     float64
+	CenaSaPdv    float64
 	Potrazivano  int // komada koji nedostaju (iz servisni_potrazivani_delovi), 0 ako nema
 }
 
@@ -110,6 +117,8 @@ type ServisniRad struct {
 	Sifra      string
 	Kolicina   float64
 	CenaKomada float64
+	PdvStopa   float64
+	CenaSaPdv  float64 // CenaKomada * (1 + PdvStopa/100)
 	Datum      string
 	Predlozeno bool // true = serviser predložio posle dijagnostike; čeka odobrenje klijenta
 }
@@ -117,6 +126,11 @@ type ServisniRad struct {
 // Ukupno vraća ukupnu vrednost rada (kolicina × cena)
 func (r ServisniRad) Ukupno() float64 {
 	return r.Kolicina * r.CenaKomada
+}
+
+// UkupnoSaPdv vraća ukupnu vrednost rada sa PDV-om (kolicina × cena_sa_pdv)
+func (r ServisniRad) UkupnoSaPdv() float64 {
+	return r.Kolicina * r.CenaSaPdv
 }
 
 // ServisniNalogSaKlijentom proširuje ServisniNalog sa nazivom klijenta za prikaz u listi

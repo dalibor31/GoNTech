@@ -6,7 +6,7 @@
     <title>Garantni list — {{.Nalog.BrojNaloga}}</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 13px; color: #111; background: #fff; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 13px; color: #111; background: #fff; min-width: 780px; }
 
         .strana { max-width: 780px; margin: 0 auto; padding: 32px 40px; }
 
@@ -56,7 +56,7 @@
 
         @media print {
             body { font-size: 12px; }
-            .strana { padding: 16px 20px; max-width: 100%; }
+            .strana { padding: 32px 40px; max-width: 780px; }
             .dugme-stampa { display: none !important; }
             @page { size: A4; margin: 12mm 14mm; }
         }
@@ -153,8 +153,8 @@
                 <tr>
                     <th>Opis rada</th>
                     <th>Kol.</th>
-                    <th>Cena</th>
-                    <th>Ukupno</th>
+                    <th>Cena{{if index .Moduli "pdv"}} sa PDV{{end}}</th>
+                    <th>Ukupno{{if index .Moduli "pdv"}} sa PDV{{end}}</th>
                 </tr>
             </thead>
             <tbody>
@@ -162,8 +162,8 @@
                 <tr>
                     <td>{{.Naziv}}</td>
                     <td style="text-align:right;">{{printf "%.0f" .Kolicina}}</td>
-                    <td style="text-align:right;">{{dinari .CenaKomada}}</td>
-                    <td>{{dinari .Ukupno}}</td>
+                    <td style="text-align:right;">{{if index $.Moduli "pdv"}}{{dinari .CenaSaPdv}}{{else}}{{dinari .CenaKomada}}{{end}}</td>
+                    <td>{{if index $.Moduli "pdv"}}{{dinari .UkupnoSaPdv}}{{else}}{{dinari .Ukupno}}{{end}}</td>
                 </tr>
                 {{end}}
             </tbody>
@@ -183,8 +183,8 @@
                     <th>Naziv</th>
                     <th>Šifra</th>
                     <th>Kol.</th>
-                    <th>Cena</th>
-                    <th>Ukupno</th>
+                    <th>Cena{{if index .Moduli "pdv"}} sa PDV{{end}}</th>
+                    <th>Ukupno{{if index .Moduli "pdv"}} sa PDV{{end}}</th>
                 </tr>
             </thead>
             <tbody>
@@ -194,8 +194,8 @@
                     <td>{{.ArtikalNaziv}}</td>
                     <td style="font-family:monospace;">{{.ArtikalSifra}}</td>
                     <td style="text-align:right;">{{.Kolicina}}</td>
-                    <td style="text-align:right;">{{dinari .CenaKomada}}</td>
-                    <td>{{dinari .Ukupno}}</td>
+                    <td style="text-align:right;">{{if index $.Moduli "pdv"}}{{dinari .CenaSaPdv}}{{else}}{{dinari .CenaKomada}}{{end}}</td>
+                    <td>{{if index $.Moduli "pdv"}}{{dinari .UkupnoSaPdv}}{{else}}{{dinari .Ukupno}}{{end}}</td>
                 </tr>
                 {{end}}
                 {{end}}

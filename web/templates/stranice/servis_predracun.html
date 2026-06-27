@@ -6,7 +6,7 @@
     <title>Predračun — {{.Nalog.BrojNaloga}}</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 13px; color: #111; background: #fff; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 13px; color: #111; background: #fff; min-width: 780px; }
 
         .strana { max-width: 780px; margin: 0 auto; padding: 32px 40px; }
 
@@ -50,7 +50,7 @@
 
         @media print {
             body { font-size: 12px; }
-            .strana { padding: 16px 20px; max-width: 100%; }
+            .strana { padding: 32px 40px; max-width: 780px; }
             .dugme-stampa { display: none !important; }
             @page { size: A4; margin: 12mm 14mm; }
             .tabela tr { break-inside: avoid; }
@@ -152,8 +152,8 @@
                 <tr>
                     <th>Usluga</th>
                     <th class="desno" style="width:70px;">Kol.</th>
-                    <th class="desno" style="width:120px;">Cena</th>
-                    <th class="desno" style="width:120px;">Ukupno</th>
+                    <th class="desno" style="width:120px;">Cena{{if index .Moduli "pdv"}} sa PDV{{end}}</th>
+                    <th class="desno" style="width:120px;">Ukupno{{if index .Moduli "pdv"}} sa PDV{{end}}</th>
                 </tr>
             </thead>
             <tbody>
@@ -161,8 +161,8 @@
                 <tr>
                     <td>{{.Naziv}}</td>
                     <td class="desno">{{.Kolicina}}</td>
-                    <td class="desno">{{dinari .CenaKomada}} din</td>
-                    <td class="desno">{{dinari .Ukupno}} din</td>
+                    <td class="desno">{{if index $.Moduli "pdv"}}{{dinari .CenaSaPdv}}{{else}}{{dinari .CenaKomada}}{{end}} din</td>
+                    <td class="desno">{{if index $.Moduli "pdv"}}{{dinari .UkupnoSaPdv}}{{else}}{{dinari .Ukupno}}{{end}} din</td>
                 </tr>
                 {{end}}
             </tbody>
@@ -179,8 +179,8 @@
                 <tr>
                     <th>Artikal</th>
                     <th class="desno" style="width:70px;">Kol.</th>
-                    <th class="desno" style="width:120px;">Cena/kom</th>
-                    <th class="desno" style="width:120px;">Ukupno</th>
+                    <th class="desno" style="width:120px;">Cena/kom{{if index .Moduli "pdv"}} sa PDV{{end}}</th>
+                    <th class="desno" style="width:120px;">Ukupno{{if index .Moduli "pdv"}} sa PDV{{end}}</th>
                 </tr>
             </thead>
             <tbody>
@@ -188,8 +188,8 @@
                 <tr>
                     <td>{{.ArtikalNaziv}}</td>
                     <td class="desno">{{.Kolicina}}</td>
-                    <td class="desno">{{dinari .CenaKomada}} din</td>
-                    <td class="desno">{{dinari .Ukupno}} din</td>
+                    <td class="desno">{{if index $.Moduli "pdv"}}{{dinari .CenaSaPdv}}{{else}}{{dinari .CenaKomada}}{{end}} din</td>
+                    <td class="desno">{{if index $.Moduli "pdv"}}{{dinari .UkupnoSaPdv}}{{else}}{{dinari .Ukupno}}{{end}} din</td>
                 </tr>
                 {{end}}
             </tbody>
@@ -208,11 +208,11 @@
 
     <!-- rekapitulacija: ponavlja sume po sekciji (korisno kad tabele pređu na prethodnu stranu) -->
     <div class="rekap">
-        {{if .Radovi}}<div class="rekap-red" style="font-weight:600;"><span>Ukupno radovi</span><span>{{dinari .UkupnoRad}} din</span></div>{{end}}
-        {{if .ServisniDelovi}}<div class="rekap-red" style="font-weight:600;"><span>Ukupno delovi</span><span>{{dinari .UkupnoDelovi}} din</span></div>{{end}}
+        {{if .Radovi}}<div class="rekap-red" style="font-weight:600;"><span>Ukupno radovi</span><span>{{if index .Moduli "pdv"}}{{dinari .UkupnoRadSaPdv}}{{else}}{{dinari .UkupnoRad}}{{end}} din</span></div>{{end}}
+        {{if .ServisniDelovi}}<div class="rekap-red" style="font-weight:600;"><span>Ukupno delovi</span><span>{{if index .Moduli "pdv"}}{{dinari .UkupnoDeloviSaPdv}}{{else}}{{dinari .UkupnoDelovi}}{{end}} din</span></div>{{end}}
         <div class="rekap-ukupno">
             <div class="rekap-ukupno-labela">Ukupno (procena):</div>
-            <div class="rekap-ukupno-iznos">{{dinari .UkupnoSve}} din</div>
+            <div class="rekap-ukupno-iznos">{{if index .Moduli "pdv"}}{{dinari .UkupnoSveSaPdv}}{{else}}{{dinari .UkupnoSve}}{{end}} din</div>
         </div>
     </div>
 

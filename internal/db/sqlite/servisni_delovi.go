@@ -24,7 +24,7 @@ func NoviServisniDeloviRepo(db *sql.DB) *ServisniDeloviRepo {
 func (r *ServisniDeloviRepo) DohvatiZaNalog(ctx context.Context, nalogID int64) ([]model.ServisniDeoSaArtiklom, error) {
 	redovi, err := r.db.QueryContext(ctx, `
 		SELECT sd.id, sd.nalog_id, sd.artikal_id, sd.kolicina, sd.cena_komada, sd.datum,
-		       sd.predlozeno, a.naziv, a.sifra
+		       sd.predlozeno, a.naziv, a.sifra, a.pdv_stopa
 		FROM servisni_delovi sd
 		JOIN artikli a ON a.id = sd.artikal_id
 		WHERE sd.nalog_id = ?
@@ -39,11 +39,12 @@ func (r *ServisniDeloviRepo) DohvatiZaNalog(ctx context.Context, nalogID int64) 
 		var d model.ServisniDeoSaArtiklom
 		err := redovi.Scan(
 			&d.ID, &d.NalogID, &d.ArtikalID, &d.Kolicina, &d.CenaKomada, &d.Datum,
-			&d.Predlozeno, &d.ArtikalNaziv, &d.ArtikalSifra,
+			&d.Predlozeno, &d.ArtikalNaziv, &d.ArtikalSifra, &d.PdvStopa,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("ntech: ServisniDeloviRepo.DohvatiZaNalog: scan: %w", err)
 		}
+		d.CenaSaPdv = d.CenaKomada * (1 + d.PdvStopa/100)
 		rezultat = append(rezultat, d)
 	}
 

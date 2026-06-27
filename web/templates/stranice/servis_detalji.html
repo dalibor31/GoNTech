@@ -102,10 +102,17 @@
                             <button type="submit" class="premesti-zatvori" aria-label="Zatvori">&times;</button>
                         </form>
                         <div style="display:flex;flex-direction:column;gap:10px;padding:16px;">
+                            {{if index .Moduli "pdv"}}
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <span style="color:var(--tekst-sporedni);">Ukupno sa PDV-om</span>
+                                <span style="color:var(--tekst-glavni);">{{dinari .UkupnoSveSaPdv}} din</span>
+                            </div>
+                            {{else}}
                             <div style="display:flex;justify-content:space-between;align-items:center;">
                                 <span style="color:var(--tekst-sporedni);">Ukupno</span>
                                 <span style="color:var(--tekst-glavni);">{{dinari .UkupnoSve}} din</span>
                             </div>
+                            {{end}}
                             {{if gt .Avans 0.0}}
                             <div style="display:flex;justify-content:space-between;align-items:center;">
                                 <span style="color:var(--tekst-sporedni);">Avans (uplaćeno)</span>
@@ -116,7 +123,7 @@
                             {{end}}
                             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:10px;border-top:0.5px solid var(--ivica);">
                                 <span style="font-size:16px;font-weight:600;color:var(--tekst-glavni);">Za naplatu</span>
-                                <span style="font-size:18px;font-weight:600;color:var(--tekst-glavni);" id="za-naplatu-iznos">{{dinari .PreostaloSve}} din</span>
+                                <span style="font-size:18px;font-weight:600;color:var(--tekst-glavni);" id="za-naplatu-iznos">{{if index .Moduli "pdv"}}{{dinari .PreostaloSveSaPdv}}{{else}}{{dinari .PreostaloSve}}{{end}} din</span>
                             </div>
                             <div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--ivica);">
                                 <label class="polje-labela">Primljeno (din)</label>
@@ -129,7 +136,7 @@
                             <form method="POST" action="/servis/{{.Nalog.ID}}/status" data-refresh="#sadrzaj" style="margin-top:8px;">
                                 <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
                                 <input type="hidden" name="status" value="Preuzeto">
-                                <input type="hidden" name="naplaceno" value="{{printf "%.2f" .PreostaloSve}}">
+                                <input type="hidden" name="naplaceno" value="{{if index .Moduli "pdv"}}{{printf "%.2f" .PreostaloSveSaPdv}}{{else}}{{printf "%.2f" .PreostaloSve}}{{end}}">
                                 <div style="margin-bottom:10px;">
                                     <label class="polje-labela">Način plaćanja</label>
                                     <select name="nacin_placanja" id="nacin-placanja-sel" style="width:100%;padding:8px 12px;background:var(--pozadina);border:0.5px solid var(--ivica);border-radius:8px;color:var(--tekst-glavni);font-size:13px;" onchange="ntechNacinPlacanjaBroj(this)">
@@ -581,7 +588,9 @@
                     <th style="padding:8px 10px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:90px;">Šifra</th>
                     <th style="padding:8px 10px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:80px;">Kol.</th>
                     <th style="padding:8px 10px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:130px;">Cena/kom</th>
+                    {{if index .Moduli "pdv"}}<th style="padding:8px 10px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:60px;">PDV %</th>{{end}}
                     <th style="padding:8px 10px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:130px;">Ukupno</th>
+                    {{if index .Moduli "pdv"}}<th style="padding:8px 10px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:130px;">Sa PDV</th>{{end}}
                     <th style="width:50px;"></th>
                 </tr>
             </thead>
@@ -592,7 +601,9 @@
                     <td style="padding:9px 10px;font-size:12px;color:var(--tekst-sporedni);font-family:monospace;">{{.Sifra}}</td>
                     <td style="padding:9px 10px;text-align:center;font-size:14px;color:var(--tekst-glavni);">{{.Kolicina}}</td>
                     <td style="padding:9px 10px;text-align:right;font-size:14px;color:var(--tekst-glavni);">{{dinari .CenaKomada}} din</td>
+                    {{if index $.Moduli "pdv"}}<td style="padding:9px 10px;text-align:center;font-size:12px;color:var(--tekst-sporedni);">{{printf "%.0f" .PdvStopa}}%</td>{{end}}
                     <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .Ukupno}} din</td>
+                    {{if index $.Moduli "pdv"}}<td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .CenaSaPdv}} din</td>{{end}}
                     <td style="padding:9px 10px;text-align:center;">
                         {{if and (not $.ZakljucaniUgradjeni) (index $.Dozvole "servis.izmeni")}}
                         <form method="POST" action="/servis/{{$.Nalog.ID}}/radovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#radovi-blok, #nalog-ukupno, #predlozeno-blok">
@@ -613,7 +624,9 @@
                     <td style="padding:9px 10px;font-size:12px;color:var(--tekst-sporedni);font-family:monospace;">{{.Sifra}}</td>
                     <td style="padding:9px 10px;text-align:center;font-size:14px;color:var(--tekst-glavni);">{{.Kolicina}}</td>
                     <td style="padding:9px 10px;text-align:right;font-size:14px;color:var(--tekst-glavni);">{{dinari .CenaKomada}} din</td>
+                    {{if index $.Moduli "pdv"}}<td style="padding:9px 10px;text-align:center;font-size:12px;color:var(--tekst-sporedni);">{{printf "%.0f" .PdvStopa}}%</td>{{end}}
                     <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .Ukupno}} din</td>
+                    {{if index $.Moduli "pdv"}}<td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .CenaSaPdv}} din</td>{{end}}
                     <td style="padding:9px 10px;text-align:center;">
                         {{if and (index $.Dozvole "servis.izmeni") (ne $.Nalog.Status "U popravci")}}
                         <form method="POST" action="/servis/{{$.Nalog.ID}}/radovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#radovi-blok, #nalog-ukupno, #predlozeno-blok">
@@ -703,7 +716,9 @@
                     <th style="padding:8px 10px;text-align:left;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:90px;">Šifra</th>
                     <th style="padding:8px 10px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:80px;">Kol.</th>
                     <th style="padding:8px 10px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:130px;">Cena/kom</th>
+                    {{if index .Moduli "pdv"}}<th style="padding:8px 10px;text-align:center;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:60px;">PDV %</th>{{end}}
                     <th style="padding:8px 10px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:130px;">Ukupno</th>
+                    {{if index .Moduli "pdv"}}<th style="padding:8px 10px;text-align:right;font-size:12px;font-weight:500;color:var(--tekst-sporedni);width:130px;">Sa PDV</th>{{end}}
                     <th style="width:50px;"></th>
                 </tr>
             </thead>
@@ -718,9 +733,13 @@
                     <td style="padding:9px 10px;text-align:right;font-size:14px;color:var(--tekst-glavni);">
                         {{if .Kolicina}}{{dinari .CenaKomada}} din{{else}}—{{end}}
                     </td>
+                    {{if index $.Moduli "pdv"}}<td style="padding:9px 10px;text-align:center;font-size:12px;color:var(--tekst-sporedni);">{{printf "%.0f" .PdvStopa}}%</td>{{end}}
                     <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">
                         {{if .Kolicina}}{{dinari .Ukupno}} din{{else}}—{{end}}
                     </td>
+                    {{if index $.Moduli "pdv"}}<td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">
+                        {{if .Kolicina}}{{dinari .CenaSaPdv}} din{{else}}—{{end}}
+                    </td>{{end}}
                     <td style="padding:9px 10px;text-align:center;">
                         {{if and (not $.ZakljucaniUgradjeni) (index $.Dozvole "servis.izmeni")}}
                         <form method="POST" action="/servis/{{$.Nalog.ID}}/delovi/{{.ID}}/obrisi" style="display:inline;" data-refresh="#delovi-blok, #nalog-zaglavlje, #nalog-ukupno, #predlozeno-blok">
@@ -745,9 +764,13 @@
                     <td style="padding:9px 10px;text-align:right;font-size:14px;color:var(--tekst-glavni);">
                         {{if .Kolicina}}{{dinari .CenaKomada}} din{{else}}—{{end}}
                     </td>
+                    {{if index $.Moduli "pdv"}}<td style="padding:9px 10px;text-align:center;font-size:12px;color:var(--tekst-sporedni);">{{printf "%.0f" .PdvStopa}}%</td>{{end}}
                     <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">
                         {{if .Kolicina}}{{dinari .Ukupno}} din{{else}}—{{end}}
                     </td>
+                    {{if index $.Moduli "pdv"}}<td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">
+                        {{if .Kolicina}}{{dinari .CenaSaPdv}} din{{else}}—{{end}}
+                    </td>{{end}}
                     <td style="padding:9px 10px;text-align:center;">
                         {{if and (index $.Dozvole "servis.izmeni") (ne $.Nalog.Status "U popravci")}}
                         {{if .ID}}
@@ -903,20 +926,41 @@
             </div>
             {{end}}
             {{else}}
+            {{if index .Moduli "pdv"}}
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:14px;color:var(--tekst-sporedni);">Usluge (rad) sa PDV-om</span>
+                <span style="font-size:14px;color:var(--tekst-glavni);">{{dinari .UkupnoRadoviSaPdv}} din</span>
+            </div>
+            {{else}}
             <div style="display:flex;justify-content:space-between;align-items:center;">
                 <span style="font-size:14px;color:var(--tekst-sporedni);">Usluge (rad)</span>
                 <span style="font-size:14px;color:var(--tekst-glavni);">{{dinari .UkupnoRadovi}} din</span>
             </div>
+            {{end}}
+            {{if index .Moduli "pdv"}}
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:14px;color:var(--tekst-sporedni);">Ugrađeni delovi sa PDV-om</span>
+                <span style="font-size:14px;color:var(--tekst-glavni);">{{dinari .UkupnoDeloviSaPdv}} din</span>
+            </div>
+            {{else}}
             <div style="display:flex;justify-content:space-between;align-items:center;">
                 <span style="font-size:14px;color:var(--tekst-sporedni);">Ugrađeni delovi</span>
                 <span style="font-size:14px;color:var(--tekst-glavni);">{{dinari .UkupnoDelovi}} din</span>
             </div>
             {{end}}
             {{end}}
+            {{end}}
+            {{if index .Moduli "pdv"}}
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+                <span style="font-size:16px;font-weight:700;color:var(--tekst-glavni);">UKUPNO sa PDV-om</span>
+                <span style="font-size:20px;font-weight:700;color:var(--tekst-glavni);">{{dinari .UkupnoSveSaPdv}} din</span>
+            </div>
+            {{else}}
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:14px;border-top:1px solid var(--ivica);">
                 <span style="font-size:16px;font-weight:700;color:var(--tekst-glavni);">UKUPNO</span>
                 <span style="font-size:20px;font-weight:700;color:var(--tekst-glavni);">{{dinari .UkupnoSve}} din</span>
             </div>
+            {{end}}
         </div>
     </div>
 

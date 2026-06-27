@@ -28,6 +28,11 @@ type StavkaProdaje struct {
 	CenaBezPdv   float64
 }
 
+// UkupnoBezPdv vraća ukupno bez PDV-a za stavku (CenaBezPdv × količina)
+func (s StavkaProdaje) UkupnoBezPdv() float64 {
+	return s.CenaBezPdv * float64(s.Kolicina)
+}
+
 // ProdajniNalogSaDetaljem je nalog sa nazivom klijenta — za prikaz u listi
 type ProdajniNalogSaDetaljem struct {
 	ProdajniNalog
