@@ -87,7 +87,7 @@
     </div>
 
     <!-- rezultat: obaveza za uplatu / povraćaj -->
-    <div class="kartica animiraj" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
+    <div class="kartica animiraj" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;
         border-left:4px solid {{if .Obracun.ZaUplatu}}var(--greska){{else}}var(--uspeh){{end}};">
         <div>
             <div style="font-size:13px;color:var(--tekst-sporedni);">
@@ -124,58 +124,58 @@
                     <tr style="border-bottom:0.5px solid var(--ivica);">
                         <td style="padding:8px 12px;color:var(--tekst-sporedni);">001</td>
                         <td style="padding:8px 12px;">Oslobođen sa pravom na odbitak</td>
-                        <td style="padding:8px 12px;text-align:right;">{{.PPPDV.Polje001}}</td>
+                        <td style="padding:8px 12px;text-align:right;">{{dinari .PPPDV.Polje001}}</td>
                         <td style="padding:8px 12px;text-align:right;color:var(--tekst-sporedni);">—</td>
                     </tr>
                     <tr style="border-bottom:0.5px solid var(--ivica);">
                         <td style="padding:8px 12px;color:var(--tekst-sporedni);">002</td>
                         <td style="padding:8px 12px;">Oslobođen bez prava na odbitak</td>
-                        <td style="padding:8px 12px;text-align:right;">{{.PPPDV.Polje002}}</td>
+                        <td style="padding:8px 12px;text-align:right;">{{dinari .PPPDV.Polje002}}</td>
                         <td style="padding:8px 12px;text-align:right;color:var(--tekst-sporedni);">—</td>
                     </tr>
                     <tr style="border-bottom:0.5px solid var(--ivica);">
                         <td style="padding:8px 12px;color:var(--tekst-sporedni);">003<div style="font-size:11px;">103</div></td>
                         <td style="padding:8px 12px;">Promet po opštoj stopi (20%)</td>
-                        <td style="padding:8px 12px;text-align:right;">{{.PPPDV.Polje003}}</td>
-                        <td style="padding:8px 12px;text-align:right;">{{.PPPDV.Polje103}}</td>
+                        <td style="padding:8px 12px;text-align:right;">{{dinari .PPPDV.Polje003}}</td>
+                        <td style="padding:8px 12px;text-align:right;">{{dinari .PPPDV.Polje103}}</td>
                     </tr>
                     <tr style="border-bottom:0.5px solid var(--ivica);">
                         <td style="padding:8px 12px;color:var(--tekst-sporedni);">004<div style="font-size:11px;">104</div></td>
                         <td style="padding:8px 12px;">Promet po posebnoj stopi (10%)</td>
-                        <td style="padding:8px 12px;text-align:right;">{{.PPPDV.Polje004}}</td>
-                        <td style="padding:8px 12px;text-align:right;">{{.PPPDV.Polje104}}</td>
+                        <td style="padding:8px 12px;text-align:right;">{{dinari .PPPDV.Polje004}}</td>
+                        <td style="padding:8px 12px;text-align:right;">{{dinari .PPPDV.Polje104}}</td>
                     </tr>
                     <tr style="border-bottom:0.5px solid var(--ivica);font-weight:500;background:var(--pozadina);">
                         <td style="padding:8px 12px;">005<div style="font-size:11px;">105</div></td>
                         <td style="padding:8px 12px;">ZBIR (1+2+3+4)</td>
-                        <td style="padding:8px 12px;text-align:right;">{{.PPPDV.Polje005}}</td>
-                        <td style="padding:8px 12px;text-align:right;">{{.PPPDV.Polje105}}</td>
+                        <td style="padding:8px 12px;text-align:right;">{{dinari .PPPDV.Polje005}}</td>
+                        <td style="padding:8px 12px;text-align:right;">{{dinari .PPPDV.Polje105}}</td>
                     </tr>
 
                     <tr style="border-bottom:0.5px solid var(--ivica);"><td style="padding:8px 12px;font-weight:500;padding-top:14px;" colspan="4">II. Prethodni porez</td></tr>
                     <tr style="border-bottom:0.5px solid var(--ivica);color:var(--tekst-sporedni);">
                         <td style="padding:8px 12px;">006<div style="font-size:11px;">106</div></td>
                         <td style="padding:8px 12px;">Prethodni porez pri uvozu</td>
-                        <td style="padding:8px 12px;text-align:right;">{{.PPPDV.Polje006}}</td>
-                        <td style="padding:8px 12px;text-align:right;">{{.PPPDV.Polje106}}</td>
+                        <td style="padding:8px 12px;text-align:right;">{{dinari .PPPDV.Polje006}}</td>
+                        <td style="padding:8px 12px;text-align:right;">{{dinari .PPPDV.Polje106}}</td>
                     </tr>
                     <tr style="border-bottom:0.5px solid var(--ivica);color:var(--tekst-sporedni);">
                         <td style="padding:8px 12px;">007<div style="font-size:11px;">107</div></td>
                         <td style="padding:8px 12px;">PDV nadoknada poljoprivredniku</td>
-                        <td style="padding:8px 12px;text-align:right;">{{.PPPDV.Polje007}}</td>
-                        <td style="padding:8px 12px;text-align:right;">{{.PPPDV.Polje107}}</td>
+                        <td style="padding:8px 12px;text-align:right;">{{dinari .PPPDV.Polje007}}</td>
+                        <td style="padding:8px 12px;text-align:right;">{{dinari .PPPDV.Polje107}}</td>
                     </tr>
                     <tr style="border-bottom:0.5px solid var(--ivica);">
                         <td style="padding:8px 12px;color:var(--tekst-sporedni);">008<div style="font-size:11px;">108</div></td>
                         <td style="padding:8px 12px;">Ostali prethodni porez (domaće nabavke)</td>
-                        <td style="padding:8px 12px;text-align:right;">{{.PPPDV.Polje008}}</td>
-                        <td style="padding:8px 12px;text-align:right;">{{.PPPDV.Polje108}}</td>
+                        <td style="padding:8px 12px;text-align:right;">{{dinari .PPPDV.Polje008}}</td>
+                        <td style="padding:8px 12px;text-align:right;">{{dinari .PPPDV.Polje108}}</td>
                     </tr>
                     <tr style="font-weight:500;background:var(--pozadina);">
                         <td style="padding:8px 12px;">009<div style="font-size:11px;">109</div></td>
                         <td style="padding:8px 12px;">ZBIR (6+7+8)</td>
-                        <td style="padding:8px 12px;text-align:right;">{{.PPPDV.Polje009}}</td>
-                        <td style="padding:8px 12px;text-align:right;">{{.PPPDV.Polje109}}</td>
+                        <td style="padding:8px 12px;text-align:right;">{{dinari .PPPDV.Polje009}}</td>
+                        <td style="padding:8px 12px;text-align:right;">{{dinari .PPPDV.Polje109}}</td>
                     </tr>
                 </tbody>
                 <tfoot>
@@ -185,7 +185,7 @@
                             Iznos PDV u periodu (105 − 109)
                             {{if .PPPDV.Povracaj}}<span style="color:var(--uspeh);"> — za povraćaj</span>{{else}}<span style="color:var(--greska);"> — za uplatu</span>{{end}}
                         </td>
-                        <td style="padding:10px 12px;text-align:right;color:{{if .PPPDV.Povracaj}}var(--uspeh){{else}}var(--greska){{end}};">{{.PPPDV.Polje110Apsolutno}}</td>
+                        <td style="padding:10px 12px;text-align:right;color:{{if .PPPDV.Povracaj}}var(--uspeh){{else}}var(--greska){{end}};">{{dinari .PPPDV.Polje110Apsolutno}}</td>
                     </tr>
                     <tr>
                         <td style="padding:8px 12px;color:var(--tekst-sporedni);">11</td>

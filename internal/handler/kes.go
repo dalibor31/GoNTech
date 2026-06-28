@@ -58,13 +58,32 @@ var sablonskeFunkcije = template.FuncMap{
 		return fmt.Sprintf("%d", int64(math.Round(*v)))
 	},
 	// dinari formatira iznos sa separatorom hiljada (tačka) i 2 decimale (zarez):
-	// 1234567.5 → "1.234.567,50"
-	"dinari": func(v float64) string {
-		return formatirajDinare(v, 2)
+	// 1234567.5 → "1.234.567,50"; prihvata float64 i int64
+	"dinari": func(v any) string {
+		switch val := v.(type) {
+		case int64:
+			return formatirajDinare(float64(val), 2)
+		case int:
+			return formatirajDinare(float64(val), 2)
+		case float64:
+			return formatirajDinare(val, 2)
+		default:
+			return fmt.Sprintf("%v", v)
+		}
 	},
 	// dinariCeli formatira iznos sa separatorom hiljada, bez decimala: 1234567 → "1.234.567"
-	"dinariCeli": func(v float64) string {
-		return formatirajDinare(v, 0)
+	// Prihvata float64 i int64 (PPPDV polja su int64).
+	"dinariCeli": func(v any) string {
+		switch val := v.(type) {
+		case int64:
+			return formatirajDinare(float64(val), 0)
+		case int:
+			return formatirajDinare(float64(val), 0)
+		case float64:
+			return formatirajDinare(val, 0)
+		default:
+			return fmt.Sprintf("%v", v)
+		}
 	},
 	// telefon formatira srpski broj telefona radi lakšeg čitanja: "0641234567" → "064 123 4567"
 	"telefon": formatirajTelefon,
