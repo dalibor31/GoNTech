@@ -2,6 +2,7 @@ package handler
 
 import (
 	"html/template"
+	"log/slog"
 	"net/http"
 
 	"ntech/internal/auth"
@@ -549,7 +550,9 @@ func (h *Handler) AdminTotpDeaktivacija(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	// isključenjem 2FA brišemo i rezervne kodove
-	_ = h.RezervniKodoviRepo.Obrisi(r.Context(), k.ID)
+	if err := h.RezervniKodoviRepo.Obrisi(r.Context(), k.ID); err != nil {
+		slog.Warn("brisanje rezervnih kodova nije uspelo", "korisnik_id", k.ID, "error", err)
+	}
 
 	http.Redirect(w, r, "/admin/profil?sacuvano=1", http.StatusSeeOther)
 }

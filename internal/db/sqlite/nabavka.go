@@ -141,7 +141,7 @@ func (r *NabavkaRepo) DohvatiTroskove(ctx context.Context, nabavkaID int64) ([]m
 
 // Kreiraj upisuje novu nabavku sa svim stavkama i zavisnim troškovima u jednoj
 // transakciji i ažurira stanje magacina
-func (r *NabavkaRepo) Kreiraj(ctx context.Context, n *model.Nabavka, stavke []model.StavkaNabavke, troskovi []model.NabavkaTrosak) (int64, error) {
+func (r *NabavkaRepo) Kreiraj(ctx context.Context, n *model.Nabavka, stavke []model.StavkaNabavke, troskovi []model.NabavkaTrosak, korisnikID *int64) (int64, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, fmt.Errorf("ntech: NabavkaRepo.Kreiraj: begin: %w", err)
@@ -193,12 +193,26 @@ func (r *NabavkaRepo) Kreiraj(ctx context.Context, n *model.Nabavka, stavke []mo
 			return 0, fmt.Errorf("ntech: NabavkaRepo.Kreiraj: insert stavka: %w", err)
 		}
 
+		var stanjePre int
+		err = tx.QueryRowContext(ctx,
+			"SELECT kolicina FROM artikli WHERE id = ?", s.ArtikalID,
+		).Scan(&stanjePre)
+		if err != nil {
+			return 0, fmt.Errorf("ntech: NabavkaRepo.Kreiraj: dohvati stanje: %w", err)
+		}
+
+		stanjePosle := stanjePre + s.Kolicina
 		_, err = tx.ExecContext(ctx,
-			"UPDATE artikli SET kolicina = kolicina + ? WHERE id = ?",
-			s.Kolicina, s.ArtikalID,
+			"UPDATE artikli SET kolicina = ? WHERE id = ?",
+			stanjePosle, s.ArtikalID,
 		)
 		if err != nil {
 			return 0, fmt.Errorf("ntech: NabavkaRepo.Kreiraj: update kolicina: %w", err)
+		}
+
+		if err = zabeleziMagacinPromenu(ctx, tx, s.ArtikalID, model.PromenaUlazNabavka,
+			s.Kolicina, stanjePre, stanjePosle, nabavkaID, korisnikID, ""); err != nil {
+			return 0, fmt.Errorf("ntech: NabavkaRepo.Kreiraj: magacin: %w", err)
 		}
 	}
 
@@ -209,12 +223,64 @@ func (r *NabavkaRepo) Kreiraj(ctx context.Context, n *model.Nabavka, stavke []mo
 	return nabavkaID, nil
 }
 
-// Obrisi briše nabavku po ID-u — stavke se brišu automatski (ON DELETE CASCADE)
-// Napomena: brisanje ne vraća količine artikala u magacin
-func (r *NabavkaRepo) Obrisi(ctx context.Context, id int64) error {
-	_, err := r.db.ExecContext(ctx, "DELETE FROM nabavke WHERE id = ?", id)
+// Obrisi briše nabavku po ID-u, vraća količine artikala na stanje i beleži korekciju u magacinski trag.
+func (r *NabavkaRepo) Obrisi(ctx context.Context, id int64, korisnikID *int64) error {
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("ntech: NabavkaRepo.Obrisi: %w", err)
+		return fmt.Errorf("ntech: NabavkaRepo.Obrisi: begin: %w", err)
+	}
+	defer tx.Rollback()
+
+	// učitaj stavke pre brisanja (CASCADE ih briše zajedno sa nabavkom)
+	redovi, err := tx.QueryContext(ctx,
+		"SELECT artikal_id, kolicina FROM stavke_nabavke WHERE nabavka_id = ?", id)
+	if err != nil {
+		return fmt.Errorf("ntech: NabavkaRepo.Obrisi: dohvati stavke: %w", err)
+	}
+	type stavka struct {
+		artikalID int64
+		kolicina  int
+	}
+	var stavke []stavka
+	for redovi.Next() {
+		var s stavka
+		if err := redovi.Scan(&s.artikalID, &s.kolicina); err != nil {
+			redovi.Close()
+			return fmt.Errorf("ntech: NabavkaRepo.Obrisi: scan stavka: %w", err)
+		}
+		stavke = append(stavke, s)
+	}
+	redovi.Close()
+
+	// vrati količine na stanje i zabeleži korekciju
+	for _, s := range stavke {
+		var stanjePre int
+		if err := tx.QueryRowContext(ctx,
+			"SELECT kolicina FROM artikli WHERE id = ?", s.artikalID,
+		).Scan(&stanjePre); err != nil {
+			return fmt.Errorf("ntech: NabavkaRepo.Obrisi: dohvati stanje: %w", err)
+		}
+		stanjePosle := stanjePre - s.kolicina
+		if stanjePosle < 0 {
+			stanjePosle = 0
+		}
+		if _, err := tx.ExecContext(ctx,
+			"UPDATE artikli SET kolicina = ? WHERE id = ?", stanjePosle, s.artikalID,
+		); err != nil {
+			return fmt.Errorf("ntech: NabavkaRepo.Obrisi: update stanje: %w", err)
+		}
+		if err := zabeleziMagacinPromenu(ctx, tx, s.artikalID, model.PromenaKorekcija,
+			-s.kolicina, stanjePre, stanjePosle, id, korisnikID, "brisanje nabavke"); err != nil {
+			return fmt.Errorf("ntech: NabavkaRepo.Obrisi: magacin: %w", err)
+		}
+	}
+
+	if _, err := tx.ExecContext(ctx, "DELETE FROM nabavke WHERE id = ?", id); err != nil {
+		return fmt.Errorf("ntech: NabavkaRepo.Obrisi: delete: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("ntech: NabavkaRepo.Obrisi: commit: %w", err)
 	}
 	return nil
 }

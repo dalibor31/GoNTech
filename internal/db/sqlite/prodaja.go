@@ -207,12 +207,12 @@ func (r *ProdajaRepo) Kreiraj(ctx context.Context, n *model.ProdajniNalog, stavk
 			}
 		}
 
-		// PDV računamo iz cene ako nije eksplicitno postavljeno
+		// CenaPoKomadu je neto (bez PDV); PDV se dodaje naviše
 		cenaBezPdv := s.CenaBezPdv
 		pdvIznos := s.PdvIznos
-		if cenaBezPdv == 0 && s.PdvStopa > 0 {
-			cenaBezPdv = s.CenaPoKomadu / (1 + s.PdvStopa/100)
-			pdvIznos = s.CenaPoKomadu - cenaBezPdv
+		if cenaBezPdv == 0 {
+			cenaBezPdv = s.CenaPoKomadu
+			pdvIznos = cenaBezPdv * s.PdvStopa / 100
 		}
 
 		ukupnoStavke := float64(s.Kolicina) * s.CenaPoKomadu

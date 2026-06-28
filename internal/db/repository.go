@@ -151,8 +151,8 @@ type NabavkaRepository interface {
 	DohvatiID(ctx context.Context, id int64) (*model.Nabavka, error)
 	DohvatiStavke(ctx context.Context, nabavkaID int64) ([]model.StavkaSaArtiklom, error)
 	DohvatiTroskove(ctx context.Context, nabavkaID int64) ([]model.NabavkaTrosak, error)
-	Kreiraj(ctx context.Context, n *model.Nabavka, stavke []model.StavkaNabavke, troskovi []model.NabavkaTrosak) (int64, error)
-	Obrisi(ctx context.Context, id int64) error
+	Kreiraj(ctx context.Context, n *model.Nabavka, stavke []model.StavkaNabavke, troskovi []model.NabavkaTrosak, korisnikID *int64) (int64, error)
+	Obrisi(ctx context.Context, id int64, korisnikID *int64) error
 }
 
 // DobavljacRepository definiše operacije nad dobavljačima

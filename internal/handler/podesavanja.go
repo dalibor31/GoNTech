@@ -944,20 +944,26 @@ func (h *Handler) TestFiskalizacije(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// SSRF zaštita: dozvoljeni su samo localhost i privatne mreže (192.168.x.x,
-	// 10.x.x.x, 172.16-31.x.x, 127.x.x.x). Port izvlačimo kao integer da presečemo
-	// CodeQL taint lanac — broj ne može da sadrži URL manipulaciju.
+	// 10.x.x.x, 172.16-31.x.x, 127.x.x.x). URL rekonstruišemo kroz url.URL{}
+	// iz validiranih komponenti da CodeQL prepozna sanitizaciju.
 	parsedURL, err := url.Parse(pfrURL)
 	if err != nil || !jePrivatnaAdresa(parsedURL.Hostname()) {
 		http.Error(w, "Nevažeći PFR URL — dozvoljeni su samo lokalni/privatni hostovi (127.x, 192.168.x, 10.x, 172.16-31.x)", http.StatusBadRequest)
 		return
 	}
+	host := parsedURL.Hostname()
 	port := 4566
 	if p := parsedURL.Port(); p != "" {
 		if n, e := strconv.Atoi(p); e == nil && n > 0 && n <= 65535 {
 			port = n
 		}
 	}
-	statusURL := fmt.Sprintf("http://%s:%d/api/status", parsedURL.Hostname(), port)
+	safeURL := url.URL{
+		Scheme: "http",
+		Host:   net.JoinHostPort(host, strconv.Itoa(port)),
+		Path:   "/api/status",
+	}
+	statusURL := safeURL.String()
 
 	klijent := &http.Client{Timeout: 5 * time.Second}
 	resp, err := klijent.Get(statusURL)
@@ -969,7 +975,11 @@ func (h *Handler) TestFiskalizacije(w http.ResponseWriter, r *http.Request) {
 	defer resp.Body.Close()
 
 	var status map[string]any
-	_ = json.NewDecoder(resp.Body).Decode(&status)
+	if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		fmt.Fprintf(w, `<div class="fisk-status greska">&#10007; Neispravan odgovor servera — %s</div>`, html.EscapeString(err.Error()))
+		return
+	}
 
 	sdcDateTime, _ := status["sdcDateTime"].(string)
 	lastInvoice, _ := status["lastInvoiceNumber"].(string)

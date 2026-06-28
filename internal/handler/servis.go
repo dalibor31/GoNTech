@@ -2076,7 +2076,10 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-		_ = h.ServisRepo.SacuvajNaplatu(r.Context(), id, nacin, iznos)
+		if err := h.ServisRepo.SacuvajNaplatu(r.Context(), id, nacin, iznos); err != nil {
+			slog.Error("greška pri čuvanju naplate servisa", "id", id, "error", err)
+			middleware.SetFlash(w, r, h.DB, "greska", "Naplata nije sačuvana. Pokušajte ponovo.")
+		}
 
 		// fiskalizacija servisa — ako je modul uključen
 		if h.modulUkljucen(r.Context(), config.ModulFiskalizacija) {
@@ -2145,8 +2148,16 @@ func (h *Handler) fiskalizujServis(ctx context.Context, servisID int64, klijent 
 		return
 	}
 
-	radovi, _ := h.ServisniRadoviRepo.DohvatiZaNalog(ctx, servisID)
-	delovi, _ := h.deloviSaPotrazivanima(ctx, servisID)
+	radovi, err := h.ServisniRadoviRepo.DohvatiZaNalog(ctx, servisID)
+	if err != nil {
+		slog.Error("fiskalizujServis: greška pri dohvatanju radova", "id", servisID, "error", err)
+		return
+	}
+	delovi, err := h.deloviSaPotrazivanima(ctx, servisID)
+	if err != nil {
+		slog.Error("fiskalizujServis: greška pri dohvatanju delova", "id", servisID, "error", err)
+		return
+	}
 
 	// napravi stavke za fiskalni račun
 	items := make([]fiskal.InvoiceItem, 0)
@@ -2154,12 +2165,11 @@ func (h *Handler) fiskalizujServis(ctx context.Context, servisID int64, klijent 
 		if r.Predlozeno {
 			continue
 		}
-		stopa := 20.0 // podrazumevano — servisne usluge su 20% PDV
 		items = append(items, fiskal.InvoiceItem{
 			Name:        r.Naziv,
-			Labels:      []string{fiskal.OznakaPDV(stopa)},
-			TotalAmount: fiskal.BrutoCena(r.Ukupno(), stopa),
-			UnitPrice:   fiskal.BrutoCena(r.CenaKomada, stopa),
+			Labels:      []string{fiskal.OznakaPDV(r.PdvStopa)},
+			TotalAmount: fiskal.BrutoCena(r.Ukupno(), r.PdvStopa),
+			UnitPrice:   fiskal.BrutoCena(r.CenaKomada, r.PdvStopa),
 			Quantity:    r.Kolicina,
 		})
 	}
@@ -2167,14 +2177,17 @@ func (h *Handler) fiskalizujServis(ctx context.Context, servisID int64, klijent 
 		if d.Predlozeno {
 			continue
 		}
-		stopa := 20.0
 		items = append(items, fiskal.InvoiceItem{
 			Name:        d.ArtikalNaziv,
-			Labels:      []string{fiskal.OznakaPDV(stopa)},
-			TotalAmount: fiskal.BrutoCena(d.Ukupno(), stopa),
-			UnitPrice:   fiskal.BrutoCena(d.CenaKomada, stopa),
+			Labels:      []string{fiskal.OznakaPDV(d.PdvStopa)},
+			TotalAmount: fiskal.BrutoCena(d.Ukupno(), d.PdvStopa),
+			UnitPrice:   fiskal.BrutoCena(d.CenaKomada, d.PdvStopa),
 			Quantity:    float64(d.Kolicina),
 		})
+	}
+	if len(items) == 0 {
+		slog.Warn("fiskalizujServis: nema stavki za fiskalni račun, zahtev odbačen", "id", servisID)
+		return
 	}
 
 	pib := ""

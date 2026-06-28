@@ -105,8 +105,8 @@ func (k *PdvKir) DodajNeto(osnovica, stopa float64) {
 }
 
 // KirIzProdaje gradi KIR zapis iz prodaje: stavke se grupišu po PDV stopi
-// (20→opšta, 10→posebna, ostalo→oslobođeno). CenaPoKomadu je prodajna cena SA PDV,
-// pa se osnovica izvodi deljenjem sa (1 + stopa/100).
+// (20→opšta, 10→posebna, ostalo→oslobođeno). CenaPoKomadu je prodajna cena BEZ PDV
+// (neto), PDV se dodaje naviše — isti obrazac kao kod servisnih radova/delova.
 func KirIzProdaje(nalog ProdajniNalog, stavke []StavkaProdaje, kupacNaziv, kupacPib, kupacMesto string) PdvKir {
 	id := nalog.ID
 	k := PdvKir{
@@ -120,12 +120,7 @@ func KirIzProdaje(nalog ProdajniNalog, stavke []StavkaProdaje, kupacNaziv, kupac
 		IzvorID:        &id,
 	}
 	for _, s := range stavke {
-		ukupnoLinija := float64(s.Kolicina) * s.CenaPoKomadu
-		osnovica := ukupnoLinija
-		if s.PdvStopa > 0 {
-			osnovica = ukupnoLinija / (1 + s.PdvStopa/100)
-		}
-		k.dodajStavku(osnovica, ukupnoLinija-osnovica, s.PdvStopa)
+		k.DodajNeto(float64(s.Kolicina)*s.CenaPoKomadu, s.PdvStopa)
 	}
 	return k
 }

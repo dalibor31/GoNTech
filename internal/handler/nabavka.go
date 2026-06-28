@@ -176,7 +176,7 @@ func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := h.NabavkeRepo.Kreiraj(r.Context(), &nabavka, stavke, troskovi)
+	id, err := h.NabavkeRepo.Kreiraj(r.Context(), &nabavka, stavke, troskovi, &k.ID)
 	if err != nil {
 		http.Error(w, "Greška pri čuvanju nabavke", http.StatusInternalServerError)
 		return
@@ -340,7 +340,8 @@ func (h *Handler) DetaljiNabavke(w http.ResponseWriter, r *http.Request) {
 
 // ObrisiNabavku prima POST zahtev i briše nabavku po ID-u
 func (h *Handler) ObrisiNabavku(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.zahtevajDozvolu(w, r, "nabavka.obrisi"); !ok {
+	k, ok := h.zahtevajDozvolu(w, r, "nabavka.obrisi")
+	if !ok {
 		return
 	}
 	id, err := parseID(chi.URLParam(r, "id"))
@@ -349,7 +350,7 @@ func (h *Handler) ObrisiNabavku(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.NabavkeRepo.Obrisi(r.Context(), id); err != nil {
+	if err := h.NabavkeRepo.Obrisi(r.Context(), id, &k.ID); err != nil {
 		http.Error(w, "Greška pri brisanju nabavke", http.StatusInternalServerError)
 		return
 	}
