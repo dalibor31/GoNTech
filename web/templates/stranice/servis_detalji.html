@@ -557,7 +557,7 @@
                         </div>
                         <div class="cust-sel-lista">
                             <div class="cso" data-val="" data-cena="0"><span class="cso-prazno">— odaberi uslugu —</span></div>
-                            {{range .Usluge}}{{if not (index $.KorisceneUsluge .ID)}}<div class="cso" data-val="{{.ID}}" data-cena="{{.Cena}}"><span class="cso-naziv">{{.Naziv}}</span><span class="cso-cena">{{dinari .Cena}} din</span></div>{{end}}{{end}}
+                            {{range .Usluge}}{{if not (index $.KorisceneUsluge .ID)}}<div class="cso" data-val="{{.ID}}" data-cena="{{.Cena}}" data-pdv="{{.PdvStopa}}"><span class="cso-naziv">{{.Naziv}}</span><span class="cso-cena">{{if index $.Moduli "pdv"}}{{dinari (.CenaSaPdv)}}{{else}}{{dinari .Cena}}{{end}} din</span></div>{{end}}{{end}}
                         </div>
                     </div>
                     <input type="hidden" name="usluga_id" id="rad-usluga">
@@ -567,8 +567,9 @@
                     <input type="number" name="kolicina" id="rad-kolicina" min="0.01" step="0.01" value="1" style="width:100%;" required>
                 </div>
                 <div>
-                    <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Cena/kom (din)</label>
-                    <input type="number" name="cena_komada" id="rad-cena" min="0" step="0.01" value="0" style="width:100%;" required>
+                    <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Cena/kom {{if index .Moduli "pdv"}}s PDV {{end}}(din)</label>
+                    <input type="number" id="rad-cena" min="0" step="0.01" value="0" style="width:100%;" required>
+                    <input type="hidden" name="cena_komada" id="rad-cena-neto" value="0">
                 </div>
                 <div>
                     <button type="submit" class="btn-primarno" style="font-size:13px;padding:8px 14px;white-space:nowrap;">+ Dodaj</button>
@@ -602,7 +603,7 @@
                     <td style="padding:9px 10px;text-align:center;font-size:14px;color:var(--tekst-glavni);">{{.Kolicina}}</td>
                     <td style="padding:9px 10px;text-align:right;font-size:14px;color:var(--tekst-glavni);">{{dinari .CenaKomada}} din</td>
                     {{if index $.Moduli "pdv"}}<td style="padding:9px 10px;text-align:center;font-size:12px;color:var(--tekst-sporedni);">{{printf "%.0f" .PdvStopa}}%</td>{{end}}
-                    <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .Ukupno}} din</td>
+                    <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{if index $.Moduli "pdv"}}{{dinari .UkupnoSaPdv}} din{{else}}{{dinari .Ukupno}} din{{end}}</td>
                     {{if index $.Moduli "pdv"}}<td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .CenaSaPdv}} din</td>{{end}}
                     <td style="padding:9px 10px;text-align:center;">
                         {{if and (not $.ZakljucaniUgradjeni) (index $.Dozvole "servis.izmeni")}}
@@ -625,7 +626,7 @@
                     <td style="padding:9px 10px;text-align:center;font-size:14px;color:var(--tekst-glavni);">{{.Kolicina}}</td>
                     <td style="padding:9px 10px;text-align:right;font-size:14px;color:var(--tekst-glavni);">{{dinari .CenaKomada}} din</td>
                     {{if index $.Moduli "pdv"}}<td style="padding:9px 10px;text-align:center;font-size:12px;color:var(--tekst-sporedni);">{{printf "%.0f" .PdvStopa}}%</td>{{end}}
-                    <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .Ukupno}} din</td>
+                    <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{if index $.Moduli "pdv"}}{{dinari .UkupnoSaPdv}} din{{else}}{{dinari .Ukupno}} din{{end}}</td>
                     {{if index $.Moduli "pdv"}}<td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .CenaSaPdv}} din</td>{{end}}
                     <td style="padding:9px 10px;text-align:center;">
                         {{if and (index $.Dozvole "servis.izmeni") (ne $.Nalog.Status "U popravci")}}
@@ -695,8 +696,9 @@
                     <input type="number" name="kolicina" id="deo-kol" min="1" value="1" style="width:100%;box-sizing:border-box;" required>
                 </div>
                 <div>
-                    <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Cena/kom (din)</label>
-                    <input type="number" name="cena_komada" id="deo-cena" min="0" step="0.01" value="0" style="width:100%;" required>
+                    <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Cena/kom {{if index .Moduli "pdv"}}s PDV {{end}}(din)</label>
+                    <input type="number" id="deo-cena" min="0" step="0.01" value="0" style="width:100%;" required>
+                    <input type="hidden" name="cena_komada" id="deo-cena-neto" value="0">
                 </div>
                 <div>
                     <button type="submit" class="btn-primarno" style="font-size:13px;padding:8px 14px;white-space:nowrap;">+ Dodaj</button>
@@ -735,7 +737,7 @@
                     </td>
                     {{if index $.Moduli "pdv"}}<td style="padding:9px 10px;text-align:center;font-size:12px;color:var(--tekst-sporedni);">{{printf "%.0f" .PdvStopa}}%</td>{{end}}
                     <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">
-                        {{if .Kolicina}}{{dinari .Ukupno}} din{{else}}—{{end}}
+                        {{if .Kolicina}}{{if index $.Moduli "pdv"}}{{dinari .UkupnoSaPdv}} din{{else}}{{dinari .Ukupno}} din{{end}}{{else}}—{{end}}
                     </td>
                     {{if index $.Moduli "pdv"}}<td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">
                         {{if .Kolicina}}{{dinari .CenaSaPdv}} din{{else}}—{{end}}
@@ -766,7 +768,7 @@
                     </td>
                     {{if index $.Moduli "pdv"}}<td style="padding:9px 10px;text-align:center;font-size:12px;color:var(--tekst-sporedni);">{{printf "%.0f" .PdvStopa}}%</td>{{end}}
                     <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">
-                        {{if .Kolicina}}{{dinari .Ukupno}} din{{else}}—{{end}}
+                        {{if .Kolicina}}{{if index $.Moduli "pdv"}}{{dinari .UkupnoSaPdv}} din{{else}}{{dinari .Ukupno}} din{{end}}{{else}}—{{end}}
                     </td>
                     {{if index $.Moduli "pdv"}}<td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:500;color:var(--tekst-glavni);">
                         {{if .Kolicina}}{{dinari .CenaSaPdv}} din{{else}}—{{end}}
@@ -804,6 +806,7 @@
     </div>
     <script>(function(){
         window._dinFmt=function(v){var s=Math.round((v||0)*100);var dec=String(s%100).padStart(2,'0');var cel=String(Math.floor(s/100));var r='';for(var i=0;i<cel.length;i++){if(i>0&&(cel.length-i)%3===0)r+='.';r+=cel[i];}return r+','+dec;}
+        window._pdvAktivan={{if index .Moduli "pdv"}}true{{else}}false{{end}};
         var k=document.getElementById('deo-kategorija');
         var a=document.getElementById('deo-artikal');
         var u=document.getElementById('deo-umagacinu');
@@ -817,13 +820,13 @@
             var ka=k?k.value:'';
             var aa=window._ntechArtikli||[];
             var html='<div class="cso" data-val="" data-cena="0" data-stanje="0"><span class="cso-prazno">\u2014 odaberi artikal \u2014</span></div>';
-            aa.forEach(function(x){if(!ka||(x.KategorijaNaziv||'')===ka)html+='<div class="cso" data-val="'+x.ID+'" data-cena="'+x.ProdajnaCena+'" data-stanje="'+(x.Kolicina||0)+'"><span class="cso-naziv">'+x.Naziv+'</span><span class="cso-cena">'+window._dinFmt(x.ProdajnaCena)+' din</span></div>';});
+            aa.forEach(function(x){var prik=window._pdvAktivan?(x.CenaSaPdv||x.ProdajnaCena):x.ProdajnaCena;if(!ka||(x.KategorijaNaziv||'')===ka)html+='<div class="cso" data-val="'+x.ID+'" data-cena="'+x.ProdajnaCena+'" data-pdv="'+(x.PdvStopa||0)+'" data-stanje="'+(x.Kolicina||0)+'"><span class="cso-naziv">'+x.Naziv+'</span><span class="cso-cena">'+window._dinFmt(prik)+' din</span></div>';});
             if(lista)lista.innerHTML=html;
         }
         if(k){var aa2=window._ntechArtikli||[];var kgs=[];aa2.forEach(function(x){var n=x.KategorijaNaziv||'';if(n&&kgs.indexOf(n)===-1)kgs.push(n)})
             k.innerHTML='<option value="">\u2014 sve kategorije \u2014</option>'+kgs.map(function(x){return'<option value="'+x+'">'+x+'</option>'}).join('');k.onchange=pop}
         pop();
-        if(a)a.addEventListener('change',function(){var v=parseFloat(a.getAttribute('data-cena'));if(c)c.value=(!isNaN(v)&&v>0)?v.toFixed(2):'0';osv()});
+        if(a)a.addEventListener('change',function(){var v=parseFloat(a.getAttribute('data-cena'))||0;var pdv=parseFloat(a.getAttribute('data-pdv'))||0;var bruto=(window._pdvAktivan&&pdv>0)?v*(1+pdv/100):v;if(c)c.value=v>0?bruto.toFixed(2):'0';var cn=document.getElementById('deo-cena-neto');if(cn)cn.value=v>0?v.toFixed(2):'0';osv()});
         if(l)l.oninput=osv;
         var fd=document.querySelector('form[action$=\"/delovi\"]');
         if(fd)fd.addEventListener('reset',function(){if(u){u.textContent='\u2014';u.classList.remove('prekoraceno')}if(l)l.classList.remove('prekoraceno')})
@@ -849,7 +852,7 @@
                     <input type="checkbox" name="rad_id" value="{{.ID}}" checked style="width:16px;height:16px;accent-color:#f59e0b;flex-shrink:0;">
                     <span style="font-size:13px;color:var(--tekst-glavni);">{{.Naziv}}{{if gt .Kolicina 1.0}} &times; {{printf "%.0f" .Kolicina}}{{end}}</span>
                 </span>
-                <span style="font-size:13px;font-weight:500;color:var(--tekst-glavni);white-space:nowrap;">{{dinari .Ukupno}} din</span>
+                <span style="font-size:13px;font-weight:500;color:var(--tekst-glavni);white-space:nowrap;">{{if index $.Moduli "pdv"}}{{dinari .UkupnoSaPdv}} din{{else}}{{dinari .Ukupno}} din{{end}}</span>
             </label>
             {{end}}
             {{end}}
@@ -861,7 +864,7 @@
                     <input type="checkbox" name="artikal_id" value="{{.ArtikalID}}" checked style="width:16px;height:16px;accent-color:#f59e0b;flex-shrink:0;">
                     <span style="font-size:13px;color:var(--tekst-glavni);">{{.ArtikalNaziv}}{{if gt .Kolicina 1}} &times; {{.Kolicina}}{{end}}</span>
                 </span>
-                <span style="font-size:13px;font-weight:500;color:var(--tekst-glavni);white-space:nowrap;">{{if .Kolicina}}{{dinari .Ukupno}} din{{else}}—{{end}}</span>
+                <span style="font-size:13px;font-weight:500;color:var(--tekst-glavni);white-space:nowrap;">{{if .Kolicina}}{{if index $.Moduli "pdv"}}{{dinari .UkupnoSaPdv}} din{{else}}{{dinari .Ukupno}} din{{end}}{{else}}—{{end}}</span>
             </label>
             {{end}}
             {{end}}
@@ -895,13 +898,13 @@
                     {{range .ServisniRadovi}}
                     <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
                         <span style="color:var(--tekst-glavni);">{{.Naziv}}{{if gt .Kolicina 1.0}} ×{{.Kolicina}}{{end}}</span>
-                        <span style="color:var(--tekst-sporedni);">{{dinari .Ukupno}} din</span>
+                        <span style="color:var(--tekst-sporedni);">{{if index $.Moduli "pdv"}}{{dinari .UkupnoSaPdv}} din{{else}}{{dinari .Ukupno}} din{{end}}</span>
                     </div>
                     {{end}}
                 </div>
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:0.5px solid var(--ivica);">
                     <span style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">Ukupno rad</span>
-                    <span style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .UkupnoRadovi}} din</span>
+                    <span style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{if index $.Moduli "pdv"}}{{dinari .UkupnoRadoviSaPdv}} din{{else}}{{dinari .UkupnoRadovi}} din{{end}}</span>
                 </div>
             </div>
             {{end}}
@@ -915,13 +918,13 @@
                     {{range .ServisniDelovi}}
                     <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
                         <span style="color:var(--tekst-glavni);">{{.ArtikalNaziv}}{{if gt .Kolicina 1}} ×{{.Kolicina}}{{end}}</span>
-                        <span style="color:var(--tekst-sporedni);">{{dinari .Ukupno}} din</span>
+                        <span style="color:var(--tekst-sporedni);">{{if index $.Moduli "pdv"}}{{dinari .UkupnoSaPdv}} din{{else}}{{dinari .Ukupno}} din{{end}}</span>
                     </div>
                     {{end}}
                 </div>
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:0.5px solid var(--ivica);">
                     <span style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">Ukupno delovi</span>
-                    <span style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{dinari .UkupnoDelovi}} din</span>
+                    <span style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">{{if index $.Moduli "pdv"}}{{dinari .UkupnoDeloviSaPdv}} din{{else}}{{dinari .UkupnoDelovi}} din{{end}}</span>
                 </div>
             </div>
             {{end}}
@@ -1056,6 +1059,7 @@ document.addEventListener('click', function (e) {
         if (inp) {
             inp.value = val;
             inp.setAttribute('data-cena', opt.getAttribute('data-cena') || '0');
+            inp.setAttribute('data-pdv', opt.getAttribute('data-pdv') || '0');
             inp.setAttribute('data-stanje', opt.getAttribute('data-stanje') || '0');
             inp.dispatchEvent(new Event('change', { bubbles: true }));
         }
@@ -1068,14 +1072,42 @@ document.addEventListener('click', function (e) {
 });
 }
 
-// Radovi: pri izboru usluge (custom dropdown → hidden input) popuni predloženu cenu.
+// Radovi: pri izboru usluge popuni cenu. Kad je PDV aktivan, prikazuje bruto;
+// hidden polje rad-cena-neto uvek nosi neto i šalje se backend-u.
 document.addEventListener('change', function (e) {
     if (!e.target || e.target.id !== 'rad-usluga') return;
-    var cena = document.getElementById('rad-cena');
-    if (!cena) return;
-    var c = parseFloat(e.target.getAttribute('data-cena'));
-    cena.value = (!isNaN(c) && c > 0) ? c.toFixed(2) : '0';
+    var vidljivo = document.getElementById('rad-cena');
+    var neto = document.getElementById('rad-cena-neto');
+    if (!vidljivo) return;
+    var c = parseFloat(e.target.getAttribute('data-cena')) || 0;
+    var pdv = parseFloat(e.target.getAttribute('data-pdv')) || 0;
+    var bruto = (window._pdvAktivan && pdv > 0) ? c * (1 + pdv / 100) : c;
+    vidljivo.value = c > 0 ? bruto.toFixed(2) : '0';
+    if (neto) neto.value = c > 0 ? c.toFixed(2) : '0';
 });
+// Kad korisnik ručno menja vidljivo polje, sinhronizuj hidden neto vrednost.
+(function () {
+    var vidljivo = document.getElementById('rad-cena');
+    if (vidljivo) {
+        vidljivo.addEventListener('input', function () {
+            var neto = document.getElementById('rad-cena-neto');
+            var usluga = document.getElementById('rad-usluga');
+            var pdv = usluga ? (parseFloat(usluga.getAttribute('data-pdv')) || 0) : 0;
+            var bruto = parseFloat(this.value) || 0;
+            if (neto) neto.value = (window._pdvAktivan && pdv > 0) ? (bruto / (1 + pdv / 100)).toFixed(2) : bruto.toFixed(2);
+        });
+    }
+    var vidljivoDeo = document.getElementById('deo-cena');
+    if (vidljivoDeo) {
+        vidljivoDeo.addEventListener('input', function () {
+            var neto = document.getElementById('deo-cena-neto');
+            var artikal = document.getElementById('deo-artikal');
+            var pdv = artikal ? (parseFloat(artikal.getAttribute('data-pdv')) || 0) : 0;
+            var bruto = parseFloat(this.value) || 0;
+            if (neto) neto.value = (window._pdvAktivan && pdv > 0) ? (bruto / (1 + pdv / 100)).toFixed(2) : bruto.toFixed(2);
+        });
+    }
+})();
 
 // Delovi: kategorija filtrira <select> artikala; izborom artikla popunjavamo
 // cenu i prikaz „U magacinu". Običan <select> ima native pretragu kucanjem
@@ -1121,9 +1153,10 @@ document.addEventListener('change', function (e) {
         var html = '<div class="cso" data-val="" data-cena="0" data-stanje="0"><span class="cso-prazno">— odaberi artikal —</span></div>';
         ARTIKLI.filter(function (a) { return !izabrana || (a.KategorijaNaziv || '') === izabrana; })
             .forEach(function (a) {
+                var prik = window._pdvAktivan ? (a.CenaSaPdv || a.ProdajnaCena) : a.ProdajnaCena;
                 html += '<div class="cso" data-val="' + a.ID + '" data-cena="' + a.ProdajnaCena +
-                    '" data-stanje="' + (a.Kolicina || 0) + '"><span class="cso-naziv">' + a.Naziv +
-                    '</span><span class="cso-cena">' + window._dinFmt(a.ProdajnaCena) + ' din</span></div>';
+                    '" data-pdv="' + (a.PdvStopa || 0) + '" data-stanje="' + (a.Kolicina || 0) + '"><span class="cso-naziv">' + a.Naziv +
+                    '</span><span class="cso-cena">' + window._dinFmt(prik) + ' din</span></div>';
             });
         if (lista) lista.innerHTML = html;
         if (umagacinu) umagacinu.textContent = '—';
@@ -1133,8 +1166,12 @@ document.addEventListener('change', function (e) {
     if (kategSel) kategSel.addEventListener('change', popuniArtikle);
 
     artikalSel.addEventListener('change', function () {
-        var c = parseFloat(artikalSel.getAttribute('data-cena'));
-        if (cena) cena.value = (!isNaN(c) && c > 0) ? c.toFixed(2) : '0';
+        var c = parseFloat(artikalSel.getAttribute('data-cena')) || 0;
+        var pdv = parseFloat(artikalSel.getAttribute('data-pdv')) || 0;
+        var bruto = (window._pdvAktivan && pdv > 0) ? c * (1 + pdv / 100) : c;
+        if (cena) cena.value = c > 0 ? bruto.toFixed(2) : '0';
+        var cenaNeto = document.getElementById('deo-cena-neto');
+        if (cenaNeto) cenaNeto.value = c > 0 ? c.toFixed(2) : '0';
         var st = parseInt(artikalSel.getAttribute('data-stanje'), 10);
         stanjeIzabrano = isNaN(st) ? 0 : st;
         if (umagacinu) umagacinu.textContent = artikalSel.value ? stanjeIzabrano : '—';

@@ -15,3 +15,7 @@ type Usluga struct {
 	Arhiviran    bool
 	DatumUnosa   string
 }
+
+func (u Usluga) CenaSaPdv() float64 {
+	return u.Cena * (1 + u.PdvStopa/100)
+}
