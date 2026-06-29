@@ -14,7 +14,7 @@
         <!-- dokument -->
         <div class="kartica animiraj" style="margin-bottom:16px;">
             <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">Dokument</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div class="forma-grid-2" style="gap:14px;">
                 <div>
                     <label class="polje-labela">Datum prometa</label>
                     <input type="date" name="datum_prometa" value="{{.Danas}}" required style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
@@ -50,7 +50,7 @@
                     <label class="polje-labela">Naziv kupca</label>
                     <input type="text" name="kupac_naziv" required style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                <div class="forma-grid-2" style="gap:14px;">
                     <div>
                         <label class="polje-labela">PIB / JMBG</label>
                         <input type="text" name="kupac_pib" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
@@ -67,7 +67,7 @@
         <div class="kartica animiraj" style="margin-bottom:16px;">
             <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);margin-bottom:6px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">Iznosi po stopama</div>
             <div class="pomocni-tekst" style="font-size:12px;margin-bottom:14px;">Ostavite 0 gde nema prometa. „Ukupno" se računa automatski kao zbir osnovica, PDV-a i oslobođenog prometa.</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div class="forma-grid-2" style="gap:14px;">
                 <div>
                     <label class="polje-labela">Osnovica opšta (20%)</label>
                     <input type="number" step="0.01" min="0" name="osnovica_opsta" value="0" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">

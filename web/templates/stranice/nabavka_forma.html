@@ -182,7 +182,7 @@
                                     </template>
                                 </select>
                             </div>
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                            <div class="forma-grid-2" style="gap:10px;">
                                 <div>
                                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Količina</label>
                                     <input type="number" :name="'kolicina[]'" x-model="stavka.kolicina" @input="preracunajSve()" min="1" :disabled="!isMobile" style="width:100%;">
@@ -192,7 +192,7 @@
                                     <input type="number" :name="'cena_po_komadu[]'" x-model="stavka.cena" @input="preracunajSve()" min="0" step="0.01" :disabled="!isMobile" style="width:100%;">
                                 </div>
                             </div>
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                            <div class="forma-grid-2" style="gap:10px;">
                                 <div>
                                     <label style="font-size:12px;color:var(--tekst-sporedni);display:block;margin-bottom:4px;">Marža %</label>
                                     <input type="number" :name="'marza[]'" x-model="stavka.marza" @input="izracunajProdajnu(stavka)" min="0" step="0.01" :disabled="!isMobile" style="width:100%;">
@@ -316,7 +316,7 @@
                         style="width:100%;resize:vertical;"></textarea>
                 </div>
 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="forma-grid-2">
                     <div>
                         <label class="polje-labela">Količina na stanju</label>
                         <input type="number" x-model="modalKolicina" min="0" placeholder="0" style="width:100%;">
@@ -327,7 +327,7 @@
                     </div>
                 </div>
 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="forma-grid-2">
                     <div>
                         <label class="polje-labela">Nabavna cena (din)</label>
                         <input type="number" x-model="modalNabavnaCena" min="0" step="0.01"
@@ -392,7 +392,7 @@
                         @keydown.enter.prevent="sacuvajDobavljaca()">
                 </div>
 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="forma-grid-2">
                     <div>
                         <label class="polje-labela">Kontakt osoba</label>
                         <input type="text" x-model="modalDobKontakt" placeholder="npr. Marko Petrović" style="width:100%;">
@@ -408,7 +408,7 @@
                     <input type="text" x-model="modalDobEmail" placeholder="npr. nabavka@techdistrib.rs" style="width:100%;">
                 </div>
 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="forma-grid-2">
                     <div>
                         <label class="polje-labela">PIB</label>
                         <input type="text" x-model="modalDobPib" placeholder="npr. 123456789" style="width:100%;">

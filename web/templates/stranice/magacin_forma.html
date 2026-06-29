@@ -47,7 +47,7 @@
                 <!-- Magacin je isključivo za proizvode (prate lager); usluge i troškovi
                      imaju svoje module, zato ovde tip više nije izbor -->
                 <input type="hidden" name="tip" value="proizvod">
-                <div style="display:grid;grid-template-columns:1fr 110px 1fr;gap:12px;">
+                <div class="forma-grid-3" style="grid-template-columns:1fr 110px 1fr;">
                     <div>
                         <label class="polje-labela">
                             Naziv <span style="color:#dc2626;">*</span>
@@ -115,7 +115,7 @@
                 {{end}}
 
                 <!-- cene: nabavna / prodajna / sa PDV -->
-                <div style="display:grid;grid-template-columns:1fr 1fr{{if index .Moduli "pdv"}} 1fr{{end}};gap:12px;">
+                <div class="{{if index .Moduli "pdv"}}forma-grid-3{{else}}forma-grid-2{{end}}">
                     <div>
                         <label class="polje-labela">Nabavna cena (din)</label>
                         <input type="number" id="nabavna-cena" name="nabavna_cena"
