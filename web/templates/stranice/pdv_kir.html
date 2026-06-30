@@ -20,7 +20,18 @@
                 <button type="submit" style="padding:8px 16px;background:var(--sb-aktivan);color:var(--tekst-jak);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;cursor:pointer;">Prikaži</button>
                 {{if or .Od .Do}}<a href="/pdv/kir" class="nazad-link" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" style="margin-bottom:0;">Poništi filter</a>{{end}}
             </form>
-            <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/pdv/kir/nova" class="btn-primarno" style="font-size:13px;padding:8px 16px;white-space:nowrap;">+ Nov izlazni račun</a>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                {{if index .Dozvole "pdv.dodaj"}}
+                <form method="POST" action="/pdv/kir/backfill-prodaje" data-full-reload>
+                    <input type="hidden" name="csrf_token" value="{{.CsrfToken}}">
+                    <button type="submit" class="btn-sekundarno" style="font-size:13px;padding:8px 16px;white-space:nowrap;"
+                        data-potvrda="Uvesti sve B2B prodaje koje još nisu u KIR-u?">
+                        Uvezi iz prodaje
+                    </button>
+                </form>
+                {{end}}
+                <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/pdv/kir/nova" class="btn-primarno" style="font-size:13px;padding:8px 16px;white-space:nowrap;">+ Nov izlazni račun</a>
+            </div>
         </div>
     </div>
 

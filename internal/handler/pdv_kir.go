@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -187,4 +189,59 @@ func (h *Handler) ObrisiPdvKir(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/pdv/kir?obrisan=1", http.StatusSeeOther)
+}
+
+// KirBackfillProdaje kreira KIR zapise za sve B2B prodaje koje ih nemaju.
+// Namenjen za jednokratno popunjavanje starih podataka.
+func (h *Handler) KirBackfillProdaje(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "pdv.dodaj"); !ok {
+		return
+	}
+	ctx := r.Context()
+
+	nalozi, err := h.ProdajaRepo.Lista(ctx, "")
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju prodaje", http.StatusInternalServerError)
+		return
+	}
+
+	var kreirano, preskoceno int
+	for _, nd := range nalozi {
+		if nd.KlijentID == nil {
+			preskoceno++
+			continue
+		}
+		postoji, _ := h.PdvKirRepo.PostojiZaIzvor(ctx, "prodaja", nd.ID)
+		if postoji {
+			preskoceno++
+			continue
+		}
+		stavke, err := h.ProdajaRepo.DohvatiStavke(ctx, nd.ID)
+		if err != nil {
+			slog.Error("backfill KIR: greška pri čitanju stavki", "prodaja_id", nd.ID, "error", err)
+			continue
+		}
+		var ss []model.StavkaProdaje
+		for _, s := range stavke {
+			ss = append(ss, s.StavkaProdaje)
+		}
+		klijent, err := h.KlijentiRepo.DohvatiID(ctx, *nd.KlijentID)
+		if err != nil {
+			slog.Error("backfill KIR: greška pri čitanju klijenta", "prodaja_id", nd.ID, "error", err)
+			continue
+		}
+		pib := klijent.PIB
+		if klijent.Tip != "pravno" {
+			pib = klijent.JMBG
+		}
+		kir := model.KirIzProdaje(nd.ProdajniNalog, ss, klijent.PunoIme(), pib, klijent.Mesto)
+		if _, e := h.PdvKirRepo.Kreiraj(ctx, &kir); e != nil {
+			slog.Error("backfill KIR: greška pri kreiranju zapisa", "prodaja_id", nd.ID, "error", e)
+			continue
+		}
+		kreirano++
+	}
+
+	middleware.SetFlash(w, r, h.DB, "uspeh", fmt.Sprintf("Backfill završen: %d novih KIR zapisa, %d preskočeno.", kreirano, preskoceno))
+	http.Redirect(w, r, "/pdv/kir", http.StatusSeeOther)
 }

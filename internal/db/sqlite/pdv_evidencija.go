@@ -136,6 +136,18 @@ func (r *PdvKirRepo) ObrisiPoIzvoru(ctx context.Context, izvor string, izvorID i
 	return nil
 }
 
+// PostojiZaIzvor vraća true ako postoji bar jedan KIR zapis za dati izvor i izvorID
+func (r *PdvKirRepo) PostojiZaIzvor(ctx context.Context, izvor string, izvorID int64) (bool, error) {
+	var n int
+	err := r.db.QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM pdv_kir WHERE izvor = ? AND izvor_id = ?", izvor, izvorID,
+	).Scan(&n)
+	if err != nil {
+		return false, fmt.Errorf("ntech: PdvKirRepo.PostojiZaIzvor: %w", err)
+	}
+	return n > 0, nil
+}
+
 // izvorIliRucno vraća izvor ili podrazumevano „rucno" (izvor kolona je NOT NULL)
 func izvorIliRucno(izvor string) string {
 	if izvor == "" {

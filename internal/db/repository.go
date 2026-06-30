@@ -68,6 +68,8 @@ type PdvKirRepository interface {
 	Obrisi(ctx context.Context, id int64) error
 	// ObrisiPoIzvoru briše zapise vezane za dati izvor (npr. pri stornu prodaje)
 	ObrisiPoIzvoru(ctx context.Context, izvor string, izvorID int64) error
+	// PostojiZaIzvor vraća true ako postoji bar jedan zapis za dati izvor i izvorID
+	PostojiZaIzvor(ctx context.Context, izvor string, izvorID int64) (bool, error)
 }
 
 // PdvKprRepository definiše operacije nad knjigom primljenih računa (KPR)
