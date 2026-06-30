@@ -286,6 +286,10 @@
                 <div style="font-size:14px;color:var(--tekst-glavni);">
                     {{if .Nalog.DatumZavrsetka}}{{.Nalog.DatumZavrsetka.Format "02.01.2006."}}{{else}}—{{end}}
                 </div>
+                {{if and .RokPodizanja (eq .Nalog.Status "Završeno")}}
+                <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:10px;margin-bottom:4px;">Rok za podizanje</div>
+                <div style="font-size:14px;color:#d97706;font-weight:500;">{{.RokPodizanja.Format "02.01.2006."}}</div>
+                {{end}}
                 {{else}}
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Predviđen datum popravke</div>
                 <div style="font-size:14px;color:var(--tekst-glavni);">

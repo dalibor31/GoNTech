@@ -214,6 +214,13 @@
             </div>
             {{end}}
 
+            {{if .RokPodizanja}}
+            <div class="red">
+                <span class="red-labela">Rok za podizanje</span>
+                <span class="red-vrednost" style="color:#d97706;font-weight:600;">{{.RokPodizanja.Format "02.01.2006."}}</span>
+            </div>
+            {{end}}
+
             {{if .Nalog.NalazDijagnostike}}
             <div style="margin-top:12px;">
                 <div class="red-labela" style="margin-bottom:6px;">Utvrđeno na dijagnostici</div>

@@ -82,6 +82,7 @@ type PodaciDetaljiNaloga struct {
 	KorisceneUsluge         map[int64]bool // ID-evi usluga već dodatih na nalog — izostavljaju se iz dropdown-a
 	SviStatusi              []string
 	FiskalniRacun           *model.FiskalniRacun // nil ako nije fiskalizovano
+	RokPodizanja            *time.Time           // DatumZavrsetka + 30 dana; nil dok nije završeno
 }
 
 // Servis renderuje listu servisnih naloga sa opcionom pretragom i filterom statusa
@@ -734,6 +735,7 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 		CenaDijagnostikePredlog: podesavanja["servis_cena_dijagnostike"],
 		KorisceneUsluge:         korisceneUsluge,
 		SviStatusi:              model.SviStatusi,
+		RokPodizanja:            rokPodizanja(nalog.DatumZavrsetka),
 	}
 
 	// učitaj fiskalni račun ako postoji (za prikaz u detaljima)
@@ -751,6 +753,15 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 // deo zahteva klijenta (ugrađene/tražene).
 func jePredlogStatus(status string) bool {
 	return status != "" && status != model.StatusPrimljeno
+}
+
+// rokPodizanja vraća datum završetka + 30 dana; nil ako završetak nije postavljen.
+func rokPodizanja(datumZavrsetka *time.Time) *time.Time {
+	if datumZavrsetka == nil {
+		return nil
+	}
+	t := datumZavrsetka.AddDate(0, 0, 30)
+	return &t
 }
 
 // DodajDeloNalogu prima POST formu i dodaje artikal kao deo servisnog naloga
@@ -2635,6 +2646,7 @@ type PodaciJavnogStatusa struct {
 	UkupnoSaPredlogom      float64 // ukupno ugrađeno + predloženo
 	UkupnoSaPredlogomSaPdv float64
 	Odgovoreno             bool // klijent vec odgovorio (nema predloga, nije "Primljeno")
+	RokPodizanja           *time.Time
 	Moduli                 map[string]bool
 	SviStatusi             []string
 }
@@ -2725,6 +2737,7 @@ func (h *Handler) ServisJavniStatus(w http.ResponseWriter, r *http.Request) {
 		UkupnoSaPredlogom:      ukupnoSve + ukupnoPredlog,
 		UkupnoSaPredlogomSaPdv: ukupnoSveSaPdv + ukupnoPredlogSaPdv,
 		Odgovoreno:             nalog.OdlukaKlijenta != "" || (!(len(predRadovi) > 0 || len(predDelovi) > 0) && nalog.Status != model.StatusPrimljeno),
+		RokPodizanja:           rokPodizanja(nalog.DatumZavrsetka),
 		Moduli:                 moduli,
 		SviStatusi:             model.SviStatusi,
 	})
