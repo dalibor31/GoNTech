@@ -126,11 +126,19 @@
                     <td><strong>{{.Nalog.DatumPrijema.Format "02.01.2006."}}</strong> <span class="badge-auto">auto</span></td>
                     <td></td>
                 </tr>
+                {{with index .LogDogadjaji "status:U dijagnostici"}}
+                <tr class="auto">
+                    <td>Početak dijagnostike</td>
+                    <td><strong>{{.Format "02.01.2006."}}</strong> <span class="badge-auto">auto</span></td>
+                    <td></td>
+                </tr>
+                {{else}}
                 <tr>
                     <td>Početak dijagnostike</td>
                     <td><span class="linija-unos"></span></td>
                     <td></td>
                 </tr>
+                {{end}}
                 {{if .Nalog.PredvidjenDatum}}
                 <tr class="auto">
                     <td>Predviđeni datum završetka</td>
@@ -190,11 +198,19 @@
                     <td><span class="linija-unos"></span></td>
                     <td></td>
                 </tr>
+                {{with index .LogDogadjaji "status:Preuzeto"}}
+                <tr class="auto">
+                    <td>Preuzimanje uređaja</td>
+                    <td><strong>{{.Format "02.01.2006."}}</strong> <span class="badge-auto">auto</span></td>
+                    <td></td>
+                </tr>
+                {{else}}
                 <tr>
                     <td>Preuzimanje uređaja</td>
                     <td><span class="linija-unos"></span></td>
                     <td></td>
                 </tr>
+                {{end}}
                 {{if .RokPodizanja}}
                 <tr class="auto rok-upozorenje">
                     <td><strong>Rok za podizanje</strong></td>

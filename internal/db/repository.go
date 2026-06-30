@@ -386,6 +386,12 @@ type FiskalRepository interface {
 	OznačiKaoStorniran(ctx context.Context, id int64) error
 }
 
+// ServisniLogRepository definiše operacije nad log-om događaja servisnog naloga.
+type ServisniLogRepository interface {
+	Kreiraj(ctx context.Context, nalogID int64, dogadjaj string, korisnikID *int64) error
+	DohvatiZaNalog(ctx context.Context, nalogID int64) ([]model.ServisniLog, error)
+}
+
 // KpoRepository definiše operacije nad knjigom o ostvarenom prometu.
 type KpoRepository interface {
 	Lista(ctx context.Context, od, do time.Time) ([]model.KpoZapis, error)

@@ -1702,6 +1702,8 @@ type PodaciEskalacionogLista struct {
 	PIB           string
 	MaticniBroj   string
 	Barkod        string
+	// LogDogadjaji mapa dogadjaj→vreme, npr. "status:U dijagnostici"→datum
+	LogDogadjaji map[string]time.Time
 }
 
 // StampaEskalacionogLista renderuje interni list praćenja rokova.
@@ -1745,6 +1747,15 @@ func (h *Handler) StampaEskalacionogLista(w http.ResponseWriter, r *http.Request
 		}
 	}
 
+	logZapisi, _ := h.ServisniLogRepo.DohvatiZaNalog(r.Context(), id)
+	logDogadjaji := make(map[string]time.Time, len(logZapisi))
+	for _, l := range logZapisi {
+		// čuvamo samo prvi zapis za svaki tip događaja
+		if _, postoji := logDogadjaji[l.Dogadjaj]; !postoji {
+			logDogadjaji[l.Dogadjaj] = l.Datum
+		}
+	}
+
 	h.renderujStandalone(w, "servis_eskalacioni_list", PodaciEskalacionogLista{
 		Nalog:         *nalog,
 		KlijentNaziv:  klijentNaziv,
@@ -1759,6 +1770,7 @@ func (h *Handler) StampaEskalacionogLista(w http.ResponseWriter, r *http.Request
 		PIB:           podesavanja["pib"],
 		MaticniBroj:   podesavanja["maticni_broj"],
 		Barkod:        barkodNaloga(nalog.BrojNaloga),
+		LogDogadjaji:  logDogadjaji,
 	})
 }
 
@@ -2122,6 +2134,13 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 		slog.Error("greška pri promeni statusa naloga", "id", id, "error", err)
 		http.Error(w, "Greška pri promeni statusa", http.StatusInternalServerError)
 		return
+	}
+	// log događaja — best-effort, greška se ignoriše
+	if k := middleware.KorisnikIzKonteksta(r.Context()); k != nil {
+		kid := k.ID
+		_ = h.ServisniLogRepo.Kreiraj(r.Context(), id, "status:"+noviStatus, &kid)
+	} else {
+		_ = h.ServisniLogRepo.Kreiraj(r.Context(), id, "status:"+noviStatus, nil)
 	}
 
 	// pri prelasku u Preuzeto — auto-izračunaj cenu_konacnu ako nije uneta, pa sačuvaj naplatu i fiskalizuj
@@ -2934,6 +2953,7 @@ func (h *Handler) ServisJavniPrihvati(w http.ResponseWriter, r *http.Request) {
 	if err := h.ServisRepo.SacuvajOdlukuKlijenta(r.Context(), nalog.ID, "prihvaceno", komentar); err != nil {
 		slog.Error("greška pri čuvanju odluke klijenta", "error", err, "nalog_id", nalog.ID)
 	}
+	_ = h.ServisniLogRepo.Kreiraj(r.Context(), nalog.ID, "odluka:prihvaceno", nil)
 
 	http.Redirect(w, r, "/status/"+token, http.StatusSeeOther)
 }
@@ -2990,6 +3010,7 @@ func (h *Handler) ServisJavniOdlukaOdabrano(w http.ResponseWriter, r *http.Reque
 	if err := h.ServisRepo.SacuvajOdlukuKlijenta(r.Context(), nalog.ID, odluka, komentar); err != nil {
 		slog.Error("greška pri čuvanju odluke klijenta", "error", err, "nalog_id", nalog.ID)
 	}
+	_ = h.ServisniLogRepo.Kreiraj(r.Context(), nalog.ID, "odluka:"+odluka, nil)
 
 	http.Redirect(w, r, "/status/"+token, http.StatusSeeOther)
 }
@@ -3101,6 +3122,7 @@ func (h *Handler) ServisJavniOdbij(w http.ResponseWriter, r *http.Request) {
 	if err := h.ServisRepo.SacuvajOdlukuKlijenta(r.Context(), nalog.ID, "odbijeno", komentar); err != nil {
 		slog.Error("greška pri čuvanju odluke klijenta", "error", err, "nalog_id", nalog.ID)
 	}
+	_ = h.ServisniLogRepo.Kreiraj(r.Context(), nalog.ID, "odluka:odbijeno", nil)
 
 	http.Redirect(w, r, "/status/"+token, http.StatusSeeOther)
 }

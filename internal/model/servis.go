@@ -62,6 +62,16 @@ type ServisniNalog struct {
 	Naplaceno          float64 // iznos koji je naplaćen pri preuzimanju
 }
 
+// ServisniLog je jedan zapis u istoriji događaja servisnog naloga.
+type ServisniLog struct {
+	ID         int64
+	NalogID    int64
+	Dogadjaj   string // npr. "status:U dijagnostici", "odluka:prihvaceno"
+	Napomena   string
+	KorisnikID *int64
+	Datum      time.Time
+}
+
 // ServisniDeo predstavlja jedan artikal ugrađen u servisni nalog
 type ServisniDeo struct {
 	ID         int64
