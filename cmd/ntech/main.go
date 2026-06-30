@@ -315,6 +315,7 @@ func main() {
 		r.With(modul("pdv")).Get("/pdv/kpr/nova", h.NoviPdvKpr)
 		r.With(modul("pdv"), doz("pdv.dodaj")).Post("/pdv/kpr/nova", h.SacuvajPdvKpr)
 		r.With(modul("pdv"), doz("pdv.obrisi")).Post("/pdv/kpr/obrisi/{id}", h.ObrisiPdvKpr)
+		r.With(modul("pdv"), doz("pdv.dodaj")).Post("/pdv/kpr/backfill-nabavke", h.KprBackfillNabavke)
 		r.With(modul("pdv")).Get("/pdv/obracun", h.PdvObracunStranica)
 		r.Get("/magacin", h.Magacin)
 		r.Get("/usluge", h.Usluge)

@@ -320,6 +320,7 @@ document.addEventListener('alpine:init', () => {
         stavke: [{artikal_id: '', kolicina: 1, cena: 0, marza: 0, prodajna: 0}],
         artikliOpcije: [],
         dobavljacId: '',         // izabrani dobavljač nabavke — filtrira listu artikala
+        brojRacuna: '',          // broj računa dobavljača — obavezan za PDV KPR
         prikaziSveArtikle: false, // true = prikaži sve artikle, ne samo dobavljačeve
         marzaDefault: 0,
         troskovi: [],            // zavisni troškovi {naziv, iznos}
@@ -357,6 +358,21 @@ document.addEventListener('alpine:init', () => {
             window.matchMedia('(max-width: 768px)').addEventListener('change', e => {
                 this.isMobile = e.matches
             })
+            const resetujNedostupne = () => {
+                if (this.prikaziSveArtikle) return
+                const dostupni = new Set(this.artikliZaDobavljaca().map(a => String(a.id)))
+                this.stavke.forEach(s => {
+                    if (s.artikal_id && !dostupni.has(String(s.artikal_id))) {
+                        s.artikal_id = ''
+                        s.cena = 0
+                        s.marza = this.marzaDefault
+                        s.prodajna = 0
+                    }
+                })
+                this.preracunajSve()
+            }
+            this.$watch('dobavljacId', resetujNedostupne)
+            this.$watch('prikaziSveArtikle', resetujNedostupne)
         },
         dodajStavku() {
             // ne dozvoli novu stavku dok poslednja nema izabran artikal
@@ -389,6 +405,10 @@ document.addEventListener('alpine:init', () => {
                 if (a.marza != null) s.marza = a.marza
                 else if (a.kategorija_marza != null) s.marza = a.kategorija_marza
                 else s.marza = this.marzaDefault
+            } else {
+                s.cena = 0
+                s.marza = this.marzaDefault
+                s.prodajna = 0
             }
             this.izracunajProdajnu(s)
             this.preracunajSve()
@@ -437,6 +457,11 @@ document.addEventListener('alpine:init', () => {
             this.stavke.forEach(s => this.izracunajProdajnu(s))
         },
         dodajTrosak() {
+            const poslednji = this.troskovi[this.troskovi.length - 1]
+            if (poslednji && !poslednji.naziv.trim()) {
+                if (window.ntechToast) window.ntechToast('Prvo unesi naziv poslednjeg troška.', 'greska')
+                return
+            }
             this.troskovi.push({naziv: '', iznos: 0})
         },
         ukloniTrosak(i) {
@@ -571,6 +596,7 @@ document.addEventListener('alpine:init', () => {
                 opcija.textContent = novi.naziv
                 this.$refs.selDobavljac.appendChild(opcija)
                 this.$refs.selDobavljac.value = novi.id
+                this.dobavljacId = String(novi.id)
                 this.zatvoriModalDobavljac()
             } catch {
                 this.modalDobGreska = 'Greška pri komunikaciji sa serverom.'

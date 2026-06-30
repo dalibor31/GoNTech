@@ -60,7 +60,33 @@
                     <div x-show="dobavljacId && prikaziSveArtikle" class="pomocni-tekst" style="margin-top:4px;">
                         Napomena: izabrani artikal koji nije od ovog dobavljača biće mu dodat pri čuvanju nabavke.
                     </div>
+                    {{if .PdvObveznik}}
+                    <div x-show="!dobavljacId" style="display:flex;align-items:center;gap:6px;margin-top:8px;padding:8px 10px;background:rgba(234,179,8,0.1);border:0.5px solid rgba(234,179,8,0.4);border-radius:8px;font-size:12px;color:#ca8a04;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        Bez dobavljača KPR zapis neće imati PIB — što nije ispravno za PDV evidenciju.
+                    </div>
+                    {{end}}
                 </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;">
+                    <div>
+                        <label class="polje-labela">Broj računa dobavljača{{if .PdvObveznik}} <span style="color:#dc2626;">*</span>{{end}}</label>
+                        <input type="text" name="broj_racuna" x-model="brojRacuna" placeholder="npr. 2024/00123"
+                            style="width:100%;">
+                    </div>
+                    <div>
+                        <label class="polje-labela">Datum računa</label>
+                        <input type="date" name="datum_racuna" value="{{.Danas}}" style="width:100%;">
+                    </div>
+                </div>
+                {{if .PdvObveznik}}
+                <div>
+                    <label class="polje-labela">PDV sa računa dobavljača (din)</label>
+                    <input type="number" name="pdv_iznos" min="0" step="0.01"
+                        placeholder="Ostavite prazno za automatski obračun iz stope"
+                        style="width:100%;">
+                    <div class="pomocni-tekst" style="margin-top:4px;">Ako unesete iznos, koristiće se umesto aproksimacije iz stope artikla u KPR.</div>
+                </div>
+                {{end}}
                 <div>
                     <label class="polje-labela">Napomena</label>
                     <textarea name="napomena" rows="2"
@@ -265,7 +291,12 @@
         <!-- dugmad forme -->
         <div style="display:flex;justify-content:flex-end;gap:10px;">
             <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/nabavke" class="btn-sekundarno">Odustani</a>
-            <button type="submit" class="btn-primarno">Sačuvaj nabavku</button>
+            <button type="submit" class="btn-primarno"
+                :disabled="pdvObveznik && (!dobavljacId || !brojRacuna.trim())"
+                @click="if(pdvObveznik && !dobavljacId){ $event.preventDefault(); window.ntechToast('Izaberi dobavljača — PDV evidencija zahteva PIB.', 'greska'); }
+                        else if(pdvObveznik && !brojRacuna.trim()){ $event.preventDefault(); window.ntechToast('Unesi broj računa dobavljača — obavezan je za KPR.', 'greska'); }">
+                Sačuvaj nabavku
+            </button>
         </div>
 
     </form>

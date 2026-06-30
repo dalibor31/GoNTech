@@ -292,3 +292,15 @@ func (r *PdvKprRepo) ObrisiPoIzvoru(ctx context.Context, izvor string, izvorID i
 	}
 	return nil
 }
+
+// PostojiZaIzvor vraća true ako postoji bar jedan KPR zapis za dati izvor i izvorID
+func (r *PdvKprRepo) PostojiZaIzvor(ctx context.Context, izvor string, izvorID int64) (bool, error) {
+	var n int
+	err := r.db.QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM pdv_kpr WHERE izvor = ? AND izvor_id = ?", izvor, izvorID,
+	).Scan(&n)
+	if err != nil {
+		return false, fmt.Errorf("ntech: PdvKprRepo.PostojiZaIzvor: %w", err)
+	}
+	return n > 0, nil
+}

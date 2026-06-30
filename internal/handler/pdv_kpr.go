@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -155,6 +157,70 @@ func (h *Handler) SacuvajPdvKpr(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/pdv/kpr?sacuvano=1", http.StatusSeeOther)
+}
+
+// KprBackfillNabavke kreira KPR zapise za sve aktivne nabavke koje ih nemaju.
+// Namenjen za jednokratno popunjavanje starih podataka.
+func (h *Handler) KprBackfillNabavke(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "pdv.dodaj"); !ok {
+		return
+	}
+	ctx := r.Context()
+
+	nabavke, err := h.NabavkeRepo.Lista(ctx)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju nabavki", http.StatusInternalServerError)
+		return
+	}
+
+	var kreirano, preskoceno int
+	for _, nd := range nabavke {
+		if nd.Stornirano {
+			continue
+		}
+		// preskoči ako već ima KPR zapis
+		postoji, _ := h.PdvKprRepo.PostojiZaIzvor(ctx, "nabavka", nd.ID)
+		if postoji {
+			preskoceno++
+			continue
+		}
+
+		stavke, err := h.NabavkeRepo.DohvatiStavke(ctx, nd.ID)
+		if err != nil {
+			slog.Error("backfill KPR: greška pri čitanju stavki", "nabavka_id", nd.ID, "error", err)
+			continue
+		}
+		var stavkePdv []model.NabavkaStavkaPdv
+		for _, s := range stavke {
+			var stopa float64
+			if a, e := h.Artikli.DohvatiID(ctx, s.ArtikalID); e == nil {
+				stopa = a.PdvStopa
+			}
+			stavkePdv = append(stavkePdv, model.NabavkaStavkaPdv{
+				Osnovica: float64(s.Kolicina) * s.CenaPoKomadu,
+				PdvStopa: stopa,
+			})
+		}
+		naziv, pib, mesto := "Nepoznat dobavljač", "", ""
+		if nd.DobavljacID != nil {
+			if d, e := h.DobavljaciRepo.DohvatiID(ctx, *nd.DobavljacID); e == nil {
+				naziv, pib, mesto = d.Naziv, d.PIB, d.Mesto
+			}
+		}
+		nabavka := nd.Nabavka
+		if nabavka.Datum.IsZero() {
+			nabavka.Datum = time.Now()
+		}
+		kpr := model.KprIzNabavke(nabavka, naziv, pib, mesto, stavkePdv)
+		if _, e := h.PdvKprRepo.Kreiraj(ctx, &kpr); e != nil {
+			slog.Error("backfill KPR: greška pri kreiranju zapisa", "nabavka_id", nd.ID, "error", e)
+			continue
+		}
+		kreirano++
+	}
+
+	middleware.SetFlash(w, r, h.DB, "uspeh", fmt.Sprintf("Backfill završen: %d novih KPR zapisa, %d preskočeno.", kreirano, preskoceno))
+	http.Redirect(w, r, "/pdv/kpr", http.StatusSeeOther)
 }
 
 // ObrisiPdvKpr briše zapis iz KPR

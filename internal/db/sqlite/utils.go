@@ -46,3 +46,12 @@ func nullTime(v *time.Time) sql.NullTime {
 	}
 	return sql.NullTime{Time: *v, Valid: true}
 }
+
+// nullDateString upisuje *time.Time kao "YYYY-MM-DD" string ili NULL —
+// koristiti za DATE kolone gde sql.NullTime nije kompatibilan s driver-om
+func nullDateString(v *time.Time) sql.NullString {
+	if v == nil {
+		return sql.NullString{}
+	}
+	return sql.NullString{String: v.Format("2006-01-02"), Valid: true}
+}

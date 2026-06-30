@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"ntech/internal/db"
 	"ntech/internal/db/sqlite"
@@ -32,6 +33,7 @@ type PodaciFormeNabavke struct {
 	Kategorije  []model.Kategorija // za dropdown u modalu novog artikla
 	Marza       string             // podrazumevana marža (%) za kalkulaciju
 	PdvObveznik bool               // da li firma obračunava PDV (utiče na prodajnu cenu u kalkulaciji)
+	Danas       string             // format "2006-01-02" — default za datum računa
 	Greska      string
 }
 
@@ -44,6 +46,7 @@ type PodaciDetaljiNabavke struct {
 	UkupanTrosak   float64
 	DobavljacNaziv string
 	Sacuvano       bool
+	Greska         string
 }
 
 // artikalUJSON pretvara listu artikala u template.JS vrednost bezbednu za umetanje u <script> tag
@@ -140,6 +143,7 @@ func (h *Handler) NovaNabavka(w http.ResponseWriter, r *http.Request) {
 		Kategorije:     kategorije,
 		Marza:          vrednostIliDefault(podesavanja, "kalkulacija_marza", "20"),
 		PdvObveznik:    h.modulUkljucen(r.Context(), "pdv"),
+		Danas:          time.Now().Format("2006-01-02"),
 	})
 }
 
@@ -155,6 +159,14 @@ func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
 	}
 
 	nabavka, stavke, troskovi, greska := parseFormuNabavke(r)
+	if greska == "" && h.modulUkljucen(r.Context(), "pdv") {
+		switch {
+		case nabavka.DobavljacID == nil:
+			greska = "PDV evidencija je uključena — dobavljač je obavezan da bi KPR imao ispravan PIB."
+		case nabavka.BrojRacuna == "":
+			greska = "PDV evidencija je uključena — broj računa dobavljača je obavezan za KPR."
+		}
+	}
 	if greska != "" {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		artikli, _ := h.Artikli.Lista(r.Context(), db.ArtikalFilter{})
@@ -172,6 +184,7 @@ func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
 			Kategorije:     kategorije,
 			Marza:          vrednostIliDefault(podesavanja, "kalkulacija_marza", "20"),
 			PdvObveznik:    h.modulUkljucen(r.Context(), "pdv"),
+			Danas:          time.Now().Format("2006-01-02"),
 			Greska:         greska,
 		})
 		return
@@ -203,6 +216,7 @@ func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		nabavka.ID = id
+		nabavka.Datum = time.Now()
 		kpr := model.KprIzNabavke(nabavka, naziv, pib, mesto, stavkePdv)
 		if _, e := h.PdvKprRepo.Kreiraj(r.Context(), &kpr); e != nil {
 			slog.Error("auto-upis u KPR nije uspeo", "nabavka_id", id, "error", e)
@@ -284,6 +298,7 @@ func (h *Handler) DetaljiNabavke(w http.ResponseWriter, r *http.Request) {
 
 	nabavka, err := h.NabavkeRepo.DohvatiID(r.Context(), id)
 	if err != nil {
+		slog.Error("DetaljiNabavke: DohvatiID greška", "id", id, "error", err)
 		http.Error(w, "Nabavka nije pronađena", http.StatusNotFound)
 		return
 	}
@@ -322,6 +337,10 @@ func (h *Handler) DetaljiNabavke(w http.ResponseWriter, r *http.Request) {
 	for _, t := range troskovi {
 		ukupanTrosak += t.Iznos
 	}
+	var greska string
+	if r.URL.Query().Get("greska") == "storno" {
+		greska = "Storniranje nije uspelo. Nabavka je možda već stornirana."
+	}
 	podaci := PodaciDetaljiNabavke{
 		PodaciStranice: ps,
 		Nabavka:        *nabavka,
@@ -330,6 +349,7 @@ func (h *Handler) DetaljiNabavke(w http.ResponseWriter, r *http.Request) {
 		UkupanTrosak:   ukupanTrosak,
 		DobavljacNaziv: dobavljacNaziv,
 		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
+		Greska:         greska,
 	}
 
 	h.renderujTemplate(w, "nabavka_detalji", podaci)
@@ -354,7 +374,7 @@ func (h *Handler) StornoNabavke(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.NabavkeRepo.Storno(r.Context(), id, razlog, &k.ID); err != nil {
 		slog.Error("greška pri storniranju nabavke", "error", err)
-		http.Redirect(w, r, "/nabavke/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+		http.Redirect(w, r, "/nabavke/"+strconv.FormatInt(id, 10)+"?greska=storno", http.StatusSeeOther)
 		return
 	}
 	// stornirana nabavka ne ulazi u PDV — ukloni vezani auto-KPR zapis
@@ -378,42 +398,56 @@ func parseFormuNabavke(r *http.Request) (model.Nabavka, []model.StavkaNabavke, [
 		}
 	}
 	nabavka.Napomena = strings.TrimSpace(r.FormValue("napomena"))
+	nabavka.BrojRacuna = strings.TrimSpace(r.FormValue("broj_racuna"))
+
+	if datStr := strings.TrimSpace(r.FormValue("datum_racuna")); datStr != "" {
+		if t, e := time.Parse("2006-01-02", datStr); e == nil {
+			nabavka.DatumRacuna = &t
+		}
+	}
+
+	if pdvStr := strings.TrimSpace(r.FormValue("pdv_iznos")); pdvStr != "" {
+		if v, e := strconv.ParseFloat(pdvStr, 64); e == nil && v > 0 {
+			nabavka.PdvIznos = v
+		}
+	}
 
 	// paralelni nizovi stavki
 	artikalIDovi := r.Form["artikal_id[]"]
 	kolicine := r.Form["kolicina[]"]
 	cene := r.Form["cena_po_komadu[]"]
 
-	if len(artikalIDovi) == 0 {
-		return nabavka, nil, nil, "Nabavka mora imati najmanje jednu stavku."
-	}
-
-	if len(artikalIDovi) != len(kolicine) || len(artikalIDovi) != len(cene) {
-		return nabavka, nil, nil, "Greška u podacima forme — broj stavki nije ispravan."
-	}
-
 	var stavke []model.StavkaNabavke
 	for i := range artikalIDovi {
-		artikalID, err := strconv.ParseInt(strings.TrimSpace(artikalIDovi[i]), 10, 64)
+		// preskoči red koji korisnik nije popunio
+		artikalIDStr := strings.TrimSpace(artikalIDovi[i])
+		if artikalIDStr == "" {
+			continue
+		}
+		artikalID, err := strconv.ParseInt(artikalIDStr, 10, 64)
 		if err != nil || artikalID <= 0 {
-			return nabavka, nil, nil, "Neispravan artikal u stavci."
+			continue
 		}
-
-		kolicina, err := strconv.Atoi(strings.TrimSpace(kolicine[i]))
-		if err != nil || kolicina <= 0 {
-			return nabavka, nil, nil, "Količina mora biti pozitivan broj."
+		var kolicina int
+		if i < len(kolicine) {
+			kolicina, _ = strconv.Atoi(strings.TrimSpace(kolicine[i]))
 		}
-
-		cena, err := strconv.ParseFloat(strings.TrimSpace(cene[i]), 64)
-		if err != nil || cena < 0 {
-			return nabavka, nil, nil, "Cena mora biti pozitivan broj."
+		if kolicina <= 0 {
+			kolicina = 1
 		}
-
+		var cena float64
+		if i < len(cene) {
+			cena, _ = strconv.ParseFloat(strings.TrimSpace(cene[i]), 64)
+		}
 		stavke = append(stavke, model.StavkaNabavke{
 			ArtikalID:    artikalID,
 			Kolicina:     kolicina,
 			CenaPoKomadu: cena,
 		})
+	}
+
+	if len(stavke) == 0 {
+		return nabavka, nil, nil, "Nabavka mora imati najmanje jednu stavku."
 	}
 
 	// zavisni troškovi (opcioni, paralelni nizovi); prazni redovi se preskaču
