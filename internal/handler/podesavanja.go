@@ -947,11 +947,15 @@ func (h *Handler) TestFiskalizacije(w http.ResponseWriter, r *http.Request) {
 	// 10.x.x.x, 172.16-31.x.x, 127.x.x.x). URL rekonstruišemo kroz url.URL{}
 	// iz validiranih komponenti da CodeQL prepozna sanitizaciju.
 	parsedURL, err := url.Parse(pfrURL)
-	if err != nil || !jePrivatnaAdresa(parsedURL.Hostname()) {
-		http.Error(w, "Nevažeći PFR URL — dozvoljeni su samo lokalni/privatni hostovi (127.x, 192.168.x, 10.x, 172.16-31.x)", http.StatusBadRequest)
+	if err != nil {
+		http.Error(w, "Nevažeći PFR URL", http.StatusBadRequest)
 		return
 	}
 	host := parsedURL.Hostname()
+	if !jePrivatnaAdresa(host) {
+		http.Error(w, "Nevažeći PFR URL — dozvoljeni su samo lokalni/privatni hostovi (127.x, 192.168.x, 10.x, 172.16-31.x)", http.StatusBadRequest)
+		return
+	}
 	port := 4566
 	if p := parsedURL.Port(); p != "" {
 		if n, e := strconv.Atoi(p); e == nil && n > 0 && n <= 65535 {
