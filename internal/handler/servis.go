@@ -83,6 +83,7 @@ type PodaciDetaljiNaloga struct {
 	SviStatusi              []string
 	FiskalniRacun           *model.FiskalniRacun // nil ako nije fiskalizovano
 	RokPodizanja            *time.Time           // DatumZavrsetka + 30 dana; nil dok nije završeno
+	FiskalGreska            bool                 // true: fiskalizacija aktivna, status Preuzeto, ali nema fiskalnog računa
 }
 
 // Servis renderuje listu servisnih naloga sa opcionom pretragom i filterom statusa
@@ -743,6 +744,12 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 		podaci.FiskalniRacun = fr
 	} else if err != nil {
 		slog.Error("greška pri učitavanju fiskalnog računa za servis", "servis_id", id, "error", err)
+	}
+	// fiskalna greška: modul aktivan, nalog preuzet, ali nema fiskalnog računa
+	if h.modulUkljucen(r.Context(), config.ModulFiskalizacija) &&
+		nalog.Status == model.StatusPreuzeto &&
+		podaci.FiskalniRacun == nil {
+		podaci.FiskalGreska = true
 	}
 
 	h.renderujTemplate(w, "servis_detalji", podaci)
@@ -2362,6 +2369,56 @@ func (h *Handler) fiskalizujServis(ctx context.Context, servisID int64, klijent 
 		slog.Error("greška pri čuvanju fiskalnog računa za servis", "servis_id", servisID, "error", err)
 	}
 }
+
+// RetryFiskalizacija pokušava ponovo da izda fiskalni račun za nalog čija je
+// prethodna fiskalizacija pala. Bezbedno za ponovni poziv — proverava da račun
+// još uvek ne postoji pre slanja zahteva ka ESIR/PFR.
+func (h *Handler) RetryFiskalizacija(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "servis.izmeni"); !ok {
+		return
+	}
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+
+	// provjeri da fiskal još nije izdat (zaštita od duplikata)
+	if fr, _ := h.FiskalRepo.DohvatiPoServisu(r.Context(), id); fr != nil {
+		middleware.SetFlash(w, r, h.DB, "uspeh", "Fiskalni račun već postoji.")
+		http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+		return
+	}
+
+	nalog, err := h.ServisRepo.DohvatiID(r.Context(), id)
+	if err != nil || nalog.Status != model.StatusPreuzeto {
+		http.Error(w, "Nalog nije u statusu Preuzeto", http.StatusBadRequest)
+		return
+	}
+	if nalog.Naplaceno <= 0 {
+		middleware.SetFlash(w, r, h.DB, "greska", "Iznos naplate je 0 — fiskalizacija nije moguća.")
+		http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+		return
+	}
+
+	klijent := h.fiskalKlijent()
+	if klijent == nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Fiskalni servis nije dostupan. Proverite vezu sa ESIR/PFR.")
+		http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+		return
+	}
+
+	h.fiskalizujServis(r.Context(), id, klijent, nalog.NacinPlacanja, nalog.Naplaceno)
+
+	// provjeri da li je uspelo
+	if fr, _ := h.FiskalRepo.DohvatiPoServisu(r.Context(), id); fr != nil {
+		middleware.SetFlash(w, r, h.DB, "uspeh", "Fiskalni račun izdat.")
+	} else {
+		middleware.SetFlash(w, r, h.DB, "greska", "Fiskalizacija nije uspela. Proverite vezu sa ESIR/PFR i pokušajte ponovo.")
+	}
+	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+}
+
 func (h *Handler) StampaFiskalnog(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(chi.URLParam(r, "id"))
 	if err != nil {

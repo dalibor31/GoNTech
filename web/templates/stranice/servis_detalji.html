@@ -1000,6 +1000,23 @@
         </div>
         {{end}}
 
+    {{if .FiskalGreska}}
+    <div class="kartica detalji-kartica animiraj" style="border:1.5px solid #f59e0b;background:color-mix(in srgb,#fef3c7 60%,var(--pozadina));">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div style="flex:1;">
+                <div style="font-size:14px;font-weight:600;color:#92400e;margin-bottom:4px;">⚠ Fiskalni račun nije izdat</div>
+                <div style="font-size:13px;color:#78350f;">Veza sa ESIR/PFR serverom nije bila dostupna pri preuzimanju. Status naloga je promenjen, ali fiskalni račun nije poslat.</div>
+            </div>
+            {{if index .Dozvole "servis.izmeni"}}
+            <form method="POST" action="/servis/{{.Nalog.ID}}/fiskalizuj">
+                <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+                <button type="submit" class="btn-primarno" style="background:#d97706;border-color:#d97706;white-space:nowrap;">Pokušaj ponovo</button>
+            </form>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
+
     <!-- zona za brisanje -->
     {{/* Brisanje je moguće samo dok je „Primljeno" (greška pri unosu); čim uđe u proceduru naplaćuje se dijagnostika */}}
     {{if eq .Nalog.Status "Primljeno"}}
