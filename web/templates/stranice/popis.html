@@ -92,6 +92,37 @@
         .popis-input::-webkit-outer-spin-button,
         .popis-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     }
+
+    /* ── ŠTAMPA: A4 landscape, bez skrolbara, sve u širinu ───────
+       Print poništava mobilne kartice (!important) — i sa telefona
+       se štampa A4 tabela, ne prilagođava se ekranu. */
+    @media print {
+        @page { size: A4 landscape; margin: 12mm 10mm; }
+
+        /* sakrij sve sem tabele */
+        .sidebar, .topbar, .popis-akcije, .btn-primarno, .btn-sekundarno,
+        .nazad-link, .poruka-uspeh, .poruka-greska, .popis-suma { display: none !important; }
+
+        /* ništa ne sme da seče/skroluje → nema skrolbara */
+        * { overflow: visible !important; }
+
+        /* vrati tabelu iz kartica (mobilni) nazad u pravu tabelu */
+        #popis-tabela { display: table !important; width: 100% !important; table-layout: fixed; border-collapse: collapse; font-size: 9px; }
+        #popis-tabela thead { display: table-header-group !important; }
+        #popis-tabela tbody { display: table-row-group !important; }
+        #popis-tabela tr { display: table-row !important; border: none !important; padding: 0 !important; margin: 0 !important; }
+        #popis-tabela th, #popis-tabela td {
+            display: table-cell !important;
+            border: 0.5px solid #999 !important;
+            padding: 3px 4px !important;
+            text-align: right !important;
+            font-size: 9px !important;
+            word-break: break-word;
+        }
+        #popis-tabela td.kart-naslov { text-align: left !important; font-size: 9px !important; font-weight: 500 !important; }
+        #popis-tabela td::before, #popis-tabela th::before { content: none !important; }
+        .popis-input { border: none !important; background: transparent !important; width: auto !important; padding: 0 !important; font-size: 9px !important; }
+    }
 </style>
 {{end}}
 
@@ -119,7 +150,10 @@
                     &nbsp;|&nbsp; Sačinio: <strong style="color:var(--tekst-glavni);">{{.KorisnikIme}}</strong>
                 </div>
             </div>
-            <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/izvestaji" class="btn-sekundarno" style="white-space:nowrap;">← Izveštaji</a>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/izvestaji" class="btn-sekundarno" style="white-space:nowrap;">← Izveštaji</a>
+                <button type="button" onclick="window.print()" class="btn-sekundarno" style="white-space:nowrap;">🖨 Štampaj</button>
+            </div>
         </div>
     </div>
 
