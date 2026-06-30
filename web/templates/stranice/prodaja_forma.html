@@ -4,28 +4,18 @@
   .forma-kartica:nth-child(1) { animation-delay: 0.04s; }
   .forma-kartica:nth-child(2) { animation-delay: 0.12s; }
   @media (max-width: 768px) { .stavke-tabela-wrapper { display: none; } .stavke-kartice { display: flex !important; } }
+  .polje-labela { font-size: 12px; color: var(--tekst-sporedni); display: block; margin-bottom: 4px; }
 </style>
 {{end}} {{define "sadrzaj"}}
 
-<!-- lista artikala kao JSON — sadrži id, naziv i prodajnu cenu -->
 <script>
-  var _ntechArtikli = {{.ArtikliJSON }};
+  var _ntechArtikli = {{.ArtikliJSON}};
+  var _ntechPdvObveznik = {{if index .Moduli "pdv"}}true{{else}}false{{end}};
 </script>
 
 <div style="width: 100%" x-data="prodajaForma">
-  <!-- nazad dugme -->
   <a href="/prodaja" class="nazad-link" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML">
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      aria-hidden="true">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <polyline points="15 18 9 12 15 6" />
     </svg>
     Nazad na prodaju
@@ -38,17 +28,11 @@
 
     <!-- zaglavlje prodaje -->
     <div class="kartica forma-kartica animiraj" style="margin-bottom: 16px">
-      <div
-        style="
-          margin-bottom: 16px;
-          padding-bottom: 14px;
-          border-bottom: 0.5px solid var(--ivica);
-        ">
-        <span
-          style="font-size: 16px; font-weight: 500; color: var(--tekst-glavni)">Nova prodaja</span>
+      <div style="margin-bottom: 16px; padding-bottom: 14px; border-bottom: 0.5px solid var(--ivica);">
+        <span style="font-size: 16px; font-weight: 500; color: var(--tekst-glavni)">Nova prodaja</span>
       </div>
       <div style="display: flex; flex-direction: column; gap: 14px">
-        <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
           <div>
             <label class="polje-labela">Klijent</label>
             <select name="klijent_id" style="width: 100%">
@@ -69,35 +53,23 @@
         </div>
         <div>
           <label class="polje-labela">Napomena</label>
-          <textarea name="napomena" rows="2"
-            placeholder="Interna napomena o prodaji..."
-            style="width: 100%; resize: vertical"></textarea>
+          <textarea name="napomena" rows="2" placeholder="Interna napomena o prodaji..." style="width: 100%; resize: vertical"></textarea>
         </div>
       </div>
     </div>
 
     <!-- stavke -->
     <div class="kartica forma-kartica animiraj" style="margin-bottom: 16px">
-      <div
-        style="
-          margin-bottom: 16px;
-          padding-bottom: 14px;
-          border-bottom: 0.5px solid var(--ivica);
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          flex-wrap: wrap;
-          gap: 8px;
-        ">
-        <span
-          style="font-size: 16px; font-weight: 500; color: var(--tekst-glavni)">Stavke</span>
-        <button
-          type="button"
-          @click="dodajStavku()"
-          class="btn-primarno"
-          style="font-size: 13px; padding: 6px 14px">
+      <div style="margin-bottom: 16px; padding-bottom: 14px; border-bottom: 0.5px solid var(--ivica); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <span style="font-size: 16px; font-weight: 500; color: var(--tekst-glavni)">Stavke</span>
+        <button type="button" @click="dodajStavku()" class="btn-primarno" style="font-size: 13px; padding: 6px 14px">
           + Dodaj stavku
         </button>
+      </div>
+
+      <!-- pretraga artikala -->
+      <div style="margin-bottom:12px;">
+        <input type="text" x-model="pretragaArtikal" placeholder="Pretraži artikle po nazivu, šifri ili barkodu..." style="width:100%;">
       </div>
 
       <!-- desktop tabela stavki -->
@@ -105,166 +77,58 @@
         <table class="tabela">
           <thead>
             <tr style="border-bottom: 0.5px solid var(--ivica)">
-              <th
-                style="
-                  padding: 8px 10px;
-                  text-align: left;
-                  font-size: 12px;
-                  font-weight: 500;
-                  color: var(--tekst-sporedni);
-                ">
-                Artikal
-              </th>
-              <th
-                style="
-                  padding: 8px 10px;
-                  text-align: center;
-                  font-size: 12px;
-                  font-weight: 500;
-                  color: var(--tekst-sporedni);
-                  width: 90px;
-                ">
-                Količina
-              </th>
-              <th
-                style="
-                  padding: 8px 10px;
-                  text-align: right;
-                  font-size: 12px;
-                  font-weight: 500;
-                  color: var(--tekst-sporedni);
-                  width: 140px;
-                ">
-                Cena/kom (din)
-              </th>
-              <th
-                style="
-                  padding: 8px 10px;
-                  text-align: right;
-                  font-size: 12px;
-                  font-weight: 500;
-                  color: var(--tekst-sporedni);
-                  width: 110px;
-                ">
-                Ukupno
-              </th>
-              <th style="width: 40px"></th>
+              <th style="padding: 8px 10px; text-align: left; font-size: 12px; font-weight: 500; color: var(--tekst-sporedni);">Artikal</th>
+              <th style="padding: 8px 10px; text-align: center; font-size: 12px; font-weight: 500; color: var(--tekst-sporedni); width: 90px;">Kol.</th>
+              <th style="padding: 8px 10px; text-align: right; font-size: 12px; font-weight: 500; color: var(--tekst-sporedni); width: 130px;">Cena/kom</th>
+              <th style="padding: 8px 10px; text-align: right; font-size: 12px; font-weight: 500; color: var(--tekst-sporedni); width: 80px;">Popust%</th>
+              <th style="padding: 8px 10px; text-align: right; font-size: 12px; font-weight: 500; color: var(--tekst-sporedni); width: 110px;">Ukupno</th>
+              <th style="width: 40px;"></th>
             </tr>
           </thead>
           <tbody>
             <template x-for="(stavka, i) in stavke" :key="i">
               <tr style="border-bottom: 0.5px solid var(--ivica)">
-                <td style="padding: 8px 10px">
+                <td style="padding: 8px 10px;">
                   <input type="hidden" :name="'pdv_stopa[]'" :value="stavka.pdv_stopa">
-                  <select
-                    :name="'artikal_id[]'"
-                    x-model="stavka.artikal_id"
-                    @change="popuniCenu(stavka)"
-                    :disabled="isMobile"
-                    style="width: 100%">
+                  <select :name="'artikal_id[]'" x-model="stavka.artikal_id" @change="popuniCenu(stavka)" :disabled="isMobile" style="width: 100%">
                     <option value="">— odaberi artikal —</option>
-                    <template x-for="a in artikliOpcije" :key="a.id">
-                      <option :value="a.id" x-text="a.naziv"></option>
+                    <template x-for="a in filtriraniArtikli" :key="a.id">
+                      <option :value="a.id" x-text="a.naziv + (a.kategorija_naziv ? ' [' + a.kategorija_naziv + ']' : '')"></option>
                     </template>
                   </select>
+                  <div x-show="stavka.kategorija_naziv" style="font-size:11px;color:var(--tekst-sporedni);margin-top:2px;" x-text="stavka.kategorija_naziv"></div>
                 </td>
                 <td style="padding: 8px 10px">
-                  <input
-                    type="number"
-                    :name="'kolicina[]'"
-                    x-model="stavka.kolicina"
-                    min="1"
-                    :disabled="isMobile"
-                    :style="prekoracenje(i) ? 'border-color:#dc2626;' : ''"
-                    style="width: 100%; text-align: center" />
-                  <div
-                    x-show="stavka.artikal_id"
-                    :style="prekoracenje(i) ? 'color:#dc2626' : 'color:var(--tekst-sporedni)'"
-                    x-text="'Na stanju: ' + dostupnaKolicina(i)"
-                    style="
-                      font-size: 11px;
-                      margin-top: 3px;
-                      text-align: center;
-                      white-space: nowrap;
-                    "></div>
-                  <div
-                    x-show="prekoracenje(i)"
-                    style="
-                      font-size: 11px;
-                      color: #dc2626;
-                      margin-top: 1px;
-                      text-align: center;
-                      white-space: nowrap;
-                    ">
-                    Prekoračena količina
+                  <input type="number" :name="'kolicina[]'" x-model="stavka.kolicina" min="1" :disabled="isMobile"
+                    :style="prekoracenje(i) ? 'border-color:#dc2626;' : ''" style="width: 100%; text-align: center" />
+                  <div x-show="stavka.artikal_id" :style="prekoracenje(i) ? 'color:#dc2626' : 'color:var(--tekst-sporedni)'"
+                    x-text="'Na stanju: ' + dostupnaKolicina(i)" style="font-size: 11px; margin-top: 3px; text-align: center; white-space: nowrap;"></div>
+                  <div x-show="prekoracenje(i)" style="font-size: 11px; color: #dc2626; margin-top: 1px; text-align: center; white-space: nowrap;">Prekoračena količina</div>
+                </td>
+                <td style="padding: 8px 10px">
+                  <div style="display:flex;flex-direction:column;gap:2px;">
+                    <input type="number" :name="'cena_po_komadu[]'" x-model="stavka.cena" min="0" step="0.01" :disabled="isMobile" style="width: 100%; text-align: right" />
+                    <span x-show="pdvObveznik && stavka.pdv_stopa > 0" style="font-size:10px;color:var(--tekst-sporedni);text-align:right;" x-text="'+PDV ' + stavka.pdv_stopa + '%'"></span>
                   </div>
                 </td>
                 <td style="padding: 8px 10px">
-                  <input
-                    type="number"
-                    :name="'cena_po_komadu[]'"
-                    x-model="stavka.cena"
-                    min="0"
-                    step="0.01"
-                    :disabled="isMobile"
-                    style="width: 100%; text-align: right" />
+                  <input type="number" :name="'popust[]'" x-model="stavka.popust" min="0" max="100" step="0.01" :disabled="isMobile" style="width: 100%; text-align: right" />
                 </td>
-                <td
-                  style="
-                    padding: 8px 10px;
-                    text-align: right;
-                    font-size: 14px;
-                    font-weight: 500;
-                    color: var(--tekst-glavni);
-                  ">
+                <td style="padding: 8px 10px; text-align: right; font-size: 14px; font-weight: 500; color: var(--tekst-glavni);">
                   <span x-text="fmtDin(ukupnoStavke(stavka)) + ' din'"></span>
                 </td>
                 <td style="padding: 8px 10px; text-align: center">
-                  <button
-                    type="button"
-                    @click="ukloniStavku(i)"
-                    x-show="stavke.length > 1"
-                    style="
-                      background: none;
-                      border: none;
-                      cursor: pointer;
-                      color: #dc2626;
-                      font-size: 18px;
-                      line-height: 1;
-                      padding: 2px 6px;
-                      border-radius: 4px;
-                      transition: background 0.15s;
-                    "
-                    onmouseover="this.style.background = 'rgba(220,38,38,0.08)'"
-                    onmouseout="this.style.background = 'none'"
-                    title="Ukloni stavku">
-                    ×
-                  </button>
+                  <button type="button" @click="ukloniStavku(i)" x-show="stavke.length > 1"
+                    style="background: none; border: none; cursor: pointer; color: #dc2626; font-size: 18px; line-height: 1; padding: 2px 6px; border-radius: 4px; transition: background 0.15s;"
+                    onmouseover="this.style.background = 'rgba(220,38,38,0.08)'" onmouseout="this.style.background = 'none'" title="Ukloni stavku">×</button>
                 </td>
               </tr>
             </template>
           </tbody>
           <tfoot>
             <tr style="border-top: 0.5px solid var(--ivica)">
-              <td
-                colspan="3"
-                style="
-                  padding: 10px;
-                  text-align: right;
-                  font-size: 13px;
-                  color: var(--tekst-sporedni);
-                  font-weight: 500;
-                ">
-                Ukupno:
-              </td>
-              <td
-                style="
-                  padding: 10px;
-                  text-align: right;
-                  font-size: 15px;
-                  font-weight: 600;
-                  color: var(--tekst-glavni);
-                ">
+              <td colspan="4" style="padding: 10px; text-align: right; font-size: 13px; color: var(--tekst-sporedni); font-weight: 500;">Ukupno:</td>
+              <td style="padding: 10px; text-align: right; font-size: 15px; font-weight: 600; color: var(--tekst-glavni);">
                 <span x-text="fmtDin(ukupnoSvega()) + ' din'"></span>
               </td>
               <td></td>
@@ -274,134 +138,55 @@
       </div>
 
       <!-- mobilne kartice stavki -->
-      <div
-        class="stavke-kartice"
-        style="display: none; flex-direction: column; gap: 10px">
+      <div class="stavke-kartice" style="display: none; flex-direction: column; gap: 10px">
+        <!-- pretraga na mobilnom -->
+        <input type="text" x-model="pretragaArtikal" placeholder="Pretraži artikle..." style="width:100%;">
         <template x-for="(stavka, i) in stavke" :key="i">
-          <div
-            style="
-              border: 0.5px solid var(--ivica);
-              border-radius: 8px;
-              padding: 12px;
-            ">
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 10px;
-              ">
-              <span
-                style="
-                  font-size: 13px;
-                  font-weight: 500;
-                  color: var(--tekst-sporedni);
-                "
-                x-text="'Stavka ' + (i + 1)"></span>
-              <button
-                type="button"
-                @click="ukloniStavku(i)"
-                x-show="stavke.length > 1"
-                style="
-                  background: none;
-                  border: 0.5px solid #dc2626;
-                  color: #dc2626;
-                  cursor: pointer;
-                  font-size: 13px;
-                  padding: 2px 8px;
-                  border-radius: 4px;
-                ">
-                Ukloni
-              </button>
+          <div style="border: 0.5px solid var(--ivica); border-radius: 8px; padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <span style="font-size: 13px; font-weight: 500; color: var(--tekst-sporedni);" x-text="'Stavka ' + (i + 1)"></span>
+              <button type="button" @click="ukloniStavku(i)" x-show="stavke.length > 1"
+                style="background: none; border: 0.5px solid #dc2626; color: #dc2626; cursor: pointer; font-size: 13px; padding: 2px 8px; border-radius: 4px;">Ukloni</button>
             </div>
             <div style="display: flex; flex-direction: column; gap: 10px">
               <input type="hidden" :name="'pdv_stopa[]'" :value="stavka.pdv_stopa">
+              <!-- kategorija badge -->
+              <div x-show="stavka.kategorija_naziv" style="font-size:11px;color:var(--tekst-sporedni);background:var(--pozadina);padding:2px 8px;border-radius:4px;align-self:flex-start;" x-text="stavka.kategorija_naziv"></div>
               <div>
-                <label
-                  style="
-                    font-size: 12px;
-                    color: var(--tekst-sporedni);
-                    display: block;
-                    margin-bottom: 4px;
-                  ">Artikal</label>
-                <select
-                  :name="'artikal_id[]'"
-                  x-model="stavka.artikal_id"
-                  @change="popuniCenu(stavka)"
-                  :disabled="!isMobile"
-                  style="width: 100%">
+                <label class="polje-labela">Artikal</label>
+                <select :name="'artikal_id[]'" x-model="stavka.artikal_id" @change="popuniCenu(stavka)" :disabled="!isMobile" style="width: 100%">
                   <option value="">— odaberi artikal —</option>
-                  <template x-for="a in artikliOpcije" :key="a.id">
+                  <template x-for="a in filtriraniArtikli" :key="a.id">
                     <option :value="a.id" x-text="a.naziv"></option>
                   </template>
                 </select>
               </div>
-              <div class="forma-grid-2" style="gap: 10px">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                 <div>
-                  <label
-                    style="
-                      font-size: 12px;
-                      color: var(--tekst-sporedni);
-                      display: block;
-                      margin-bottom: 4px;
-                    ">Količina</label>
-                  <input
-                    type="number"
-                    :name="'kolicina[]'"
-                    x-model="stavka.kolicina"
-                    min="1"
-                    :disabled="!isMobile"
-                    :style="prekoracenje(i) ? 'border-color:#dc2626;' : ''"
-                    style="width: 100%" />
-                  <div
-                    x-show="stavka.artikal_id"
-                    :style="prekoracenje(i) ? 'color:#dc2626' : 'color:var(--tekst-sporedni)'"
-                    x-text="'Na stanju: ' + dostupnaKolicina(i)"
-                    style="font-size: 11px; margin-top: 3px"></div>
-                  <div
-                    x-show="prekoracenje(i)"
-                    style="font-size: 11px; color: #dc2626; margin-top: 1px">
-                    Prekoračena količina
-                  </div>
+                  <label class="polje-labela">Količina</label>
+                  <input type="number" :name="'kolicina[]'" x-model="stavka.kolicina" min="1" :disabled="!isMobile"
+                    :style="prekoracenje(i) ? 'border-color:#dc2626;' : ''" style="width: 100%" />
+                  <div x-show="stavka.artikal_id" :style="prekoracenje(i) ? 'color:#dc2626' : 'color:var(--tekst-sporedni)'"
+                    x-text="'Na stanju: ' + dostupnaKolicina(i)" style="font-size: 11px; margin-top: 3px;"></div>
                 </div>
                 <div>
-                  <label
-                    style="
-                      font-size: 12px;
-                      color: var(--tekst-sporedni);
-                      display: block;
-                      margin-bottom: 4px;
-                    ">Cena/kom (din)</label>
-                  <input
-                    type="number"
-                    :name="'cena_po_komadu[]'"
-                    x-model="stavka.cena"
-                    min="0"
-                    step="0.01"
-                    :disabled="!isMobile"
-                    style="width: 100%" />
+                  <label class="polje-labela">Cena/kom (din)</label>
+                  <input type="number" :name="'cena_po_komadu[]'" x-model="stavka.cena" min="0" step="0.01" :disabled="!isMobile" style="width: 100%" />
                 </div>
               </div>
-              <div
-                style="
-                  text-align: right;
-                  font-size: 14px;
-                  font-weight: 500;
-                  color: var(--tekst-glavni);
-                ">
-                Ukupno: <span x-text="fmtDin(ukupnoStavke(stavka)) + ' din'"></span>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div>
+                  <label class="polje-labela">Popust %</label>
+                  <input type="number" :name="'popust[]'" x-model="stavka.popust" min="0" max="100" step="0.01" :disabled="!isMobile" style="width: 100%" />
+                </div>
+                <div style="text-align: right; font-size: 14px; font-weight: 500; color: var(--tekst-glavni);">
+                  <span x-text="fmtDin(ukupnoStavke(stavka)) + ' din'"></span>
+                </div>
               </div>
             </div>
           </div>
         </template>
-        <div
-          style="
-            text-align: right;
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--tekst-glavni);
-            padding: 8px 4px;
-          ">
+        <div style="text-align: right; font-size: 15px; font-weight: 600; color: var(--tekst-glavni); padding: 8px 4px;">
           Ukupno: <span x-text="fmtDin(ukupnoSvega()) + ' din'"></span>
         </div>
       </div>
@@ -410,11 +195,7 @@
     <!-- dugmad forme -->
     <div style="display: flex; justify-content: flex-end; gap: 10px">
       <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja" class="btn-sekundarno">Odustani</a>
-      <button
-        type="submit"
-        class="btn-primarno"
-        :disabled="imaPrekoracenja()"
-        :style="imaPrekoracenja() ? 'opacity:0.4;cursor:not-allowed;' : ''">
+      <button type="submit" class="btn-primarno" :disabled="imaPrekoracenja()" :style="imaPrekoracenja() ? 'opacity:0.4;cursor:not-allowed;' : ''">
         Sačuvaj prodaju
       </button>
     </div>

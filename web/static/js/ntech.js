@@ -136,18 +136,30 @@ document.addEventListener('alpine:init', () => {
 
     // forma za prodaju
     Alpine.data('prodajaForma', () => ({
-        stavke: [{artikal_id: '', kolicina: 1, cena: 0, pdv_stopa: 20}],
+        stavke: [{artikal_id: '', kolicina: 1, cena: 0, cena_sa_pdv: 0, pdv_stopa: 20, popust: 0, kategorija_naziv: ''}],
         artikliOpcije: [],
+        pretragaArtikal: '',
+        pdvObveznik: true,
         isMobile: false,
         init() {
             this.artikliOpcije = window._ntechArtikli || []
+            this.pdvObveznik = window._ntechPdvObveznik === true
             this.isMobile = window.matchMedia('(max-width: 768px)').matches
             window.matchMedia('(max-width: 768px)').addEventListener('change', e => {
                 this.isMobile = e.matches
             })
         },
+        get filtriraniArtikli() {
+            const q = this.pretragaArtikal.trim().toLowerCase()
+            if (!q) return this.artikliOpcije.slice(0, 50)
+            return this.artikliOpcije.filter(a =>
+                (a.naziv || '').toLowerCase().includes(q) ||
+                (a.sifra || '').toLowerCase().includes(q) ||
+                (a.barkod || '').toLowerCase().includes(q)
+            ).slice(0, 30)
+        },
         dodajStavku() {
-            this.stavke.push({artikal_id: '', kolicina: 1, cena: 0, pdv_stopa: 20})
+            this.stavke.push({artikal_id: '', kolicina: 1, cena: 0, cena_sa_pdv: 0, pdv_stopa: 20, popust: 0, kategorija_naziv: ''})
         },
         ukloniStavku(i) {
             if (this.stavke.length > 1) this.stavke.splice(i, 1)
@@ -155,9 +167,14 @@ document.addEventListener('alpine:init', () => {
         popuniCenu(stavka) {
             const a = this.artikliOpcije.find(x => x.id == stavka.artikal_id)
             if (a) {
-                stavka.cena = a.cena
+                stavka.cena = a.cena || 0
+                stavka.cena_sa_pdv = a.cena_sa_pdv || 0
                 stavka.pdv_stopa = a.pdv_stopa !== undefined ? a.pdv_stopa : 20
+                stavka.kategorija_naziv = a.kategorija_naziv || ''
             }
+        },
+        prikaziCenu(stavka) {
+            return this.pdvObveznik ? (stavka.cena || 0) : (stavka.cena_sa_pdv || stavka.cena || 0)
         },
         dostupnaKolicina(i) {
             const stavka = this.stavke[i]
@@ -177,10 +194,18 @@ document.addEventListener('alpine:init', () => {
             return this.stavke.some((_, i) => this.prekoracenje(i))
         },
         ukupnoStavke(s) {
-            return (parseFloat(s.kolicina) * parseFloat(s.cena) || 0).toFixed(2)
+            const cena = parseFloat(s.cena) || 0
+            const popust = parseFloat(s.popust) || 0
+            const cenaPosle = popust > 0 ? cena * (1 - popust/100) : cena
+            return (parseFloat(s.kolicina) * cenaPosle || 0).toFixed(2)
         },
         ukupnoSvega() {
-            return this.stavke.reduce((z, s) => z + (parseFloat(s.kolicina) * parseFloat(s.cena) || 0), 0).toFixed(2)
+            return this.stavke.reduce((z, s) => {
+                const cena = parseFloat(s.cena) || 0
+                const popust = parseFloat(s.popust) || 0
+                const cenaPosle = popust > 0 ? cena * (1 - popust/100) : cena
+                return z + (parseFloat(s.kolicina) * cenaPosle || 0)
+            }, 0).toFixed(2)
         },
         // fmtDin formatira broj sa separatorom hiljada (tačka) i 2 decimale (zarez): 1234567.5 → "1.234.567,50"
         fmtDin(v) {

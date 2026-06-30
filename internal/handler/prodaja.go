@@ -62,18 +62,32 @@ type PodaciStampeProdaje struct {
 	PIB          string
 }
 
-// artikalUJSONSaCenom pretvara listu artikala u template.JS vrednost sa prodajnom cenom, PDV stopom i stanjem
+// artikalUJSONSaCenom pretvara listu artikala u template.JS vrednost sa prodajnom cenom, PDV stopom, kategorijom i stanjem
 func artikalUJSONSaCenom(artikli []model.ArtikalSaKategorijom) template.JS {
 	type stavka struct {
-		ID       int64   `json:"id"`
-		Naziv    string  `json:"naziv"`
-		Cena     float64 `json:"cena"`
-		PdvStopa float64 `json:"pdv_stopa"`
-		Kolicina int     `json:"kolicina"`
+		ID              int64   `json:"id"`
+		Naziv           string  `json:"naziv"`
+		Sifra           string  `json:"sifra"`
+		Barkod          string  `json:"barkod"`
+		Cena            float64 `json:"cena"`
+		CenaSaPdv       float64 `json:"cena_sa_pdv"`
+		PdvStopa        float64 `json:"pdv_stopa"`
+		Kolicina        int     `json:"kolicina"`
+		KategorijaNaziv string  `json:"kategorija_naziv"`
 	}
 	lista := make([]stavka, 0, len(artikli))
 	for _, a := range artikli {
-		lista = append(lista, stavka{ID: a.ID, Naziv: a.Naziv, Cena: a.ProdajnaCena, PdvStopa: a.PdvStopa, Kolicina: a.Kolicina})
+		lista = append(lista, stavka{
+			ID:              a.ID,
+			Naziv:           a.Naziv,
+			Sifra:           a.Sifra,
+			Barkod:          a.Barkod,
+			Cena:            a.ProdajnaCena,
+			CenaSaPdv:       a.CenaSaPdv,
+			PdvStopa:        a.PdvStopa,
+			Kolicina:        a.Kolicina,
+			KategorijaNaziv: a.KategorijaNaziv,
+		})
 	}
 	b, _ := json.Marshal(lista)
 	return template.JS(b)
@@ -186,7 +200,11 @@ func (h *Handler) SacuvajProdaju(w http.ResponseWriter, r *http.Request) {
 
 	var ukupno float64
 	for _, s := range stavke {
-		ukupno += float64(s.Kolicina) * s.CenaPoKomadu
+		cenaPoslePopusta := s.CenaPoKomadu
+		if s.PopustProcenat > 0 {
+			cenaPoslePopusta = cenaPoslePopusta * (1 - s.PopustProcenat/100)
+		}
+		ukupno += float64(s.Kolicina) * cenaPoslePopusta
 	}
 	nalog.Ukupno = ukupno
 
@@ -394,9 +412,10 @@ func (h *Handler) StampaProdaje(w http.ResponseWriter, r *http.Request) {
 	h.renderujStandalone(w, "prodaja_stampa", podaci)
 }
 
-// ObrisiProdaju prima POST zahtev, vraća stanje na magacin i briše nalog
+// ObrisiProdaju prima POST zahtev i stornira nalog umesto fizičkog brisanja.
+// Jednom izdat račun ne sme da nestane — umesto brisanja koristi se storno.
 func (h *Handler) ObrisiProdaju(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.zahtevajDozvolu(w, r, "prodaja.obrisi"); !ok {
+	if _, ok := h.zahtevajDozvolu(w, r, "prodaja.storno"); !ok {
 		return
 	}
 	k := middleware.KorisnikIzKonteksta(r.Context())
@@ -406,9 +425,8 @@ func (h *Handler) ObrisiProdaju(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.ProdajaRepo.Obrisi(r.Context(), id, &k.ID); err != nil {
-		http.Error(w, "Greška pri brisanju naloga", http.StatusInternalServerError)
-		return
+	if err := h.ProdajaRepo.Storno(r.Context(), id, "administrativno uklanjanje", &k.ID); err != nil {
+		slog.Error("greška pri uklanjanju naloga", "error", err)
 	}
 	// ukloni vezani auto-KIR zapis (ako ga je ova prodaja kreirala)
 	if err := h.PdvKirRepo.ObrisiPoIzvoru(r.Context(), "prodaja", id); err != nil {
@@ -438,6 +456,7 @@ func parseFormuProdaje(r *http.Request) (model.ProdajniNalog, []model.StavkaProd
 	kolicine := r.Form["kolicina[]"]
 	cene := r.Form["cena_po_komadu[]"]
 	pdvStope := r.Form["pdv_stopa[]"]
+	popusti := r.Form["popust[]"]
 
 	if len(artikalIDovi) == 0 {
 		return nalog, nil, "Prodaja mora imati najmanje jednu stavku."
@@ -469,11 +488,17 @@ func parseFormuProdaje(r *http.Request) (model.ProdajniNalog, []model.StavkaProd
 			pdvStopa, _ = strconv.ParseFloat(strings.TrimSpace(pdvStope[i]), 64)
 		}
 
+		var popust float64
+		if i < len(popusti) {
+			popust, _ = strconv.ParseFloat(strings.TrimSpace(popusti[i]), 64)
+		}
+
 		stavke = append(stavke, model.StavkaProdaje{
-			ArtikalID:    artikalID,
-			Kolicina:     kolicina,
-			CenaPoKomadu: cena,
-			PdvStopa:     pdvStopa,
+			ArtikalID:      artikalID,
+			Kolicina:       kolicina,
+			CenaPoKomadu:   cena,
+			PdvStopa:       pdvStopa,
+			PopustProcenat: popust,
 		})
 	}
 

@@ -51,8 +51,8 @@ func (r *ProdajaRepo) Lista(ctx context.Context, pretraga string) ([]model.Proda
 	args := []any{}
 
 	if pretraga != "" {
-		upit += " AND pn.broj_naloga LIKE ?"
-		args = append(args, "%"+pretraga+"%")
+		upit += " AND (pn.broj_naloga LIKE ? OR kp.naziv LIKE ? OR pn.napomena LIKE ?)"
+		args = append(args, "%"+pretraga+"%", "%"+pretraga+"%", "%"+pretraga+"%")
 	}
 
 	upit += " ORDER BY pn.datum DESC"
@@ -122,10 +122,13 @@ func (r *ProdajaRepo) DohvatiID(ctx context.Context, id int64) (*model.ProdajniN
 // DohvatiStavke vraća stavke prodaje sa nazivima artikala i PDV podacima za dati nalog
 func (r *ProdajaRepo) DohvatiStavke(ctx context.Context, nalogID int64) ([]model.StavkaProdajeSaArtiklom, error) {
 	redovi, err := r.db.QueryContext(ctx, `
-		SELECT sp.id, sp.nalog_id, sp.artikal_id, sp.kolicina, sp.cena_po_komadu, sp.ukupno,
-		       sp.pdv_stopa, sp.pdv_iznos, sp.cena_bez_pdv, a.naziv, a.jedinica_mere
+		SELECT sp.id, sp.nalog_id, sp.artikal_id, sp.kolicina, sp.cena_po_komadu,
+		       sp.popust_procenat, sp.ukupno,
+		       sp.pdv_stopa, sp.pdv_iznos, sp.cena_bez_pdv,
+		       a.naziv, a.jedinica_mere, COALESCE(k.naziv, '') AS kategorija_naziv
 		FROM stavke_prodaje sp
 		JOIN artikli a ON a.id = sp.artikal_id
+		LEFT JOIN kategorije k ON k.id = a.kategorija_id
 		WHERE sp.nalog_id = ?
 		ORDER BY sp.id`, nalogID)
 	if err != nil {
@@ -138,9 +141,9 @@ func (r *ProdajaRepo) DohvatiStavke(ctx context.Context, nalogID int64) ([]model
 		var s model.StavkaProdajeSaArtiklom
 		err := redovi.Scan(
 			&s.ID, &s.NalogID, &s.ArtikalID, &s.Kolicina,
-			&s.CenaPoKomadu, &s.Ukupno,
+			&s.CenaPoKomadu, &s.PopustProcenat, &s.Ukupno,
 			&s.PdvStopa, &s.PdvIznos, &s.CenaBezPdv,
-			&s.ArtikalNaziv, &s.JedinicaMere,
+			&s.ArtikalNaziv, &s.JedinicaMere, &s.KategorijaNaziv,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("ntech: ProdajaRepo.DohvatiStavke: scan: %w", err)
@@ -215,12 +218,17 @@ func (r *ProdajaRepo) Kreiraj(ctx context.Context, n *model.ProdajniNalog, stavk
 			pdvIznos = cenaBezPdv * s.PdvStopa / 100
 		}
 
-		ukupnoStavke := float64(s.Kolicina) * s.CenaPoKomadu
+		// popust umanjuje cenu po komadu pre računanja ukupnog i PDV-a
+		cenaPoslePopusta := s.CenaPoKomadu
+		if s.PopustProcenat > 0 {
+			cenaPoslePopusta = cenaPoslePopusta * (1 - s.PopustProcenat/100)
+		}
+		ukupnoStavke := float64(s.Kolicina) * cenaPoslePopusta
 		_, err = tx.ExecContext(ctx, `
 			INSERT INTO stavke_prodaje
-				(nalog_id, artikal_id, kolicina, cena_po_komadu, ukupno, pdv_stopa, pdv_iznos, cena_bez_pdv)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-			nalogID, s.ArtikalID, s.Kolicina, s.CenaPoKomadu, ukupnoStavke,
+				(nalog_id, artikal_id, kolicina, cena_po_komadu, popust_procenat, ukupno, pdv_stopa, pdv_iznos, cena_bez_pdv)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			nalogID, s.ArtikalID, s.Kolicina, s.CenaPoKomadu, s.PopustProcenat, ukupnoStavke,
 			s.PdvStopa, pdvIznos, cenaBezPdv,
 		)
 		if err != nil {
