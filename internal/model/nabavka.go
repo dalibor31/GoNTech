@@ -15,6 +15,9 @@ type Nabavka struct {
 	Stornirano        bool
 	RazlogStorniranja string
 	Datum             time.Time
+	BrojRacuna        string     // broj računa dobavljača (za KPR BrojDokumenta)
+	DatumRacuna       *time.Time // datum prometa sa računa dobavljača (za KPR DatumPrometa)
+	PdvIznos          float64    // stvarni PDV sa računa; 0 = koristiti aproksimaciju iz stope
 }
 
 // NabavkaTrosak je jedna stavka zavisnih troškova nabavke (npr. prevoz, carina)

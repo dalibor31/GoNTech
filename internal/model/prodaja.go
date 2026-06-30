@@ -17,15 +17,16 @@ type ProdajniNalog struct {
 
 // StavkaProdaje predstavlja jednu liniju (artikal) unutar prodaje
 type StavkaProdaje struct {
-	ID           int64
-	NalogID      int64
-	ArtikalID    int64
-	Kolicina     int
-	CenaPoKomadu float64
-	Ukupno       float64
-	PdvStopa     float64
-	PdvIznos     float64
-	CenaBezPdv   float64
+	ID             int64
+	NalogID        int64
+	ArtikalID      int64
+	Kolicina       int
+	CenaPoKomadu   float64
+	PopustProcenat float64 // rabat u procentima (npr. 10 = 10% popusta)
+	Ukupno         float64
+	PdvStopa       float64
+	PdvIznos       float64
+	CenaBezPdv     float64
 }
 
 // UkupnoBezPdv vraća ukupno bez PDV-a za stavku (CenaBezPdv × količina)
@@ -42,6 +43,7 @@ type ProdajniNalogSaDetaljem struct {
 // StavkaProdajeSaArtiklom je stavka prodaje sa nazivom artikla — za prikaz u detaljima
 type StavkaProdajeSaArtiklom struct {
 	StavkaProdaje
-	ArtikalNaziv string
-	JedinicaMere string
+	ArtikalNaziv    string
+	JedinicaMere    string
+	KategorijaNaziv string
 }

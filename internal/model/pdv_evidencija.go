@@ -195,16 +195,28 @@ type NabavkaStavkaPdv struct {
 	PdvStopa float64
 }
 
-// KprIzNabavke gradi KPR zapis iz nabavke. PDV se izvodi iz stope artikla po stavci
-// (⚠ aproksimacija: nabavna cena = osnovica bez PDV; stvaran PDV sa računa dobavljača može
-// se razlikovati). Grupiše po stopi (20→opšta, 10→posebna, ostalo→oslobođena nabavka).
-// Broj dokumenta je sintetički ("NAB-<id>") jer nabavka ne čuva broj računa dobavljača.
+// KprIzNabavke gradi KPR zapis iz nabavke.
+// Ako nabavka ima BrojRacuna, koristi ga kao BrojDokumenta; inače sintetički "NAB-<id>".
+// Ako nabavka ima DatumRacuna, koristi ga kao DatumPrometa; inače datum nabavke.
+// Ako nabavka ima PdvIznos > 0, koristi ga direktno (stvarni PDV sa računa dobavljača)
+// raspoređen proporcionalno po stavkama; inače aproksimacija iz stope artikla.
 func KprIzNabavke(nabavka Nabavka, dobavljacNaziv, dobavljacPib, dobavljacMesto string, stavke []NabavkaStavkaPdv) PdvKpr {
 	id := nabavka.ID
+
+	brojDok := fmt.Sprintf("NAB-%d", id)
+	if nabavka.BrojRacuna != "" {
+		brojDok = nabavka.BrojRacuna
+	}
+
+	datumPrometa := nabavka.Datum
+	if nabavka.DatumRacuna != nil {
+		datumPrometa = *nabavka.DatumRacuna
+	}
+
 	k := PdvKpr{
-		DatumPrometa:   nabavka.Datum,
+		DatumPrometa:   datumPrometa,
 		DatumKnjizenja: nabavka.Datum,
-		BrojDokumenta:  fmt.Sprintf("NAB-%d", id),
+		BrojDokumenta:  brojDok,
 		DobavljacNaziv: dobavljacNaziv,
 		DobavljacPib:   dobavljacPib,
 		DobavljacMesto: dobavljacMesto,
@@ -212,19 +224,47 @@ func KprIzNabavke(nabavka Nabavka, dobavljacNaziv, dobavljacPib, dobavljacMesto 
 		Izvor:          "nabavka",
 		IzvorID:        &id,
 	}
-	for _, s := range stavke {
-		pdv := s.Osnovica * s.PdvStopa / 100
-		switch s.PdvStopa {
-		case 20:
-			k.OsnovicaOpsta += s.Osnovica
-			k.PdvOpsta += pdv
-		case 10:
-			k.OsnovicaPosebna += s.Osnovica
-			k.PdvPosebna += pdv
-		default:
-			k.OslobodenNabavka += s.Osnovica
+
+	// ako je unesen stvarni PDV sa računa, raspodeli ga proporcionalno po stavkama
+	if nabavka.PdvIznos > 0 {
+		var ukupnaOsnovica float64
+		for _, s := range stavke {
+			ukupnaOsnovica += s.Osnovica
 		}
-		k.Ukupno += s.Osnovica + pdv
+		for _, s := range stavke {
+			var udeo float64
+			if ukupnaOsnovica > 0 {
+				udeo = s.Osnovica / ukupnaOsnovica
+			}
+			pdv := math.Round(nabavka.PdvIznos*udeo*100) / 100
+			switch s.PdvStopa {
+			case 20:
+				k.OsnovicaOpsta += s.Osnovica
+				k.PdvOpsta += pdv
+			case 10:
+				k.OsnovicaPosebna += s.Osnovica
+				k.PdvPosebna += pdv
+			default:
+				k.OslobodenNabavka += s.Osnovica
+			}
+			k.Ukupno += s.Osnovica + pdv
+		}
+	} else {
+		// aproksimacija: PDV iz stope artikla
+		for _, s := range stavke {
+			pdv := s.Osnovica * s.PdvStopa / 100
+			switch s.PdvStopa {
+			case 20:
+				k.OsnovicaOpsta += s.Osnovica
+				k.PdvOpsta += pdv
+			case 10:
+				k.OsnovicaPosebna += s.Osnovica
+				k.PdvPosebna += pdv
+			default:
+				k.OslobodenNabavka += s.Osnovica
+			}
+			k.Ukupno += s.Osnovica + pdv
+		}
 	}
 	return k
 }

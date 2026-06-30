@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"ntech/internal/model"
 )
@@ -24,6 +25,7 @@ func (r *NabavkaRepo) Lista(ctx context.Context) ([]model.NabavkaSaDetaljem, err
 		SELECT
 			n.id, n.dobavljac_id, n.napomena, n.ukupno, n.metod_raspodele,
 			n.stornirano, n.razlog_storniranja, n.datum,
+			n.broj_racuna, n.datum_racuna, n.pdv_iznos,
 			COALESCE(d.naziv, '') AS dobavljac_naziv
 		FROM nabavke n
 		LEFT JOIN dobavljaci d ON n.dobavljac_id = d.id
@@ -37,11 +39,12 @@ func (r *NabavkaRepo) Lista(ctx context.Context) ([]model.NabavkaSaDetaljem, err
 	for redovi.Next() {
 		var n model.NabavkaSaDetaljem
 		var dobavljacID sql.NullInt64
-		var napomena, metod, razlogStorniranja sql.NullString
+		var napomena, metod, razlogStorniranja, brojRacuna, datumRacuna sql.NullString
 
 		err := redovi.Scan(
 			&n.ID, &dobavljacID, &napomena, &n.Ukupno, &metod,
 			&n.Stornirano, &razlogStorniranja, &n.Datum,
+			&brojRacuna, &datumRacuna, &n.PdvIznos,
 			&n.DobavljacNaziv,
 		)
 		if err != nil {
@@ -54,6 +57,12 @@ func (r *NabavkaRepo) Lista(ctx context.Context) ([]model.NabavkaSaDetaljem, err
 		n.Napomena = napomena.String
 		n.MetodRaspodele = metod.String
 		n.RazlogStorniranja = razlogStorniranja.String
+		n.BrojRacuna = brojRacuna.String
+		if datumRacuna.Valid && datumRacuna.String != "" {
+			if t, e := time.Parse("2006-01-02", datumRacuna.String[:10]); e == nil {
+				n.DatumRacuna = &t
+			}
+		}
 
 		rezultat = append(rezultat, n)
 	}
@@ -65,14 +74,16 @@ func (r *NabavkaRepo) Lista(ctx context.Context) ([]model.NabavkaSaDetaljem, err
 func (r *NabavkaRepo) DohvatiID(ctx context.Context, id int64) (*model.Nabavka, error) {
 	var n model.Nabavka
 	var dobavljacID sql.NullInt64
-	var napomena, metod, razlogStorniranja sql.NullString
+	var napomena, metod, razlogStorniranja, brojRacuna, datumRacuna sql.NullString
 
 	err := r.db.QueryRowContext(ctx, `
 		SELECT id, dobavljac_id, napomena, ukupno, metod_raspodele,
-		       stornirano, razlog_storniranja, datum
+		       stornirano, razlog_storniranja, datum,
+		       broj_racuna, datum_racuna, pdv_iznos
 		FROM nabavke WHERE id = ?`, id).Scan(
 		&n.ID, &dobavljacID, &napomena, &n.Ukupno, &metod,
 		&n.Stornirano, &razlogStorniranja, &n.Datum,
+		&brojRacuna, &datumRacuna, &n.PdvIznos,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: NabavkaRepo.DohvatiID: %w", err)
@@ -84,6 +95,12 @@ func (r *NabavkaRepo) DohvatiID(ctx context.Context, id int64) (*model.Nabavka, 
 	n.Napomena = napomena.String
 	n.MetodRaspodele = metod.String
 	n.RazlogStorniranja = razlogStorniranja.String
+	n.BrojRacuna = brojRacuna.String
+	if datumRacuna.Valid && datumRacuna.String != "" {
+		if t, e := time.Parse("2006-01-02", datumRacuna.String[:10]); e == nil {
+			n.DatumRacuna = &t
+		}
+	}
 
 	return &n, nil
 }
@@ -163,9 +180,10 @@ func (r *NabavkaRepo) Kreiraj(ctx context.Context, n *model.Nabavka, stavke []mo
 
 	// upisujemo zaglavlje nabavke
 	rezultat, err := tx.ExecContext(ctx, `
-		INSERT INTO nabavke (dobavljac_id, napomena, ukupno, metod_raspodele)
-		VALUES (?, ?, ?, ?)`,
+		INSERT INTO nabavke (dobavljac_id, napomena, ukupno, metod_raspodele, broj_racuna, datum_racuna, pdv_iznos)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		nullInt64(n.DobavljacID), nullString(n.Napomena), ukupno, nullString(n.MetodRaspodele),
+		nullString(n.BrojRacuna), nullDateString(n.DatumRacuna), n.PdvIznos,
 	)
 	if err != nil {
 		return 0, fmt.Errorf("ntech: NabavkaRepo.Kreiraj: insert nabavka: %w", err)

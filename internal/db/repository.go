@@ -78,6 +78,8 @@ type PdvKprRepository interface {
 	Obrisi(ctx context.Context, id int64) error
 	// ObrisiPoIzvoru briše zapise vezane za dati izvor (npr. pri brisanju nabavke)
 	ObrisiPoIzvoru(ctx context.Context, izvor string, izvorID int64) error
+	// PostojiZaIzvor vraća true ako postoji bar jedan zapis za dati izvor i izvorID
+	PostojiZaIzvor(ctx context.Context, izvor string, izvorID int64) (bool, error)
 }
 
 // NivelacijaRepository definiše operacije nad evidencijom promene prodajnih cena
