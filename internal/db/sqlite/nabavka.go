@@ -22,7 +22,8 @@ func NoviNabavkaRepo(db *sql.DB) *NabavkaRepo {
 func (r *NabavkaRepo) Lista(ctx context.Context) ([]model.NabavkaSaDetaljem, error) {
 	redovi, err := r.db.QueryContext(ctx, `
 		SELECT
-			n.id, n.dobavljac_id, n.napomena, n.ukupno, n.metod_raspodele, n.datum,
+			n.id, n.dobavljac_id, n.napomena, n.ukupno, n.metod_raspodele,
+			n.stornirano, n.razlog_storniranja, n.datum,
 			COALESCE(d.naziv, '') AS dobavljac_naziv
 		FROM nabavke n
 		LEFT JOIN dobavljaci d ON n.dobavljac_id = d.id
@@ -36,10 +37,11 @@ func (r *NabavkaRepo) Lista(ctx context.Context) ([]model.NabavkaSaDetaljem, err
 	for redovi.Next() {
 		var n model.NabavkaSaDetaljem
 		var dobavljacID sql.NullInt64
-		var napomena, metod sql.NullString
+		var napomena, metod, razlogStorniranja sql.NullString
 
 		err := redovi.Scan(
-			&n.ID, &dobavljacID, &napomena, &n.Ukupno, &metod, &n.Datum,
+			&n.ID, &dobavljacID, &napomena, &n.Ukupno, &metod,
+			&n.Stornirano, &razlogStorniranja, &n.Datum,
 			&n.DobavljacNaziv,
 		)
 		if err != nil {
@@ -51,6 +53,7 @@ func (r *NabavkaRepo) Lista(ctx context.Context) ([]model.NabavkaSaDetaljem, err
 		}
 		n.Napomena = napomena.String
 		n.MetodRaspodele = metod.String
+		n.RazlogStorniranja = razlogStorniranja.String
 
 		rezultat = append(rezultat, n)
 	}
@@ -62,12 +65,14 @@ func (r *NabavkaRepo) Lista(ctx context.Context) ([]model.NabavkaSaDetaljem, err
 func (r *NabavkaRepo) DohvatiID(ctx context.Context, id int64) (*model.Nabavka, error) {
 	var n model.Nabavka
 	var dobavljacID sql.NullInt64
-	var napomena, metod sql.NullString
+	var napomena, metod, razlogStorniranja sql.NullString
 
 	err := r.db.QueryRowContext(ctx, `
-		SELECT id, dobavljac_id, napomena, ukupno, metod_raspodele, datum
+		SELECT id, dobavljac_id, napomena, ukupno, metod_raspodele,
+		       stornirano, razlog_storniranja, datum
 		FROM nabavke WHERE id = ?`, id).Scan(
-		&n.ID, &dobavljacID, &napomena, &n.Ukupno, &metod, &n.Datum,
+		&n.ID, &dobavljacID, &napomena, &n.Ukupno, &metod,
+		&n.Stornirano, &razlogStorniranja, &n.Datum,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: NabavkaRepo.DohvatiID: %w", err)
@@ -78,6 +83,7 @@ func (r *NabavkaRepo) DohvatiID(ctx context.Context, id int64) (*model.Nabavka, 
 	}
 	n.Napomena = napomena.String
 	n.MetodRaspodele = metod.String
+	n.RazlogStorniranja = razlogStorniranja.String
 
 	return &n, nil
 }
@@ -194,17 +200,26 @@ func (r *NabavkaRepo) Kreiraj(ctx context.Context, n *model.Nabavka, stavke []mo
 		}
 
 		var stanjePre int
+		var staraNabavnaCena float64
 		err = tx.QueryRowContext(ctx,
-			"SELECT kolicina FROM artikli WHERE id = ?", s.ArtikalID,
-		).Scan(&stanjePre)
+			"SELECT kolicina, nabavna_cena FROM artikli WHERE id = ?", s.ArtikalID,
+		).Scan(&stanjePre, &staraNabavnaCena)
 		if err != nil {
 			return 0, fmt.Errorf("ntech: NabavkaRepo.Kreiraj: dohvati stanje: %w", err)
 		}
 
+		// ponderisana prosečna nabavna cena (MRS 2)
 		stanjePosle := stanjePre + s.Kolicina
+		var novaProsecna float64
+		if stanjePosle > 0 {
+			novaProsecna = (float64(stanjePre)*staraNabavnaCena + float64(s.Kolicina)*s.CenaPoKomadu) / float64(stanjePosle)
+		} else {
+			novaProsecna = s.CenaPoKomadu
+		}
+
 		_, err = tx.ExecContext(ctx,
-			"UPDATE artikli SET kolicina = ? WHERE id = ?",
-			stanjePosle, s.ArtikalID,
+			"UPDATE artikli SET kolicina = ?, nabavna_cena = ? WHERE id = ?",
+			stanjePosle, novaProsecna, s.ArtikalID,
 		)
 		if err != nil {
 			return 0, fmt.Errorf("ntech: NabavkaRepo.Kreiraj: update kolicina: %w", err)
@@ -223,19 +238,31 @@ func (r *NabavkaRepo) Kreiraj(ctx context.Context, n *model.Nabavka, stavke []mo
 	return nabavkaID, nil
 }
 
-// Obrisi briše nabavku po ID-u, vraća količine artikala na stanje i beleži korekciju u magacinski trag.
-func (r *NabavkaRepo) Obrisi(ctx context.Context, id int64, korisnikID *int64) error {
+// Storno označava nabavku kao storniranu, vraća količine artikala na stanje i beleži
+// korekciju u magacinski trag. Nabavna cena se NE računa unazad — ostaje kakva jeste.
+func (r *NabavkaRepo) Storno(ctx context.Context, id int64, razlog string, korisnikID *int64) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("ntech: NabavkaRepo.Obrisi: begin: %w", err)
+		return fmt.Errorf("ntech: NabavkaRepo.Storno: begin: %w", err)
 	}
 	defer tx.Rollback()
 
-	// učitaj stavke pre brisanja (CASCADE ih briše zajedno sa nabavkom)
+	// provera da li je već stornirano
+	var stornirano bool
+	if err := tx.QueryRowContext(ctx,
+		"SELECT stornirano FROM nabavke WHERE id = ?", id,
+	).Scan(&stornirano); err != nil {
+		return fmt.Errorf("ntech: NabavkaRepo.Storno: provera: %w", err)
+	}
+	if stornirano {
+		return fmt.Errorf("ntech: NabavkaRepo.Storno: nabavka je već stornirana")
+	}
+
+	// učitaj stavke
 	redovi, err := tx.QueryContext(ctx,
 		"SELECT artikal_id, kolicina FROM stavke_nabavke WHERE nabavka_id = ?", id)
 	if err != nil {
-		return fmt.Errorf("ntech: NabavkaRepo.Obrisi: dohvati stavke: %w", err)
+		return fmt.Errorf("ntech: NabavkaRepo.Storno: dohvati stavke: %w", err)
 	}
 	type stavka struct {
 		artikalID int64
@@ -246,7 +273,7 @@ func (r *NabavkaRepo) Obrisi(ctx context.Context, id int64, korisnikID *int64) e
 		var s stavka
 		if err := redovi.Scan(&s.artikalID, &s.kolicina); err != nil {
 			redovi.Close()
-			return fmt.Errorf("ntech: NabavkaRepo.Obrisi: scan stavka: %w", err)
+			return fmt.Errorf("ntech: NabavkaRepo.Storno: scan stavka: %w", err)
 		}
 		stavke = append(stavke, s)
 	}
@@ -258,7 +285,7 @@ func (r *NabavkaRepo) Obrisi(ctx context.Context, id int64, korisnikID *int64) e
 		if err := tx.QueryRowContext(ctx,
 			"SELECT kolicina FROM artikli WHERE id = ?", s.artikalID,
 		).Scan(&stanjePre); err != nil {
-			return fmt.Errorf("ntech: NabavkaRepo.Obrisi: dohvati stanje: %w", err)
+			return fmt.Errorf("ntech: NabavkaRepo.Storno: dohvati stanje: %w", err)
 		}
 		stanjePosle := stanjePre - s.kolicina
 		if stanjePosle < 0 {
@@ -267,20 +294,23 @@ func (r *NabavkaRepo) Obrisi(ctx context.Context, id int64, korisnikID *int64) e
 		if _, err := tx.ExecContext(ctx,
 			"UPDATE artikli SET kolicina = ? WHERE id = ?", stanjePosle, s.artikalID,
 		); err != nil {
-			return fmt.Errorf("ntech: NabavkaRepo.Obrisi: update stanje: %w", err)
+			return fmt.Errorf("ntech: NabavkaRepo.Storno: update stanje: %w", err)
 		}
 		if err := zabeleziMagacinPromenu(ctx, tx, s.artikalID, model.PromenaKorekcija,
-			-s.kolicina, stanjePre, stanjePosle, id, korisnikID, "brisanje nabavke"); err != nil {
-			return fmt.Errorf("ntech: NabavkaRepo.Obrisi: magacin: %w", err)
+			-s.kolicina, stanjePre, stanjePosle, id, korisnikID, "storno nabavke: "+razlog); err != nil {
+			return fmt.Errorf("ntech: NabavkaRepo.Storno: magacin: %w", err)
 		}
 	}
 
-	if _, err := tx.ExecContext(ctx, "DELETE FROM nabavke WHERE id = ?", id); err != nil {
-		return fmt.Errorf("ntech: NabavkaRepo.Obrisi: delete: %w", err)
+	if _, err := tx.ExecContext(ctx,
+		"UPDATE nabavke SET stornirano = 1, razlog_storniranja = ? WHERE id = ?",
+		nullString(razlog), id,
+	); err != nil {
+		return fmt.Errorf("ntech: NabavkaRepo.Storno: update nabavka: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("ntech: NabavkaRepo.Obrisi: commit: %w", err)
+		return fmt.Errorf("ntech: NabavkaRepo.Storno: commit: %w", err)
 	}
 	return nil
 }

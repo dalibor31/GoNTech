@@ -350,7 +350,7 @@ func main() {
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "nabavka.pregled")).Get("/nabavke/nova", h.NovaNabavka)
 		r.With(doz("nabavka.dodaj")).Post("/nabavke/nova", h.SacuvajNabavku)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "nabavka.pregled")).Get("/nabavke/{id}", h.DetaljiNabavke)
-		r.With(doz("nabavka.obrisi")).Post("/nabavke/obrisi/{id}", h.ObrisiNabavku)
+		r.With(doz("nabavka.storno")).Post("/nabavke/storno/{id}", h.StornoNabavke)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "dobavljac.pregled")).Get("/dobavljaci", h.Dobavljaci)
 		r.Get("/dobavljaci/novi", h.NoviDobavljac)
 		r.With(doz("dobavljac.dodaj")).Post("/dobavljaci/novi", h.SacuvajDobavljaca)

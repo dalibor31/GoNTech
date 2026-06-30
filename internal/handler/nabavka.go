@@ -43,6 +43,7 @@ type PodaciDetaljiNabavke struct {
 	Troskovi       []model.NabavkaTrosak
 	UkupanTrosak   float64
 	DobavljacNaziv string
+	Sacuvano       bool
 }
 
 // artikalUJSON pretvara listu artikala u template.JS vrednost bezbednu za umetanje u <script> tag
@@ -208,20 +209,14 @@ func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// kalkulacija: ažuriraj nabavnu i prodajnu cenu artikla iz forme + nivelacioni trag.
+	// kalkulacija: ažuriraj prodajnu cenu artikla iz forme + nivelacioni trag.
+	// nabavna cena je već ponderisana prosečna (postavlja je Kreiraj) — ne preglašava se.
 	// prodajna[] je paralelni niz uz stavke (isti redosled kao artikal_id[]).
 	prodajne := r.Form["prodajna[]"]
 	var korisnikID *int64
 	if k != nil {
 		korisnikID = &k.ID
 	}
-	// kalkulativna nabavna cena po stavci (fakturna + raspodeljeni zavisni trošak) —
-	// računa se na serveru; bez troškova je jednaka čistoj ceni po komadu.
-	var ukupanTrosak float64
-	for _, t := range troskovi {
-		ukupanTrosak += t.Iznos
-	}
-	kalkNabavna := model.RasporediTroskove(stavke, ukupanTrosak, nabavka.MetodRaspodele)
 	for i, s := range stavke {
 		if i >= len(prodajne) {
 			break
@@ -230,12 +225,13 @@ func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
 		if e != nil || prodajna <= 0 {
 			continue // prazno/nula ne sme da pregazi postojeću cenu
 		}
-		// stara prodajna cena — za nivelacioni zapis
-		var staraProdajna float64
+		// stara prodajna i tekuća (ponderisana) nabavna — nabavnu zadržavamo
+		var staraProdajna, nabavna float64
 		if a, e := h.Artikli.DohvatiID(r.Context(), s.ArtikalID); e == nil {
 			staraProdajna = a.ProdajnaCena
+			nabavna = a.NabavnaCena
 		}
-		if e := h.Artikli.AzurirajCene(r.Context(), s.ArtikalID, kalkNabavna[i], prodajna); e != nil {
+		if e := h.Artikli.AzurirajCene(r.Context(), s.ArtikalID, nabavna, prodajna); e != nil {
 			slog.Error("kalkulacija: ažuriranje cena nije uspelo", "artikal_id", s.ArtikalID, "error", e)
 			continue
 		}
@@ -333,14 +329,15 @@ func (h *Handler) DetaljiNabavke(w http.ResponseWriter, r *http.Request) {
 		Troskovi:       troskovi,
 		UkupanTrosak:   ukupanTrosak,
 		DobavljacNaziv: dobavljacNaziv,
+		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
 	}
 
 	h.renderujTemplate(w, "nabavka_detalji", podaci)
 }
 
-// ObrisiNabavku prima POST zahtev i briše nabavku po ID-u
-func (h *Handler) ObrisiNabavku(w http.ResponseWriter, r *http.Request) {
-	k, ok := h.zahtevajDozvolu(w, r, "nabavka.obrisi")
+// StornoNabavke prima POST zahtev i stornira nabavku po ID-u (umesto fizičkog brisanja)
+func (h *Handler) StornoNabavke(w http.ResponseWriter, r *http.Request) {
+	k, ok := h.zahtevajDozvolu(w, r, "nabavka.storno")
 	if !ok {
 		return
 	}
@@ -349,17 +346,23 @@ func (h *Handler) ObrisiNabavku(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Neispravan ID nabavke", http.StatusBadRequest)
 		return
 	}
-
-	if err := h.NabavkeRepo.Obrisi(r.Context(), id, &k.ID); err != nil {
-		http.Error(w, "Greška pri brisanju nabavke", http.StatusInternalServerError)
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
 		return
 	}
-	// ukloni vezani auto-KPR zapis (ako ga je ova nabavka kreirala)
+	razlog := strings.TrimSpace(r.FormValue("razlog"))
+
+	if err := h.NabavkeRepo.Storno(r.Context(), id, razlog, &k.ID); err != nil {
+		slog.Error("greška pri storniranju nabavke", "error", err)
+		http.Redirect(w, r, "/nabavke/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+		return
+	}
+	// stornirana nabavka ne ulazi u PDV — ukloni vezani auto-KPR zapis
 	if err := h.PdvKprRepo.ObrisiPoIzvoru(r.Context(), "nabavka", id); err != nil {
 		slog.Error("brisanje vezanog KPR zapisa nije uspelo", "nabavka_id", id, "error", err)
 	}
 
-	http.Redirect(w, r, "/nabavke?obrisan=1", http.StatusSeeOther)
+	http.Redirect(w, r, "/nabavke/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)
 }
 
 // parseFormuNabavke čita zaglavlje, stavke i zavisne troškove iz HTTP forme
