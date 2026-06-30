@@ -15,6 +15,7 @@ var sveAkcije = []string{
 	"nabavka.pregled",
 	"nabavka.dodaj",
 	"nabavka.obrisi",
+	"nabavka.storno",
 	"dobavljac.pregled",
 	"dobavljac.dodaj",
 	"dobavljac.izmeni",
@@ -66,7 +67,7 @@ func ImaDozvolu(uloga, akcija string) bool {
 		case "kategorija.pregled", "kategorija.dodaj", "kategorija.izmeni", "kategorija.obrisi":
 			return true
 		// nabavka
-		case "nabavka.pregled", "nabavka.dodaj", "nabavka.obrisi":
+		case "nabavka.pregled", "nabavka.dodaj", "nabavka.obrisi", "nabavka.storno":
 			return true
 		// dobavljač
 		case "dobavljac.pregled", "dobavljac.dodaj",

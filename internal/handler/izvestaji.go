@@ -316,9 +316,12 @@ func (h *Handler) StanjeZalihaIzvestaj(w http.ResponseWriter, r *http.Request) {
 // PodaciPopisa su podaci za stranicu popisa
 type PodaciPopisa struct {
 	model.PodaciStranice
-	Artikli  []model.ArtikalSaKategorijom
-	Sacuvano bool
-	Greska   string
+	Artikli        []model.ArtikalSaKategorijom
+	Sacuvano       bool
+	Greska         string
+	TipPopisa      string // godišnji | vanredni | preuzimanje
+	TipPopisaNaziv string // „Godišnji popis", „Vanredni popis", „Popis pri preuzimanju dužnosti"
+	DatumPopisa    string // formatiran datum za prikaz
 }
 
 // Popis prikazuje formu za unos stvarnog stanja (inventuru)
@@ -327,7 +330,7 @@ func (h *Handler) Popis(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	artikli, err := h.Artikli.Lista(r.Context(), appdbPkg.ArtikalFilter{})
+	artikli, err := h.Artikli.Lista(r.Context(), appdbPkg.ArtikalFilter{Tip: model.TipProizvod})
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju artikala", http.StatusInternalServerError)
 		return
@@ -337,12 +340,28 @@ func (h *Handler) Popis(w http.ResponseWriter, r *http.Request) {
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "izvestaji"
 	ps.NaslovStranice = "Popis"
+	tp := "godišnji"
 
 	h.renderujTemplate(w, "popis", PodaciPopisa{
 		PodaciStranice: ps,
 		Artikli:        artikli,
 		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
+		TipPopisa:      tp,
+		TipPopisaNaziv: tipPopisaNaziv(tp),
+		DatumPopisa:    time.Now().Format("02.01.2006."),
 	})
+}
+
+// tipPopisaNaziv vraća lokalizovani naziv za tip popisa
+func tipPopisaNaziv(tp string) string {
+	switch tp {
+	case "vanredni":
+		return "Vanredni popis"
+	case "preuzimanje":
+		return "Popis pri preuzimanju dužnosti"
+	default:
+		return "Godišnji popis"
+	}
 }
 
 // SacuvajPopis prima POST formu sa prebrojenim količinama i upisuje korekcije
@@ -357,15 +376,26 @@ func (h *Handler) SacuvajPopis(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	artikli, err := h.Artikli.Lista(r.Context(), appdbPkg.ArtikalFilter{})
+	artikli, err := h.Artikli.Lista(r.Context(), appdbPkg.ArtikalFilter{Tip: model.TipProizvod})
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju artikala", http.StatusInternalServerError)
 		return
 	}
 
+	tipPopisa := r.FormValue("tip_popisa")
+	if tipPopisa == "" {
+		tipPopisa = "godišnji"
+	}
 	napomena := r.FormValue("napomena")
 	if napomena == "" {
-		napomena = "Godišnji popis"
+		switch tipPopisa {
+		case "vanredni":
+			napomena = "Vanredni popis"
+		case "preuzimanje":
+			napomena = "Popis pri preuzimanju dužnosti"
+		default:
+			napomena = "Godišnji popis"
+		}
 	}
 
 	var greskaBroj int
@@ -383,7 +413,11 @@ func (h *Handler) SacuvajPopis(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		povecano := nova > a.Kolicina
-		if err := h.Artikli.KorigujKolicinu(r.Context(), a.ID, nova, &k.ID, napomena); err != nil {
+		tipPromene := model.PromenaManjak
+		if povecano {
+			tipPromene = model.PromenaVisak
+		}
+		if err := h.Artikli.KorigujKolicinu(r.Context(), a.ID, nova, &k.ID, napomena, tipPromene); err != nil {
 			slog.Error("popis: korekcija artikla", "id", a.ID, "error", err)
 			greskaBroj++
 			continue
@@ -413,9 +447,158 @@ func (h *Handler) SacuvajPopis(w http.ResponseWriter, r *http.Request) {
 			PodaciStranice: ps,
 			Artikli:        artikli,
 			Greska:         fmt.Sprintf("Došlo je do greške pri upisivanju %d artikala.", greskaBroj),
+			TipPopisa:      tipPopisa,
+			TipPopisaNaziv: tipPopisaNaziv(tipPopisa),
+			DatumPopisa:    time.Now().Format("02.01.2006."),
 		})
 		return
 	}
 
 	http.Redirect(w, r, "/izvestaji/popis?sacuvano=1", http.StatusSeeOther)
+}
+
+// PodaciPopisStampa su podaci za štampu popisa (standalone template)
+type PodaciPopisStampa struct {
+	NazivFirme           string
+	KorisnikIme          string
+	TipPopisaNaziv       string
+	DatumPopisa          string
+	Redovi               []PopisStampaRed
+	UkupnoKnjiznoKol     int
+	UkupnoKnjiznoVredStr string
+	UkupnoStvarnoKol     int
+	UkupnoRazlikaKolStr  string
+	UkupnoRazlikaVredStr string
+	ManjakKol            int
+	ManjakVredStr        string
+	VisakKol             int
+	VisakVredStr         string
+}
+
+// PopisStampaRed je jedan red u štampi popisa
+type PopisStampaRed struct {
+	Naziv              string
+	Sifra              string
+	KategorijaNaziv    string
+	JedinicaMere       string
+	NabavnaCenaStr     string
+	Kolicina           int
+	KnjiznaVrednostStr string
+	StvarnaKolicina    int
+	Razlika            int
+	RazlikaStr         string
+	RazlikaVrednost    float64
+	RazlikaVrednostStr string
+}
+
+// PopisStampa prikazuje standalone stranicu za štampu popisa
+func (h *Handler) PopisStampa(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "artikal.izmeni"); !ok {
+		return
+	}
+
+	artikli, err := h.Artikli.Lista(r.Context(), appdbPkg.ArtikalFilter{Tip: model.TipProizvod})
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju artikala", http.StatusInternalServerError)
+		return
+	}
+
+	podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	tip := "godišnji"
+
+	var redovi []PopisStampaRed
+	var ukKnjKol, ukStvKol, ukRazKol, manjakKol, visakKol int
+	var ukKnjVred, ukRazVred, manjakVred, visakVred float64
+
+	for _, a := range artikli {
+		knjKol := a.Kolicina
+		cena := a.NabavnaCena
+		knjVred := cena * float64(knjKol)
+		stvKol := knjKol
+		razlika := stvKol - knjKol
+		razlikaVred := cena * float64(razlika)
+
+		ukKnjKol += knjKol
+		ukKnjVred += knjVred
+		ukStvKol += stvKol
+		ukRazKol += razlika
+		ukRazVred += razlikaVred
+
+		if razlika < 0 {
+			manjakKol += -razlika
+			manjakVred += -razlikaVred
+		} else if razlika > 0 {
+			visakKol += razlika
+			visakVred += razlikaVred
+		}
+
+		jm := a.JedinicaMere
+		if jm == "" {
+			jm = "kom"
+		}
+
+		razlikaStr := "—"
+		if razlika > 0 {
+			razlikaStr = fmt.Sprintf("+%d", razlika)
+		} else if razlika < 0 {
+			razlikaStr = fmt.Sprintf("%d", razlika)
+		}
+
+		razlikaVredStr := "—"
+		if razlikaVred != 0 {
+			predznak := ""
+			if razlikaVred > 0 {
+				predznak = "+"
+			}
+			razlikaVredStr = predznak + formatirajDinare(razlikaVred, 2)
+		}
+
+		redovi = append(redovi, PopisStampaRed{
+			Naziv:              a.Naziv,
+			Sifra:              a.Sifra,
+			KategorijaNaziv:    a.KategorijaNaziv,
+			JedinicaMere:       jm,
+			NabavnaCenaStr:     formatirajDinare(cena, 0),
+			Kolicina:           knjKol,
+			KnjiznaVrednostStr: formatirajDinare(knjVred, 2),
+			StvarnaKolicina:    stvKol,
+			Razlika:            razlika,
+			RazlikaStr:         razlikaStr,
+			RazlikaVrednost:    razlikaVred,
+			RazlikaVrednostStr: razlikaVredStr,
+		})
+	}
+
+	ukRazKolStr := "—"
+	if ukRazKol > 0 {
+		ukRazKolStr = fmt.Sprintf("+%d", ukRazKol)
+	} else if ukRazKol < 0 {
+		ukRazKolStr = fmt.Sprintf("%d", ukRazKol)
+	}
+
+	ukRazVredStr := "—"
+	if ukRazVred != 0 {
+		predznak := ""
+		if ukRazVred > 0 {
+			predznak = "+"
+		}
+		ukRazVredStr = predznak + formatirajDinare(ukRazVred, 2)
+	}
+
+	h.renderujStandalone(w, "popis_stampa", PodaciPopisStampa{
+		NazivFirme:           podesavanja["naziv_firme"],
+		KorisnikIme:          middleware.KorisnikIzKonteksta(r.Context()).KorisnickoIme,
+		TipPopisaNaziv:       tipPopisaNaziv(tip),
+		DatumPopisa:          time.Now().Format("02.01.2006."),
+		Redovi:               redovi,
+		UkupnoKnjiznoKol:     ukKnjKol,
+		UkupnoKnjiznoVredStr: formatirajDinare(ukKnjVred, 2),
+		UkupnoStvarnoKol:     ukStvKol,
+		UkupnoRazlikaKolStr:  ukRazKolStr,
+		UkupnoRazlikaVredStr: ukRazVredStr,
+		ManjakKol:            manjakKol,
+		ManjakVredStr:        formatirajDinare(manjakVred, 2),
+		VisakKol:             visakKol,
+		VisakVredStr:         formatirajDinare(visakVred, 2),
+	})
 }

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Popis — {{.NazivFirme}}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            font-size: 12px;
+            color: #111;
+            background: #fff;
+            min-width: 780px;
+        }
+        .strana { max-width: 780px; margin: 0 auto; padding: 24px 32px; }
+
+        .zaglavlje { margin-bottom: 16px; }
+        .firma-naziv { font-size: 18px; font-weight: 700; }
+        .dokument-naslov { font-size: 14px; font-weight: 600; margin-top: 4px; }
+        .dokument-meta { font-size: 11px; color: #555; margin-top: 4px; line-height: 1.6; }
+
+        .tabela { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        .tabela th {
+            font-size: 9px; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.3px; color: #555; padding: 5px 6px;
+            border-bottom: 1.5px solid #888; border-top: 1px solid #ccc;
+            text-align: center; background: #f7f7f7;
+        }
+        .tabela th:first-child { text-align: left; }
+        .tabela td {
+            padding: 4px 6px; border-bottom: 0.5px solid #ddd;
+            font-size: 10px; text-align: right;
+        }
+        .tabela td:first-child { text-align: left; font-weight: 500; }
+        .tabela td.slabo { color: #777; font-size: 9px; font-family: monospace; }
+        .tabela td.manjak { color: #b91c1c; }
+        .tabela td.visak  { color: #15803d; }
+
+        tfoot td {
+            font-weight: 700; font-size: 10px;
+            border-top: 1.5px solid #888; border-bottom: 1.5px solid #888;
+            background: #f7f7f7;
+        }
+
+        .sumarno { margin-top: 16px; padding-top: 10px; border-top: 1px solid #ccc; }
+        .sumarno-stavke { display: flex; gap: 32px; font-size: 11px; flex-wrap: wrap; }
+        .sumarno-stavka { display: flex; flex-direction: column; gap: 1px; }
+        .sumarno-labela { color: #777; font-size: 9px; }
+        .sumarno-manjak { color: #b91c1c; }
+        .sumarno-visak  { color: #15803d; }
+
+        .potpis { margin-top: 28px; display: flex; gap: 60px; }
+        .potpis-stavka { flex: 1; }
+        .potpis-linija { border-top: 1px solid #888; margin-top: 28px; padding-top: 3px; font-size: 10px; color: #777; }
+
+        @media print {
+            body { font-size: 11px; }
+            .strana { padding: 20px 28px; max-width: 780px; }
+            @page { size: A4 landscape; margin: 8mm 10mm; }
+            .tabela tr { break-inside: avoid; }
+            .tabela thead { display: table-header-group; }
+            .dugme-stampa { display: none !important; }
+        }
+
+        .dugme-stampa {
+            position: fixed; bottom: 24px; right: 24px;
+            background: #111; color: #fff; border: none;
+            padding: 10px 20px; border-radius: 8px;
+            font-size: 13px; font-weight: 500; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .dugme-stampa:hover { background: #333; }
+    </style>
+</head>
+<body>
+<div class="strana">
+
+    <div class="zaglavlje">
+        <div class="firma-naziv">{{.NazivFirme}}</div>
+        <div class="dokument-naslov">Popis magacina</div>
+        <div class="dokument-meta">
+            {{.TipPopisaNaziv}} &nbsp;|&nbsp; Datum: {{.DatumPopisa}} &nbsp;|&nbsp; Sačinio: {{.KorisnikIme}}
+        </div>
+    </div>
+
+    <table class="tabela">
+        <thead>
+            <tr>
+                <th>Artikal</th>
+                <th>Šifra</th>
+                <th>Kategorija</th>
+                <th>JM</th>
+                <th>Nab. cena</th>
+                <th>Knj. kol.</th>
+                <th>Knj. vrednost</th>
+                <th>Stvarno kol.</th>
+                <th>Razlika kol.</th>
+                <th>Razlika vred.</th>
+            </tr>
+        </thead>
+        <tbody>
+        {{range .Redovi}}
+            <tr>
+                <td>{{.Naziv}}</td>
+                <td class="slabo">{{if .Sifra}}{{.Sifra}}{{else}}—{{end}}</td>
+                <td class="slabo">{{if .KategorijaNaziv}}{{.KategorijaNaziv}}{{else}}—{{end}}</td>
+                <td>{{if .JedinicaMere}}{{.JedinicaMere}}{{else}}kom{{end}}</td>
+                <td>{{.NabavnaCenaStr}}</td>
+                <td>{{.Kolicina}}</td>
+                <td>{{.KnjiznaVrednostStr}}</td>
+                <td>{{.StvarnaKolicina}}</td>
+                <td class="{{if gt .Razlika 0}}visak{{else if lt .Razlika 0}}manjak{{end}}">{{.RazlikaStr}}</td>
+                <td class="{{if gt .RazlikaVrednost 0.0}}visak{{else if lt .RazlikaVrednost 0.0}}manjak{{end}}">{{.RazlikaVrednostStr}}</td>
+            </tr>
+        {{end}}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="5" style="text-align:right;">UKUPNO:</td>
+                <td>{{.UkupnoKnjiznoKol}}</td>
+                <td>{{.UkupnoKnjiznoVredStr}}</td>
+                <td>{{.UkupnoStvarnoKol}}</td>
+                <td>{{.UkupnoRazlikaKolStr}}</td>
+                <td>{{.UkupnoRazlikaVredStr}}</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="sumarno">
+        <div class="sumarno-stavke">
+            <div class="sumarno-stavka">
+                <span class="sumarno-labela">Manjkovi (kom)</span>
+                <span class="sumarno-manjak">{{.ManjakKol}}</span>
+            </div>
+            <div class="sumarno-stavka">
+                <span class="sumarno-labela">Manjkovi (vrednost)</span>
+                <span class="sumarno-manjak">{{.ManjakVredStr}}</span>
+            </div>
+            <div class="sumarno-stavka">
+                <span class="sumarno-labela">Viškovi (kom)</span>
+                <span class="sumarno-visak">{{.VisakKol}}</span>
+            </div>
+            <div class="sumarno-stavka">
+                <span class="sumarno-labela">Viškovi (vrednost)</span>
+                <span class="sumarno-visak">{{.VisakVredStr}}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="potpis">
+        <div class="potpis-stavka">
+            <div class="potpis-linija">Potpis lica koje je izvršilo popis</div>
+        </div>
+        <div class="potpis-stavka">
+            <div class="potpis-linija">Potpis odgovornog lica</div>
+        </div>
+    </div>
+
+</div>
+
+<button class="dugme-stampa" onclick="window.print()">Štampaj</button>
+<script>window.onload = function() { setTimeout(function() { window.print(); }, 300); }</script>
+</body>
+</html>

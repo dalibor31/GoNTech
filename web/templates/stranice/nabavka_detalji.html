@@ -14,6 +14,10 @@
 {{define "sadrzaj"}}
 <div class="kolona" style="gap:16px;">
 
+    {{if .Sacuvano}}
+    <div class="poruka-uspeh poruka-animacija">Nabavka je uspešno sačuvana.</div>
+    {{end}}
+
     <!-- nazad dugme -->
     <a href="/nabavke" class="nazad-link" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
@@ -23,7 +27,14 @@
     <!-- zaglavlje nabavke -->
     <div class="kartica detalji-kartica animiraj">
         <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--ivica);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
-            <span style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">Detalji nabavke</span>
+            <span style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <span style="font-size:16px;font-weight:500;color:var(--tekst-glavni);">Detalji nabavke</span>
+                {{if .Nabavka.Stornirano}}
+                <span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500;background:rgba(220,38,38,0.12);color:#dc2626;">
+                    Stornirano
+                </span>
+                {{end}}
+            </span>
             <span class="pomocni-tekst">{{.Nabavka.Datum.Format "02.01.2006. u 15:04"}}</span>
         </div>
 
@@ -46,6 +57,12 @@
                     {{dinari .Nabavka.Ukupno}} din
                 </div>
             </div>
+            {{if .Nabavka.RazlogStorniranja}}
+            <div style="grid-column:1/-1;">
+                <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Razlog storniranja</div>
+                <div style="font-size:13px;color:#dc2626;">{{.Nabavka.RazlogStorniranja}}</div>
+            </div>
+            {{end}}
         </div>
     </div>
 
@@ -146,23 +163,27 @@
     </div>
     {{end}}
 
-    <!-- zona za brisanje -->
+    <!-- zona za storniranje -->
+    {{if and (index .Dozvole "nabavka.storno") (not .Nabavka.Stornirano)}}
     <div class="kartica detalji-kartica animiraj" style="border-color:#dc262633;">
         <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
             <div style="flex:1;min-width:200px;">
-                <div style="font-size:14px;font-weight:500;color:#dc2626;margin-bottom:4px;">Brisanje nabavke</div>
+                <div style="font-size:14px;font-weight:500;color:#f97316;margin-bottom:4px;">Storniranje nabavke</div>
                 <div class="pomocni-tekst">
-                    Brisanje je trajno i ne vraća količine artikala u magacin.
+                    Storno vraća količine artikala na stanje u magacinu. Nabavka ostaje u evidenciji sa oznakom stornirana. Nabavna cena se ne menja.
                 </div>
             </div>
-            <form method="POST" action="/nabavke/obrisi/{{.Nabavka.ID}}">
-                <button type="submit" class="btn-opasno"
-                    data-potvrda="Da li ste sigurni da želite da obrišete ovu nabavku? Brisanje ne vraća količine artikala u magacin.">
-                    Obriši nabavku
+            <form method="POST" action="/nabavke/storno/{{.Nabavka.ID}}" style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
+                <input type="hidden" name="csrf_token" value="{{.CsrfToken}}">
+                <input type="text" name="razlog" placeholder="Razlog storniranja (opciono)" style="width:240px;">
+                <button type="submit" class="btn-upozorenje"
+                    data-potvrda="Stornirati ovu nabavku? Količine artikala biće vraćene na stanje.">
+                    Storniraj nabavku
                 </button>
             </form>
         </div>
     </div>
+    {{end}}
 
 </div>
 {{end}}
