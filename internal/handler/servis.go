@@ -1680,6 +1680,81 @@ func (h *Handler) StampaGarantnog(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// PodaciEskalacionogLista su podaci za interni list praćenja rokova naloga.
+type PodaciEskalacionogLista struct {
+	Nalog         model.ServisniNalog
+	KlijentNaziv  string
+	Klijent       *model.Klijent
+	TehnicarNaziv string
+	RokPodizanja  *time.Time
+	NazivFirme    string
+	LogoPutanja   string
+	Podnazlov     string
+	Adresa        string
+	Telefon       string
+	PIB           string
+	MaticniBroj   string
+	Barkod        string
+}
+
+// StampaEskalacionogLista renderuje interni list praćenja rokova.
+func (h *Handler) StampaEskalacionogLista(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+
+	nalog, err := h.ServisRepo.DohvatiID(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Nalog nije pronađen", http.StatusNotFound)
+		return
+	}
+
+	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
+		return
+	}
+
+	var klijent *model.Klijent
+	klijentNaziv := ""
+	if nalog.KlijentID != nil {
+		k, e := h.KlijentiRepo.DohvatiID(r.Context(), *nalog.KlijentID)
+		if e == nil {
+			klijent = k
+			if k.NazivFirme != "" {
+				klijentNaziv = k.NazivFirme
+			} else {
+				klijentNaziv = strings.TrimSpace(k.Ime + " " + k.Prezime)
+			}
+		}
+	}
+
+	tehnicarNaziv := ""
+	if nalog.TehnicarID != nil {
+		if t, e := h.KorisniciRepo.DohvatiPoID(r.Context(), *nalog.TehnicarID); e == nil {
+			tehnicarNaziv = t.KorisnickoIme
+		}
+	}
+
+	h.renderujStandalone(w, "servis_eskalacioni_list", PodaciEskalacionogLista{
+		Nalog:         *nalog,
+		KlijentNaziv:  klijentNaziv,
+		Klijent:       klijent,
+		TehnicarNaziv: tehnicarNaziv,
+		RokPodizanja:  rokPodizanja(nalog.DatumZavrsetka),
+		NazivFirme:    podesavanja["naziv_firme"],
+		LogoPutanja:   logoZaDokument(podesavanja),
+		Podnazlov:     podesavanja["podnazlov"],
+		Adresa:        podesavanja["adresa"],
+		Telefon:       podesavanja["telefon"],
+		PIB:           podesavanja["pib"],
+		MaticniBroj:   podesavanja["maticni_broj"],
+		Barkod:        barkodNaloga(nalog.BrojNaloga),
+	})
+}
+
 // PodaciReversa su podaci za revers — potvrdu o prijemu uređaja na servis.
 // Dokument se izdaje pri prijemu, pa nema cena.
 type PodaciReversa struct {

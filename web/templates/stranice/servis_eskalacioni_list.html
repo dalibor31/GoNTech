@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eskalacioni list — {{.Nalog.BrojNaloga}}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 13px; color: #111; background: #fff; min-width: 780px; }
+        .strana { max-width: 780px; margin: 0 auto; padding: 32px 40px; }
+
+        .zaglavlje { display: flex; align-items: stretch; margin-bottom: 20px; gap: 12px; }
+        .zg-okvir { flex: 1; padding: 12px 14px; border: 1.5px solid #bbb; border-radius: 12px; }
+        .firma-naziv { font-size: 18px; font-weight: 700; }
+        .firma-info { font-size: 11px; color: #555; margin-top: 4px; line-height: 1.7; }
+        .dok-tip { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #555; margin-bottom: 4px; }
+        .dok-broj { font-size: 18px; font-weight: 700; font-family: monospace; }
+        .dok-datum { font-size: 12px; color: #555; margin-top: 4px; }
+
+        .odeljak { margin-bottom: 20px; }
+        .odeljak-naslov { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: #555; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 0.5px solid #ccc; }
+
+        .podaci-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .polje-labela { font-size: 10px; color: #777; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px; }
+        .polje-vrednost { font-size: 13px; font-weight: 500; }
+        .polje-vrednost-mono { font-family: monospace; font-size: 13px; font-weight: 500; }
+        .prazno { color: #aaa; font-style: italic; }
+
+        /* tabela rokova */
+        .tabela-rokovi { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .tabela-rokovi th { text-align: left; padding: 7px 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #666; border-bottom: 1.5px solid #ddd; font-weight: 600; }
+        .tabela-rokovi td { padding: 8px 10px; border-bottom: 0.5px solid #eee; vertical-align: middle; }
+        .tabela-rokovi tr.auto td { background: #f9fafb; }
+        .tabela-rokovi tr.rok-upozorenje td:last-child { color: #d97706; font-weight: 600; }
+        .badge-auto { display: inline-block; font-size: 9px; padding: 1px 6px; border-radius: 4px; background: #e0f2fe; color: #0369a1; font-weight: 600; letter-spacing: 0.3px; margin-left: 6px; vertical-align: middle; }
+        .linija-unos { border-bottom: 1px solid #aaa; display: inline-block; width: 160px; height: 14px; }
+
+        .napomena-blok { font-size: 13px; line-height: 1.6; white-space: pre-wrap; background: #f9fafb; border-radius: 8px; padding: 10px 14px; border: 0.5px solid #e5e7eb; }
+
+        @media print {
+            body { font-size: 12px; }
+            .strana { padding: 32px 40px; }
+            .dugme-stampa { display: none !important; }
+            @page { size: A4; margin: 12mm 14mm; }
+            .tabela-rokovi tr.auto td { background: #f5f5f5; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+        .dugme-stampa { position: fixed; bottom: 24px; right: 24px; background: #111; color: #fff; border: none; padding: 12px 22px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .dugme-stampa:hover { background: #333; }
+    </style>
+</head>
+<body>
+<div class="strana">
+
+    <!-- zaglavlje -->
+    <div class="zaglavlje">
+        <div class="zg-okvir">
+            {{if .LogoPutanja}}
+            <img src="{{.LogoPutanja}}" alt="Logo" style="max-height:54px;max-width:100%;object-fit:contain;display:block;margin-bottom:8px;">
+            {{else}}
+            <div class="firma-naziv">{{if .NazivFirme}}{{.NazivFirme}}{{else}}— naziv firme —{{end}}</div>
+            {{end}}
+            <div class="firma-info">
+                {{if .Podnazlov}}{{.Podnazlov}}<br>{{end}}
+                {{if .Adresa}}{{.Adresa}}<br>{{end}}
+                {{if .Telefon}}Tel: {{telefon .Telefon}}<br>{{end}}
+                {{if .PIB}}PIB: {{.PIB}}{{end}}{{if .MaticniBroj}}{{if .PIB}} &middot; {{end}}MB: {{.MaticniBroj}}{{end}}
+            </div>
+        </div>
+        <div class="zg-okvir" style="flex:1.3;">
+            {{if .Barkod}}<img src="data:image/png;base64,{{.Barkod}}" alt="Barkod {{.Nalog.BrojNaloga}}" style="display:block;width:100%;max-height:46px;object-fit:contain;margin-bottom:10px;">{{end}}
+            <div class="dok-tip">Eskalacioni list — praćenje rokova</div>
+            <div class="dok-broj">{{.Nalog.BrojNaloga}}</div>
+            {{if .TehnicarNaziv}}<div class="dok-datum">Serviser: {{.TehnicarNaziv}}</div>{{end}}
+            <div class="dok-datum">Status: <strong>{{.Nalog.Status}}</strong></div>
+        </div>
+        <div class="zg-okvir">
+            <div class="polje-labela">Klijent</div>
+            {{if .KlijentNaziv}}
+            <div class="polje-vrednost" style="font-size:14px;font-weight:600;margin-top:2px;">{{.KlijentNaziv}}</div>
+            <div style="font-size:12px;color:#555;margin-top:4px;line-height:1.6;">
+                {{if .Klijent}}
+                    {{if .Klijent.Telefon}}Tel: {{telefon .Klijent.Telefon}}<br>{{end}}
+                    {{if .Klijent.Email}}{{.Klijent.Email}}<br>{{end}}
+                    {{if .Klijent.Mesto}}{{.Klijent.Mesto}}{{end}}
+                {{end}}
+            </div>
+            {{else}}
+            <div class="prazno" style="margin-top:4px;">— klijent nije naveden —</div>
+            {{end}}
+        </div>
+    </div>
+
+    <!-- uređaj -->
+    <div class="odeljak">
+        <div class="odeljak-naslov">Uređaj</div>
+        <div class="podaci-grid">
+            <div>
+                <div class="polje-labela">Naziv uređaja</div>
+                <div class="polje-vrednost">{{if .Nalog.Uredjaj}}{{.Nalog.Uredjaj}}{{else}}<span class="prazno">—</span>{{end}}</div>
+            </div>
+            <div>
+                <div class="polje-labela">Serijski broj</div>
+                <div class="polje-vrednost-mono">{{if .Nalog.SerijskiBroj}}{{.Nalog.SerijskiBroj}}{{else}}<span class="prazno">—</span>{{end}}</div>
+            </div>
+            <div>
+                <div class="polje-labela">Prijavljeni kvar</div>
+                <div class="polje-vrednost">{{if .Nalog.OpisKvara}}{{.Nalog.OpisKvara}}{{else}}<span class="prazno">—</span>{{end}}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- tabela rokova -->
+    <div class="odeljak">
+        <div class="odeljak-naslov">Praćenje rokova</div>
+        <table class="tabela-rokovi">
+            <thead>
+                <tr>
+                    <th style="width:40%;">Događaj</th>
+                    <th style="width:30%;">Datum</th>
+                    <th>Napomena / potpis</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="auto">
+                    <td>Prijem uređaja</td>
+                    <td><strong>{{.Nalog.DatumPrijema.Format "02.01.2006."}}</strong> <span class="badge-auto">auto</span></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Početak dijagnostike</td>
+                    <td><span class="linija-unos"></span></td>
+                    <td></td>
+                </tr>
+                {{if .Nalog.PredvidjenDatum}}
+                <tr class="auto">
+                    <td>Predviđeni datum završetka</td>
+                    <td><strong>{{.Nalog.PredvidjenDatum.Format "02.01.2006."}}</strong> <span class="badge-auto">auto</span></td>
+                    <td></td>
+                </tr>
+                {{else}}
+                <tr>
+                    <td>Predviđeni datum završetka</td>
+                    <td><span class="linija-unos"></span></td>
+                    <td></td>
+                </tr>
+                {{end}}
+                <tr>
+                    <td>Poziv klijenta (obaveštenje o dijagnozi)</td>
+                    <td><span class="linija-unos"></span></td>
+                    <td></td>
+                </tr>
+                {{if .Nalog.DatumOdluke}}
+                <tr class="auto">
+                    <td>Odobrenje klijenta</td>
+                    <td><strong>{{.Nalog.DatumOdluke.Format "02.01.2006."}}</strong> <span class="badge-auto">auto</span></td>
+                    <td>{{if .Nalog.OdlukaKlijenta}}{{if eq .Nalog.OdlukaKlijenta "prihvaceno"}}Prihvaćeno{{else}}Odbijeno{{end}}{{end}}</td>
+                </tr>
+                {{else}}
+                <tr>
+                    <td>Odobrenje klijenta</td>
+                    <td><span class="linija-unos"></span></td>
+                    <td></td>
+                </tr>
+                {{end}}
+                <tr>
+                    <td>Narudžbina delova</td>
+                    <td><span class="linija-unos"></span></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Dolazak delova</td>
+                    <td><span class="linija-unos"></span></td>
+                    <td></td>
+                </tr>
+                {{if .Nalog.DatumZavrsetka}}
+                <tr class="auto">
+                    <td>Završetak popravke</td>
+                    <td><strong>{{.Nalog.DatumZavrsetka.Format "02.01.2006."}}</strong> <span class="badge-auto">auto</span></td>
+                    <td></td>
+                </tr>
+                {{else}}
+                <tr>
+                    <td>Završetak popravke</td>
+                    <td><span class="linija-unos"></span></td>
+                    <td></td>
+                </tr>
+                {{end}}
+                <tr>
+                    <td>Poziv klijenta (obaveštenje o završetku)</td>
+                    <td><span class="linija-unos"></span></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Preuzimanje uređaja</td>
+                    <td><span class="linija-unos"></span></td>
+                    <td></td>
+                </tr>
+                {{if .RokPodizanja}}
+                <tr class="auto rok-upozorenje">
+                    <td><strong>Rok za podizanje</strong></td>
+                    <td><strong>{{.RokPodizanja.Format "02.01.2006."}}</strong> <span class="badge-auto">auto</span></td>
+                    <td style="font-size:11px;color:#92400e;">30 dana od završetka</td>
+                </tr>
+                {{else}}
+                <tr>
+                    <td><strong>Rok za podizanje</strong></td>
+                    <td style="font-size:11px;color:#aaa;">— upisuje se po završetku —</td>
+                    <td></td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+
+    {{if .Nalog.NalazDijagnostike}}
+    <div class="odeljak">
+        <div class="odeljak-naslov">Nalaz dijagnostike</div>
+        <div class="napomena-blok">{{.Nalog.NalazDijagnostike}}</div>
+    </div>
+    {{end}}
+
+    {{if .Nalog.Napomena}}
+    <div class="odeljak">
+        <div class="odeljak-naslov">Interna napomena</div>
+        <div class="napomena-blok">{{.Nalog.Napomena}}</div>
+    </div>
+    {{end}}
+
+</div>
+<button class="dugme-stampa" onclick="window.print()">Štampaj</button>
+</body>
+</html>

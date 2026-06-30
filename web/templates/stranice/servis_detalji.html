@@ -238,6 +238,9 @@
                 </a>
                 {{end}}
                 {{end}}
+                <a href="/servis/{{.Nalog.ID}}/eskalacioni-list" target="_blank" style="font-size:12px;color:var(--tekst-sporedni);text-decoration:underline;align-self:center;">
+                    Eskalacioni list
+                </a>
                 {{/* Nalepnica je primarna pri prijemu (lepi se na uređaj); reprint dok traje; ne u „Završeno" */}}
                 {{if eq .Nalog.Status "Primljeno"}}
                 <a href="/servis/{{.Nalog.ID}}/nalepnica" target="_blank" class="btn-sekundarno">

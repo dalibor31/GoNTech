@@ -388,6 +388,7 @@ func main() {
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "servis.pregled")).Get("/servis/{id}/predracun", h.StampaPredracuna)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "servis.pregled")).Get("/servis/{id}/nalepnica", h.StampaNalepnice)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "servis.pregled")).Get("/servis/{id}/garantni-list", h.StampaGarantnog)
+		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "servis.pregled")).Get("/servis/{id}/eskalacioni-list", h.StampaEskalacionogLista)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/status", h.PromeniStatus)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/garancija", h.AzurirajGaranciju)
 		r.With(doz("servis.izmeni")).Post("/servis/{id}/garancija-dana", h.AzurirajGarancijaDana)
