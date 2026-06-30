@@ -397,8 +397,9 @@ func (r *ArtikalRepo) SveDobavljaceArtikala(ctx context.Context) (map[int64][]in
 	return mapa, nil
 }
 
-// KorigujKolicinu postavlja novu količinu i upisuje korekciju u magacinske_promene
-func (r *ArtikalRepo) KorigujKolicinu(ctx context.Context, artikalID int64, novaKolicina int, korisnikID *int64, napomena string) error {
+// KorigujKolicinu postavlja novu količinu i upisuje promenu u magacinske_promene;
+// tipPromene određuje vrstu traga (korekcija, manjak_popis, visak_popis)
+func (r *ArtikalRepo) KorigujKolicinu(ctx context.Context, artikalID int64, novaKolicina int, korisnikID *int64, napomena, tipPromene string) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("ntech: ArtikalRepo.KorigujKolicinu: begin: %w", err)
@@ -418,7 +419,7 @@ func (r *ArtikalRepo) KorigujKolicinu(ctx context.Context, artikalID int64, nova
 	}
 
 	promena := novaKolicina - staraKolicina
-	if err = zabeleziMagacinPromenu(ctx, tx, artikalID, model.PromenaKorekcija, promena,
+	if err = zabeleziMagacinPromenu(ctx, tx, artikalID, tipPromene, promena,
 		staraKolicina, novaKolicina, 0, korisnikID, napomena); err != nil {
 		return fmt.Errorf("ntech: ArtikalRepo.KorigujKolicinu: %w", err)
 	}

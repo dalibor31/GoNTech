@@ -264,7 +264,7 @@ func (h *Handler) SacuvajIzmenuArtikla(w http.ResponseWriter, r *http.Request) {
 
 	// ako se količina promenila, koriguj stanje uz magacinski trag
 	if novaKolicina != staraKolicina {
-		if e := h.Artikli.KorigujKolicinu(r.Context(), id, novaKolicina, &k.ID, "izmena artikla"); e != nil {
+		if e := h.Artikli.KorigujKolicinu(r.Context(), id, novaKolicina, &k.ID, "izmena artikla", model.PromenaKorekcija); e != nil {
 			slog.Error("korekcija količine pri izmeni artikla nije uspela", "artikal_id", id, "error", e)
 		}
 	}

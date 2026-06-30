@@ -66,6 +66,10 @@
                             <span class="bedz" style="background:rgba(168,85,247,0.12);color:#a855f7;">Povraćaj</span>
                         {{else if eq .TipPromene "korekcija"}}
                             <span class="bedz" style="background:rgba(156,163,175,0.12);color:#9ca3af;">Korekcija</span>
+                        {{else if eq .TipPromene "manjak_popis"}}
+                            <span class="bedz" style="background:rgba(220,38,38,0.12);color:#dc2626;">Manjak (popis)</span>
+                        {{else if eq .TipPromene "visak_popis"}}
+                            <span class="bedz" style="background:rgba(34,197,94,0.12);color:#22c55e;">Višak (popis)</span>
                         {{else}}
                             <span class="bedz">{{.TipPromene}}</span>
                         {{end}}
