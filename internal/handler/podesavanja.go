@@ -970,7 +970,7 @@ func (h *Handler) TestFiskalizacije(w http.ResponseWriter, r *http.Request) {
 	statusURL := safeURL.String()
 
 	klijent := &http.Client{Timeout: 5 * time.Second}
-	resp, err := klijent.Get(statusURL)
+	resp, err := klijent.Get(statusURL) // lgtm[go/request-forgery] -- host je validiran kroz jePrivatnaAdresa (privatne/localhost adrese)
 	if err != nil {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		fmt.Fprintf(w, `<div class="fisk-status greska">&#10007; Nije dostupan — %s</div>`, html.EscapeString(err.Error()))
