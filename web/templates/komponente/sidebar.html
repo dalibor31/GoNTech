@@ -99,9 +99,10 @@
 
         {{/* Knjigovodstvo — grupa: KIR/KPR/Obračun (modul „pdv") + Nivelacije (dozvola izmene cena) */}}
         {{$pdvVid := and (index .Moduli "pdv") (index .Dozvole "pdv.pregled")}}
-        {{$knjVid := or $pdvVid (index .Dozvole "artikal.izmeni")}}
+        {{$kpoVid := and (index .Moduli "kpo") (index .Dozvole "kpo.pregled")}}
+        {{$knjVid := or $pdvVid $kpoVid (index .Dozvole "artikal.izmeni")}}
         {{if $knjVid}}
-        {{$knjAktivan := or (eq .Stranica "nivelacije") (eq .Stranica "pdv-kir") (eq .Stranica "pdv-kpr") (eq .Stranica "pdv-obracun")}}
+        {{$knjAktivan := or (eq .Stranica "nivelacije") (eq .Stranica "kpo") (eq .Stranica "pdv-kir") (eq .Stranica "pdv-kpr") (eq .Stranica "pdv-obracun")}}
         <div>
             <button type="button" data-podmeni-dugme
                     class="nav-stavka {{if $knjAktivan}}aktivan{{end}}"
@@ -122,6 +123,13 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
                     <span>Nivelacije</span>
                     <span class="nav-tooltip">Nivelacije — promene cena</span>
+                </a>
+                {{end}}
+                {{if $kpoVid}}
+                <a href="/kpo" class="nav-stavka nav-podstavka {{if eq .Stranica "kpo"}}aktivan{{end}}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/></svg>
+                    <span>KPO</span>
+                    <span class="nav-tooltip">KPO — knjiga o ostvarenom prometu</span>
                 </a>
                 {{end}}
                 {{if $pdvVid}}

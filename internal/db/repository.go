@@ -385,3 +385,12 @@ type FiskalRepository interface {
 	DohvatiPoServisu(ctx context.Context, servisID int64) (*model.FiskalniRacun, error)
 	OznačiKaoStorniran(ctx context.Context, id int64) error
 }
+
+// KpoRepository definiše operacije nad knjigom o ostvarenom prometu.
+type KpoRepository interface {
+	Lista(ctx context.Context, od, do time.Time) ([]model.KpoZapis, error)
+	Kreiraj(ctx context.Context, z *model.KpoZapis) (int64, error)
+	Obrisi(ctx context.Context, id int64) error
+	PostojiZaIzvor(ctx context.Context, izvor string, izvorID int64) (bool, error)
+	ObrisiPoIzvoru(ctx context.Context, izvor string, izvorID int64) error
+}

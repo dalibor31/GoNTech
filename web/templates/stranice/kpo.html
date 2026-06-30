@@ -1,0 +1,116 @@
+{{template "base" .}}
+
+{{define "naslov"}}KPO — knjiga o ostvarenom prometu — NTech{{end}}
+
+{{define "sadrzaj"}}
+<div class="stranica-stack" style="width:100%;max-width:100%;">
+
+    <div class="kartica animiraj" style="margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;">
+            <form method="GET" action="/kpo" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+                <div>
+                    <label class="polje-labela">Od datuma</label>
+                    <input type="date" name="od" value="{{.Od}}" style="padding:8px 10px;border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div>
+                    <label class="polje-labela">Do datuma</label>
+                    <input type="date" name="do" value="{{.Do}}" style="padding:8px 10px;border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <button type="submit" style="padding:8px 16px;background:var(--sb-aktivan);color:var(--tekst-jak);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;cursor:pointer;">Prikaži</button>
+                {{if or .Od .Do}}<a href="/kpo" class="nazad-link" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" style="margin-bottom:0;">Poništi filter</a>{{end}}
+            </form>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                {{if index .Dozvole "kpo.dodaj"}}
+                <form method="POST" action="/kpo/backfill" data-full-reload>
+                    <input type="hidden" name="csrf_token" value="{{.CsrfToken}}">
+                    <button type="submit" class="btn-sekundarno" style="font-size:13px;padding:8px 16px;white-space:nowrap;"
+                        data-potvrda="Uvesti sve prodaje i naplaćene servisne naloge koji još nisu u KPO-u?">
+                        Uvezi postojeće
+                    </button>
+                </form>
+                {{end}}
+                {{if index .Dozvole "kpo.dodaj"}}
+                <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML"
+                   href="/kpo/nova" class="btn-primarno" style="font-size:13px;padding:8px 16px;white-space:nowrap;">
+                    + Ručni unos
+                </a>
+                {{end}}
+            </div>
+        </div>
+    </div>
+
+    {{if .Zapisi}}
+    <div class="kartica animiraj" style="margin-bottom:16px;padding:12px 18px;">
+        <div style="display:flex;gap:32px;align-items:center;flex-wrap:wrap;">
+            <div>
+                <span class="polje-labela">Ukupan prihod</span>
+                <div style="font-size:22px;font-weight:700;color:var(--zelena);">{{dinari .Sume.Prihod}} RSD</div>
+            </div>
+            <div>
+                <span class="polje-labela">Broj unosa</span>
+                <div style="font-size:22px;font-weight:700;">{{.Sume.Broj}}</div>
+            </div>
+        </div>
+    </div>
+    {{end}}
+
+    <div class="kartica animiraj">
+        {{if .Zapisi}}
+        <div class="tabela-omotac">
+        <table class="tabela">
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Br. dokumenta</th>
+                    <th>Opis</th>
+                    <th>Način plaćanja</th>
+                    <th style="text-align:right;">Prihod (RSD)</th>
+                    <th>Izvor</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {{range $z := .Zapisi}}
+                <tr>
+                    <td style="white-space:nowrap;">{{$z.DatumPrometa.Format "02.01.2006."}}</td>
+                    <td style="font-weight:500;">{{$z.BrojDokumenta}}</td>
+                    <td style="color:var(--tekst-slab);font-size:13px;">{{$z.Opis}}</td>
+                    <td style="font-size:13px;">{{$z.NacinPlacanja}}</td>
+                    <td style="text-align:right;font-weight:600;color:var(--zelena);">{{dinari $z.Prihod}}</td>
+                    <td>
+                        {{if eq $z.Izvor "prodaja"}}<span class="bedz bedz-plava">prodaja</span>
+                        {{else if eq $z.Izvor "servis"}}<span class="bedz bedz-narandzasta">servis</span>
+                        {{else}}<span class="bedz">ručno</span>{{end}}
+                    </td>
+                    <td style="text-align:right;">
+                        {{if index $.Dozvole "kpo.obrisi"}}
+                        {{if eq $z.Izvor "rucno"}}
+                        <form method="POST" action="/kpo/obrisi/{{$z.ID}}" style="display:inline;" data-full-reload>
+                            <input type="hidden" name="csrf_token" value="{{$.CsrfToken}}">
+                            <button type="submit" class="btn-opasno-mali"
+                                data-potvrda="Obrisati ovaj KPO unos?">Obriši</button>
+                        </form>
+                        {{end}}
+                        {{end}}
+                    </td>
+                </tr>
+            {{end}}
+            </tbody>
+        </table>
+        </div>
+        {{else}}
+        <div style="text-align:center;padding:48px 16px;color:var(--tekst-slab);">
+            <div style="font-size:32px;margin-bottom:12px;">📒</div>
+            <div>Nema unosa za odabrani period.</div>
+            {{if index .Dozvole "kpo.dodaj"}}
+            <div style="margin-top:12px;">
+                <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML"
+                   href="/kpo/nova" class="btn-primarno" style="font-size:13px;">+ Ručni unos</a>
+            </div>
+            {{end}}
+        </div>
+        {{end}}
+    </div>
+
+</div>
+{{end}}

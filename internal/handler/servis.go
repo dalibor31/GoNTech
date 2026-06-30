@@ -2134,6 +2134,24 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
+		// auto-KPO za servisni nalog
+		if h.modulUkljucen(r.Context(), "kpo") && iznos > 0 {
+			nalogKpo, _ := h.ServisRepo.DohvatiID(r.Context(), id)
+			if nalogKpo != nil {
+				kpoZ := model.KpoZapis{
+					DatumPrometa:  time.Now(),
+					BrojDokumenta: nalogKpo.BrojNaloga,
+					Opis:          fmt.Sprintf("Servis %s", nalogKpo.BrojNaloga),
+					Prihod:        iznos,
+					NacinPlacanja: nacin,
+					Izvor:         "servis",
+					IzvorID:       &id,
+				}
+				if _, e := h.KpoRepo.Kreiraj(r.Context(), &kpoZ); e != nil {
+					slog.Error("auto-upis u KPO za servis nije uspeo", "servis_id", id, "error", e)
+				}
+			}
+		}
 	}
 
 	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)

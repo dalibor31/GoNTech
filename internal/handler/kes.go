@@ -32,6 +32,7 @@ var saSidebar = []string{
 	"pdv_kir", "pdv_kir_forma", "pdv_kir_dnevni_pazar",
 	"pdv_kpr", "pdv_kpr_forma",
 	"pdv_obracun",
+	"kpo", "kpo_forma",
 	"nivelacije",
 	"podsetnici", "podsetnik_forma",
 	"profil_tema",

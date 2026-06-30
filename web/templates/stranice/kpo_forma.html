@@ -1,0 +1,74 @@
+{{template "base" .}}
+
+{{define "naslov"}}Novi KPO unos — NTech{{end}}
+
+{{define "sadrzaj"}}
+<div class="stranica-stack" style="max-width:640px;">
+
+    <div style="margin-bottom:12px;">
+        <a href="/kpo" class="nazad-link" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML">
+            ← KPO knjiga
+        </a>
+    </div>
+
+    <div class="kartica animiraj">
+        <h2 style="margin:0 0 20px;font-size:18px;">Novi KPO unos</h2>
+
+        <form method="POST" action="/kpo/nova">
+            <input type="hidden" name="csrf_token" value="{{.CsrfToken}}">
+
+            <div class="polje-grupa" style="margin-bottom:16px;">
+                <label class="polje-labela">Datum prometa *</label>
+                <input type="date" name="datum_prometa" value="{{.Danas}}" required
+                    style="width:100%;padding:10px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;box-sizing:border-box;">
+            </div>
+
+            <div class="polje-grupa" style="margin-bottom:16px;">
+                <label class="polje-labela">Broj dokumenta *</label>
+                <input type="text" name="broj_dokumenta" required autocomplete="off"
+                    placeholder="npr. 2025/001 ili gotovina"
+                    style="width:100%;padding:10px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;box-sizing:border-box;">
+            </div>
+
+            <div class="polje-grupa" style="margin-bottom:16px;">
+                <label class="polje-labela">Opis (opcionalno)</label>
+                <input type="text" name="opis" autocomplete="off"
+                    placeholder="Kratki opis prihoda"
+                    style="width:100%;padding:10px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;box-sizing:border-box;">
+            </div>
+
+            <div class="polje-grupa" style="margin-bottom:16px;">
+                <label class="polje-labela">Prihod (RSD) *</label>
+                <input type="number" name="prihod" step="0.01" min="0" required
+                    style="width:100%;padding:10px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;box-sizing:border-box;">
+            </div>
+
+            <div class="polje-grupa" style="margin-bottom:16px;">
+                <label class="polje-labela">Način plaćanja</label>
+                <select name="nacin_placanja"
+                    style="width:100%;padding:10px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;box-sizing:border-box;">
+                    <option value="">— nije navedeno —</option>
+                    <option value="Gotovina">Gotovina</option>
+                    <option value="Kartica">Kartica</option>
+                    <option value="Virman">Virman</option>
+                    <option value="Ostalo">Ostalo</option>
+                </select>
+            </div>
+
+            <div class="polje-grupa" style="margin-bottom:24px;">
+                <label class="polje-labela">Napomena</label>
+                <textarea name="napomena" rows="2"
+                    style="width:100%;padding:10px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;box-sizing:border-box;resize:vertical;"></textarea>
+            </div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <a href="/kpo" class="btn-sekundarno" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML">
+                    Otkaži
+                </a>
+                <button type="submit" class="btn-primarno">Sačuvaj</button>
+            </div>
+        </form>
+    </div>
+
+</div>
+{{end}}

@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"html/template"
 	"log/slog"
 	"net/http"
@@ -290,6 +291,22 @@ func (h *Handler) SacuvajProdaju(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 			}
+		}
+	}
+
+	// auto-KPO: svaki potvrđeni nalog ide u KPO ako je modul aktivan
+	if h.modulUkljucen(r.Context(), "kpo") {
+		kpoZ := model.KpoZapis{
+			DatumPrometa:  nalog.Datum,
+			BrojDokumenta: nalog.BrojNaloga,
+			Opis:          fmt.Sprintf("Prodaja %s", nalog.BrojNaloga),
+			Prihod:        nalog.Ukupno,
+			NacinPlacanja: nalog.NacinPlacanja,
+			Izvor:         "prodaja",
+			IzvorID:       &id,
+		}
+		if _, e := h.KpoRepo.Kreiraj(r.Context(), &kpoZ); e != nil {
+			slog.Error("auto-upis u KPO nije uspeo", "prodaja_id", id, "error", e)
 		}
 	}
 
@@ -582,6 +599,13 @@ func (h *Handler) StornoProdaje(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 			}
+		}
+	}
+
+	// brisanje KPO zapisa na storno
+	if h.modulUkljucen(r.Context(), "kpo") {
+		if e := h.KpoRepo.ObrisiPoIzvoru(r.Context(), "prodaja", id); e != nil {
+			slog.Error("brisanje vezanog KPO zapisa nije uspelo", "prodaja_id", id, "error", e)
 		}
 	}
 
