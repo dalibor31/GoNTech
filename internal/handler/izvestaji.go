@@ -316,9 +316,11 @@ func (h *Handler) StanjeZalihaIzvestaj(w http.ResponseWriter, r *http.Request) {
 // PodaciPopisa su podaci za stranicu popisa
 type PodaciPopisa struct {
 	model.PodaciStranice
-	Artikli  []model.ArtikalSaKategorijom
-	Sacuvano bool
-	Greska   string
+	Artikli     []model.ArtikalSaKategorijom
+	Sacuvano    bool
+	Greska      string
+	TipPopisa   string // godišnji | vanredni | preuzimanje
+	DatumPopisa string // formatiran datum za prikaz
 }
 
 // Popis prikazuje formu za unos stvarnog stanja (inventuru)
@@ -327,7 +329,7 @@ func (h *Handler) Popis(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	artikli, err := h.Artikli.Lista(r.Context(), appdbPkg.ArtikalFilter{})
+	artikli, err := h.Artikli.Lista(r.Context(), appdbPkg.ArtikalFilter{Tip: model.TipProizvod})
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju artikala", http.StatusInternalServerError)
 		return
@@ -342,6 +344,8 @@ func (h *Handler) Popis(w http.ResponseWriter, r *http.Request) {
 		PodaciStranice: ps,
 		Artikli:        artikli,
 		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
+		TipPopisa:      "godišnji",
+		DatumPopisa:    time.Now().Format("02.01.2006."),
 	})
 }
 
@@ -357,15 +361,26 @@ func (h *Handler) SacuvajPopis(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	artikli, err := h.Artikli.Lista(r.Context(), appdbPkg.ArtikalFilter{})
+	artikli, err := h.Artikli.Lista(r.Context(), appdbPkg.ArtikalFilter{Tip: model.TipProizvod})
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju artikala", http.StatusInternalServerError)
 		return
 	}
 
+	tipPopisa := r.FormValue("tip_popisa")
+	if tipPopisa == "" {
+		tipPopisa = "godišnji"
+	}
 	napomena := r.FormValue("napomena")
 	if napomena == "" {
-		napomena = "Godišnji popis"
+		switch tipPopisa {
+		case "vanredni":
+			napomena = "Vanredni popis"
+		case "preuzimanje":
+			napomena = "Popis pri preuzimanju dužnosti"
+		default:
+			napomena = "Godišnji popis"
+		}
 	}
 
 	var greskaBroj int
@@ -413,6 +428,8 @@ func (h *Handler) SacuvajPopis(w http.ResponseWriter, r *http.Request) {
 			PodaciStranice: ps,
 			Artikli:        artikli,
 			Greska:         fmt.Sprintf("Došlo je do greške pri upisivanju %d artikala.", greskaBroj),
+			TipPopisa:      tipPopisa,
+			DatumPopisa:    time.Now().Format("02.01.2006."),
 		})
 		return
 	}
