@@ -47,3 +47,13 @@ type StavkaProdajeSaArtiklom struct {
 	JedinicaMere    string
 	KategorijaNaziv string
 }
+
+// DnevniPrometKir su zbrojeni iznosi maloprodaje za jedan dan, razvrstani po PDV stopi.
+// Koristi se za kreiranje zbirnog KIR zapisa (promet fizičkim licima).
+type DnevniPrometKir struct {
+	OsnovicaOpsta   float64 // neto suma po stopi 20%
+	PdvOpsta        float64
+	OsnovicaPosebna float64 // neto suma po stopi 10%
+	PdvPosebna      float64
+	BrojNaloga      int // ukupan broj prodajnih naloga taj dan
+}

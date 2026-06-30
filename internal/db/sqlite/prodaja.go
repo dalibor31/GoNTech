@@ -414,3 +414,47 @@ func (r *ProdajaRepo) Obrisi(ctx context.Context, id int64, korisnikID *int64) e
 
 	return nil
 }
+
+// DnevniPrometMaloprodaje vraća zbrojene iznose maloprodajnih stavki za zadati dan.
+// datum je string oblika "YYYY-MM-DD". Isključuje stornirane naloge i B2B (sa klijentom).
+func (r *ProdajaRepo) DnevniPrometMaloprodaje(ctx context.Context, datum string) (model.DnevniPrometKir, error) {
+	var p model.DnevniPrometKir
+
+	// broj naloga tog dana
+	err := r.db.QueryRowContext(ctx, `
+		SELECT COUNT(*) FROM prodajni_nalozi
+		WHERE klijent_id IS NULL AND stornirano = 0 AND DATE(datum) = ?`, datum,
+	).Scan(&p.BrojNaloga)
+	if err != nil {
+		return p, fmt.Errorf("ntech: ProdajaRepo.DnevniPrometMaloprodaje: count: %w", err)
+	}
+
+	// stavke grupisane po PDV stopi
+	redovi, err := r.db.QueryContext(ctx, `
+		SELECT s.pdv_stopa, SUM(s.ukupno), SUM(s.ukupno * s.pdv_stopa / 100.0)
+		FROM stavke_prodaje s
+		JOIN prodajni_nalozi p ON p.id = s.nalog_id
+		WHERE p.klijent_id IS NULL AND p.stornirano = 0 AND DATE(p.datum) = ?
+		GROUP BY s.pdv_stopa`, datum,
+	)
+	if err != nil {
+		return p, fmt.Errorf("ntech: ProdajaRepo.DnevniPrometMaloprodaje: query: %w", err)
+	}
+	defer redovi.Close()
+
+	for redovi.Next() {
+		var stopa, osnovica, pdv float64
+		if err := redovi.Scan(&stopa, &osnovica, &pdv); err != nil {
+			return p, fmt.Errorf("ntech: ProdajaRepo.DnevniPrometMaloprodaje: scan: %w", err)
+		}
+		switch {
+		case stopa >= 19.9 && stopa <= 20.1:
+			p.OsnovicaOpsta += osnovica
+			p.PdvOpsta += pdv
+		case stopa >= 9.9 && stopa <= 10.1:
+			p.OsnovicaPosebna += osnovica
+			p.PdvPosebna += pdv
+		}
+	}
+	return p, redovi.Err()
+}

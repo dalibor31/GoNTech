@@ -532,6 +532,59 @@ func (h *Handler) StornoProdaje(w http.ResponseWriter, r *http.Request) {
 	if err := h.PdvKirRepo.ObrisiPoIzvoru(r.Context(), "prodaja", id); err != nil {
 		slog.Error("brisanje vezanog KIR zapisa nije uspelo", "prodaja_id", id, "error", err)
 	}
+
+	// fiskalni refund — best-effort (storno ostaje validan i bez uspešnog refunda)
+	if h.modulUkljucen(r.Context(), config.ModulFiskalizacija) {
+		if fr, _ := h.FiskalRepo.DohvatiPoProdaji(r.Context(), id); fr != nil && !fr.Storniran {
+			if fk := h.fiskalKlijent(); fk != nil {
+				if nalogFisk, e := h.ProdajaRepo.DohvatiID(r.Context(), id); e == nil {
+					if stavkeFisk, e2 := h.ProdajaRepo.DohvatiStavke(r.Context(), id); e2 == nil {
+						kasirFisk, _ := sqlite.DohvatiPodesavanje(r.Context(), h.DB, "pfr_kasir")
+						if kasirFisk == "" {
+							kasirFisk = "NTech"
+						}
+						var pibFisk, jmbgFisk string
+						if nalogFisk.KlijentID != nil {
+							if kk, e3 := h.KlijentiRepo.DohvatiID(r.Context(), *nalogFisk.KlijentID); e3 == nil {
+								pibFisk, jmbgFisk = kk.PIB, kk.JMBG
+							}
+						}
+						zahtevFisk := fiskal.NapraviRefundZahtev(*nalogFisk, stavkeFisk, pibFisk, jmbgFisk, kasirFisk, fr.PfrBroj)
+						if odgFisk, errFisk := fk.IzdajRacun(r.Context(), zahtevFisk); errFisk != nil {
+							slog.Error("fiskalni refund nije uspeo", "prodaja_id", id, "error", errFisk)
+						} else {
+							poreskeJSON, _ := json.Marshal(odgFisk.TaxItems)
+							siroviJSON, _ := json.Marshal(odgFisk)
+							refundFr := &model.FiskalniRacun{
+								ProdajaID:         id,
+								TipRacuna:         "Normal",
+								TipTransakcije:    "Refund",
+								PfrBroj:           odgFisk.InvoiceNumber,
+								PfrVreme:          odgFisk.SdcDateTime,
+								Brojac:            odgFisk.InvoiceCounter,
+								EkstenzijaBrojaca: odgFisk.InvoiceCounterExtension,
+								UrlVerifikacija:   odgFisk.VerificationURL,
+								QRKod:             odgFisk.VerificationQRCode,
+								PoreskeStavke:     string(poreskeJSON),
+								UkupnoZaNaplatu:   odgFisk.TotalAmount,
+								UkupanPorez:       odgFisk.TotalTax,
+								SiroviOdgovor:     string(siroviJSON),
+								Potpisao:          odgFisk.SignedBy,
+								Zatrazio:          odgFisk.RequestedBy,
+								Poruka:            odgFisk.Messages,
+							}
+							if _, errFisk = h.FiskalRepo.Kreiraj(r.Context(), refundFr); errFisk != nil {
+								slog.Error("čuvanje fiskalnog refunda nije uspelo", "prodaja_id", id, "error", errFisk)
+							} else {
+								_ = h.FiskalRepo.OznačiKaoStorniran(r.Context(), fr.ID)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	http.Redirect(w, r, "/prodaja/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)
 }
 

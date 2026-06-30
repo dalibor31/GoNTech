@@ -1,0 +1,103 @@
+{{template "base" .}}
+
+{{define "naslov"}}Dnevni pazar — KIR unos — NTech{{end}}
+
+{{define "sadrzaj"}}
+<div class="stranica-stack" style="width:100%;max-width:640px;">
+
+    <a href="/pdv/kir" class="nazad-link" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Nazad na KIR
+    </a>
+
+    <!-- izbor datuma -->
+    <div class="kartica animiraj" style="margin-bottom:16px;">
+        <div class="kartica-naslov">Dnevni pazar — zbirni KIR unos</div>
+        <div style="padding:16px;">
+            <p style="font-size:13px;color:var(--tekst-sporedni);margin:0 0 16px;">
+                Unosi jedan zbirni KIR zapis za promet fizičkim licima (maloprodaja) za izabrani datum.
+                Iznosi se računaju iz fiskalizovanih prodajnih naloga bez klijenta.
+            </p>
+            <form method="GET" action="/pdv/kir/dnevni-pazar" style="display:flex;gap:10px;align-items:flex-end;">
+                <div>
+                    <label class="polje-labela">Datum</label>
+                    <input type="date" name="datum" value="{{.Datum}}" style="padding:8px 10px;border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <button type="submit" style="padding:8px 16px;background:var(--sb-aktivan);color:var(--tekst-jak);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;cursor:pointer;">Izračunaj</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- pregled iznosa -->
+    <div class="kartica animiraj" style="margin-bottom:16px;">
+        <div class="kartica-naslov">Iznosi za {{.Datum}} ({{.Promet.BrojNaloga}} naloga)</div>
+        <div style="padding:16px;">
+            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead>
+                    <tr style="color:var(--tekst-sporedni);border-bottom:0.5px solid var(--ivica);">
+                        <th style="padding:8px 0;text-align:left;">Stopa</th>
+                        <th style="padding:8px 0;text-align:right;">Osnovica (neto)</th>
+                        <th style="padding:8px 0;text-align:right;">PDV</th>
+                        <th style="padding:8px 0;text-align:right;">Bruto</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{if gt .Promet.OsnovicaOpsta 0.0}}
+                    <tr style="border-bottom:0.5px solid var(--ivica);">
+                        <td style="padding:8px 0;">Opšta 20%</td>
+                        <td style="padding:8px 0;text-align:right;">{{dinari .Promet.OsnovicaOpsta}}</td>
+                        <td style="padding:8px 0;text-align:right;">{{dinari .Promet.PdvOpsta}}</td>
+                        <td style="padding:8px 0;text-align:right;font-weight:600;">{{dinari (zbirF64 .Promet.OsnovicaOpsta .Promet.PdvOpsta)}}</td>
+                    </tr>
+                    {{end}}
+                    {{if gt .Promet.OsnovicaPosebna 0.0}}
+                    <tr style="border-bottom:0.5px solid var(--ivica);">
+                        <td style="padding:8px 0;">Posebna 10%</td>
+                        <td style="padding:8px 0;text-align:right;">{{dinari .Promet.OsnovicaPosebna}}</td>
+                        <td style="padding:8px 0;text-align:right;">{{dinari .Promet.PdvPosebna}}</td>
+                        <td style="padding:8px 0;text-align:right;font-weight:600;">{{dinari (zbirF64 .Promet.OsnovicaPosebna .Promet.PdvPosebna)}}</td>
+                    </tr>
+                    {{end}}
+                    {{if eq .Promet.BrojNaloga 0}}
+                    <tr>
+                        <td colspan="4" style="padding:16px 0;text-align:center;color:var(--tekst-sporedni);">Nema maloprodajnih naloga za ovaj datum.</td>
+                    </tr>
+                    {{end}}
+                </tbody>
+                {{if gt .Promet.BrojNaloga 0}}
+                <tfoot>
+                    <tr style="font-weight:700;border-top:0.5px solid var(--ivica);">
+                        <td style="padding:10px 0;">Ukupno</td>
+                        <td style="padding:10px 0;text-align:right;">{{dinari (zbirF64 .Promet.OsnovicaOpsta .Promet.OsnovicaPosebna)}}</td>
+                        <td style="padding:10px 0;text-align:right;">{{dinari (zbirF64 .Promet.PdvOpsta .Promet.PdvPosebna)}}</td>
+                        <td style="padding:10px 0;text-align:right;">{{dinari .Ukupno}}</td>
+                    </tr>
+                </tfoot>
+                {{end}}
+            </table>
+        </div>
+    </div>
+
+    {{if gt .Promet.BrojNaloga 0}}
+    <!-- forma za upis -->
+    <form method="POST" action="/pdv/kir/dnevni-pazar">
+        <input type="hidden" name="csrf_token" value="{{.CsrfToken}}">
+        <input type="hidden" name="datum" value="{{.Datum}}">
+        <input type="hidden" name="osnovica_opsta" value="{{printf "%.2f" .Promet.OsnovicaOpsta}}">
+        <input type="hidden" name="pdv_opsta" value="{{printf "%.2f" .Promet.PdvOpsta}}">
+        <input type="hidden" name="osnovica_posebna" value="{{printf "%.2f" .Promet.OsnovicaPosebna}}">
+        <input type="hidden" name="pdv_posebna" value="{{printf "%.2f" .Promet.PdvPosebna}}">
+        <div class="kartica animiraj">
+            <div style="padding:16px;display:flex;justify-content:flex-end;gap:12px;">
+                <a href="/pdv/kir" class="btn-sekundarno" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML">Odustani</a>
+                <button type="submit" class="btn-primarno"
+                    data-potvrda="Upisati dnevni pazar za {{.Datum}} u KIR?">
+                    Upiši u KIR
+                </button>
+            </div>
+        </div>
+    </form>
+    {{end}}
+
+</div>
+{{end}}

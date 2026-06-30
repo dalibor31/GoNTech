@@ -12,6 +12,8 @@ import (
 	"ntech/internal/middleware"
 	"ntech/internal/model"
 
+	"math"
+
 	"github.com/go-chi/chi/v5"
 )
 
@@ -243,5 +245,89 @@ func (h *Handler) KirBackfillProdaje(w http.ResponseWriter, r *http.Request) {
 	}
 
 	middleware.SetFlash(w, r, h.DB, "uspeh", fmt.Sprintf("Backfill završen: %d novih KIR zapisa, %d preskočeno.", kreirano, preskoceno))
+	http.Redirect(w, r, "/pdv/kir", http.StatusSeeOther)
+}
+
+// PodaciDnevniPazar su podaci za formu zbirnog KIR unosa (maloprodaja)
+type PodaciDnevniPazar struct {
+	model.PodaciStranice
+	Datum  string
+	Promet model.DnevniPrometKir
+	Ukupno float64
+}
+
+// DnevniPazarKir prikazuje formu za potvrdu zbirnog KIR unosa za izabrani datum.
+// Iznosi se računaju iz maloprodajnih naloga (bez klijenta) tog dana.
+func (h *Handler) DnevniPazarKir(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "pdv.dodaj"); !ok {
+		return
+	}
+	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
+		return
+	}
+
+	datum := strings.TrimSpace(r.URL.Query().Get("datum"))
+	if datum == "" {
+		datum = time.Now().Format("2006-01-02")
+	}
+
+	promet, err := h.ProdajaRepo.DnevniPrometMaloprodaje(r.Context(), datum)
+	if err != nil {
+		http.Error(w, "Greška pri računanju dnevnog prometa", http.StatusInternalServerError)
+		return
+	}
+
+	ukupno := math.Round((promet.OsnovicaOpsta+promet.PdvOpsta+promet.OsnovicaPosebna+promet.PdvPosebna)*100) / 100
+
+	ps := h.popuniPodaciStranice(r, podesavanja)
+	ps.Stranica = "pdv-kir"
+	ps.NaslovStranice = "Dnevni pazar — KIR unos"
+	h.renderujTemplate(w, "pdv_kir_dnevni_pazar", PodaciDnevniPazar{
+		PodaciStranice: ps,
+		Datum:          datum,
+		Promet:         promet,
+		Ukupno:         ukupno,
+	})
+}
+
+// SacuvajDnevniPazarKir prima POST i upisuje zbirni KIR zapis za dnevni pazar.
+func (h *Handler) SacuvajDnevniPazarKir(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "pdv.dodaj"); !ok {
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
+		return
+	}
+
+	datum, e1 := time.Parse("2006-01-02", strings.TrimSpace(r.FormValue("datum")))
+	if e1 != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Datum je obavezan.")
+		http.Redirect(w, r, "/pdv/kir/dnevni-pazar", http.StatusSeeOther)
+		return
+	}
+
+	z := model.PdvKir{
+		DatumPrometa:    datum,
+		DatumKnjizenja:  datum,
+		BrojDokumenta:   fmt.Sprintf("FISK-%s", datum.Format("20060102")),
+		KupacNaziv:      "Promet fizičkim licima",
+		OsnovicaOpsta:   parsiraIznos(r.FormValue("osnovica_opsta")),
+		PdvOpsta:        parsiraIznos(r.FormValue("pdv_opsta")),
+		OsnovicaPosebna: parsiraIznos(r.FormValue("osnovica_posebna")),
+		PdvPosebna:      parsiraIznos(r.FormValue("pdv_posebna")),
+		Napomena:        "Zbirni promet fizičkim licima — fiskalna kasa",
+		Izvor:           "rucno",
+	}
+	z.Ukupno = math.Round((z.OsnovicaOpsta+z.PdvOpsta+z.OsnovicaPosebna+z.PdvPosebna)*100) / 100
+
+	if _, err := h.PdvKirRepo.Kreiraj(r.Context(), &z); err != nil {
+		slog.Error("greška pri čuvanju dnevnog pazara u KIR", "datum", datum, "error", err)
+		http.Error(w, "Greška pri čuvanju zapisa", http.StatusInternalServerError)
+		return
+	}
+	middleware.SetFlash(w, r, h.DB, "uspeh", fmt.Sprintf("Dnevni pazar za %s upisan u KIR.", datum.Format("02.01.2006.")))
 	http.Redirect(w, r, "/pdv/kir", http.StatusSeeOther)
 }

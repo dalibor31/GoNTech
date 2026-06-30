@@ -62,10 +62,13 @@ func NapraviZahtev(
 		if s.PdvStopa > 0 {
 			stopa = s.PdvStopa
 		}
-		// CenaPoKomadu je neto cena — konvertujemo u bruto
+		// CenaPoKomadu je neto cena — konvertujemo u bruto; popust umanjuje neto cenu pre PDV-a
 		netoCena := s.CenaBezPdv
 		if netoCena == 0 {
-			netoCena = s.CenaPoKomadu // fallback: ako CenaBezPdv nije popunjena
+			netoCena = s.CenaPoKomadu
+		}
+		if s.PopustProcenat > 0 {
+			netoCena = math.Round(netoCena*(1-s.PopustProcenat/100)*100) / 100
 		}
 		brutoCena := BrutoCena(netoCena, stopa)
 		brutoTotal := math.Round(brutoCena*float64(s.Kolicina)*100) / 100
@@ -80,11 +83,8 @@ func NapraviZahtev(
 		ukupanIznos += brutoTotal
 	}
 
-	// Ukupno za plaćanje — iz naloga (bruto)
-	ukupnoPlacanje := nalog.Ukupno
-	if ukupnoPlacanje == 0 {
-		ukupnoPlacanje = ukupanIznos
-	}
+	// Ukupno za plaćanje je uvek suma bruto stavki (neto iz naloga bi bilo pogrešno)
+	ukupnoPlacanje := ukupanIznos
 
 	nacinPlacanja := nalog.NacinPlacanja
 	if nacinPlacanja == "" {
@@ -113,5 +113,18 @@ func NapraviZahtev(
 		zahtev.InvoiceRequest.BuyerID = "01:" + jmbg
 	}
 
+	return zahtev
+}
+
+// NapraviRefundZahtev gradi Refund zahtev za storno fiskalnog računa.
+// referentBroj je PfrBroj originalnog fiskalnog računa (invoiceNumber iz PFR odgovora).
+func NapraviRefundZahtev(
+	nalog model.ProdajniNalog,
+	stavke []model.StavkaProdajeSaArtiklom,
+	pib, jmbg, kasir, referentBroj string,
+) InvoiceRequest {
+	zahtev := NapraviZahtev(nalog, stavke, pib, jmbg, kasir)
+	zahtev.InvoiceRequest.TransactionType = "Refund"
+	zahtev.InvoiceRequest.ReferentDocumentNumber = referentBroj
 	return zahtev
 }

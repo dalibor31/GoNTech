@@ -223,6 +223,8 @@ type ProdajaRepository interface {
 	Storno(ctx context.Context, id int64, razlog string, korisnikID *int64) error
 	Obrisi(ctx context.Context, id int64, korisnikID *int64) error
 	SledeciBroj(ctx context.Context) (string, error)
+	// DnevniPrometMaloprodaje vraća zbir maloprodajnih stavki (bez klijenta) za zadati dan (YYYY-MM-DD).
+	DnevniPrometMaloprodaje(ctx context.Context, datum string) (model.DnevniPrometKir, error)
 }
 
 // ServisniDeloviRepository definiše operacije nad ugrađenim delovima u servisu
@@ -381,4 +383,5 @@ type FiskalRepository interface {
 	Kreiraj(ctx context.Context, fr *model.FiskalniRacun) (int64, error)
 	DohvatiPoProdaji(ctx context.Context, prodajaID int64) (*model.FiskalniRacun, error)
 	DohvatiPoServisu(ctx context.Context, servisID int64) (*model.FiskalniRacun, error)
+	OznačiKaoStorniran(ctx context.Context, id int64) error
 }

@@ -29,7 +29,7 @@ var saSidebar = []string{
 	"nabavke", "nabavka_forma", "nabavka_detalji",
 	"podesavanja", "podesavanja_opste", "podesavanja_izgled", "podesavanja_sistem", "podesavanja_servis", "podesavanja_fiskalizacija",
 	"pdv_stope",
-	"pdv_kir", "pdv_kir_forma",
+	"pdv_kir", "pdv_kir_forma", "pdv_kir_dnevni_pazar",
 	"pdv_kpr", "pdv_kpr_forma",
 	"pdv_obracun",
 	"nivelacije",
@@ -125,6 +125,8 @@ var sablonskeFunkcije = template.FuncMap{
 		}
 		return m, nil
 	},
+	// zbirF64 vraća zbir dva float64 — za aritmetiku u šablonima
+	"zbirF64": func(a, b float64) float64 { return a + b },
 }
 
 // KreirajKes parsuje sve šablone iz fsys i vraća ih keširane u mapi

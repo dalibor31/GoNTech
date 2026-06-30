@@ -114,3 +114,12 @@ func (r *FiskalRepo) DohvatiPoServisu(ctx context.Context, servisID int64) (*mod
 	fr.Storniran = storniran != 0
 	return fr, nil
 }
+
+// OznačiKaoStorniran postavlja storniran=1 za fiskalni račun sa datim ID-jem.
+func (r *FiskalRepo) OznačiKaoStorniran(ctx context.Context, id int64) error {
+	_, err := r.db.ExecContext(ctx, "UPDATE fiskalni_racuni SET storniran = 1 WHERE id = ?", id)
+	if err != nil {
+		return fmt.Errorf("ntech: FiskalRepo.OznačiKaoStorniran: %w", err)
+	}
+	return nil
+}
