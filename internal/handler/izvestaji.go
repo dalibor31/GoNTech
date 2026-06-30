@@ -413,7 +413,11 @@ func (h *Handler) SacuvajPopis(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		povecano := nova > a.Kolicina
-		if err := h.Artikli.KorigujKolicinu(r.Context(), a.ID, nova, &k.ID, napomena); err != nil {
+		tipPromene := model.PromenaManjak
+		if povecano {
+			tipPromene = model.PromenaVisak
+		}
+		if err := h.Artikli.KorigujKolicinu(r.Context(), a.ID, nova, &k.ID, napomena, tipPromene); err != nil {
 			slog.Error("popis: korekcija artikla", "id", a.ID, "error", err)
 			greskaBroj++
 			continue

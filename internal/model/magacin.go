@@ -9,6 +9,8 @@ const (
 	PromenaIzlazServis  = "izlaz_servis"
 	PromenaPovracaj     = "povracaj"
 	PromenaKorekcija    = "korekcija"
+	PromenaManjak       = "manjak_popis"
+	PromenaVisak        = "visak_popis"
 )
 
 // MagacinskaPromenaSaDetaljem je promena stanja artikla sa nazivom artikla

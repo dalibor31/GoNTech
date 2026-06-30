@@ -29,8 +29,8 @@ type ArtikalRepository interface {
 	Vrati(ctx context.Context, id int64) error
 	// SledecaSifra vraća predlog sledeće auto-šifre (npr. KOMP-0042 ili ART-0042)
 	SledecaSifra(ctx context.Context, kategorijaID *int64) (string, error)
-	// KorigujKolicinu postavlja novu količinu artikla i upisuje korekciju u magacinske_promene
-	KorigujKolicinu(ctx context.Context, artikalID int64, novaKolicina int, korisnikID *int64, napomena string) error
+	// KorigujKolicinu postavlja novu količinu artikla i upisuje promenu u magacinske_promene
+	KorigujKolicinu(ctx context.Context, artikalID int64, novaKolicina int, korisnikID *int64, napomena, tipPromene string) error
 	// DobavljaciArtikla vraća ID-jeve dobavljača vezanih za artikal
 	DobavljaciArtikla(ctx context.Context, artikalID int64) ([]int64, error)
 	// PostaviDobavljaceArtikla zamenjuje skup dobavljača artikla datim ID-jevima
@@ -152,7 +152,7 @@ type NabavkaRepository interface {
 	DohvatiStavke(ctx context.Context, nabavkaID int64) ([]model.StavkaSaArtiklom, error)
 	DohvatiTroskove(ctx context.Context, nabavkaID int64) ([]model.NabavkaTrosak, error)
 	Kreiraj(ctx context.Context, n *model.Nabavka, stavke []model.StavkaNabavke, troskovi []model.NabavkaTrosak, korisnikID *int64) (int64, error)
-	Obrisi(ctx context.Context, id int64, korisnikID *int64) error
+	Storno(ctx context.Context, id int64, razlog string, korisnikID *int64) error
 }
 
 // DobavljacRepository definiše operacije nad dobavljačima

@@ -37,7 +37,10 @@
                             {{.Datum.Format "02.01.2006."}}
                         </td>
                         <td style="padding:12px 16px;font-size:14px;font-weight:500;color:var(--tekst-glavni);">
-                            {{if .DobavljacNaziv}}{{.DobavljacNaziv}}{{else}}—{{end}}
+                            <span style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                                {{if .DobavljacNaziv}}{{.DobavljacNaziv}}{{else}}—{{end}}
+                                {{if .Stornirano}}<span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;background:rgba(220,38,38,0.12);color:#dc2626;">Stornirano</span>{{end}}
+                            </span>
                         </td>
                         <td style="padding:12px 16px;font-size:13px;color:var(--tekst-sporedni);">
                             {{if .Napomena}}{{.Napomena}}{{else}}—{{end}}
@@ -50,14 +53,6 @@
                                 <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/nabavke/{{.ID}}" class="btn-primarno-malo">
                                     Detalji
                                 </a>
-                                {{if index $.Dozvole "nabavka.obrisi"}}
-                                <form method="POST" action="/nabavke/obrisi/{{.ID}}" style="display:inline;">
-                                    <button type="submit" class="btn-obrisi-malo"
-                                        data-potvrda="Da li ste sigurni? Brisanje nabavke ne vraća količine artikala u magacin.">
-                                        Obriši
-                                    </button>
-                                </form>
-                                {{end}}
                             </div>
                         </td>
                     </tr>
@@ -79,8 +74,9 @@
         <div class="kartica nabavka-kartica animiraj">
             <div class="red-izmedju" style="align-items:flex-start;gap:12px;margin-bottom:10px;">
                 <div>
-                    <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">
+                    <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                         {{if .DobavljacNaziv}}{{.DobavljacNaziv}}{{else}}Bez dobavljača{{end}}
+                        {{if .Stornirano}}<span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;background:rgba(220,38,38,0.12);color:#dc2626;">Stornirano</span>{{end}}
                     </div>
                     <div style="font-size:12px;color:var(--tekst-sporedni);margin-top:2px;">
                         {{.Datum.Format "02.01.2006."}}
@@ -97,14 +93,6 @@
                 <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/nabavke/{{.ID}}" class="btn-primarno-malo" style="flex:1;justify-content:center;">
                     Detalji
                 </a>
-                {{if index $.Dozvole "nabavka.obrisi"}}
-                <form method="POST" action="/nabavke/obrisi/{{.ID}}" style="flex:1;">
-                    <button type="submit" class="btn-obrisi-malo" style="width:100%;justify-content:center;"
-                        data-potvrda="Da li ste sigurni? Brisanje nabavke ne vraća količine artikala u magacin.">
-                        Obriši
-                    </button>
-                </form>
-                {{end}}
             </div>
         </div>
         {{else}}

@@ -7,12 +7,14 @@ import (
 
 // Nabavka predstavlja zaglavlje jedne nabavke
 type Nabavka struct {
-	ID             int64
-	DobavljacID    *int64
-	Napomena       string
-	Ukupno         float64
-	MetodRaspodele string // "vrednost" ili "kolicina"; prazno = nema zavisnih troškova
-	Datum          time.Time
+	ID                int64
+	DobavljacID       *int64
+	Napomena          string
+	Ukupno            float64
+	MetodRaspodele    string // "vrednost" ili "kolicina"; prazno = nema zavisnih troškova
+	Stornirano        bool
+	RazlogStorniranja string
+	Datum             time.Time
 }
 
 // NabavkaTrosak je jedna stavka zavisnih troškova nabavke (npr. prevoz, carina)
