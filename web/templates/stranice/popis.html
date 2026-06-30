@@ -34,6 +34,64 @@
     .popis-suma-vrednost { font-weight: 600; font-family: monospace; font-size: 14px; }
     .boja-manjak { color: #dc2626; }
     .boja-visak  { color: #22c55e; }
+
+    /* ── MOBILNI (≤768px): tabela → kartice ──────────────────── */
+    @media (max-width: 768px) {
+        /* zaglavlje forme: Tip i Napomena u svoj red, jednake pune širine */
+        .popis-polje { width: 100%; }
+        #tip-popisa, #napomena-polje { width: 100% !important; }
+        #tip-popisa { padding-right: 28px; }
+
+        /* sakrij sporedne kolone i zbirni red (ukupno je u karticama ispod) */
+        #popis-tabela .kol-sek { display: none !important; }
+        #popis-tabela tfoot { display: none !important; }
+
+        /* svaki red postaje kartica, svaka ćelija je labela:vrednost */
+        #popis-tabela, #popis-tabela tbody, #popis-tabela tr, #popis-tabela td { display: block; width: auto; }
+        #popis-tabela thead { display: none; }
+        #popis-tabela tr {
+            border: 0.5px solid var(--ivica);
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-bottom: 10px;
+        }
+        #popis-tabela td {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            text-align: right !important;
+            padding: 5px 0 !important;
+            border: none !important;
+            font-size: 14px;
+        }
+        #popis-tabela td::before {
+            content: attr(data-label);
+            font-weight: 500;
+            color: var(--tekst-sporedni);
+            text-align: left;
+            white-space: nowrap;
+        }
+        /* prva ćelija (naziv) je naslov kartice */
+        #popis-tabela td.kart-naslov {
+            justify-content: flex-start;
+            text-align: left !important;
+            font-size: 15px;
+            font-weight: 600;
+            border-bottom: 0.5px solid var(--ivica) !important;
+            padding-bottom: 9px !important;
+            margin-bottom: 5px;
+        }
+        #popis-tabela td.kart-naslov::before { content: none; }
+        /* „Stvarno kol." input — bez spiner strelica (Firefox seče broj) */
+        .popis-input {
+            width: 130px;
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+        .popis-input::-webkit-outer-spin-button,
+        .popis-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    }
 </style>
 {{end}}
 
@@ -73,7 +131,7 @@
             <div style="padding:12px 20px;border-bottom:0.5px solid var(--ivica);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
                 <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Artikli</span>
                 <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-                    <div>
+                    <div class="popis-polje">
                         <label class="polje-labela" style="display:inline;margin-right:6px;">Tip:</label>
                         <select name="tip_popisa" id="tip-popisa" style="width:auto;height:auto;font-size:13px;padding:5px 28px 5px 8px;" onchange="azurirajNapomenu()">
                             <option value="godišnji"{{if eq .TipPopisa "godišnji"}} selected{{end}}>Godišnji</option>
@@ -81,7 +139,7 @@
                             <option value="preuzimanje"{{if eq .TipPopisa "preuzimanje"}} selected{{end}}>Preuzimanje dužnosti</option>
                         </select>
                     </div>
-                    <div>
+                    <div class="popis-polje">
                         <label class="polje-labela" style="display:inline;margin-right:6px;">Napomena:</label>
                         <input type="text" name="napomena" id="napomena-polje" value="Godišnji popis" style="width:220px;font-size:13px;padding:5px 8px;">
                     </div>
@@ -99,28 +157,28 @@
                     <thead>
                         <tr>
                             <th>Artikal</th>
-                            <th>Šifra</th>
-                            <th>Kategorija</th>
-                            <th style="text-align:right;">JM</th>
-                            <th style="text-align:right;">Nab. cena</th>
+                            <th class="kol-sek">Šifra</th>
+                            <th class="kol-sek">Kategorija</th>
+                            <th class="kol-sek" style="text-align:right;">JM</th>
+                            <th class="kol-sek" style="text-align:right;">Nab. cena</th>
                             <th style="text-align:right;">Knj. kol.</th>
-                            <th style="text-align:right;">Knj. vrednost</th>
+                            <th class="kol-sek" style="text-align:right;">Knj. vrednost</th>
                             <th style="text-align:right;">Stvarno kol.</th>
                             <th style="text-align:right;">Razlika kol.</th>
-                            <th style="text-align:right;">Razlika vrednost</th>
+                            <th class="kol-sek" style="text-align:right;">Razlika vrednost</th>
                         </tr>
                     </thead>
                     <tbody>
                     {{range .Artikli}}
                     <tr class="{{if le .Kolicina .KolicinMin}}red-kriticno{{end}}" id="red-{{.ID}}">
-                        <td style="font-weight:500;">{{.Naziv}}</td>
-                        <td style="font-family:monospace;font-size:12px;color:var(--tekst-slabi);">{{if .Sifra}}{{.Sifra}}{{else}}—{{end}}</td>
-                        <td style="font-size:12px;color:var(--tekst-slabi);">{{if .KategorijaNaziv}}{{.KategorijaNaziv}}{{else}}—{{end}}</td>
-                        <td style="text-align:right;font-size:12px;color:var(--tekst-slabi);">{{if .JedinicaMere}}{{.JedinicaMere}}{{else}}kom{{end}}</td>
-                        <td style="text-align:right;font-family:monospace;font-size:13px;">{{dinariCeli .NabavnaCena}}</td>
-                        <td style="text-align:right;font-family:monospace;font-weight:600;" id="knjizno-{{.ID}}">{{.Kolicina}}</td>
-                        <td style="text-align:right;font-family:monospace;font-size:13px;" id="knjvred-{{.ID}}">—</td>
-                        <td style="text-align:right;">
+                        <td class="kart-naslov" style="font-weight:500;">{{.Naziv}}</td>
+                        <td class="kol-sek" data-label="Šifra" style="font-family:monospace;font-size:12px;color:var(--tekst-slabi);">{{if .Sifra}}{{.Sifra}}{{else}}—{{end}}</td>
+                        <td class="kol-sek" data-label="Kategorija" style="font-size:12px;color:var(--tekst-slabi);">{{if .KategorijaNaziv}}{{.KategorijaNaziv}}{{else}}—{{end}}</td>
+                        <td class="kol-sek" data-label="JM" style="text-align:right;font-size:12px;color:var(--tekst-slabi);">{{if .JedinicaMere}}{{.JedinicaMere}}{{else}}kom{{end}}</td>
+                        <td class="kol-sek" data-label="Nab. cena" style="text-align:right;font-family:monospace;font-size:13px;">{{dinariCeli .NabavnaCena}}</td>
+                        <td data-label="Knj. kol." style="text-align:right;font-family:monospace;font-weight:600;" id="knjizno-{{.ID}}">{{.Kolicina}}</td>
+                        <td class="kol-sek" data-label="Knj. vrednost" style="text-align:right;font-family:monospace;font-size:13px;" id="knjvred-{{.ID}}">—</td>
+                        <td data-label="Stvarno kol." style="text-align:right;">
                             <input type="number"
                                 class="popis-input"
                                 name="kolicina_{{.ID}}"
@@ -132,10 +190,10 @@
                                 data-id="{{.ID}}"
                                 oninput="azurirajRed(this)">
                         </td>
-                        <td style="text-align:right;">
+                        <td data-label="Razlika kol." style="text-align:right;">
                             <span class="popis-razlika" id="razlika-{{.ID}}">—</span>
                         </td>
-                        <td style="text-align:right;">
+                        <td class="kol-sek" data-label="Razlika vrednost" style="text-align:right;">
                             <span class="popis-vrednost-razlika" id="vrazlika-{{.ID}}">—</span>
                         </td>
                     </tr>
