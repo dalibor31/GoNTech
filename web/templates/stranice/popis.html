@@ -93,41 +93,119 @@
         .popis-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     }
 
-    /* ── ŠTAMPA: A4 landscape, bez skrolbara, sve u širinu ───────
+    /* ── ŠTAMPA: A4 landscape, fiksni layout, NE responsive ───────
        Print poništava mobilne kartice (!important) — i sa telefona
        se štampa A4 tabela, ne prilagođava se ekranu. */
     @media print {
-        @page { size: A4 landscape; margin: 12mm 10mm; }
+        @page { size: A4 landscape; margin: 10mm 8mm; }
 
-        /* sakrij sve sem tabele */
-        .sidebar, .topbar, .popis-akcije, .btn-primarno, .btn-sekundarno,
-        .nazad-link, .poruka-uspeh, .poruka-greska, .popis-suma { display: none !important; }
+        /* ── resetuj pozadinu i boje (dark tema + glass efekti) ── */
+        html, body, .raspored, .glavni-sadrzaj, .sadrzaj, main, .kolona,
+        .kartica, .kartica div, .kartica p, .kartica span, .kartica label {
+            background: #fff !important;
+            color: #111 !important;
+            text-shadow: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+        }
+        html { background: #fff !important; }
+        body { min-width: 780px; font-size: 12px; }
+        body::before, body::after { display: none !important; }
+        .raspored { position: static !important; z-index: auto !important; }
+        .glavni-sadrzaj { margin-left: 0 !important; }
+        .sadrzaj { padding: 0 !important; max-width: none !important; }
 
-        /* ništa ne sme da seče/skroluje → nema skrolbara */
+        /* sakrij hrom */
+        .sidebar, .sidebar-overlay, .topbar, #hamburger,
+        .btn-primarno, .btn-sekundarno, .nazad-link,
+        .poruka-uspeh, .poruka-greska, .flash-toast,
+        #potvrda-modal, .dugme-stampa, .popis-suma { display: none !important; }
+
+        /* sakrij info karticu (uputstvo) */
+        .popis-info-kartica { display: none !important; }
+
+        /* sakrij okvire forme koji nisu tabela */
+        .popis-forma-zaglavlje,
+        .popis-forma-sumarno,
+        .popis-forma-dugme { display: none !important; }
+
+        /* ništa ne sme da seče/skroluje */
         * { overflow: visible !important; }
 
+        /* zaglavlje štampe — naziv firme, datum, tip popisa */
+        .stampa-zaglavlje { display: block !important; }
+
         /* vrati tabelu iz kartica (mobilni) nazad u pravu tabelu */
-        #popis-tabela { display: table !important; width: 100% !important; table-layout: fixed; border-collapse: collapse; font-size: 9px; }
+        #popis-tabela {
+            display: table !important;
+            width: 100% !important;
+            border-collapse: collapse;
+            font-size: 10px;
+        }
         #popis-tabela thead { display: table-header-group !important; }
         #popis-tabela tbody { display: table-row-group !important; }
-        #popis-tabela tr { display: table-row !important; border: none !important; padding: 0 !important; margin: 0 !important; }
-        #popis-tabela th, #popis-tabela td {
-            display: table-cell !important;
-            border: 0.5px solid #999 !important;
-            padding: 3px 4px !important;
-            text-align: right !important;
-            font-size: 9px !important;
-            word-break: break-word;
+        #popis-tabela tfoot { display: table-footer-group !important; }
+        #popis-tabela tr {
+            display: table-row !important;
+            border: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            break-inside: avoid;
         }
-        #popis-tabela td.kart-naslov { text-align: left !important; font-size: 9px !important; font-weight: 500 !important; }
+        #popis-tabela th {
+            display: table-cell !important;
+            border: 0.5px solid #888 !important;
+            padding: 4px 6px !important;
+            font-size: 9px !important;
+            font-weight: 600 !important;
+            text-align: center !important;
+            background: #f0f0f0 !important;
+            color: #111 !important;
+        }
+        #popis-tabela th:first-child { text-align: left !important; }
+        #popis-tabela td {
+            display: table-cell !important;
+            border: 0.5px solid #ccc !important;
+            padding: 3px 6px !important;
+            text-align: right !important;
+            font-size: 10px !important;
+            color: #111 !important;
+        }
+        #popis-tabela td.kart-naslov {
+            text-align: left !important;
+            font-size: 10px !important;
+            font-weight: 500 !important;
+        }
         #popis-tabela td::before, #popis-tabela th::before { content: none !important; }
-        .popis-input { border: none !important; background: transparent !important; width: auto !important; padding: 0 !important; font-size: 9px !important; }
+
+        /* inputi — izgledaju kao običan tekst */
+        .popis-input {
+            -moz-appearance: textfield !important;
+            appearance: textfield !important;
+            border: none !important;
+            background: transparent !important;
+            width: auto !important;
+            max-width: 60px !important;
+            padding: 0 !important;
+            font-size: 10px !important;
+            color: #111 !important;
+            text-align: right !important;
+        }
+
+        /* sakrij labele iz zaglavlja forme (Tip, Napomena) */
+        .popis-polje, form .polje-labela { display: none !important; }
     }
 </style>
 {{end}}
 
 {{define "sadrzaj"}}
 <div class="kolona" style="gap:16px;">
+
+    <!-- zaglavlje štampe (skriveno na ekranu, vidljivo pri štampi) -->
+    <div class="stampa-zaglavlje" style="display:none;padding:0;margin-bottom:14px;">
+        <div style="font-size:16px;font-weight:700;margin-bottom:2px;">{{.NazivFirme}}</div>
+        <div style="font-size:11px;color:#555;">Popis magacina — {{.TipPopisaNaziv}} &nbsp;|&nbsp; Datum: {{.DatumPopisa}} &nbsp;|&nbsp; Sačinio: {{.KorisnikIme}}</div>
+    </div>
 
     {{if .Sacuvano}}
     <div class="poruka-uspeh poruka-animacija">Popis je uspešno sačuvan. Korekcije su upisane u magacinsku evidenciju.</div>
@@ -137,7 +215,7 @@
     {{end}}
 
     <!-- uputstvo -->
-    <div class="kartica animiraj" style="padding:14px 18px;">
+    <div class="kartica animiraj popis-info-kartica" style="padding:14px 18px;">
         <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
             <div style="flex:1;min-width:260px;">
                 <div style="font-size:14px;font-weight:500;color:var(--tekst-glavni);margin-bottom:4px;">Popis magacina</div>
@@ -162,7 +240,7 @@
         <input type="hidden" name="csrf_token" value="{{.CsrfToken}}">
 
         <div class="kartica animiraj" style="padding:0;overflow:hidden;">
-            <div style="padding:12px 20px;border-bottom:0.5px solid var(--ivica);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+            <div style="padding:12px 20px;border-bottom:0.5px solid var(--ivica);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;" class="popis-forma-zaglavlje">
                 <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Artikli</span>
                 <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
                     <div class="popis-polje">
@@ -247,7 +325,7 @@
             </div>
 
             <!-- sumarni pregled manjkova/viškova -->
-            <div style="padding:14px 20px;border-top:0.5px solid var(--ivica);">
+            <div class="popis-forma-sumarno" style="padding:14px 20px;border-top:0.5px solid var(--ivica);">
                 <div class="popis-suma">
                     <div class="popis-suma-stavka">
                         <span class="popis-suma-labela">Manjkovi (kom)</span>
@@ -269,7 +347,7 @@
             </div>
 
             <!-- dugme na dnu -->
-            <div style="padding:14px 20px;border-top:0.5px solid var(--ivica);display:flex;justify-content:flex-end;">
+            <div class="popis-forma-dugme" style="padding:14px 20px;border-top:0.5px solid var(--ivica);display:flex;justify-content:flex-end;">
                 <button type="submit" class="btn-primarno">Sačuvaj popis</button>
             </div>
             {{end}}

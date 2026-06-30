@@ -316,11 +316,12 @@ func (h *Handler) StanjeZalihaIzvestaj(w http.ResponseWriter, r *http.Request) {
 // PodaciPopisa su podaci za stranicu popisa
 type PodaciPopisa struct {
 	model.PodaciStranice
-	Artikli     []model.ArtikalSaKategorijom
-	Sacuvano    bool
-	Greska      string
-	TipPopisa   string // godišnji | vanredni | preuzimanje
-	DatumPopisa string // formatiran datum za prikaz
+	Artikli        []model.ArtikalSaKategorijom
+	Sacuvano       bool
+	Greska         string
+	TipPopisa      string // godišnji | vanredni | preuzimanje
+	TipPopisaNaziv string // „Godišnji popis", „Vanredni popis", „Popis pri preuzimanju dužnosti"
+	DatumPopisa    string // formatiran datum za prikaz
 }
 
 // Popis prikazuje formu za unos stvarnog stanja (inventuru)
@@ -339,14 +340,28 @@ func (h *Handler) Popis(w http.ResponseWriter, r *http.Request) {
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "izvestaji"
 	ps.NaslovStranice = "Popis"
+	tp := "godišnji"
 
 	h.renderujTemplate(w, "popis", PodaciPopisa{
 		PodaciStranice: ps,
 		Artikli:        artikli,
 		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
-		TipPopisa:      "godišnji",
+		TipPopisa:      tp,
+		TipPopisaNaziv: tipPopisaNaziv(tp),
 		DatumPopisa:    time.Now().Format("02.01.2006."),
 	})
+}
+
+// tipPopisaNaziv vraća lokalizovani naziv za tip popisa
+func tipPopisaNaziv(tp string) string {
+	switch tp {
+	case "vanredni":
+		return "Vanredni popis"
+	case "preuzimanje":
+		return "Popis pri preuzimanju dužnosti"
+	default:
+		return "Godišnji popis"
+	}
 }
 
 // SacuvajPopis prima POST formu sa prebrojenim količinama i upisuje korekcije
@@ -429,6 +444,7 @@ func (h *Handler) SacuvajPopis(w http.ResponseWriter, r *http.Request) {
 			Artikli:        artikli,
 			Greska:         fmt.Sprintf("Došlo je do greške pri upisivanju %d artikala.", greskaBroj),
 			TipPopisa:      tipPopisa,
+			TipPopisaNaziv: tipPopisaNaziv(tipPopisa),
 			DatumPopisa:    time.Now().Format("02.01.2006."),
 		})
 		return
