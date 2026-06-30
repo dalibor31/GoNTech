@@ -159,7 +159,7 @@ document.addEventListener('alpine:init', () => {
             ).slice(0, 30)
         },
         dodajStavku() {
-            this.stavke.push({artikal_id: '', kolicina: 1, cena: 0, cena_sa_pdv: 0, pdv_stopa: 20, popust: 0, kategorija_naziv: ''})
+            this.stavke.push({artikal_id: '', kolicina: 1, cena: 0, cena_sa_pdv: 0, pdv_stopa: this.pdvObveznik ? 20 : 0, popust: 0, kategorija_naziv: ''})
         },
         ukloniStavku(i) {
             if (this.stavke.length > 1) this.stavke.splice(i, 1)
@@ -167,14 +167,16 @@ document.addEventListener('alpine:init', () => {
         popuniCenu(stavka) {
             const a = this.artikliOpcije.find(x => x.id == stavka.artikal_id)
             if (a) {
-                stavka.cena = a.cena || 0
                 stavka.cena_sa_pdv = a.cena_sa_pdv || 0
-                stavka.pdv_stopa = a.pdv_stopa !== undefined ? a.pdv_stopa : 20
                 stavka.kategorija_naziv = a.kategorija_naziv || ''
+                if (this.pdvObveznik) {
+                    stavka.cena = a.cena || 0
+                    stavka.pdv_stopa = a.pdv_stopa !== undefined ? a.pdv_stopa : 20
+                } else {
+                    stavka.cena = a.cena_sa_pdv || a.cena || 0
+                    stavka.pdv_stopa = 0
+                }
             }
-        },
-        prikaziCenu(stavka) {
-            return this.pdvObveznik ? (stavka.cena || 0) : (stavka.cena_sa_pdv || stavka.cena || 0)
         },
         dostupnaKolicina(i) {
             const stavka = this.stavke[i]

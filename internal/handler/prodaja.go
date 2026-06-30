@@ -189,6 +189,13 @@ func (h *Handler) SacuvajProdaju(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// za firme koje nisu PDV obveznici prisilno nulliraj PDV stopu (odbrana od klijentske greške)
+	if !h.modulUkljucen(r.Context(), "pdv") {
+		for i := range stavke {
+			stavke[i].PdvStopa = 0
+		}
+	}
+
 	brojNaloga, err := h.ProdajaRepo.SledeciBroj(r.Context())
 	if err != nil {
 		slog.Error("greška pri generisanju broja naloga", "error", err)
