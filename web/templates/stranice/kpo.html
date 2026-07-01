@@ -22,7 +22,7 @@
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
                 {{if index .Dozvole "kpo.dodaj"}}
                 <form method="POST" action="/kpo/backfill" data-full-reload>
-                    <input type="hidden" name="csrf_token" value="{{.CsrfToken}}">
+                    <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
                     <button type="submit" class="btn-sekundarno" style="font-size:13px;padding:8px 16px;white-space:nowrap;"
                         data-potvrda="Uvesti sve prodaje i naplaćene servisne naloge koji još nisu u KPO-u?">
                         Uvezi postojeće
@@ -86,7 +86,7 @@
                         {{if index $.Dozvole "kpo.obrisi"}}
                         {{if eq $z.Izvor "rucno"}}
                         <form method="POST" action="/kpo/obrisi/{{$z.ID}}" style="display:inline;" data-full-reload>
-                            <input type="hidden" name="csrf_token" value="{{$.CsrfToken}}">
+                            <input type="hidden" name="_csrf" value="{{$.CsrfToken}}">
                             <button type="submit" class="btn-opasno-mali"
                                 data-potvrda="Obrisati ovaj KPO unos?">Obriši</button>
                         </form>

@@ -27,7 +27,7 @@
                     Dnevni pazar
                 </a>
                 <form method="POST" action="/pdv/kir/backfill-prodaje" data-full-reload>
-                    <input type="hidden" name="csrf_token" value="{{.CsrfToken}}">
+                    <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
                     <button type="submit" class="btn-sekundarno" style="font-size:13px;padding:8px 16px;white-space:nowrap;"
                         data-potvrda="Uvesti sve B2B prodaje koje još nisu u KIR-u?">
                         Uvezi iz prodaje

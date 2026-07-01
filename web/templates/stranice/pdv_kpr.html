@@ -23,7 +23,7 @@
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
                 {{if index .Dozvole "pdv.dodaj"}}
                 <form method="POST" action="/pdv/kpr/backfill-nabavke" data-full-reload>
-                    <input type="hidden" name="csrf_token" value="{{.CsrfToken}}">
+                    <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
                     <button type="submit" class="btn-sekundarno" style="font-size:13px;padding:8px 16px;white-space:nowrap;"
                         data-potvrda="Uvesti sve nabavke koje još nisu u KPR-u?">
                         Uvezi iz nabavki

@@ -15,7 +15,7 @@
         <h2 style="margin:0 0 20px;font-size:18px;">Novi KPO unos</h2>
 
         <form method="POST" action="/kpo/nova">
-            <input type="hidden" name="csrf_token" value="{{.CsrfToken}}">
+            <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
 
             <div class="polje-grupa" style="margin-bottom:16px;">
                 <label class="polje-labela">Datum prometa *</label>

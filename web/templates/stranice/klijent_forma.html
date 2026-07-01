@@ -38,7 +38,7 @@
         {{end}}
 
         <form method="POST" action="{{if .Izmena}}/klijenti/izmeni/{{.Klijent.ID}}{{else}}/klijenti/novi{{end}}">
-            <input type="hidden" name="csrf_token" value="{{.CsrfToken}}">
+            <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
             <div class="forma-kolona">
 
                 <!-- tip klijenta -->
