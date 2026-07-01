@@ -137,6 +137,7 @@ document.addEventListener('alpine:init', () => {
     // forma za prodaju
     Alpine.data('prodajaForma', () => ({
         stavke: [{artikal_id: '', kolicina: 1, cena: 0, cena_sa_pdv: 0, pdv_stopa: 20, popust: 0, kategorija_naziv: '', _naziv: '', _pretraga: '', _prikaziListu: false, _limit: 30}],
+        zbirnoHover: false,
         artikliOpcije: [],
         pretragaArtikal: '',
         pdvObveznik: true,
@@ -257,10 +258,19 @@ document.addEventListener('alpine:init', () => {
                 poslednja._prikaziListu = true
                 return
             }
-            this.stavke.push({artikal_id: '', kolicina: 1, cena: 0, cena_sa_pdv: 0, pdv_stopa: this.pdvObveznik ? 20 : 0, popust: 0, kategorija_naziv: '', _naziv: '', _pretraga: '', _prikaziListu: false, _limit: 30})
+            this.stavke.push(this.novaStavka())
+        },
+        novaStavka() {
+            return {artikal_id: '', kolicina: 1, cena: 0, cena_sa_pdv: 0, pdv_stopa: this.pdvObveznik ? 20 : 0, popust: 0, kategorija_naziv: '', _naziv: '', _pretraga: '', _prikaziListu: false, _limit: 30}
         },
         ukloniStavku(i) {
-            if (this.stavke.length > 1) this.stavke.splice(i, 1)
+            this.stavke.splice(i, 1)
+            // ne ostavljaj tabelu bez ijednog reda — korisnik uvek treba prazan red spreman za unos.
+            // $nextTick: ako se novi red doda u istom tiku kad je poslednji obrisan, Alpine ume da
+            // pogrešno recikliše DOM čvor istog x-for ključa (indeksa) i ostavi zastarele x-show/x-text.
+            if (this.stavke.length === 0) {
+                this.$nextTick(() => this.stavke.push(this.novaStavka()))
+            }
         },
         izaberiArtikal(stavka, a) {
             stavka.artikal_id = a.id
@@ -269,6 +279,11 @@ document.addEventListener('alpine:init', () => {
             stavka._prikaziListu = false
             stavka._limit = 30
             this.popuniCenu(stavka)
+            // ako je ovo bila poslednja (i sad popunjena) stavka, odmah dodaj sledeći prazan red
+            // da korisnik ne mora ručno da klikne "+ Dodaj stavku" pri unosu više artikala zaredom
+            if (this.stavke[this.stavke.length - 1] === stavka) {
+                this.stavke.push(this.novaStavka())
+            }
         },
         promeniArtikal(stavka) {
             stavka.artikal_id = ''
@@ -292,7 +307,7 @@ document.addEventListener('alpine:init', () => {
                 return
             }
             const prazna = this.stavke.find(s => !s.artikal_id)
-            const stavka = prazna || this.stavke[this.stavke.push({artikal_id: '', kolicina: 1, cena: 0, cena_sa_pdv: 0, pdv_stopa: this.pdvObveznik ? 20 : 0, popust: 0, kategorija_naziv: '', _naziv: '', _pretraga: '', _prikaziListu: false, _limit: 30}) - 1]
+            const stavka = prazna || this.stavke[this.stavke.push(this.novaStavka()) - 1]
             this.izaberiArtikal(stavka, a)
         },
         popuniCenu(stavka) {
@@ -329,8 +344,18 @@ document.addEventListener('alpine:init', () => {
         imaPrekoracenja() {
             return this.stavke.some((_, i) => this.prekoracenje(i))
         },
-        imaPraznihStavki() {
-            return this.stavke.some(s => !s.artikal_id)
+        imaPopunjenuStavku() {
+            return this.stavke.some(s => s.artikal_id)
+        },
+        // stavkaImaVrednost — koristi se za prikaz dugmeta "Ukloni" (skriven na praznom redu bez vrednosti)
+        stavkaImaVrednost(stavka) {
+            return (Number(this.ukupnoStavke(stavka)) || 0) > 0
+        },
+        // posaljiProdaju uklanja prazne stavke (npr. automatski dodat red na kraju koji korisnik
+        // nije popunio) pre nego što se forma stvarno pošalje na server
+        posaljiProdaju(e) {
+            this.stavke = this.stavke.filter(s => s.artikal_id)
+            this.$nextTick(() => e.target.submit())
         },
         ukupnoStavke(s) {
             const cena = parseFloat(s.cena) || 0
@@ -345,13 +370,6 @@ document.addEventListener('alpine:init', () => {
                 const cenaPosle = popust > 0 ? cena * (1 - popust/100) : cena
                 return z + (parseFloat(s.kolicina) * cenaPosle || 0)
             }, 0).toFixed(2)
-        },
-        // pdvIznosStavke vraća PDV sadržan u ceni po komadu (cena je bruto — PDV se izdvaja naniže)
-        pdvIznosStavke(s) {
-            const cena = parseFloat(s.cena) || 0
-            const stopa = parseFloat(s.pdv_stopa) || 0
-            if (!stopa) return 0
-            return cena - cena / (1 + stopa / 100)
         },
         osnovicaSvega() {
             return this.stavke.reduce((z, s) => {
