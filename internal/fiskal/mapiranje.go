@@ -2,6 +2,7 @@ package fiskal
 
 import (
 	"math"
+	"strings"
 
 	"ntech/internal/model"
 )
@@ -28,18 +29,20 @@ func BrutoCena(neto, stopa float64) float64 {
 	return math.Round(neto*(1+stopa/100)*100) / 100
 }
 
-// TipPlacanja mapira NTech način plaćanja na Teron enumeraciju.
+// TipPlacanja mapira NTech način plaćanja na Teron enumeraciju. Poredi bez obzira
+// na velika/mala slova jer Prodaja čuva nazive malim slovima ("gotovina", "kartica",
+// "prenos"), a Servis velikim ("Gotovina", "Kartica", "Virman").
 func TipPlacanja(nacin string) string {
-	switch nacin {
-	case "Gotovina":
+	switch strings.ToLower(nacin) {
+	case "gotovina":
 		return "Cash"
-	case "Kartica":
+	case "kartica":
 		return "Card"
-	case "Virman", "Račun":
+	case "virman", "račun", "racun", "prenos":
 		return "WireTransfer"
-	case "Ček":
+	case "ček", "cek":
 		return "Check"
-	case "Vaučer":
+	case "vaučer", "vaucer":
 		return "Voucher"
 	default:
 		return "Other"

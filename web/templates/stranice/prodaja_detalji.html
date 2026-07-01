@@ -255,6 +255,9 @@
         <form method="POST" action="/prodaja/storno/{{.Nalog.ID}}" style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
           <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
           <input type="text" name="razlog" placeholder="Razlog storniranja (opciono)" style="width:240px;">
+          {{if .PotrebnaIdentKupca}}
+          <input type="text" name="poreski_broj_kupca" placeholder="PIB ili JMBG kupca (obavezno za refundaciju)" required style="width:240px;">
+          {{end}}
           <button type="submit" class="btn-upozorenje"
             data-potvrda="Stornirati nalog {{.Nalog.BrojNaloga}}?">
             Storniraj nalog
@@ -311,8 +314,11 @@
             Nalog će biti storniran (vraća artikle na stanje) i označen kao uklonjen. Ne briše se fizički — ostaje u evidenciji.
           </div>
         </div>
-        <form method="POST" action="/prodaja/obrisi/{{.Nalog.ID}}">
+        <form method="POST" action="/prodaja/obrisi/{{.Nalog.ID}}" style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
           <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+          {{if .PotrebnaIdentKupca}}
+          <input type="text" name="poreski_broj_kupca" placeholder="PIB ili JMBG kupca (obavezno za refundaciju)" required style="width:240px;">
+          {{end}}
           <button type="submit" class="btn-upozorenje"
             data-potvrda="Stornirati nalog {{.Nalog.BrojNaloga}}? Količine artikala biće vraćene na stanje.">
             Ukloni nalog
