@@ -281,10 +281,19 @@
         window._ntechPotvrdi = prikaziModal;
     })();
 
-    // toast obaveštenja — prikazuje poruku u uglu ekrana, nestaje posle 4s
+    // toast obaveštenja — prikazuje poruku u uglu ekrana, nestaje posle 4s.
+    // Više poziva u kratkom vremenu (npr. auto-snimanje više polja zaredom)
+    // slaže toastove jedan iznad drugog preko zajedničkog kontejnera, umesto
+    // da se svi iscrtaju na istoj fiksnoj poziciji jedan preko drugog.
     window.ntechToast = function(tekst, tip) {
+        var kontejner = document.getElementById('ntech-toast-kontejner');
+        if (!kontejner) {
+            kontejner = document.createElement('div');
+            kontejner.id = 'ntech-toast-kontejner';
+            document.body.appendChild(kontejner);
+        }
         var t = document.createElement('div');
-        t.className = 'toast ' + (tip === 'greska' ? 'toast-greska' : 'toast-uspeh');
+        t.className = 'toast toast-u-nizu ' + (tip === 'greska' ? 'toast-greska' : 'toast-uspeh');
         // ikonica
         var svg = tip === 'greska'
             ? '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
@@ -295,10 +304,7 @@
         var tekstSpan = document.createElement('span');
         tekstSpan.textContent = tekst;
         t.appendChild(tekstSpan);
-        // prilagođavamo poziciju za mobilne uređaje
-        t.style.bottom = '24px';
-        t.style.right = '16px';
-        document.body.appendChild(t);
+        kontejner.appendChild(t);
         var ukloni = function() {
             t.classList.add('nestaje');
             setTimeout(function() { if (t.parentNode) t.parentNode.removeChild(t); }, 320);
