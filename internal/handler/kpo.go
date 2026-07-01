@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	appdb "ntech/internal/db"
 	"ntech/internal/db/sqlite"
 	"ntech/internal/middleware"
 	"ntech/internal/model"
@@ -163,7 +164,7 @@ func (h *Handler) KpoBackfill(w http.ResponseWriter, r *http.Request) {
 	var kreirano, preskoceno int
 
 	// prodajni nalozi
-	nalozi, err := h.ProdajaRepo.Lista(ctx, "")
+	nalozi, err := h.ProdajaRepo.Lista(ctx, appdb.ProdajaFilter{})
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju prodaje", http.StatusInternalServerError)
 		return

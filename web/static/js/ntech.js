@@ -141,8 +141,69 @@ document.addEventListener('alpine:init', () => {
         pretragaArtikal: '',
         pdvObveznik: true,
         isMobile: false,
+        klijenti: [],
+        tipKlijentaFilter: 'sve',
+        pretragaKlijent: '',
+        prikaziListuKlijenata: false,
+        izabraniKlijent: null,
+        izabraniKlijentId: 0,
+        limitKlijenata: 30,
+        jeTipKlijenta(t) {
+            return this.tipKlijentaFilter === t
+        },
+        klasaTipKlijenta(t) {
+            return this.jeTipKlijenta(t) ? 'tip-klijenta-opcija-akt' : ''
+        },
+        postaviTipKlijenta(t) {
+            this.tipKlijentaFilter = t
+            this.limitKlijenata = 30
+        },
+        pretragaKlijentPromenjena() {
+            this.prikaziListuKlijenata = true
+            this.limitKlijenata = 30
+        },
+        // svi klijenti koji odgovaraju filteru/pretrazi (bez ograničenja) — koristi se
+        // da lista zna da li ima još rezultata za dogruzavanje
+        get svihFiltriranihKlijenata() {
+            const q = this.pretragaKlijent.trim().toLowerCase()
+            return this.klijenti.filter(k => {
+                if (this.tipKlijentaFilter !== 'sve' && k.tip !== this.tipKlijentaFilter) return false
+                if (q === '') return true
+                return (k.naziv || '').toLowerCase().includes(q)
+            })
+        },
+        get filtriraniKlijenti() {
+            return this.svihFiltriranihKlijenata.slice(0, this.limitKlijenata)
+        },
+        get imaJosKlijenata() {
+            return this.limitKlijenata < this.svihFiltriranihKlijenata.length
+        },
+        ucitajViseKlijenata(e) {
+            const el = e.target
+            if (el.scrollTop + el.clientHeight >= el.scrollHeight - 40 && this.imaJosKlijenata) {
+                this.limitKlijenata += 30
+            }
+        },
+        izaberiKlijenta(k) {
+            this.izabraniKlijent = k
+            this.izabraniKlijentId = k.id
+            this.pretragaKlijent = ''
+            this.prikaziListuKlijenata = false
+        },
+        ocistiKlijenta() {
+            this.izabraniKlijent = null
+            this.izabraniKlijentId = 0
+        },
+        detaljKlijenta(k) {
+            if (!k) return ''
+            const d = []
+            if (k.mesto) d.push(k.mesto)
+            if (k.telefon) d.push(k.telefon)
+            return d.join(' · ')
+        },
         init() {
             this.artikliOpcije = window._ntechArtikli || []
+            this.klijenti = window._ntechKlijenti || []
             this.pdvObveznik = window._ntechPdvObveznik === true
             this.isMobile = window.matchMedia('(max-width: 768px)').matches
             window.matchMedia('(max-width: 768px)').addEventListener('change', e => {
