@@ -278,24 +278,6 @@ func (h *Handler) ObrisiKlijenta(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/klijenti?obrisan=1", http.StatusSeeOther)
 }
 
-// validirajJMBG proverava da li uneti JMBG ima tačno 13 cifara. Prazan broj je
-// dozvoljen (polje nije obavezno). Vraća srpsku poruku o grešci ili prazan string.
-// Broj lične karte se ne proverava jer mu se format razlikuje između izdanja.
-func validirajJMBG(broj string) string {
-	if broj == "" {
-		return ""
-	}
-	if len(broj) != 13 {
-		return "JMBG mora imati tačno 13 cifara."
-	}
-	for _, c := range broj {
-		if c < '0' || c > '9' {
-			return "JMBG sme sadržati samo cifre."
-		}
-	}
-	return ""
-}
-
 // odrediTipIdentifikacije prepoznaje da li je uneti broj JMBG (13 cifara) ili broj
 // lične karte (9 cifara — registarski broj na novoj srpskoj ličnoj karti) i vraća
 // odgovarajući tip ("jmbg" ili "licna_karta"). Prazan unos je dozvoljen i vraća
@@ -311,12 +293,40 @@ func odrediTipIdentifikacije(broj string) (string, string) {
 	}
 	switch len(broj) {
 	case 13:
+		if greska := validirajJMBG(broj); greska != "" {
+			return "", greska
+		}
 		return "jmbg", ""
 	case 9:
 		return "licna_karta", ""
 	default:
 		return "", "Unesite JMBG (13 cifara) ili broj lične karte (9 cifara)."
 	}
+}
+
+// validirajJMBG proverava datum rođenja (prve 4 cifre: DDMM) i kontrolnu cifru
+// JMBG-a po standardnom algoritmu (težine 7-6-5-4-3-2 ponovljene dvaput, ostatak
+// pri deljenju sa 11 daje kontrolnu cifru; 10 i 11 se svode na 0).
+func validirajJMBG(jmbg string) string {
+	dan, _ := strconv.Atoi(jmbg[0:2])
+	mesec, _ := strconv.Atoi(jmbg[2:4])
+	if dan < 1 || dan > 31 || mesec < 1 || mesec > 12 {
+		return "JMBG nije ispravan (datum rođenja u prve 4 cifre nije validan)."
+	}
+
+	tezine := [12]int{7, 6, 5, 4, 3, 2, 7, 6, 5, 4, 3, 2}
+	suma := 0
+	for i, t := range tezine {
+		suma += int(jmbg[i]-'0') * t
+	}
+	kontrolna := 11 - suma%11
+	if kontrolna >= 10 {
+		kontrolna = 0
+	}
+	if kontrolna != int(jmbg[12]-'0') {
+		return "JMBG nije ispravan (kontrolna cifra ne odgovara)."
+	}
+	return ""
 }
 
 // parseFormuKlijenta čita polja iz HTTP forme, validira ih i vraća model i eventualnu grešku
@@ -346,17 +356,10 @@ func parseFormuKlijenta(r *http.Request) (model.Klijent, string) {
 		return model.Klijent{Tip: tip}, "Adresa e-pošte nije ispravna."
 	}
 
-	// tip identifikacionog broja: 'jmbg' ili 'licna_karta' (podrazumevano jmbg)
-	tipIdent := r.FormValue("tip_identifikacije")
-	if tipIdent != "jmbg" && tipIdent != "licna_karta" {
-		tipIdent = "jmbg"
-	}
-
 	jmbg := strings.TrimSpace(r.FormValue("jmbg"))
-	if tipIdent == "jmbg" {
-		if greska := validirajJMBG(jmbg); greska != "" {
-			return model.Klijent{Tip: tip}, greska
-		}
+	tipIdent, greska := odrediTipIdentifikacije(jmbg)
+	if greska != "" {
+		return model.Klijent{Tip: tip}, greska
 	}
 
 	return model.Klijent{

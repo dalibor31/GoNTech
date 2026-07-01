@@ -77,19 +77,10 @@
                                 placeholder="npr. Petrović">
                         </div>
                     </div>
-                    <div class="forma-grid-2">
-                        <div>
-                            <label class="polje-labela">Vrsta dokumenta</label>
-                            <select name="tip_identifikacije">
-                                <option value="jmbg" {{if ne .Klijent.TipIdentifikacije "licna_karta"}}selected{{end}}>JMBG</option>
-                                <option value="licna_karta" {{if eq .Klijent.TipIdentifikacije "licna_karta"}}selected{{end}}>Br. lične karte</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="polje-labela">JMBG / Br. lične karte</label>
-                            <input type="text" name="jmbg" value="{{.Klijent.JMBG}}"
-                                placeholder="JMBG (13 cifara) ili broj lične karte">
-                        </div>
+                    <div>
+                        <label class="polje-labela">JMBG / Br. lične karte</label>
+                        <input type="text" name="jmbg" value="{{.Klijent.JMBG}}"
+                            placeholder="JMBG (13 cifara) ili broj lične karte (9 cifara)">
                     </div>
                 </div>
 
