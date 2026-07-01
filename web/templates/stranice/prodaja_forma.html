@@ -163,19 +163,20 @@
                       </div>
                     </div>
                   </template>
-                  <div x-show="stavka.kategorija_naziv" style="font-size:11px;color:var(--tekst-sporedni);background:var(--pozadina);padding:2px 8px;border-radius:4px;display:inline-block;margin-top:4px;" x-text="stavka.kategorija_naziv"></div>
+                  <div x-show="stavka.kategorija_naziv" style="font-size:11px;color:var(--tekst-sporedni);margin-top:3px;" x-text="stavka.kategorija_naziv"></div>
                 </td>
                 <td style="padding: 8px 10px">
                   <input type="number" :name="'kolicina[]'" x-model="stavka.kolicina" min="1" :disabled="isMobile"
                     :style="prekoracenje(i) ? 'border-color:#dc2626;' : ''" style="width: 100%; text-align: center" />
-                  <div x-show="stavka.artikal_id" :style="prekoracenje(i) ? 'color:#dc2626' : 'color:var(--tekst-sporedni)'"
-                    x-text="'Na stanju: ' + dostupnaKolicina(i)" style="font-size: 11px; margin-top: 3px; text-align: center; white-space: nowrap;"></div>
+                  <div x-show="stavka.artikal_id"
+                    :style="'font-size:11px;margin-top:3px;text-align:center;white-space:nowrap;color:' + (prekoracenje(i) ? '#dc2626' : 'var(--tekst-sporedni)')"
+                    x-text="'Na stanju: ' + dostupnaKolicina(i)"></div>
                   <div x-show="prekoracenje(i)" style="font-size: 11px; color: #dc2626; margin-top: 1px; text-align: center; white-space: nowrap;">Prekoračena količina</div>
                 </td>
                 <td style="padding: 8px 10px">
-                  <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
+                  <div style="display:flex;flex-direction:column;gap:2px;align-items:flex-end;">
                     <input type="number" :name="'cena_po_komadu[]'" x-model="stavka.cena" min="0" step="0.01" :disabled="isMobile" style="width: 100%; text-align: right" />
-                    <span x-show="pdvObveznik && stavka.pdv_stopa > 0" style="font-size:10px;color:var(--tekst-sporedni);background:var(--pozadina);padding:1px 6px;border-radius:4px;" x-text="'PDV ' + stavka.pdv_stopa + '% uključen'"></span>
+                    <span x-show="pdvObveznik && stavka.pdv_stopa > 0" style="font-size:10px;color:var(--tekst-sporedni);" x-text="'PDV ' + stavka.pdv_stopa + '% uključen'"></span>
                   </div>
                 </td>
                 <td style="padding: 8px 10px">
@@ -231,8 +232,7 @@
             </div>
             <div style="display: flex; flex-direction: column; gap: 10px">
               <input type="hidden" :name="'pdv_stopa[]'" :value="stavka.pdv_stopa">
-              <!-- kategorija badge -->
-              <div x-show="stavka.kategorija_naziv" style="font-size:11px;color:var(--tekst-sporedni);background:var(--pozadina);padding:2px 8px;border-radius:4px;align-self:flex-start;" x-text="stavka.kategorija_naziv"></div>
+              <div x-show="stavka.kategorija_naziv" style="font-size:11px;color:var(--tekst-sporedni);" x-text="stavka.kategorija_naziv"></div>
               <div style="position: relative;">
                 <label class="polje-labela">Artikal</label>
                 <input type="hidden" :name="'artikal_id[]'" :value="stavka.artikal_id" :disabled="!isMobile">
@@ -269,8 +269,9 @@
                   <label class="polje-labela">Količina</label>
                   <input type="number" :name="'kolicina[]'" x-model="stavka.kolicina" min="1" :disabled="!isMobile"
                     :style="prekoracenje(i) ? 'border-color:#dc2626;' : ''" style="width: 100%" />
-                  <div x-show="stavka.artikal_id" :style="prekoracenje(i) ? 'color:#dc2626' : 'color:var(--tekst-sporedni)'"
-                    x-text="'Na stanju: ' + dostupnaKolicina(i)" style="font-size: 11px; margin-top: 3px;"></div>
+                  <div x-show="stavka.artikal_id"
+                    :style="'font-size:11px;margin-top:3px;color:' + (prekoracenje(i) ? '#dc2626' : 'var(--tekst-sporedni)')"
+                    x-text="'Na stanju: ' + dostupnaKolicina(i)"></div>
                 </div>
                 <div>
                   <label class="polje-labela">Cena/kom (din){{if index .Moduli "pdv"}} sa PDV{{end}}</label>
