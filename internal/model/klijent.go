@@ -20,6 +20,7 @@ type Klijent struct {
 	Telefon           string
 	Email             string
 	Mesto             string
+	Adresa            string // ulica i broj — zakon o PDV (čl. 42) zahteva adresu kupca na fakturi za pravna lica
 	Napomena          string
 	DatumUnosa        time.Time
 }

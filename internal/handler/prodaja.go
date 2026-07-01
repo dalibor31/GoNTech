@@ -104,23 +104,35 @@ func artikalUJSONSaCenom(artikli []model.ArtikalSaKategorijom) template.JS {
 	return template.JS(b)
 }
 
-// klijentiUJSON pretvara listu klijenata u template.JS vrednost za pretragu na strani klijenta (naziv, tip)
+// klijentiUJSON pretvara listu klijenata u template.JS vrednost za pretragu na strani klijenta
+// (naziv, tip za filter/prikaz u listi) i pun prikaz podataka kad je klijent izabran
+// (PIB/JMBG, mesto, telefon, email — u zavisnosti od pravno/fizičko lice).
 func klijentiUJSON(klijenti []model.Klijent) template.JS {
 	type stavka struct {
-		ID      int64  `json:"id"`
-		Naziv   string `json:"naziv"`
-		Tip     string `json:"tip"`
-		Mesto   string `json:"mesto"`
-		Telefon string `json:"telefon"`
+		ID                int64  `json:"id"`
+		Naziv             string `json:"naziv"`
+		Tip               string `json:"tip"`
+		Mesto             string `json:"mesto"`
+		Adresa            string `json:"adresa"`
+		Telefon           string `json:"telefon"`
+		PIB               string `json:"pib"`
+		JMBG              string `json:"jmbg"`
+		TipIdentifikacije string `json:"tipIdentifikacije"`
+		Email             string `json:"email"`
 	}
 	lista := make([]stavka, 0, len(klijenti))
 	for _, k := range klijenti {
 		lista = append(lista, stavka{
-			ID:      k.ID,
-			Naziv:   k.PunoIme(),
-			Tip:     k.Tip,
-			Mesto:   k.Mesto,
-			Telefon: k.Telefon,
+			ID:                k.ID,
+			Naziv:             k.PunoIme(),
+			Tip:               k.Tip,
+			Mesto:             k.Mesto,
+			Adresa:            k.Adresa,
+			Telefon:           k.Telefon,
+			PIB:               k.PIB,
+			JMBG:              k.JMBG,
+			TipIdentifikacije: k.TipIdentifikacije,
+			Email:             k.Email,
 		})
 	}
 	b, _ := json.Marshal(lista)

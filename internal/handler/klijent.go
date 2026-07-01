@@ -336,6 +336,11 @@ func parseFormuKlijenta(r *http.Request) (model.Klijent, string) {
 		return model.Klijent{Tip: tip}, "Za pravno lice obavezan je naziv firme."
 	}
 
+	adresa := strings.TrimSpace(r.FormValue("adresa"))
+	if tip == "pravno" && adresa == "" {
+		return model.Klijent{Tip: tip}, "Za pravno lice obavezna je adresa (zakon o PDV zahteva adresu kupca na fakturi)."
+	}
+
 	email := strings.TrimSpace(r.FormValue("email"))
 	if email != "" && !strings.Contains(email, "@") {
 		return model.Klijent{Tip: tip}, "Adresa e-pošte nije ispravna."
@@ -365,6 +370,7 @@ func parseFormuKlijenta(r *http.Request) (model.Klijent, string) {
 		Telefon:           strings.TrimSpace(r.FormValue("telefon")),
 		Email:             email,
 		Mesto:             strings.TrimSpace(r.FormValue("mesto")),
+		Adresa:            adresa,
 		Napomena:          strings.TrimSpace(r.FormValue("napomena")),
 	}, ""
 }

@@ -23,7 +23,7 @@ func NoviKlijentRepo(db *sql.DB) *KlijentRepo {
 // Lista vraća listu klijenata sa opcionom pretragom po imenu, prezimenu ili nazivu firme
 func (r *KlijentRepo) Lista(ctx context.Context, pretraga string) ([]model.Klijent, error) {
 	upit := `
-		SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
+		SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, adresa, napomena, datum_unosa
 		FROM klijenti
 		WHERE 1=1`
 
@@ -46,9 +46,9 @@ func (r *KlijentRepo) Lista(ctx context.Context, pretraga string) ([]model.Klije
 	var rezultat []model.Klijent
 	for redovi.Next() {
 		var k model.Klijent
-		var ime, prezime, jmbg, tipIdent, nazivFirme, pib, telefon, email, mesto, napomena sql.NullString
+		var ime, prezime, jmbg, tipIdent, nazivFirme, pib, telefon, email, mesto, adresa, napomena sql.NullString
 		err := redovi.Scan(
-			&k.ID, &k.Tip, &ime, &prezime, &jmbg, &tipIdent, &nazivFirme, &pib, &telefon, &email, &mesto, &napomena, &k.DatumUnosa,
+			&k.ID, &k.Tip, &ime, &prezime, &jmbg, &tipIdent, &nazivFirme, &pib, &telefon, &email, &mesto, &adresa, &napomena, &k.DatumUnosa,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("ntech: KlijentRepo.Lista: scan: %w", err)
@@ -62,6 +62,7 @@ func (r *KlijentRepo) Lista(ctx context.Context, pretraga string) ([]model.Klije
 		k.Telefon = telefon.String
 		k.Email = email.String
 		k.Mesto = mesto.String
+		k.Adresa = adresa.String
 		k.Napomena = napomena.String
 		rezultat = append(rezultat, k)
 	}
@@ -72,12 +73,12 @@ func (r *KlijentRepo) Lista(ctx context.Context, pretraga string) ([]model.Klije
 // DohvatiID vraća jednog klijenta po ID-u
 func (r *KlijentRepo) DohvatiID(ctx context.Context, id int64) (*model.Klijent, error) {
 	var k model.Klijent
-	var ime, prezime, jmbg, tipIdent, nazivFirme, pib, telefon, email, mesto, napomena sql.NullString
+	var ime, prezime, jmbg, tipIdent, nazivFirme, pib, telefon, email, mesto, adresa, napomena sql.NullString
 
 	err := r.db.QueryRowContext(ctx, `
-		SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
+		SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, adresa, napomena, datum_unosa
 		FROM klijenti WHERE id = ?`, id).Scan(
-		&k.ID, &k.Tip, &ime, &prezime, &jmbg, &tipIdent, &nazivFirme, &pib, &telefon, &email, &mesto, &napomena, &k.DatumUnosa,
+		&k.ID, &k.Tip, &ime, &prezime, &jmbg, &tipIdent, &nazivFirme, &pib, &telefon, &email, &mesto, &adresa, &napomena, &k.DatumUnosa,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: KlijentRepo.DohvatiID: %w", err)
@@ -92,6 +93,7 @@ func (r *KlijentRepo) DohvatiID(ctx context.Context, id int64) (*model.Klijent, 
 	k.Telefon = telefon.String
 	k.Email = email.String
 	k.Mesto = mesto.String
+	k.Adresa = adresa.String
 	k.Napomena = napomena.String
 
 	return &k, nil
@@ -102,11 +104,11 @@ func (r *KlijentRepo) DohvatiID(ctx context.Context, id int64) (*model.Klijent, 
 // Pretraga ide od najočiglednijeg ka opštijem: JMBG/PIB → ime+prezime+mesto → telefon → email → samo ime+prezime.
 func (r *KlijentRepo) Pronadji(ctx context.Context, tip, ime, prezime, nazivFirme, jmbg, telefon, email, mesto string) (*model.Klijent, error) {
 	var k model.Klijent
-	var imeN, prezimeN, jmbgN, tipIdent, nazivFirmeN, pibN, telefonN, emailN, mestoN, napomena sql.NullString
+	var imeN, prezimeN, jmbgN, tipIdent, nazivFirmeN, pibN, telefonN, emailN, mestoN, adresaN, napomena sql.NullString
 
 	skeniraj := func(row *sql.Row) error {
 		return row.Scan(
-			&k.ID, &k.Tip, &imeN, &prezimeN, &jmbgN, &tipIdent, &nazivFirmeN, &pibN, &telefonN, &emailN, &mestoN, &napomena, &k.DatumUnosa,
+			&k.ID, &k.Tip, &imeN, &prezimeN, &jmbgN, &tipIdent, &nazivFirmeN, &pibN, &telefonN, &emailN, &mestoN, &adresaN, &napomena, &k.DatumUnosa,
 		)
 	}
 
@@ -116,7 +118,7 @@ func (r *KlijentRepo) Pronadji(ctx context.Context, tip, ime, prezime, nazivFirm
 		// 1. PIB (najpreciznije za firmu)
 		if jmbg != "" {
 			row = r.db.QueryRowContext(ctx, `
-				SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
+				SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, adresa, napomena, datum_unosa
 				FROM klijenti WHERE tip = 'pravno' AND pib = ? LIMIT 1`, jmbg)
 			if err := skeniraj(row); err == nil {
 				goto popuni
@@ -125,7 +127,7 @@ func (r *KlijentRepo) Pronadji(ctx context.Context, tip, ime, prezime, nazivFirm
 		// 2. Naziv firme + mesto
 		if nazivFirme != "" && mesto != "" {
 			row = r.db.QueryRowContext(ctx, `
-				SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
+				SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, adresa, napomena, datum_unosa
 				FROM klijenti WHERE tip = 'pravno' AND naziv_firme = ? AND mesto = ? LIMIT 1`, nazivFirme, mesto)
 			if err := skeniraj(row); err == nil {
 				goto popuni
@@ -133,7 +135,7 @@ func (r *KlijentRepo) Pronadji(ctx context.Context, tip, ime, prezime, nazivFirm
 		}
 		// 3. Samo naziv firme
 		row = r.db.QueryRowContext(ctx, `
-			SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
+			SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, adresa, napomena, datum_unosa
 			FROM klijenti WHERE tip = 'pravno' AND naziv_firme = ? LIMIT 1`, nazivFirme)
 		if err := skeniraj(row); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
@@ -146,7 +148,7 @@ func (r *KlijentRepo) Pronadji(ctx context.Context, tip, ime, prezime, nazivFirm
 		// 1. JMBG ili broj lične karte
 		if jmbg != "" {
 			row = r.db.QueryRowContext(ctx, `
-				SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
+				SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, adresa, napomena, datum_unosa
 				FROM klijenti WHERE tip != 'pravno' AND jmbg = ? LIMIT 1`, jmbg)
 			if err := skeniraj(row); err == nil {
 				goto popuni
@@ -155,7 +157,7 @@ func (r *KlijentRepo) Pronadji(ctx context.Context, tip, ime, prezime, nazivFirm
 		// 2. Ime + prezime + mesto
 		if ime != "" && prezime != "" && mesto != "" {
 			row = r.db.QueryRowContext(ctx, `
-				SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
+				SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, adresa, napomena, datum_unosa
 				FROM klijenti WHERE tip != 'pravno' AND ime = ? AND prezime = ? AND mesto = ? LIMIT 1`, ime, prezime, mesto)
 			if err := skeniraj(row); err == nil {
 				goto popuni
@@ -164,7 +166,7 @@ func (r *KlijentRepo) Pronadji(ctx context.Context, tip, ime, prezime, nazivFirm
 		// 3. Ime + prezime + telefon
 		if ime != "" && prezime != "" && telefon != "" {
 			row = r.db.QueryRowContext(ctx, `
-				SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
+				SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, adresa, napomena, datum_unosa
 				FROM klijenti WHERE tip != 'pravno' AND ime = ? AND prezime = ? AND telefon = ? LIMIT 1`, ime, prezime, telefon)
 			if err := skeniraj(row); err == nil {
 				goto popuni
@@ -173,7 +175,7 @@ func (r *KlijentRepo) Pronadji(ctx context.Context, tip, ime, prezime, nazivFirm
 		// 4. Ime + prezime + email
 		if ime != "" && prezime != "" && email != "" {
 			row = r.db.QueryRowContext(ctx, `
-				SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
+				SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, adresa, napomena, datum_unosa
 				FROM klijenti WHERE tip != 'pravno' AND ime = ? AND prezime = ? AND email = ? LIMIT 1`, ime, prezime, email)
 			if err := skeniraj(row); err == nil {
 				goto popuni
@@ -181,7 +183,7 @@ func (r *KlijentRepo) Pronadji(ctx context.Context, tip, ime, prezime, nazivFirm
 		}
 		// 5. Samo ime + prezime (poslednji fallback)
 		row = r.db.QueryRowContext(ctx, `
-			SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
+			SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, adresa, napomena, datum_unosa
 			FROM klijenti WHERE tip != 'pravno' AND ime = ? AND prezime = ? LIMIT 1`, ime, prezime)
 		if err := skeniraj(row); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
@@ -201,6 +203,7 @@ popuni:
 	k.Telefon = telefonN.String
 	k.Email = emailN.String
 	k.Mesto = mestoN.String
+	k.Adresa = adresaN.String
 	k.Napomena = napomena.String
 
 	return &k, nil
@@ -215,11 +218,11 @@ func (r *KlijentRepo) Kreiraj(ctx context.Context, k *model.Klijent) (int64, err
 		k.TipIdentifikacije = "jmbg"
 	}
 	rezultat, err := r.db.ExecContext(ctx, `
-		INSERT INTO klijenti (tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, napomena)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		INSERT INTO klijenti (tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, adresa, napomena)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		k.Tip, nullString(k.Ime), nullString(k.Prezime), nullString(k.JMBG), k.TipIdentifikacije,
 		nullString(k.NazivFirme), nullString(k.PIB), nullString(k.Telefon),
-		nullString(k.Email), nullString(k.Mesto), nullString(k.Napomena),
+		nullString(k.Email), nullString(k.Mesto), nullString(k.Adresa), nullString(k.Napomena),
 	)
 	if err != nil {
 		return 0, fmt.Errorf("ntech: KlijentRepo.Kreiraj: %w", err)
@@ -244,11 +247,11 @@ func (r *KlijentRepo) Izmeni(ctx context.Context, k *model.Klijent) error {
 	_, err := r.db.ExecContext(ctx, `
 		UPDATE klijenti SET
 			tip = ?, ime = ?, prezime = ?, jmbg = ?, tip_identifikacije = ?, naziv_firme = ?,
-			pib = ?, telefon = ?, email = ?, mesto = ?, napomena = ?
+			pib = ?, telefon = ?, email = ?, mesto = ?, adresa = ?, napomena = ?
 		WHERE id = ?`,
 		k.Tip, nullString(k.Ime), nullString(k.Prezime), nullString(k.JMBG), k.TipIdentifikacije,
 		nullString(k.NazivFirme), nullString(k.PIB), nullString(k.Telefon),
-		nullString(k.Email), nullString(k.Mesto), nullString(k.Napomena), k.ID,
+		nullString(k.Email), nullString(k.Mesto), nullString(k.Adresa), nullString(k.Napomena), k.ID,
 	)
 	if err != nil {
 		return fmt.Errorf("ntech: KlijentRepo.Izmeni: %w", err)
@@ -260,7 +263,7 @@ func (r *KlijentRepo) Izmeni(ctx context.Context, k *model.Klijent) error {
 // ListaFilter vraća listu klijenata sa limitom i offsetom (paginacija)
 func (r *KlijentRepo) ListaFilter(ctx context.Context, filter db.KlijentFilter) ([]model.Klijent, error) {
 	upit := `
-		SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, napomena, datum_unosa
+		SELECT id, tip, ime, prezime, jmbg, tip_identifikacije, naziv_firme, pib, telefon, email, mesto, adresa, napomena, datum_unosa
 		FROM klijenti
 		WHERE 1=1`
 
@@ -296,9 +299,9 @@ func (r *KlijentRepo) ListaFilter(ctx context.Context, filter db.KlijentFilter) 
 	var rezultat []model.Klijent
 	for redovi.Next() {
 		var k model.Klijent
-		var ime, prezime, jmbg, tipIdent, nazivFirme, pib, telefon, email, mesto, napomena sql.NullString
+		var ime, prezime, jmbg, tipIdent, nazivFirme, pib, telefon, email, mesto, adresa, napomena sql.NullString
 		err := redovi.Scan(
-			&k.ID, &k.Tip, &ime, &prezime, &jmbg, &tipIdent, &nazivFirme, &pib, &telefon, &email, &mesto, &napomena, &k.DatumUnosa,
+			&k.ID, &k.Tip, &ime, &prezime, &jmbg, &tipIdent, &nazivFirme, &pib, &telefon, &email, &mesto, &adresa, &napomena, &k.DatumUnosa,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("ntech: KlijentRepo.ListaFilter: scan: %w", err)
@@ -312,6 +315,7 @@ func (r *KlijentRepo) ListaFilter(ctx context.Context, filter db.KlijentFilter) 
 		k.Telefon = telefon.String
 		k.Email = email.String
 		k.Mesto = mesto.String
+		k.Adresa = adresa.String
 		k.Napomena = napomena.String
 		rezultat = append(rezultat, k)
 	}
