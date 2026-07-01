@@ -20,10 +20,13 @@ func NoviProdajaRepo(db *sql.DB) *ProdajaRepo {
 	return &ProdajaRepo{db: db}
 }
 
-// SledeciBroj generiše sledeći broj naloga u formatu PR-GGGG-NNNN
+// SledeciBroj generiše sledeći broj naloga u formatu PR-GGMM-NNNN
+// (GG dvocifrena godina, MM mesec); brojač NNNN se resetuje svakog meseca
 func (r *ProdajaRepo) SledeciBroj(ctx context.Context) (string, error) {
-	godina := time.Now().Year()
-	uzorak := fmt.Sprintf("PR-%d-%%", godina)
+	sada := time.Now()
+	// prefiks "PR-GGMM-" je dug 8 karaktera, pa brojač počinje od 9. karaktera
+	prefiks := fmt.Sprintf("PR-%02d%02d-", sada.Year()%100, int(sada.Month()))
+	uzorak := prefiks + "%"
 
 	var sledeci int
 	err := r.db.QueryRowContext(ctx, `
@@ -34,7 +37,7 @@ func (r *ProdajaRepo) SledeciBroj(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("ntech: ProdajaRepo.SledeciBroj: %w", err)
 	}
 
-	return fmt.Sprintf("PR-%d-%04d", godina, sledeci), nil
+	return fmt.Sprintf("%s%04d", prefiks, sledeci), nil
 }
 
 // Lista vraća listu prodajnih naloga sa imenom klijenta, po zadatom filteru

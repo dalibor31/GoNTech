@@ -30,12 +30,12 @@ func NoviServisRepo(db *sql.DB) *ServisRepo {
 	return &ServisRepo{db: db}
 }
 
-// SledeciBroj generiše sledeći broj naloga u formatu SN-MMGG-NNN
-// (MM mesec, GG dvocifrena godina); brojač NNN se resetuje svakog meseca
+// SledeciBroj generiše sledeći broj naloga u formatu SN-GGMM-NNN
+// (GG dvocifrena godina, MM mesec); brojač NNN se resetuje svakog meseca
 func (r *ServisRepo) SledeciBroj(ctx context.Context) (string, error) {
 	sada := time.Now()
-	// prefiks "SN-MMGG-" je dug 8 karaktera, pa brojač počinje od 9. karaktera
-	prefiks := fmt.Sprintf("SN-%02d%02d-", int(sada.Month()), sada.Year()%100)
+	// prefiks "SN-GGMM-" je dug 8 karaktera, pa brojač počinje od 9. karaktera
+	prefiks := fmt.Sprintf("SN-%02d%02d-", sada.Year()%100, int(sada.Month()))
 	uzorak := prefiks + "%"
 
 	// COALESCE(MAX, 0)+1 → prvi nalog u mesecu dobija 001
