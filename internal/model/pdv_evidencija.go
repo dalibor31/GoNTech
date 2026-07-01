@@ -107,11 +107,14 @@ func (k *PdvKir) DodajNeto(osnovica, stopa float64) {
 // KirIzProdaje gradi KIR zapis iz prodaje: stavke se grupišu po PDV stopi
 // (20→opšta, 10→posebna, ostalo→oslobođeno). CenaPoKomadu je prodajna cena BEZ PDV
 // (neto), PDV se dodaje naviše — isti obrazac kao kod servisnih radova/delova.
-func KirIzProdaje(nalog ProdajniNalog, stavke []StavkaProdaje, kupacNaziv, kupacPib, kupacMesto string) PdvKir {
+// DatumPrometa je datum same prodaje (nalog.Datum); DatumKnjizenja je datum kada se
+// ovaj KIR zapis stvarno upisuje u knjigu — za prodaju upisanu odmah to je isti trenutak,
+// ali za naknadni backfill starih naloga upis kasni za periodom pa se prosleđuje posebno.
+func KirIzProdaje(nalog ProdajniNalog, stavke []StavkaProdaje, kupacNaziv, kupacPib, kupacMesto string, datumKnjizenja time.Time) PdvKir {
 	id := nalog.ID
 	k := PdvKir{
 		DatumPrometa:   nalog.Datum,
-		DatumKnjizenja: nalog.Datum,
+		DatumKnjizenja: datumKnjizenja,
 		BrojDokumenta:  nalog.BrojNaloga,
 		KupacNaziv:     kupacNaziv,
 		KupacPib:       kupacPib,

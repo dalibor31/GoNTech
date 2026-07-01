@@ -220,6 +220,7 @@ func (h *Handler) KirBackfillProdaje(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
+	sada := time.Now()
 
 	nalozi, err := h.ProdajaRepo.Lista(ctx, "")
 	if err != nil {
@@ -256,7 +257,8 @@ func (h *Handler) KirBackfillProdaje(w http.ResponseWriter, r *http.Request) {
 		if klijent.Tip != "pravno" {
 			pib = klijent.JMBG
 		}
-		kir := model.KirIzProdaje(nd.ProdajniNalog, ss, klijent.PunoIme(), pib, klijent.Mesto)
+		// backfill upisuje stare naloge sa zakašnjenjem — datum_knjizenja je danas, ne datum prodaje
+		kir := model.KirIzProdaje(nd.ProdajniNalog, ss, klijent.PunoIme(), pib, klijent.Mesto, sada)
 		if _, e := h.PdvKirRepo.Kreiraj(ctx, &kir); e != nil {
 			slog.Error("backfill KIR: greška pri kreiranju zapisa", "prodaja_id", nd.ID, "error", e)
 			continue
