@@ -18,6 +18,7 @@ type Nabavka struct {
 	BrojRacuna        string     // broj računa dobavljača (za KPR BrojDokumenta)
 	DatumRacuna       *time.Time // datum prometa sa računa dobavljača (za KPR DatumPrometa)
 	PdvIznos          float64    // stvarni PDV sa računa; 0 = koristiti aproksimaciju iz stope
+	DatumPlacanja     *time.Time // datum plaćanja računa dobavljaču (za KPR DatumPlacanja, gotovinski PDV odbitak)
 }
 
 // NabavkaTrosak je jedna stavka zavisnih troškova nabavke (npr. prevoz, carina)
