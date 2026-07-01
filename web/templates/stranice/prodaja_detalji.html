@@ -286,6 +286,23 @@
       </div>
       {{end}}
 
+      {{if .FiskalGreska}}
+      <div class="fiskalni-racun" style="padding:14px;border:1.5px solid #f59e0b;border-radius:8px;background:color-mix(in srgb,#fef3c7 60%,var(--pozadina));">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:600;color:#92400e;margin-bottom:4px;">⚠ Fiskalni račun nije izdat</div>
+            <div style="font-size:13px;color:#78350f;">Veza sa ESIR/PFR serverom nije bila dostupna pri kreiranju prodaje.</div>
+          </div>
+          {{if index $.Dozvole "prodaja.dodaj"}}
+          <form method="POST" action="/prodaja/{{.Nalog.ID}}/fiskalizuj">
+            <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+            <button type="submit" class="btn-primarno" style="background:#d97706;border-color:#d97706;white-space:nowrap;">Pokušaj ponovo</button>
+          </form>
+          {{end}}
+        </div>
+      </div>
+      {{end}}
+
       {{if index $.Dozvole "prodaja.obrisi"}}
       <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;padding-top:14px;border-top:0.5px solid var(--ivica);">
         <div style="flex:1;min-width:200px;">

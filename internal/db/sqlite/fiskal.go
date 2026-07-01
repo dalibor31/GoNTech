@@ -137,6 +137,28 @@ func (r *FiskalRepo) ServisiBezFiskalnog(ctx context.Context) (map[int64]bool, e
 	return out, rows.Err()
 }
 
+// ProdajeBezFiskalnog vraća skup ID-eva prodajnih naloga koji nisu stornirani
+// a nemaju fiskalni račun (za oznaku u listi naloga).
+func (r *FiskalRepo) ProdajeBezFiskalnog(ctx context.Context) (map[int64]bool, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT pn.id FROM prodajni_nalozi pn
+		LEFT JOIN fiskalni_racuni fr ON fr.prodaja_id = pn.id AND fr.storniran = 0
+		WHERE pn.stornirano = 0 AND fr.id IS NULL`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make(map[int64]bool)
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		out[id] = true
+	}
+	return out, rows.Err()
+}
+
 // OznačiKaoStorniran postavlja storniran=1 za fiskalni račun sa datim ID-jem.
 func (r *FiskalRepo) OznačiKaoStorniran(ctx context.Context, id int64) error {
 	_, err := r.db.ExecContext(ctx, "UPDATE fiskalni_racuni SET storniran = 1 WHERE id = ?", id)
