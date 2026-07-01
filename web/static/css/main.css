@@ -1109,6 +1109,18 @@ select {
     .magacin-traka form select,
     .magacin-traka form button,
     .magacin-traka form label { width: 100%; justify-content: flex-start; }
+
+    /* prodaja traka — na telefonu: dugme preko cele širine, pretraga preko cele
+       širine, Od/Do datum jedan pored drugog (po pola širine), dugmad akcija
+       (Stornirano/Prikaži/Resetuj/Ovaj mesec) u redu koji se sam uklapa po dva */
+    .prodaja-traka { flex-direction: column; align-items: stretch; }
+    .prodaja-traka-novo { width: 100%; box-sizing: border-box; justify-content: center; text-align: center; }
+    .prodaja-traka-forma { flex-direction: column; align-items: stretch; }
+    .prodaja-traka-pretraga { width: 100%; }
+    .prodaja-traka-datumi { width: 100%; }
+    .prodaja-traka-datumi > div { flex: 1; min-width: 0; }
+    .prodaja-traka-akcije { width: 100%; }
+    .prodaja-traka-akcije > * { flex: 1 1 calc(50% - 5px); min-width: 120px; box-sizing: border-box; justify-content: center; text-align: center; }
 }
 
 /* tačkice za teme */

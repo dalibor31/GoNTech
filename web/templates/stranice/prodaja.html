@@ -7,30 +7,34 @@
     {{end}}
 
     <!-- zaglavlje sa pretragom, filterima i dugmetom -->
-    <div style="display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap">
-        <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja/nova" class="btn-primarno">+ Nova prodaja</a>
-        <form method="GET" action="/prodaja" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; flex: 1">
-            <div style="flex: 1; min-width: 180px">
+    <div class="prodaja-traka" style="display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap">
+        <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja/nova" class="btn-primarno prodaja-traka-novo">+ Nova prodaja</a>
+        <form method="GET" action="/prodaja" class="prodaja-traka-forma" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; flex: 1">
+            <div class="prodaja-traka-pretraga" style="flex: 1; min-width: 180px">
                 <label class="polje-labela">Pretraga</label>
                 <input type="text" name="pretraga" value="{{.Pretraga}}" placeholder="Broj naloga, klijent, napomena..." style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 0.5px solid var(--ivica); border-radius: 8px; font-size: 13px; background: var(--pozadina); color: var(--tekst-glavni); outline: none" />
             </div>
-            <div>
-                <label class="polje-labela">Od datuma</label>
-                <input type="date" name="od" value="{{.Od}}" style="padding: 8px 10px; border: 0.5px solid var(--ivica); border-radius: 8px; font-size: 13px; background: var(--pozadina); color: var(--tekst-glavni); outline: none" />
+            <div class="prodaja-traka-datumi" style="display: flex; gap: 10px">
+                <div>
+                    <label class="polje-labela">Od datuma</label>
+                    <input type="date" name="od" value="{{.Od}}" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 0.5px solid var(--ivica); border-radius: 8px; font-size: 13px; background: var(--pozadina); color: var(--tekst-glavni); outline: none" />
+                </div>
+                <div>
+                    <label class="polje-labela">Do datuma</label>
+                    <input type="date" name="do" value="{{.Do}}" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 0.5px solid var(--ivica); border-radius: 8px; font-size: 13px; background: var(--pozadina); color: var(--tekst-glavni); outline: none" />
+                </div>
             </div>
-            <div>
-                <label class="polje-labela">Do datuma</label>
-                <input type="date" name="do" value="{{.Do}}" style="padding: 8px 10px; border: 0.5px solid var(--ivica); border-radius: 8px; font-size: 13px; background: var(--pozadina); color: var(--tekst-glavni); outline: none" />
+            <div class="prodaja-traka-akcije" style="display: flex; gap: 10px; flex-wrap: wrap">
+                <label class="dugme-prekidac">
+                    <input type="checkbox" name="stornirano" value="1" {{if .SamoStornirano}}checked{{end}} />
+                    Samo stornirano
+                </label>
+                <button type="submit" class="btn-sekundarno" style="white-space: nowrap">Prikaži</button>
+                {{if or .Pretraga .Od .Do .SamoStornirano}}
+                <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja" class="btn-sekundarno" style="white-space: nowrap">✕ Resetuj</a>
+                {{end}}
+                <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja?{{if .Pretraga}}pretraga={{.Pretraga}}&{{end}}od={{.OvajMesecOd}}&do={{.OvajMesecDo}}{{if .SamoStornirano}}&stornirano=1{{end}}" class="btn-sekundarno" style="white-space: nowrap">Ovaj mesec</a>
             </div>
-            <label class="dugme-prekidac">
-                <input type="checkbox" name="stornirano" value="1" {{if .SamoStornirano}}checked{{end}} />
-                Samo stornirano
-            </label>
-            <button type="submit" class="btn-sekundarno" style="white-space: nowrap">Prikaži</button>
-            {{if or .Pretraga .Od .Do .SamoStornirano}}
-            <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja" class="btn-sekundarno" style="white-space: nowrap">✕ Resetuj</a>
-            {{end}}
-            <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja?{{if .Pretraga}}pretraga={{.Pretraga}}&{{end}}od={{.OvajMesecOd}}&do={{.OvajMesecDo}}{{if .SamoStornirano}}&stornirano=1{{end}}" class="btn-sekundarno" style="white-space: nowrap">Ovaj mesec</a>
         </form>
     </div>
 
