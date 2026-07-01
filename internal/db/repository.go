@@ -384,6 +384,7 @@ type FiskalRepository interface {
 	DohvatiPoProdaji(ctx context.Context, prodajaID int64) (*model.FiskalniRacun, error)
 	DohvatiPoServisu(ctx context.Context, servisID int64) (*model.FiskalniRacun, error)
 	OznačiKaoStorniran(ctx context.Context, id int64) error
+	ServisiBezFiskalnog(ctx context.Context) (map[int64]bool, error)
 }
 
 // ServisniLogRepository definiše operacije nad log-om događaja servisnog naloga.

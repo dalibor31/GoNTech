@@ -29,12 +29,13 @@ import (
 // PodaciServisa su podaci za stranicu sa listom servisnih naloga
 type PodaciServisa struct {
 	model.PodaciStranice
-	Nalozi       []model.ServisniNalogSaKlijentom
-	Pretraga     string
-	FilterStatus string
-	SviStatusi   []string
-	Sacuvano     bool
-	Obrisan      bool
+	Nalozi        []model.ServisniNalogSaKlijentom
+	Pretraga      string
+	FilterStatus  string
+	SviStatusi    []string
+	Sacuvano      bool
+	Obrisan       bool
+	NemaFiskalnog map[int64]bool // ID-evi naloga sa statusom Preuzeto koji nemaju fiskalni račun
 }
 
 // PodaciFormeNaloga su podaci za formu novog/izmenjenog servisnog naloga
@@ -106,6 +107,10 @@ func (h *Handler) Servis(w http.ResponseWriter, r *http.Request) {
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "servis"
 	ps.NaslovStranice = "Servis"
+	var nemaFiskalnog map[int64]bool
+	if h.modulUkljucen(r.Context(), config.ModulFiskalizacija) {
+		nemaFiskalnog, _ = h.FiskalRepo.ServisiBezFiskalnog(r.Context())
+	}
 	podaci := PodaciServisa{
 		PodaciStranice: ps,
 		Nalozi:         nalozi,
@@ -114,6 +119,7 @@ func (h *Handler) Servis(w http.ResponseWriter, r *http.Request) {
 		SviStatusi:     model.SviStatusi,
 		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
 		Obrisan:        r.URL.Query().Get("obrisan") == "1",
+		NemaFiskalnog:  nemaFiskalnog,
 	}
 
 	h.renderujTemplate(w, "servis", podaci)
@@ -138,11 +144,16 @@ func (h *Handler) ArhivaServisa(w http.ResponseWriter, r *http.Request) {
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "servis"
 	ps.NaslovStranice = "Arhiva servisa"
+	var nemaFiskalnog map[int64]bool
+	if h.modulUkljucen(r.Context(), config.ModulFiskalizacija) {
+		nemaFiskalnog, _ = h.FiskalRepo.ServisiBezFiskalnog(r.Context())
+	}
 	podaci := PodaciServisa{
 		PodaciStranice: ps,
 		Nalozi:         nalozi,
 		Pretraga:       pretraga,
 		SviStatusi:     model.SviStatusi,
+		NemaFiskalnog:  nemaFiskalnog,
 	}
 
 	h.renderujTemplate(w, "servis_arhiva", podaci)

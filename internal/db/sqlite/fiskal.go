@@ -115,6 +115,28 @@ func (r *FiskalRepo) DohvatiPoServisu(ctx context.Context, servisID int64) (*mod
 	return fr, nil
 }
 
+// ServisiBezFiskalnog vraća skup ID-eva servisnih naloga koji su u statusu "Preuzeto"
+// a nemaju fiskalni račun (za oznaku u listi naloga).
+func (r *FiskalRepo) ServisiBezFiskalnog(ctx context.Context) (map[int64]bool, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT sn.id FROM servisni_nalozi sn
+		LEFT JOIN fiskalni_racuni fr ON fr.servis_id = sn.id AND fr.storniran = 0
+		WHERE sn.status = 'Preuzeto' AND fr.id IS NULL`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make(map[int64]bool)
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		out[id] = true
+	}
+	return out, rows.Err()
+}
+
 // OznačiKaoStorniran postavlja storniran=1 za fiskalni račun sa datim ID-jem.
 func (r *FiskalRepo) OznačiKaoStorniran(ctx context.Context, id int64) error {
 	_, err := r.db.ExecContext(ctx, "UPDATE fiskalni_racuni SET storniran = 1 WHERE id = ?", id)
