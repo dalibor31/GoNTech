@@ -418,6 +418,7 @@ func main() {
 		r.With(doz("prodaja.dodaj")).Post("/prodaja/nova", h.SacuvajProdaju)
 		r.With(doz("prodaja.obrisi")).Post("/prodaja/obrisi/{id}", h.ObrisiProdaju)
 		r.With(doz("prodaja.storno")).Post("/prodaja/storno/{id}", h.StornoProdaje)
+		r.With(doz("prodaja.dodaj")).Post("/prodaja/{id}/fiskalizuj", h.RetryFiskalizacijaProdaje)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "prodaja.pregled")).Get("/prodaja/{id}/stampa", h.StampaProdaje)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "prodaja.pregled")).Get("/prodaja/{id}", h.DetaljiProdaje)
 

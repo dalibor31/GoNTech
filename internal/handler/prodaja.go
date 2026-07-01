@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -24,10 +25,11 @@ import (
 // PodaciProdaje su podaci za stranicu sa listom prodajnih naloga
 type PodaciProdaje struct {
 	model.PodaciStranice
-	Nalozi   []model.ProdajniNalogSaDetaljem
-	Sacuvano bool
-	Obrisan  bool
-	Pretraga string
+	Nalozi        []model.ProdajniNalogSaDetaljem
+	Sacuvano      bool
+	Obrisan       bool
+	Pretraga      string
+	NemaFiskalnog map[int64]bool // ID-evi naloga bez izdatog fiskalnog računa
 }
 
 // PodaciFormeProdaje su podaci za formu unosa nove prodaje
@@ -46,6 +48,7 @@ type PodaciDetaljiProdaje struct {
 	Stavke        []model.StavkaProdajeSaArtiklom
 	KlijentNaziv  string
 	FiskalniRacun *model.FiskalniRacun // nil ako nije fiskalizovano
+	FiskalGreska  bool                 // true: fiskalizacija aktivna, nalog nije storniran, ali nema fiskalnog računa
 	Sacuvano      bool
 }
 
@@ -110,6 +113,11 @@ func (h *Handler) Prodaja(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var nemaFiskalnog map[int64]bool
+	if h.modulUkljucen(r.Context(), config.ModulFiskalizacija) {
+		nemaFiskalnog, _ = h.FiskalRepo.ProdajeBezFiskalnog(r.Context())
+	}
+
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "prodaja"
 	ps.NaslovStranice = "Prodaja"
@@ -119,6 +127,7 @@ func (h *Handler) Prodaja(w http.ResponseWriter, r *http.Request) {
 		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
 		Obrisan:        r.URL.Query().Get("obrisan") == "1",
 		Pretraga:       pretraga,
+		NemaFiskalnog:  nemaFiskalnog,
 	}
 
 	h.renderujTemplate(w, "prodaja", podaci)
@@ -246,58 +255,8 @@ func (h *Handler) SacuvajProdaju(w http.ResponseWriter, r *http.Request) {
 
 	// Fiskalizacija — ako je modul uključen (best-effort: prodaja ostaje validna i bez fiskalizacije)
 	if h.modulUkljucen(r.Context(), config.ModulFiskalizacija) {
-		klijent := h.fiskalKlijent()
-		if klijent != nil {
-			// učitaj nalog sa ID-jem (potreban za buyerId)
-			spremljen, e := h.ProdajaRepo.DohvatiID(r.Context(), id)
-			if e == nil {
-				spremljeneStavke, e2 := h.ProdajaRepo.DohvatiStavke(r.Context(), id)
-				if e2 == nil {
-					kasir, _ := sqlite.DohvatiPodesavanje(r.Context(), h.DB, "pfr_kasir")
-					if kasir == "" {
-						kasir = "NTech"
-					}
-
-					var pib, jmbg string
-					if spremljen.KlijentID != nil {
-						if kk, e3 := h.KlijentiRepo.DohvatiID(r.Context(), *spremljen.KlijentID); e3 == nil {
-							pib, jmbg = kk.PIB, kk.JMBG
-						}
-					}
-
-					zahtev := fiskal.NapraviZahtev(*spremljen, spremljeneStavke, pib, jmbg, kasir)
-
-					odgovor, errFisk := klijent.IzdajRacun(r.Context(), zahtev)
-					if errFisk != nil {
-						slog.Error("fiskalizacija nije uspela", "prodaja_id", id, "error", errFisk)
-					} else {
-						poreskeJSON, _ := json.Marshal(odgovor.TaxItems)
-						siroviJSON, _ := json.Marshal(odgovor)
-
-						fr := &model.FiskalniRacun{
-							ProdajaID:         id,
-							TipRacuna:         "Normal",
-							TipTransakcije:    "Sale",
-							PfrBroj:           odgovor.InvoiceNumber,
-							PfrVreme:          odgovor.SdcDateTime,
-							Brojac:            odgovor.InvoiceCounter,
-							EkstenzijaBrojaca: odgovor.InvoiceCounterExtension,
-							UrlVerifikacija:   odgovor.VerificationURL,
-							QRKod:             odgovor.VerificationQRCode,
-							PoreskeStavke:     string(poreskeJSON),
-							UkupnoZaNaplatu:   odgovor.TotalAmount,
-							UkupanPorez:       odgovor.TotalTax,
-							SiroviOdgovor:     string(siroviJSON),
-							Potpisao:          odgovor.SignedBy,
-							Zatrazio:          odgovor.RequestedBy,
-							Poruka:            odgovor.Messages,
-						}
-						if _, errFisk := h.FiskalRepo.Kreiraj(r.Context(), fr); errFisk != nil {
-							slog.Error("greška pri čuvanju fiskalnog računa", "prodaja_id", id, "error", errFisk)
-						}
-					}
-				}
-			}
+		if klijent := h.fiskalKlijent(); klijent != nil {
+			h.fiskalizujProdaju(r.Context(), id, klijent)
 		}
 	}
 
@@ -370,6 +329,7 @@ func (h *Handler) DetaljiProdaje(w http.ResponseWriter, r *http.Request) {
 		Stavke:         stavke,
 		KlijentNaziv:   klijentNaziv,
 		FiskalniRacun:  fr,
+		FiskalGreska:   h.modulUkljucen(r.Context(), config.ModulFiskalizacija) && !nalog.Stornirano && fr == nil,
 		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
 	}
 
@@ -617,6 +577,107 @@ func (h *Handler) StornoProdaje(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/prodaja/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)
+}
+
+// fiskalizujProdaju šalje fiskalni zahtev za prodajni nalog. Best-effort: greške
+// se loguju, ne zaustavljaju tok pozivaoca (kreiranje prodaje ili ručni retry).
+func (h *Handler) fiskalizujProdaju(ctx context.Context, prodajaID int64, klijent *fiskal.Klijent) {
+	nalog, err := h.ProdajaRepo.DohvatiID(ctx, prodajaID)
+	if err != nil {
+		slog.Error("fiskalizujProdaju: nije pronađen nalog", "prodaja_id", prodajaID, "error", err)
+		return
+	}
+	stavke, err := h.ProdajaRepo.DohvatiStavke(ctx, prodajaID)
+	if err != nil {
+		slog.Error("fiskalizujProdaju: greška pri dohvatanju stavki", "prodaja_id", prodajaID, "error", err)
+		return
+	}
+
+	kasir, _ := sqlite.DohvatiPodesavanje(ctx, h.DB, "pfr_kasir")
+	if kasir == "" {
+		kasir = "NTech"
+	}
+
+	var pib, jmbg string
+	if nalog.KlijentID != nil {
+		if kk, e := h.KlijentiRepo.DohvatiID(ctx, *nalog.KlijentID); e == nil {
+			pib, jmbg = kk.PIB, kk.JMBG
+		}
+	}
+
+	zahtev := fiskal.NapraviZahtev(*nalog, stavke, pib, jmbg, kasir)
+
+	odgovor, errFisk := klijent.IzdajRacun(ctx, zahtev)
+	if errFisk != nil {
+		slog.Error("fiskalizacija prodaje nije uspela", "prodaja_id", prodajaID, "error", errFisk)
+		return
+	}
+
+	poreskeJSON, _ := json.Marshal(odgovor.TaxItems)
+	siroviJSON, _ := json.Marshal(odgovor)
+	fr := &model.FiskalniRacun{
+		ProdajaID:         prodajaID,
+		TipRacuna:         "Normal",
+		TipTransakcije:    "Sale",
+		PfrBroj:           odgovor.InvoiceNumber,
+		PfrVreme:          odgovor.SdcDateTime,
+		Brojac:            odgovor.InvoiceCounter,
+		EkstenzijaBrojaca: odgovor.InvoiceCounterExtension,
+		UrlVerifikacija:   odgovor.VerificationURL,
+		QRKod:             odgovor.VerificationQRCode,
+		PoreskeStavke:     string(poreskeJSON),
+		UkupnoZaNaplatu:   odgovor.TotalAmount,
+		UkupanPorez:       odgovor.TotalTax,
+		SiroviOdgovor:     string(siroviJSON),
+		Potpisao:          odgovor.SignedBy,
+		Zatrazio:          odgovor.RequestedBy,
+		Poruka:            odgovor.Messages,
+	}
+	if _, err := h.FiskalRepo.Kreiraj(ctx, fr); err != nil {
+		slog.Error("greška pri čuvanju fiskalnog računa", "prodaja_id", prodajaID, "error", err)
+	}
+}
+
+// RetryFiskalizacijaProdaje pokušava ponovo da izda fiskalni račun za prodajni
+// nalog čija je prethodna fiskalizacija pala (ESIR/PFR nedostupan pri kreiranju).
+func (h *Handler) RetryFiskalizacijaProdaje(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "prodaja.dodaj"); !ok {
+		return
+	}
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+
+	// zaštita od duplikata — ako fiskalni račun već postoji, ne šalji ponovo
+	if fr, _ := h.FiskalRepo.DohvatiPoProdaji(r.Context(), id); fr != nil {
+		middleware.SetFlash(w, r, h.DB, "uspeh", "Fiskalni račun već postoji.")
+		http.Redirect(w, r, "/prodaja/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+		return
+	}
+
+	nalog, err := h.ProdajaRepo.DohvatiID(r.Context(), id)
+	if err != nil || nalog.Stornirano {
+		http.Error(w, "Nalog ne postoji ili je stornirano", http.StatusBadRequest)
+		return
+	}
+
+	klijent := h.fiskalKlijent()
+	if klijent == nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Fiskalni servis nije dostupan. Proverite vezu sa ESIR/PFR.")
+		http.Redirect(w, r, "/prodaja/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+		return
+	}
+
+	h.fiskalizujProdaju(r.Context(), id, klijent)
+
+	if fr, _ := h.FiskalRepo.DohvatiPoProdaji(r.Context(), id); fr != nil {
+		middleware.SetFlash(w, r, h.DB, "uspeh", "Fiskalni račun izdat.")
+	} else {
+		middleware.SetFlash(w, r, h.DB, "greska", "Fiskalizacija nije uspela. Proverite vezu sa ESIR/PFR i pokušajte ponovo.")
+	}
+	http.Redirect(w, r, "/prodaja/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
 }
 
 // renderujFormuProdaje renderuje HTML šablon forme za unos nove prodaje
