@@ -210,20 +210,21 @@ func (r *ProdajaRepo) Kreiraj(ctx context.Context, n *model.ProdajniNalog, stavk
 			}
 		}
 
-		// CenaPoKomadu je neto (bez PDV); PDV se dodaje naviše
-		cenaBezPdv := s.CenaBezPdv
-		pdvIznos := s.PdvIznos
-		if cenaBezPdv == 0 {
-			cenaBezPdv = s.CenaPoKomadu
-			pdvIznos = cenaBezPdv * s.PdvStopa / 100
-		}
-
 		// popust umanjuje cenu po komadu pre računanja ukupnog i PDV-a
 		cenaPoslePopusta := s.CenaPoKomadu
 		if s.PopustProcenat > 0 {
 			cenaPoslePopusta = cenaPoslePopusta * (1 - s.PopustProcenat/100)
 		}
 		ukupnoStavke := float64(s.Kolicina) * cenaPoslePopusta
+
+		// CenaPoKomadu je neto (bez PDV); PDV se dodaje naviše.
+		// cena_bez_pdv/pdv_iznos moraju biti diskontovani da ostanu konzistentni sa ukupno.
+		cenaBezPdv := s.CenaBezPdv
+		pdvIznos := s.PdvIznos
+		if cenaBezPdv == 0 {
+			cenaBezPdv = cenaPoslePopusta
+			pdvIznos = cenaBezPdv * s.PdvStopa / 100
+		}
 		_, err = tx.ExecContext(ctx, `
 			INSERT INTO stavke_prodaje
 				(nalog_id, artikal_id, kolicina, cena_po_komadu, popust_procenat, ukupno, pdv_stopa, pdv_iznos, cena_bez_pdv)
