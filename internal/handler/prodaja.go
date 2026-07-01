@@ -152,6 +152,17 @@ func (h *Handler) Prodaja(w http.ResponseWriter, r *http.Request) {
 	do := r.URL.Query().Get("do")
 	samoStornirano := r.URL.Query().Get("stornirano") == "1"
 
+	sada := time.Now()
+
+	// bez ijednog parametra u upitu (prvi ulazak na stranicu) — podrazumevano
+	// prikaži samo današnje naloge; jednom kad korisnik pošalje formu (čak i
+	// praznu, da vidi sve), poštuje se njegov eksplicitan izbor
+	if r.URL.RawQuery == "" {
+		danas := sada.Format("2006-01-02")
+		od = danas
+		do = danas
+	}
+
 	nalozi, err := h.ProdajaRepo.Lista(r.Context(), appdb.ProdajaFilter{
 		Pretraga:       pretraga,
 		Od:             od,
@@ -168,7 +179,6 @@ func (h *Handler) Prodaja(w http.ResponseWriter, r *http.Request) {
 		nemaFiskalnog, _ = h.FiskalRepo.ProdajeBezFiskalnog(r.Context())
 	}
 
-	sada := time.Now()
 	prviDanMeseca := time.Date(sada.Year(), sada.Month(), 1, 0, 0, 0, 0, sada.Location())
 	poslednjiDanMeseca := prviDanMeseca.AddDate(0, 1, -1)
 

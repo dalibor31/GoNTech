@@ -8,6 +8,7 @@
 
     <!-- zaglavlje sa pretragom, filterima i dugmetom -->
     <div style="display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap">
+        <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja/nova" class="btn-primarno">+ Nova prodaja</a>
         <form method="GET" action="/prodaja" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; flex: 1">
             <div style="flex: 1; min-width: 180px">
                 <label class="polje-labela">Pretraga</label>
@@ -21,7 +22,7 @@
                 <label class="polje-labela">Do datuma</label>
                 <input type="date" name="do" value="{{.Do}}" style="padding: 8px 10px; border: 0.5px solid var(--ivica); border-radius: 8px; font-size: 13px; background: var(--pozadina); color: var(--tekst-glavni); outline: none" />
             </div>
-            <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--tekst-glavni); padding-bottom: 9px; white-space: nowrap">
+            <label class="dugme-prekidac">
                 <input type="checkbox" name="stornirano" value="1" {{if .SamoStornirano}}checked{{end}} />
                 Samo stornirano
             </label>
@@ -31,7 +32,6 @@
             {{end}}
             <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja?{{if .Pretraga}}pretraga={{.Pretraga}}&{{end}}od={{.OvajMesecOd}}&do={{.OvajMesecDo}}{{if .SamoStornirano}}&stornirano=1{{end}}" class="btn-sekundarno" style="white-space: nowrap">Ovaj mesec</a>
         </form>
-        <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja/nova" class="btn-primarno">+ Nova prodaja</a>
     </div>
 
     <!-- desktop tabela -->
@@ -103,7 +103,7 @@
             <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja/{{.ID}}" class="btn-primarno-malo" style="justify-content: center; width: 100%; box-sizing: border-box">Detalji</a>
         </div>
         {{else}}
-        <div style="padding: 32px; text-align: center; font-size: 14px; color: var(--tekst-sporedni)">
+        <div class="prazno-stanje">
             {{if or $.Pretraga $.Od $.Do $.SamoStornirano}} Nema naloga koji odgovaraju filteru. {{else}} Nema prodajnih naloga.
             <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja/nova" style="color: var(--sb-akcent)">Dodaj prvu prodaju.</a>
             {{end}}

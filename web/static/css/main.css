@@ -584,6 +584,28 @@ body {
 }
 .btn-sekundarno:hover { background: var(--pozadina); color: var(--tekst-glavni); }
 
+/* dugme-prekidač: checkbox stilizovan kao dugme (uključeno/isključeno) */
+.dugme-prekidac {
+    display: inline-flex;
+    align-items: center;
+    background: transparent;
+    color: var(--tekst-sporedni);
+    border: 0.5px solid var(--ivica);
+    border-radius: 8px;
+    padding: 9px 20px;
+    font-size: 14px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.dugme-prekidac input { display: none; }
+.dugme-prekidac:hover { background: var(--pozadina); color: var(--tekst-glavni); }
+.dugme-prekidac:has(input:checked) {
+    background: color-mix(in srgb, var(--sb-akcent) 15%, transparent);
+    border-color: var(--sb-akcent);
+    color: var(--sb-akcent);
+}
+
 /* crveno dugme za brisanje u tabelama */
 /* naziv artikla u listi koji vodi na karticu */
 .link-naziv { text-decoration: none; }
