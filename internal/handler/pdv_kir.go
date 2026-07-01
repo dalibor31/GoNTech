@@ -251,9 +251,10 @@ func (h *Handler) KirBackfillProdaje(w http.ResponseWriter, r *http.Request) {
 // PodaciDnevniPazar su podaci za formu zbirnog KIR unosa (maloprodaja)
 type PodaciDnevniPazar struct {
 	model.PodaciStranice
-	Datum  string
-	Promet model.DnevniPrometKir
-	Ukupno float64
+	Datum      string
+	Promet     model.DnevniPrometKir
+	Ukupno     float64
+	VecUpisano bool // true: za ovaj datum već postoji zbirni KIR zapis
 }
 
 // DnevniPazarKir prikazuje formu za potvrdu zbirnog KIR unosa za izabrani datum.
@@ -281,6 +282,11 @@ func (h *Handler) DnevniPazarKir(w http.ResponseWriter, r *http.Request) {
 
 	ukupno := math.Round((promet.OsnovicaOpsta+promet.PdvOpsta+promet.OsnovicaPosebna+promet.PdvPosebna)*100) / 100
 
+	var vecUpisano bool
+	if brojDok, e := brojDokumentaDnevniPazar(datum); e == nil {
+		vecUpisano, _ = h.PdvKirRepo.PostojiPoBrojuDokumenta(r.Context(), brojDok)
+	}
+
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "pdv-kir"
 	ps.NaslovStranice = "Dnevni pazar — KIR unos"
@@ -289,7 +295,18 @@ func (h *Handler) DnevniPazarKir(w http.ResponseWriter, r *http.Request) {
 		Datum:          datum,
 		Promet:         promet,
 		Ukupno:         ukupno,
+		VecUpisano:     vecUpisano,
 	})
+}
+
+// brojDokumentaDnevniPazar gradi deterministički broj dokumenta za zbirni KIR unos
+// dnevnog pazara ("FISK-YYYYMMDD") — koristi se i za upis i za proveru duplikata.
+func brojDokumentaDnevniPazar(datum string) (string, error) {
+	d, err := time.Parse("2006-01-02", datum)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("FISK-%s", d.Format("20060102")), nil
 }
 
 // SacuvajDnevniPazarKir prima POST i upisuje zbirni KIR zapis za dnevni pazar.
@@ -302,17 +319,25 @@ func (h *Handler) SacuvajDnevniPazarKir(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	datum, e1 := time.Parse("2006-01-02", strings.TrimSpace(r.FormValue("datum")))
+	datumStr := strings.TrimSpace(r.FormValue("datum"))
+	datum, e1 := time.Parse("2006-01-02", datumStr)
 	if e1 != nil {
 		middleware.SetFlash(w, r, h.DB, "greska", "Datum je obavezan.")
 		http.Redirect(w, r, "/pdv/kir/dnevni-pazar", http.StatusSeeOther)
 		return
 	}
 
+	brojDokumenta := fmt.Sprintf("FISK-%s", datum.Format("20060102"))
+	if postoji, _ := h.PdvKirRepo.PostojiPoBrojuDokumenta(r.Context(), brojDokumenta); postoji {
+		middleware.SetFlash(w, r, h.DB, "greska", fmt.Sprintf("Dnevni pazar za %s je već upisan u KIR.", datum.Format("02.01.2006.")))
+		http.Redirect(w, r, "/pdv/kir/dnevni-pazar?datum="+datumStr, http.StatusSeeOther)
+		return
+	}
+
 	z := model.PdvKir{
 		DatumPrometa:    datum,
 		DatumKnjizenja:  datum,
-		BrojDokumenta:   fmt.Sprintf("FISK-%s", datum.Format("20060102")),
+		BrojDokumenta:   brojDokumenta,
 		KupacNaziv:      "Promet fizičkim licima",
 		OsnovicaOpsta:   parsiraIznos(r.FormValue("osnovica_opsta")),
 		PdvOpsta:        parsiraIznos(r.FormValue("pdv_opsta")),

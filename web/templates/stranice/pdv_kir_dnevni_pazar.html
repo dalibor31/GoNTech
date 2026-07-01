@@ -78,7 +78,16 @@
         </div>
     </div>
 
-    {{if gt .Promet.BrojNaloga 0}}
+    {{if .VecUpisano}}
+    <div class="kartica animiraj" style="margin-bottom:16px;border:1.5px solid #f59e0b;background:color-mix(in srgb,#fef3c7 60%,var(--pozadina));">
+        <div style="padding:16px;">
+            <div style="font-size:14px;font-weight:600;color:#92400e;margin-bottom:4px;">⚠ Već upisano</div>
+            <div style="font-size:13px;color:#78350f;">Dnevni pazar za {{.Datum}} je već upisan u KIR. Ponovni upis bi duplirao promet za ovaj dan.</div>
+        </div>
+    </div>
+    {{end}}
+
+    {{if and (gt .Promet.BrojNaloga 0) (not .VecUpisano)}}
     <!-- forma za upis -->
     <form method="POST" action="/pdv/kir/dnevni-pazar">
         <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
