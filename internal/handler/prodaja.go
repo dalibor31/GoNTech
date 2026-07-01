@@ -399,22 +399,21 @@ func (h *Handler) StampaProdaje(w http.ResponseWriter, r *http.Request) {
 // ObrisiProdaju prima POST zahtev i stornira nalog umesto fizičkog brisanja.
 // Jednom izdat račun ne sme da nestane — umesto brisanja koristi se storno.
 func (h *Handler) ObrisiProdaju(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.zahtevajDozvolu(w, r, "prodaja.storno"); !ok {
+	k, ok := h.zahtevajDozvolu(w, r, "prodaja.obrisi")
+	if !ok {
 		return
 	}
-	k := middleware.KorisnikIzKonteksta(r.Context())
 	id, err := parseID(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
 		return
 	}
 
-	if err := h.ProdajaRepo.Storno(r.Context(), id, "administrativno uklanjanje", &k.ID); err != nil {
+	if err := h.stornirajProdaju(r.Context(), id, "administrativno uklanjanje", &k.ID); err != nil {
 		slog.Error("greška pri uklanjanju naloga", "error", err)
-	}
-	// ukloni vezani auto-KIR zapis (ako ga je ova prodaja kreirala)
-	if err := h.PdvKirRepo.ObrisiPoIzvoru(r.Context(), "prodaja", id); err != nil {
-		slog.Error("brisanje vezanog KIR zapisa nije uspelo", "prodaja_id", id, "error", err)
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri uklanjanju. Možda je nalog već storniran.")
+		http.Redirect(w, r, "/prodaja/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+		return
 	}
 
 	http.Redirect(w, r, "/prodaja?obrisan=1", http.StatusSeeOther)
@@ -506,35 +505,49 @@ func (h *Handler) StornoProdaje(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	razlog := strings.TrimSpace(r.FormValue("razlog"))
-	if err := h.ProdajaRepo.Storno(r.Context(), id, razlog, &k.ID); err != nil {
+	if err := h.stornirajProdaju(r.Context(), id, razlog, &k.ID); err != nil {
 		slog.Error("greška pri storniranju naloga", "error", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri storniranju. Možda je nalog već storniran.")
 		http.Redirect(w, r, "/prodaja/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
 		return
 	}
+
+	http.Redirect(w, r, "/prodaja/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)
+}
+
+// stornirajProdaju sprovodi kompletan storno prodajnog naloga: menja status naloga i
+// vraća artikle na stanje, uklanja vezani auto-KIR zapis, šalje fiskalni refund
+// (best-effort — storno ostaje validan i bez uspešnog refunda) i briše KPO zapis.
+// Zajednička je za StornoProdaje i ObrisiProdaju kako obe akcije imaju isti,
+// potpuni efekat prema PDV/fiskalnoj i KPO evidenciji.
+func (h *Handler) stornirajProdaju(ctx context.Context, id int64, razlog string, korisnikID *int64) error {
+	if err := h.ProdajaRepo.Storno(ctx, id, razlog, korisnikID); err != nil {
+		return err
+	}
+
 	// stornirana prodaja ne ulazi u PDV — ukloni vezani auto-KIR zapis
-	if err := h.PdvKirRepo.ObrisiPoIzvoru(r.Context(), "prodaja", id); err != nil {
+	if err := h.PdvKirRepo.ObrisiPoIzvoru(ctx, "prodaja", id); err != nil {
 		slog.Error("brisanje vezanog KIR zapisa nije uspelo", "prodaja_id", id, "error", err)
 	}
 
-	// fiskalni refund — best-effort (storno ostaje validan i bez uspešnog refunda)
-	if h.modulUkljucen(r.Context(), config.ModulFiskalizacija) {
-		if fr, _ := h.FiskalRepo.DohvatiPoProdaji(r.Context(), id); fr != nil && !fr.Storniran {
+	// fiskalni refund — best-effort
+	if h.modulUkljucen(ctx, config.ModulFiskalizacija) {
+		if fr, _ := h.FiskalRepo.DohvatiPoProdaji(ctx, id); fr != nil && !fr.Storniran {
 			if fk := h.fiskalKlijent(); fk != nil {
-				if nalogFisk, e := h.ProdajaRepo.DohvatiID(r.Context(), id); e == nil {
-					if stavkeFisk, e2 := h.ProdajaRepo.DohvatiStavke(r.Context(), id); e2 == nil {
-						kasirFisk, _ := sqlite.DohvatiPodesavanje(r.Context(), h.DB, "pfr_kasir")
+				if nalogFisk, e := h.ProdajaRepo.DohvatiID(ctx, id); e == nil {
+					if stavkeFisk, e2 := h.ProdajaRepo.DohvatiStavke(ctx, id); e2 == nil {
+						kasirFisk, _ := sqlite.DohvatiPodesavanje(ctx, h.DB, "pfr_kasir")
 						if kasirFisk == "" {
 							kasirFisk = "NTech"
 						}
 						var pibFisk, jmbgFisk string
 						if nalogFisk.KlijentID != nil {
-							if kk, e3 := h.KlijentiRepo.DohvatiID(r.Context(), *nalogFisk.KlijentID); e3 == nil {
+							if kk, e3 := h.KlijentiRepo.DohvatiID(ctx, *nalogFisk.KlijentID); e3 == nil {
 								pibFisk, jmbgFisk = kk.PIB, kk.JMBG
 							}
 						}
 						zahtevFisk := fiskal.NapraviRefundZahtev(*nalogFisk, stavkeFisk, pibFisk, jmbgFisk, kasirFisk, fr.PfrBroj)
-						if odgFisk, errFisk := fk.IzdajRacun(r.Context(), zahtevFisk); errFisk != nil {
+						if odgFisk, errFisk := fk.IzdajRacun(ctx, zahtevFisk); errFisk != nil {
 							slog.Error("fiskalni refund nije uspeo", "prodaja_id", id, "error", errFisk)
 						} else {
 							poreskeJSON, _ := json.Marshal(odgFisk.TaxItems)
@@ -557,10 +570,10 @@ func (h *Handler) StornoProdaje(w http.ResponseWriter, r *http.Request) {
 								Zatrazio:          odgFisk.RequestedBy,
 								Poruka:            odgFisk.Messages,
 							}
-							if _, errFisk = h.FiskalRepo.Kreiraj(r.Context(), refundFr); errFisk != nil {
+							if _, errFisk = h.FiskalRepo.Kreiraj(ctx, refundFr); errFisk != nil {
 								slog.Error("čuvanje fiskalnog refunda nije uspelo", "prodaja_id", id, "error", errFisk)
 							} else {
-								_ = h.FiskalRepo.OznačiKaoStorniran(r.Context(), fr.ID)
+								_ = h.FiskalRepo.OznačiKaoStorniran(ctx, fr.ID)
 							}
 						}
 					}
@@ -570,13 +583,13 @@ func (h *Handler) StornoProdaje(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// brisanje KPO zapisa na storno
-	if h.modulUkljucen(r.Context(), "kpo") {
-		if e := h.KpoRepo.ObrisiPoIzvoru(r.Context(), "prodaja", id); e != nil {
+	if h.modulUkljucen(ctx, "kpo") {
+		if e := h.KpoRepo.ObrisiPoIzvoru(ctx, "prodaja", id); e != nil {
 			slog.Error("brisanje vezanog KPO zapisa nije uspelo", "prodaja_id", id, "error", e)
 		}
 	}
 
-	http.Redirect(w, r, "/prodaja/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)
+	return nil
 }
 
 // fiskalizujProdaju šalje fiskalni zahtev za prodajni nalog. Best-effort: greške
