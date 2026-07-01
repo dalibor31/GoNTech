@@ -138,6 +138,10 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('prodajaForma', () => ({
         stavke: [{artikal_id: '', kolicina: 1, cena: 0, cena_sa_pdv: 0, pdv_stopa: 20, popust: 0, kategorija_naziv: '', _naziv: '', _pretraga: '', _prikaziListu: false, _limit: 30}],
         zbirnoHover: false,
+        nacinPlacanja: 'gotovina',
+        primljenoIznos: '',
+        prikaziRacun: true,
+        _fiskalniTab: null,
         artikliOpcije: [],
         pretragaArtikal: '',
         pdvObveznik: true,
@@ -356,6 +360,24 @@ document.addEventListener('alpine:init', () => {
         posaljiProdaju(e) {
             this.stavke = this.stavke.filter(s => s.artikal_id)
             this.$nextTick(() => e.target.submit())
+        },
+        otvoriModalNaplate() {
+            this.primljenoIznos = ''
+            this.$refs.dijalogNaplate.showModal()
+        },
+        kusurIznos() {
+            return (parseFloat(this.primljenoIznos) || 0) - parseFloat(this.ukupnoSvega())
+        },
+        naplataValidna() {
+            return this.primljenoIznos !== '' && (parseFloat(this.primljenoIznos) || 0) >= parseFloat(this.ukupnoSvega())
+        },
+        // pripremiFiskalniTab otvara prazan tab SINHRONO unutar klika (očuvan user gesture),
+        // da bi kasnije, posle redirekta na stranicu detalja prodaje, mogao da se imenom
+        // popuni URL-om fiskalnog računa bez blokiranja popup-blokera
+        pripremiFiskalniTab() {
+            if (this.prikaziRacun) {
+                this._fiskalniTab = window.open('', 'ntech-fiskalni-tab')
+            }
         },
         ukupnoStavke(s) {
             const cena = parseFloat(s.cena) || 0

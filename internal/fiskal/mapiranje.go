@@ -51,11 +51,14 @@ func TipPlacanja(nacin string) string {
 
 // NapraviZahtev konvertuje prodajni nalog i stavke u Teron InvoiceRequest.
 // VAŽNO: sve cene se konvertuju iz neto u bruto pre slanja (BrutoCena).
-// pib/jmbg se koriste za buyerId identifikaciju kupca.
+// pib/jmbg se koriste za buyerId identifikaciju kupca. primljeno je iznos koji je
+// kupac stvarno predao (za obračun povraćaja na fiskalnom računu) — ako je 0 ili
+// manji od ukupnog iznosa, šalje se tačan iznos duga (bez povraćaja).
 func NapraviZahtev(
 	nalog model.ProdajniNalog,
 	stavke []model.StavkaProdajeSaArtiklom,
 	pib, jmbg, kasir string,
+	primljeno float64,
 ) InvoiceRequest {
 	items := make([]InvoiceItem, 0, len(stavke))
 	ukupanIznos := 0.0
@@ -90,6 +93,13 @@ func NapraviZahtev(
 	// Ukupno za plaćanje je uvek suma bruto stavki (neto iz naloga bi bilo pogrešno)
 	ukupnoPlacanje := ukupanIznos
 
+	// ako je kupac dao više od duga, na računu se iskazuje stvarno primljen iznos
+	// (fiskalni uređaj sam izračunava povraćaj kao razliku)
+	iznosPlacanja := ukupnoPlacanje
+	if primljeno > ukupnoPlacanje {
+		iznosPlacanja = primljeno
+	}
+
 	nacinPlacanja := nalog.NacinPlacanja
 	if nacinPlacanja == "" {
 		nacinPlacanja = "Gotovina"
@@ -101,7 +111,7 @@ func NapraviZahtev(
 			TransactionType: "Sale",
 			Payment: []PaymentItem{
 				{
-					Amount:      ukupnoPlacanje,
+					Amount:      iznosPlacanja,
 					PaymentType: TipPlacanja(nacinPlacanja),
 				},
 			},
@@ -127,7 +137,7 @@ func NapraviRefundZahtev(
 	stavke []model.StavkaProdajeSaArtiklom,
 	pib, jmbg, kasir, referentBroj string,
 ) InvoiceRequest {
-	zahtev := NapraviZahtev(nalog, stavke, pib, jmbg, kasir)
+	zahtev := NapraviZahtev(nalog, stavke, pib, jmbg, kasir, 0)
 	zahtev.InvoiceRequest.TransactionType = "Refund"
 	zahtev.InvoiceRequest.ReferentDocumentNumber = referentBroj
 	return zahtev

@@ -325,9 +325,14 @@ func (h *Handler) SacuvajProdaju(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fiskalizacija — ako je modul uključen (best-effort: prodaja ostaje validna i bez fiskalizacije)
+	racunKreiran := false
 	if h.modulUkljucen(r.Context(), config.ModulFiskalizacija) {
 		if klijent := h.fiskalKlijent(); klijent != nil {
-			h.fiskalizujProdaju(r.Context(), id, klijent)
+			primljeno, _ := strconv.ParseFloat(strings.TrimSpace(r.FormValue("primljeno")), 64)
+			h.fiskalizujProdaju(r.Context(), id, klijent, primljeno)
+			if fr, _ := h.FiskalRepo.DohvatiPoProdaji(r.Context(), id); fr != nil {
+				racunKreiran = true
+			}
 		}
 	}
 
@@ -347,7 +352,11 @@ func (h *Handler) SacuvajProdaju(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	http.Redirect(w, r, "/prodaja/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)
+	redirectURL := "/prodaja/" + strconv.FormatInt(id, 10) + "?sacuvano=1"
+	if r.FormValue("prikazi_racun") == "1" && racunKreiran {
+		redirectURL += "&racun=1"
+	}
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 // DetaljiProdaje prikazuje pregled jednog prodajnog naloga sa svim stavkama
@@ -468,6 +477,60 @@ func (h *Handler) StampaProdaje(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.renderujStandalone(w, "prodaja_stampa", podaci)
+}
+
+// StampaFiskalnogProdaje renderuje journal izdatog fiskalnog računa za prodaju (za štampu/uvid)
+func (h *Handler) StampaFiskalnogProdaje(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID", http.StatusBadRequest)
+		return
+	}
+	fr, err := h.FiskalRepo.DohvatiPoProdaji(r.Context(), id)
+	if err != nil || fr == nil {
+		http.Error(w, "Fiskalni račun nije pronađen", http.StatusNotFound)
+		return
+	}
+	nalog, _ := h.ProdajaRepo.DohvatiID(r.Context(), id)
+	journal := ""
+	if fr.SiroviOdgovor != "" {
+		var raw map[string]any
+		if json.Unmarshal([]byte(fr.SiroviOdgovor), &raw) == nil {
+			if j, ok := raw["journal"].(string); ok {
+				journal = j
+			}
+		}
+	}
+	if nalog != nil {
+		journal += "\n\n--- NTech prodaja: " + nalog.BrojNaloga + " ---\n"
+	}
+
+	// Podeli journal na deo pre i posle QR placeholder-a
+	const qrPlaceholder = "{{{{QR-KOD}}}}"
+	pre, post, hasQR := strings.Cut(journal, qrPlaceholder)
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	fmt.Fprint(w, `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Fiskalni račun</title>
+<style>
+*{box-sizing:border-box;}
+body{font-family:monospace;font-size:12px;padding:20px;max-width:max-content;margin:0 auto;}
+pre{white-space:pre;margin:0;padding:0;font-family:inherit;font-size:inherit;display:block;}
+@media print{body{font-size:11px;padding:10px;}}
+</style></head><body>`)
+
+	fmt.Fprint(w, `<pre>`)
+	fmt.Fprint(w, pre)
+	fmt.Fprint(w, `</pre>`)
+
+	if hasQR && fr.QRKod != "" {
+		fmt.Fprintf(w, `<div style="margin:10px 0;"><img src="data:image/png;base64,%s" style="display:block;margin:0 auto;width:72mm;height:72mm;"></div>`, fr.QRKod)
+	}
+
+	fmt.Fprint(w, `<pre>`)
+	fmt.Fprint(w, post)
+	fmt.Fprint(w, `</pre>`)
+
+	fmt.Fprint(w, `<p style="margin-top:16px;"><button onclick="window.print()" style="padding:8px 16px;">Štampaj</button></p></body></html>`)
 }
 
 // ObrisiProdaju prima POST zahtev i stornira nalog umesto fizičkog brisanja.
@@ -733,7 +796,9 @@ func (h *Handler) stornirajProdaju(ctx context.Context, id int64, razlog string,
 
 // fiskalizujProdaju šalje fiskalni zahtev za prodajni nalog. Best-effort: greške
 // se loguju, ne zaustavljaju tok pozivaoca (kreiranje prodaje ili ručni retry).
-func (h *Handler) fiskalizujProdaju(ctx context.Context, prodajaID int64, klijent *fiskal.Klijent) {
+// primljeno je iznos koji je kupac predao (za tačan povraćaj na računu) — 0 ako
+// nije poznat (npr. ručni retry), tada se šalje tačan dug bez povraćaja.
+func (h *Handler) fiskalizujProdaju(ctx context.Context, prodajaID int64, klijent *fiskal.Klijent, primljeno float64) {
 	nalog, err := h.ProdajaRepo.DohvatiID(ctx, prodajaID)
 	if err != nil {
 		slog.Error("fiskalizujProdaju: nije pronađen nalog", "prodaja_id", prodajaID, "error", err)
@@ -757,7 +822,7 @@ func (h *Handler) fiskalizujProdaju(ctx context.Context, prodajaID int64, klijen
 		}
 	}
 
-	zahtev := fiskal.NapraviZahtev(*nalog, stavke, pib, jmbg, kasir)
+	zahtev := fiskal.NapraviZahtev(*nalog, stavke, pib, jmbg, kasir, primljeno)
 
 	odgovor, errFisk := klijent.IzdajRacun(ctx, zahtev)
 	if errFisk != nil {
@@ -822,7 +887,7 @@ func (h *Handler) RetryFiskalizacijaProdaje(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	h.fiskalizujProdaju(r.Context(), id, klijent)
+	h.fiskalizujProdaju(r.Context(), id, klijent, 0)
 
 	if fr, _ := h.FiskalRepo.DohvatiPoProdaji(r.Context(), id); fr != nil {
 		middleware.SetFlash(w, r, h.DB, "uspeh", "Fiskalni račun izdat.")

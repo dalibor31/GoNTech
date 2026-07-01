@@ -413,6 +413,14 @@ def _build_invoice_response(req, request_id):
         "messages":             "Success",
     }
 
+    # povraćaj — ako je primljeno više nego što je duženo (npr. kupac dao krupniju
+    # novčanicu), razlika se ispisuje na računu; kod refundacije nema povraćaja
+    payments = inv_req.get("payment", [{"type": "Cash", "amount": total_amount}])
+    total_paid = round(sum(float(p.get("amount", 0)) for p in payments), 2)
+    refund = round(total_paid - total_amount, 2) if transaction_type != "Refund" else 0
+    if refund < 0:
+        refund = 0
+
     # Puni podaci za snimanje i generisanje računa
     full_data = {
         **odgovor,
@@ -420,7 +428,7 @@ def _build_invoice_response(req, request_id):
         "invoiceType":   invoice_type,
         "transactionType": transaction_type,
         "items":         items,
-        "payments":      inv_req.get("payment", [{"type": "Cash", "amount": total_amount}]),
+        "payments":      payments,
         "cashier":       inv_req.get("cashier", "Kasir"),
         "buyerId":       inv_req.get("buyerId", ""),
         "referentDocumentNumber": inv_req.get("referentDocumentNumber", ""),
@@ -430,7 +438,7 @@ def _build_invoice_response(req, request_id):
         "store":         firma["locationName"],
         "address":       firma["address"],
         "district":      firma["district"],
-        "refund":        0,
+        "refund":        refund,
         # za avansni konačni
         "advancePaid":   req.get("advancePaid", 0),
         "advanceTax":    req.get("advanceTax", 0),

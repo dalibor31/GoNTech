@@ -287,6 +287,15 @@
           {{end}}
         </div>
       </div>
+      <script>
+      (function(){
+        // ako je kroz modal naplate u „Nova prodaja" zatražen prikaz — otvoren je prazan
+        // imenovani tab pre redirekta ovde; sada ga popunjavamo (ne blokira popup-blocker)
+        if (new URLSearchParams(location.search).get('racun') === '1') {
+          window.open('/prodaja/{{.Nalog.ID}}/fiskalni-racun', 'ntech-fiskalni-tab')
+        }
+      })();
+      </script>
       {{end}}
 
       {{if .FiskalGreska}}

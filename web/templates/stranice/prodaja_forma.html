@@ -46,54 +46,44 @@
         <span style="font-size: 16px; font-weight: 500; color: var(--tekst-glavni)">Nova prodaja</span>
       </div>
       <div style="display: flex; flex-direction: column; gap: 14px">
-        <div class="forma-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-          <div>
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; flex-wrap: wrap; gap: 6px">
-              <label class="polje-labela" style="margin-bottom: 0">Klijent</label>
-              <div style="display: flex; gap: 6px">
-                <label class="tip-klijenta-opcija" :class="klasaTipKlijenta('sve')" @click="postaviTipKlijenta('sve')">
-                  <input type="radio" name="tip-klijenta-filter" value="sve" :checked="jeTipKlijenta('sve')" style="margin: 0" /> Sva lica
-                </label>
-                <label class="tip-klijenta-opcija" :class="klasaTipKlijenta('pravno')" @click="postaviTipKlijenta('pravno')">
-                  <input type="radio" name="tip-klijenta-filter" value="pravno" :checked="jeTipKlijenta('pravno')" style="margin: 0" /> Pravna lica
-                </label>
-                <label class="tip-klijenta-opcija" :class="klasaTipKlijenta('fizicko')" @click="postaviTipKlijenta('fizicko')">
-                  <input type="radio" name="tip-klijenta-filter" value="fizicko" :checked="jeTipKlijenta('fizicko')" style="margin: 0" /> Fizička lica
-                </label>
-              </div>
-            </div>
-            <input type="hidden" name="klijent_id" :value="izabraniKlijentId || ''" />
-            <template x-if="izabraniKlijent">
-              <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 8px 10px; background: var(--pozadina); border: 0.5px solid var(--ivica); border-radius: 8px">
-                <div>
-                  <div style="font-size: 13px; font-weight: 500; color: var(--tekst-glavni)" x-text="izabraniKlijent.naziv"></div>
-                  <template x-for="p in poljaIzabranogKlijenta(izabraniKlijent)" :key="p.labela">
-                    <div style="font-size: 11px; color: var(--tekst-sporedni)"><span x-text="p.labela"></span>: <span x-text="p.vrednost"></span></div>
-                  </template>
-                </div>
-                <button type="button" class="btn-sekundarno" @click="ocistiKlijenta()" style="padding: 3px 10px; font-size: 12px">Promeni</button>
-              </div>
-            </template>
-            <div x-show="!izabraniKlijent" style="position: relative" @click.outside="prikaziListuKlijenata = false">
-              <input type="text" x-model="pretragaKlijent" autocomplete="off" @focus="pretragaKlijentPromenjena()" @input="pretragaKlijentPromenjena()" placeholder="Pretraži klijenta ili ostavi prazno..." style="width: 100%" />
-              <div x-show="prikaziListuKlijenata && filtriraniKlijenti.length" x-cloak @scroll="ucitajViseKlijenata($event)" style="position: absolute; z-index: 30; left: 0; right: 0; margin-top: 4px; background: var(--pozadina); border: 0.5px solid var(--ivica); border-radius: 10px; max-height: 220px; overflow: auto; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14)">
-                <template x-for="k in filtriraniKlijenti" :key="k.id">
-                  <div @click="izaberiKlijenta(k)" class="klijent-stavka" style="padding: 8px 12px; cursor: pointer; border-bottom: 0.5px solid var(--ivica)">
-                    <div style="font-size: 13px; font-weight: 500; color: var(--tekst-glavni)" x-text="k.naziv"></div>
-                    <div style="font-size: 11px; color: var(--tekst-sporedni)" x-text="detaljKlijenta(k)"></div>
-                  </div>
-                </template>
-                <div x-show="imaJosKlijenata" style="padding: 6px 12px; text-align: center; font-size: 11px; color: var(--tekst-sporedni)">Skrolujte za još rezultata...</div>
-              </div>
+        <div>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; flex-wrap: wrap; gap: 6px">
+            <label class="polje-labela" style="margin-bottom: 0">Klijent</label>
+            <div style="display: flex; gap: 6px">
+              <label class="tip-klijenta-opcija" :class="klasaTipKlijenta('sve')" @click="postaviTipKlijenta('sve')">
+                <input type="radio" name="tip-klijenta-filter" value="sve" :checked="jeTipKlijenta('sve')" style="margin: 0" /> Sva lica
+              </label>
+              <label class="tip-klijenta-opcija" :class="klasaTipKlijenta('pravno')" @click="postaviTipKlijenta('pravno')">
+                <input type="radio" name="tip-klijenta-filter" value="pravno" :checked="jeTipKlijenta('pravno')" style="margin: 0" /> Pravna lica
+              </label>
+              <label class="tip-klijenta-opcija" :class="klasaTipKlijenta('fizicko')" @click="postaviTipKlijenta('fizicko')">
+                <input type="radio" name="tip-klijenta-filter" value="fizicko" :checked="jeTipKlijenta('fizicko')" style="margin: 0" /> Fizička lica
+              </label>
             </div>
           </div>
-          <div style="display: flex; flex-direction: column; justify-content: flex-end">
-            <label class="polje-labela">Način plaćanja</label>
-            <select name="nacin_placanja" style="width:100%;">
-              <option value="gotovina">Gotovina</option>
-              <option value="kartica">Platna kartica</option>
-              <option value="prenos">Bankarski prenos</option>
-            </select>
+          <input type="hidden" name="klijent_id" :value="izabraniKlijentId || ''" />
+          <template x-if="izabraniKlijent">
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 8px 10px; background: var(--pozadina); border: 0.5px solid var(--ivica); border-radius: 8px">
+              <div>
+                <div style="font-size: 13px; font-weight: 500; color: var(--tekst-glavni)" x-text="izabraniKlijent.naziv"></div>
+                <template x-for="p in poljaIzabranogKlijenta(izabraniKlijent)" :key="p.labela">
+                  <div style="font-size: 11px; color: var(--tekst-sporedni)"><span x-text="p.labela"></span>: <span x-text="p.vrednost"></span></div>
+                </template>
+              </div>
+              <button type="button" class="btn-sekundarno" @click="ocistiKlijenta()" style="padding: 3px 10px; font-size: 12px">Promeni</button>
+            </div>
+          </template>
+          <div x-show="!izabraniKlijent" style="position: relative" @click.outside="prikaziListuKlijenata = false">
+            <input type="text" x-model="pretragaKlijent" autocomplete="off" @focus="pretragaKlijentPromenjena()" @input="pretragaKlijentPromenjena()" placeholder="Pretraži klijenta ili ostavi prazno..." style="width: 100%" />
+            <div x-show="prikaziListuKlijenata && filtriraniKlijenti.length" x-cloak @scroll="ucitajViseKlijenata($event)" style="position: absolute; z-index: 30; left: 0; right: 0; margin-top: 4px; background: var(--pozadina); border: 0.5px solid var(--ivica); border-radius: 10px; max-height: 220px; overflow: auto; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14)">
+              <template x-for="k in filtriraniKlijenti" :key="k.id">
+                <div @click="izaberiKlijenta(k)" class="klijent-stavka" style="padding: 8px 12px; cursor: pointer; border-bottom: 0.5px solid var(--ivica)">
+                  <div style="font-size: 13px; font-weight: 500; color: var(--tekst-glavni)" x-text="k.naziv"></div>
+                  <div style="font-size: 11px; color: var(--tekst-sporedni)" x-text="detaljKlijenta(k)"></div>
+                </div>
+              </template>
+              <div x-show="imaJosKlijenata" style="padding: 6px 12px; text-align: center; font-size: 11px; color: var(--tekst-sporedni)">Skrolujte za još rezultata...</div>
+            </div>
           </div>
         </div>
         <div>
@@ -302,10 +292,52 @@
     <!-- dugmad forme -->
     <div style="display: flex; justify-content: flex-end; gap: 10px">
       <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja" class="btn-sekundarno">Odustani</a>
-      <button type="submit" class="btn-primarno" :disabled="imaPrekoracenja() || !imaPopunjenuStavku()" :style="(imaPrekoracenja() || !imaPopunjenuStavku()) ? 'opacity:0.4;cursor:not-allowed;' : ''">
+      <button type="button" @click="otvoriModalNaplate()" class="btn-primarno" :disabled="imaPrekoracenja() || !imaPopunjenuStavku()" :style="(imaPrekoracenja() || !imaPopunjenuStavku()) ? 'opacity:0.4;cursor:not-allowed;' : ''">
         Naplati
       </button>
     </div>
+
+    <!-- modal naplate — unos primljenog iznosa/kusura i način plaćanja pre konačnog slanja prodaje -->
+    <dialog class="premesti-modal" x-ref="dijalogNaplate" onclick="if(event.target===this)this.close()">
+      <div class="premesti-zaglavlje">
+        <h3>Naplata</h3>
+        <button type="button" class="premesti-zatvori" @click="$refs.dijalogNaplate.close()" aria-label="Zatvori">&times;</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;padding:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:16px;font-weight:600;color:var(--tekst-glavni);">Za naplatu</span>
+          <span style="font-size:18px;font-weight:600;color:var(--tekst-glavni);" x-text="fmtDin(ukupnoSvega()) + ' din'"></span>
+        </div>
+        <div style="margin-top:6px;padding-top:10px;border-top:0.5px solid var(--ivica);">
+          <label class="polje-labela">Primljeno (din)</label>
+          <input type="number" name="primljeno" min="0" step="0.01" x-model="primljenoIznos" placeholder="Unesite primljeni iznos"
+            style="width:100%;padding:8px 12px;background:var(--pozadina);border:0.5px solid var(--ivica);border-radius:8px;color:var(--tekst-glavni);font-size:14px;box-sizing:border-box;">
+        </div>
+        <div x-show="primljenoIznos !== '' && kusurIznos() >= 0" x-cloak
+          style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:color-mix(in srgb,var(--uspeh) 10%,transparent);border:0.5px solid var(--uspeh);border-radius:8px;">
+          <span style="color:var(--uspeh);font-weight:500;">Kusur (vratiti)</span>
+          <span style="font-size:16px;font-weight:600;color:var(--uspeh);" x-text="fmtDin(kusurIznos()) + ' din'"></span>
+        </div>
+        <div>
+          <label class="polje-labela">Način plaćanja</label>
+          <select name="nacin_placanja" x-model="nacinPlacanja"
+            style="width:100%;padding:8px 12px;background:var(--pozadina);border:0.5px solid var(--ivica);border-radius:8px;color:var(--tekst-glavni);font-size:13px;">
+            <option value="gotovina">Gotovina</option>
+            <option value="kartica">Platna kartica</option>
+            <option value="prenos">Bankarski prenos</option>
+          </select>
+        </div>
+        <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--pozadina);border:0.5px solid var(--ivica);border-radius:8px;cursor:pointer;">
+          <input type="checkbox" name="prikazi_racun" value="1" x-model="prikaziRacun"
+            style="width:16px;height:16px;accent-color:var(--sb-akcent);cursor:pointer;flex-shrink:0;">
+          <span style="font-size:13px;color:var(--tekst-glavni);">Prikaži fiskalni račun</span>
+        </label>
+        <button type="submit" class="btn-primarno" style="width:100%;margin-top:4px;" :disabled="!naplataValidna()"
+          :style="!naplataValidna() ? 'opacity:0.4;cursor:not-allowed;' : ''" @click="pripremiFiskalniTab()">
+          Naplati
+        </button>
+      </div>
+    </dialog>
   </form>
 </div>
 {{end}}
