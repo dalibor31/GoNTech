@@ -141,6 +141,7 @@ document.addEventListener('alpine:init', () => {
         nacinPlacanja: 'gotovina',
         primljenoIznos: '',
         prikaziRacun: true,
+        saljemSe: false,
         _fiskalniTab: null,
         artikliOpcije: [],
         pretragaArtikal: '',
@@ -358,6 +359,8 @@ document.addEventListener('alpine:init', () => {
         // posaljiProdaju uklanja prazne stavke (npr. automatski dodat red na kraju koji korisnik
         // nije popunio) pre nego što se forma stvarno pošalje na server
         posaljiProdaju(e) {
+            if (this.saljemSe) return
+            this.saljemSe = true
             this.stavke = this.stavke.filter(s => s.artikal_id)
             this.$nextTick(() => e.target.submit())
         },

@@ -332,8 +332,8 @@
             style="width:16px;height:16px;accent-color:var(--sb-akcent);cursor:pointer;flex-shrink:0;">
           <span style="font-size:13px;color:var(--tekst-glavni);">Prikaži fiskalni račun</span>
         </label>
-        <button type="submit" class="btn-primarno" style="width:100%;margin-top:4px;" :disabled="!naplataValidna()"
-          :style="!naplataValidna() ? 'opacity:0.4;cursor:not-allowed;' : ''" @click="pripremiFiskalniTab()">
+        <button type="submit" class="btn-primarno" style="width:100%;margin-top:4px;" :disabled="!naplataValidna() || saljemSe"
+          :style="(!naplataValidna() || saljemSe) ? 'opacity:0.4;cursor:not-allowed;' : ''" @click="pripremiFiskalniTab()">
           Naplati
         </button>
       </div>
