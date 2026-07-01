@@ -62,7 +62,7 @@
                     <tr style="border-bottom:0.5px solid var(--ivica);">
                         <td style="padding:10px 12px;white-space:nowrap;">{{.DatumPrometa.Format "02.01.2006."}}</td>
                         <td style="padding:10px 12px;">{{.BrojDokumenta}}</td>
-                        <td style="padding:10px 12px;">{{.KupacNaziv}}{{if .KupacPib}}<div style="font-size:11px;color:var(--tekst-sporedni);">{{.OznakaPoreskogBroja}}: {{.KupacPib}}</div>{{end}}</td>
+                        <td style="padding:10px 12px;">{{.KupacNaziv}}{{if .KupacPib}}<div style="font-size:11px;color:var(--tekst-sporedni);">{{.OznakaPoreskogBroja}}: {{.KupacPib}}</div>{{end}}{{if index $.Zastareo .ID}}<div style="font-size:11px;color:var(--upozorenje, #b58900);margin-top:2px;">⚠ zastareo iznos — <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/pdv/kir/dnevni-pazar?datum={{.DatumPrometa.Format "2006-01-02"}}" style="color:inherit;text-decoration:underline;">osveži</a></div>{{end}}</td>
                         <td style="padding:10px 12px;text-align:right;">{{dinari .OsnovicaOpsta}}</td>
                         <td style="padding:10px 12px;text-align:right;">{{dinari .PdvOpsta}}</td>
                         <td style="padding:10px 12px;text-align:right;">{{dinari .OsnovicaPosebna}}</td>

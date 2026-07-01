@@ -20,10 +20,11 @@ import (
 // PodaciPdvKir su podaci za pregled knjige izdatih računa
 type PodaciPdvKir struct {
 	model.PodaciStranice
-	Zapisi []model.PdvKir
-	Sume   model.PdvKirSume
-	Od     string // filter perioda (YYYY-MM-DD), prazno = bez granice
-	Do     string
+	Zapisi   []model.PdvKir
+	Sume     model.PdvKirSume
+	Od       string // filter perioda (YYYY-MM-DD), prazno = bez granice
+	Do       string
+	Zastareo map[int64]bool // ID zapisa dnevnog pazara čiji je iznos van sinhronizacije sa trenutnim prometom (npr. posle naknadnog storna)
 }
 
 // PodaciPdvKirForma su podaci za formu unosa zapisa KIR
@@ -83,6 +84,24 @@ func (h *Handler) PdvKir(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// zbirni unos dnevnog pazara nema povratnu vezu ka pojedinačnim nalozima —
+	// ako je posle upisa neki maloprodajni nalog tog dana storniran ili dodat,
+	// upisani iznos ostaje zastareo dok korisnik svesno ne osveži tu formu
+	zastareo := map[int64]bool{}
+	for _, z := range zapisi {
+		if z.Izvor != "rucno" || !strings.HasPrefix(z.BrojDokumenta, "FISK-") {
+			continue
+		}
+		promet, err := h.ProdajaRepo.DnevniPrometMaloprodaje(r.Context(), z.DatumPrometa.Format("2006-01-02"))
+		if err != nil {
+			continue
+		}
+		trenutno := math.Round((promet.OsnovicaOpsta+promet.PdvOpsta+promet.OsnovicaPosebna+promet.PdvPosebna)*100) / 100
+		if math.Abs(trenutno-z.Ukupno) > 0.005 {
+			zastareo[z.ID] = true
+		}
+	}
+
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "pdv-kir"
 	ps.NaslovStranice = "KIR — knjiga izdatih računa"
@@ -92,6 +111,7 @@ func (h *Handler) PdvKir(w http.ResponseWriter, r *http.Request) {
 		Sume:           model.SumirajKir(zapisi),
 		Od:             odStr,
 		Do:             doStr,
+		Zastareo:       zastareo,
 	})
 }
 
