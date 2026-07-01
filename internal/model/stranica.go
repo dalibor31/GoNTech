@@ -71,4 +71,23 @@ type PodaciDashboarda struct {
 	KriticneZalihe    []StavkaZalihe
 	PoslednjeProdaje  []StavkaProdajePregled
 	FlashGreska       string
+	PrazninaKnjige    PrazninaKnjigovodstva
+}
+
+// PrazninaKnjigovodstva sažima broj naloga bez KIR/KPO/fiskalnog upisa i broj
+// sumnjivih duplikata (naloga koje automatski backfill namerno preskače) — prikazuje
+// se kao kartica na dashboard-u.
+type PrazninaKnjigovodstva struct {
+	BezKir        int
+	BezKpo        int
+	BezFiskalnog  int
+	BezRefunda    int // stornirani nalozi čiji fiskalni refund nije uspeo (best-effort poziv pao)
+	SumnjiviDupli int
+}
+
+// Ukupno vraća zbir svih praznina UKLJUČUJUĆI sumnjive duplikate — koristi se da se
+// odluči da li se kartica uopšte prikazuje na dashboard-u (i kad ostanu samo
+// duplikati za ručnu proveru, kartica mora da ostane vidljiva).
+func (p PrazninaKnjigovodstva) Ukupno() int {
+	return p.BezKir + p.BezKpo + p.BezFiskalnog + p.BezRefunda + p.SumnjiviDupli
 }

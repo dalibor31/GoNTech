@@ -52,6 +52,7 @@ type fiskalVerifikacijaPodaci struct {
 	Podaci     *FiskalVlPodaci
 	Greska     string
 	JeFiskalni bool
+	Kusur      float64 // zbir plaćanja umanjen za ukupan iznos, prikazuje se samo ako je > 0
 }
 
 func (h *Handler) FiskalVerifikacija(w http.ResponseWriter, r *http.Request) {
@@ -87,6 +88,14 @@ func (h *Handler) FiskalVerifikacija(w http.ResponseWriter, r *http.Request) {
 	podaci.JeFiskalni = vlPodaci.InvoiceType != "Copy" &&
 		vlPodaci.InvoiceType != "Training" &&
 		vlPodaci.InvoiceType != "Proforma"
+
+	var placeno float64
+	for _, p := range vlPodaci.Payments {
+		placeno += p.Amount
+	}
+	if kusur := placeno - vlPodaci.TotalAmount; kusur > 0.005 {
+		podaci.Kusur = kusur
+	}
 
 	h.renderujStandalone(w, "fiskal_verifikacija", podaci)
 }

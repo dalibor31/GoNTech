@@ -4,8 +4,10 @@
 package be
 
 import (
+	"context"
 	"database/sql"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"math/rand/v2"
@@ -14,6 +16,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"ntech/internal/db/sqlite"
 )
 
 // tipExt mapira (invoiceType, transactionType) → (ćirilični sufiks, ključ brojača)
@@ -33,6 +37,7 @@ var tipExt = map[[2]string][2]string{
 // Kartica drži stanje emuliranog bezbednosnog elementa.
 type Kartica struct {
 	mu sync.Mutex
+	db *sql.DB
 
 	// identitet (zamrznuto pri "personalizaciji" — čitamo iz DB pri pokretanju)
 	JID            string
@@ -59,6 +64,7 @@ type Kartica struct {
 
 func novaKartica(db *sql.DB) *Kartica {
 	k := &Kartica{
+		db:     db,
 		JID:    env("BE_JID", "TRNMOCK1"),
 		PIN:    env("BE_PIN", "1234"),
 		Limit:  envFloat("BE_LIMIT", 500000),
@@ -91,7 +97,7 @@ func (k *Kartica) ucitajFirmu(db *sql.DB) {
 		"SELECT kljuc, vrednost FROM podesavanja WHERE kljuc IN " +
 			"('naziv_firme','pib','maticni_broj','adresa','telefon'," +
 			"'poslovna_jedinica_naziv','poslovna_jedinica_oznaka','opstina','grad'," +
-			"'be_pin','be_limit')",
+			"'be_pin','be_limit','be_total_counter','be_counters_json','be_unread_amount')",
 	)
 	if err != nil {
 		slog.Warn("be: ne mogu da čitam podesavanja", "error", err)
@@ -154,6 +160,45 @@ func (k *Kartica) ucitajFirmu(db *sql.DB) {
 			}
 		}
 	}
+
+	// brojači se pamte preko restarta — fiskalni brojač NIKAD ne sme da krene
+	// ispočetka, to bi proizvelo duplirane PFR brojeve za stvarne (ili mock) račune
+	if tc := p["be_total_counter"]; tc != "" {
+		if n, err := strconv.Atoi(tc); err == nil {
+			k.totalCounter = n
+		}
+	}
+	if cj := p["be_counters_json"]; cj != "" {
+		var sacuvani map[string]int
+		if err := json.Unmarshal([]byte(cj), &sacuvani); err == nil {
+			for key, val := range sacuvani {
+				k.counters[key] = val
+			}
+		}
+	}
+	if ua := p["be_unread_amount"]; ua != "" {
+		if f, err := strconv.ParseFloat(ua, 64); err == nil {
+			k.unreadAmount = f
+		}
+	}
+}
+
+// sacuvajBrojace upisuje trenutno stanje brojača u podesavanja, da posle restarta
+// emulatora fiskalni brojač nastavi odakle je stao (poziva se pod k.mu iz cmdSign/
+// cmdResetAudit).
+func (k *Kartica) sacuvajBrojace() {
+	if k.db == nil {
+		return
+	}
+	ctx := context.Background()
+	if err := sqlite.SacuvajPodesavanje(ctx, k.db, "be_total_counter", strconv.Itoa(k.totalCounter)); err != nil {
+		slog.Warn("be: ne mogu da sačuvam brojač", "error", err)
+		return
+	}
+	if cj, err := json.Marshal(k.counters); err == nil {
+		_ = sqlite.SacuvajPodesavanje(ctx, k.db, "be_counters_json", string(cj))
+	}
+	_ = sqlite.SacuvajPodesavanje(ctx, k.db, "be_unread_amount", strconv.FormatFloat(k.unreadAmount, 'f', -1, 64))
 }
 
 func (k *Kartica) postaviTestPodatke() {
@@ -220,6 +265,7 @@ func (k *Kartica) cmdResetAudit() map[string]any {
 	k.mu.Lock()
 	defer k.mu.Unlock()
 	k.unreadAmount = 0
+	k.sacuvajBrojace()
 	return map[string]any{"status": "ok", "unread_amount": 0}
 }
 
@@ -259,6 +305,8 @@ func (k *Kartica) cmdSign(invoiceType, transactionType string, totalAmount float
 			k.unreadAmount = 0
 		}
 	}
+
+	k.sacuvajBrojace()
 
 	// lažni potpis — random base64 dovoljno dug da izgleda realistično
 	sig := mockPotpis()

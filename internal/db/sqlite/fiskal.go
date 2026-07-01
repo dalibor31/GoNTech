@@ -62,6 +62,7 @@ func (r *FiskalRepo) DohvatiPoProdaji(ctx context.Context, prodajaID int64) (*mo
 			   poreske_stavke, ukupno_za_naplatu, ukupan_porez,
 			   sirovi_odgovor, potpisao, zatrazio, poruka, storniran, vreme_kreiranja
 		FROM fiskalni_racuni WHERE prodaja_id = ?
+		ORDER BY id DESC LIMIT 1
 	`, prodajaID).Scan(
 		&fr.ID, &fr.ProdajaID, &sID, &fr.TipRacuna, &fr.TipTransakcije, &fr.PfrBroj, &fr.PfrVreme,
 		&fr.Brojac, &fr.EkstenzijaBrojaca, &fr.UrlVerifikacija, &fr.QRKod,
@@ -93,6 +94,7 @@ func (r *FiskalRepo) DohvatiPoServisu(ctx context.Context, servisID int64) (*mod
 			   poreske_stavke, ukupno_za_naplatu, ukupan_porez,
 			   sirovi_odgovor, potpisao, zatrazio, poruka, storniran, vreme_kreiranja
 		FROM fiskalni_racuni WHERE servis_id = ?
+		ORDER BY id DESC LIMIT 1
 	`, servisID).Scan(
 		&fr.ID, &pID, &sID, &fr.TipRacuna, &fr.TipTransakcije, &fr.PfrBroj, &fr.PfrVreme,
 		&fr.Brojac, &fr.EkstenzijaBrojaca, &fr.UrlVerifikacija, &fr.QRKod,

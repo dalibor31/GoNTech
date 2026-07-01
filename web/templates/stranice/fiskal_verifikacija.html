@@ -64,9 +64,11 @@
         /* podnožje */
         .podnozje { text-align: center; padding: 20px 16px 8px; font-size: 11px; color: #94a3b8; line-height: 1.6; }
         .podnozje a { color: #64748b; text-decoration: none; }
+        .test-traka { background: #7c2d12; color: #fed7aa; text-align: center; padding: 8px 16px; font-size: 12px; font-weight: 600; }
     </style>
 </head>
 <body>
+<div class="test-traka">⚠ TESTNA STRANICA — lokalna simulacija (Teron mock), NIJE prava provera kod Poreske uprave RS</div>
 <div class="omotac">
 
 {{if .Greska}}
@@ -80,8 +82,8 @@
 {{if .JeFiskalni}}
 <div class="baner ok">
     <div class="baner-ikona">✓</div>
-    <div class="baner-tekst">Račun je verifikovan</div>
-    <div class="baner-podnaslov">Fiskalni račun je evidentiran u sistemu</div>
+    <div class="baner-tekst">Podaci pročitani sa QR koda</div>
+    <div class="baner-podnaslov">Testni prikaz — nije prava provera kod Poreske uprave RS</div>
 </div>
 {{else}}
 <div class="baner" style="background:#f59e0b;color:#1c1917;">
@@ -201,6 +203,12 @@
         <span style="font-weight:600;">{{dinari .Amount}} din</span>
     </div>
     {{end}}
+    {{if $.Kusur}}
+    <div class="placanje-red">
+        <span style="color:#374151;">Kusur</span>
+        <span style="font-weight:600;">{{dinari $.Kusur}} din</span>
+    </div>
+    {{end}}
 </div>
 {{end}}
 
@@ -222,7 +230,7 @@
 
 <div class="podnozje">
     Fiskalizacija — NTech sistem<br>
-    <span style="font-size:10px;color:#cbd5e1;">Poreski identifikacioni broj se proverava kod Poreske uprave RS</span>
+    <span style="font-size:10px;color:#cbd5e1;">Podaci su dekodirani direktno iz QR koda na ovom serveru — ovo NIJE zvanična provera kod Poreske uprave Republike Srbije.</span>
 </div>
 
 {{end}}{{/* if .Greska */}}

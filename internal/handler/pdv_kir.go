@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	appdb "ntech/internal/db"
 	"ntech/internal/db/sqlite"
 	"ntech/internal/middleware"
 	"ntech/internal/model"
@@ -223,21 +222,25 @@ func (h *Handler) KirBackfillProdaje(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sada := time.Now()
 
-	nalozi, err := h.ProdajaRepo.Lista(ctx, appdb.ProdajaFilter{})
+	nalozi, postojiMap, kandidati, err := h.kirKandidatiProdaje(ctx)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju prodaje", http.StatusInternalServerError)
 		return
 	}
+	duplikati := sumnjiviDuplikati(kandidati)
 
-	var kreirano, preskoceno int
+	var kreirano, preskoceno, sumnjivo int
 	for _, nd := range nalozi {
 		if nd.KlijentID == nil {
 			preskoceno++
 			continue
 		}
-		postoji, _ := h.PdvKirRepo.PostojiZaIzvor(ctx, "prodaja", nd.ID)
-		if postoji {
+		if postojiMap[nd.ID] {
 			preskoceno++
+			continue
+		}
+		if duplikati[nd.ID] {
+			sumnjivo++
 			continue
 		}
 		stavke, err := h.ProdajaRepo.DohvatiStavke(ctx, nd.ID)
@@ -267,7 +270,11 @@ func (h *Handler) KirBackfillProdaje(w http.ResponseWriter, r *http.Request) {
 		kreirano++
 	}
 
-	middleware.SetFlash(w, r, h.DB, "uspeh", fmt.Sprintf("Backfill završen: %d novih KIR zapisa, %d preskočeno.", kreirano, preskoceno))
+	poruka := fmt.Sprintf("Backfill završen: %d novih KIR zapisa, %d preskočeno.", kreirano, preskoceno)
+	if sumnjivo > 0 {
+		poruka += fmt.Sprintf(" %d sumnjivih duplikata NIJE upisano — proveri ručno.", sumnjivo)
+	}
+	middleware.SetFlash(w, r, h.DB, "uspeh", poruka)
 	http.Redirect(w, r, "/pdv/kir", http.StatusSeeOther)
 }
 

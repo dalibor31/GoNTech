@@ -2,8 +2,6 @@
 <div style="display: flex; flex-direction: column; gap: 16px">
     {{if .Sacuvano}}
     <div class="poruka-uspeh poruka-animacija">Prodaja je uspešno sačuvana.</div>
-    {{end}} {{if .Obrisan}}
-    <div class="poruka-uspeh poruka-animacija">Prodajni nalog je uspešno obrisan.</div>
     {{end}}
 
     <!-- zaglavlje sa pretragom, filterima i dugmetom -->
@@ -26,7 +24,7 @@
             </div>
             <div class="prodaja-traka-akcije" style="display: flex; gap: 10px; flex-wrap: wrap">
                 <label class="dugme-prekidac">
-                    <input type="checkbox" name="stornirano" value="1" {{if .SamoStornirano}}checked{{end}} />
+                    <input type="checkbox" name="stornirano" value="1" {{if .SamoStornirano}}checked{{end}} onchange="this.form.submit()" />
                     Samo stornirano
                 </label>
                 <button type="submit" class="btn-sekundarno" style="white-space: nowrap">Prikaži</button>
@@ -65,12 +63,6 @@
                         <td style="padding: 12px 16px; text-align: center">
                             <div style="display: flex; align-items: center; justify-content: center; gap: 8px">
                                 <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja/{{.ID}}" class="btn-primarno-malo">Detalji</a>
-                                {{if and (index $.Dozvole "prodaja.storno") (not .Stornirano)}}
-                                <form method="POST" action="/prodaja/storno/{{.ID}}" style="margin: 0; padding: 0">
-                                    <input type="hidden" name="_csrf" value="{{$.CsrfToken}}" />
-                                    <button type="submit" class="btn-obrisi-malo" data-potvrda="Da li ste sigurni da želite da stornirate ovaj nalog? Artikli će biti vraćeni na stanje.">Storno</button>
-                                </form>
-                                {{end}}
                             </div>
                         </td>
                     </tr>

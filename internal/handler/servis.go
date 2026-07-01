@@ -2340,20 +2340,7 @@ func (h *Handler) fiskalizujServis(ctx context.Context, servisID int64, klijent 
 		}
 	}
 
-	kasir := ""
-	if kor := middleware.KorisnikIzKonteksta(ctx); kor != nil {
-		if kor.Ime != "" || kor.Prezime != "" {
-			kasir = strings.TrimSpace(kor.Ime + " " + kor.Prezime)
-		} else {
-			kasir = kor.KorisnickoIme
-		}
-	}
-	if kasir == "" {
-		kasir, _ = sqlite.DohvatiPodesavanje(ctx, h.DB, "pfr_kasir")
-	}
-	if kasir == "" {
-		kasir = "NTech"
-	}
+	kasir := h.imeKasira(ctx)
 
 	zahtev := fiskal.InvoiceRequest{
 		InvoiceRequest: fiskal.InvoiceRequestBody{

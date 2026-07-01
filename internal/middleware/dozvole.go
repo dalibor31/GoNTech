@@ -26,7 +26,6 @@ var sveAkcije = []string{
 	"servis.obrisi",
 	"prodaja.pregled",
 	"prodaja.dodaj",
-	"prodaja.obrisi",
 	"prodaja.storno",
 	"klijent.pregled",
 	"klijent.dodaj",
@@ -43,6 +42,9 @@ var sveAkcije = []string{
 	"pdv.pregled",
 	"pdv.dodaj",
 	"pdv.obrisi",
+	"kpo.pregled",
+	"kpo.dodaj",
+	"kpo.obrisi",
 }
 
 // SveAkcije vraća listu svih poznatih akcija — koristi se pri inicijalizaciji baze i resetu
@@ -78,7 +80,7 @@ func ImaDozvolu(uloga, akcija string) bool {
 			"servis.izmeni", "servis.obrisi":
 			return true
 		// prodaja
-		case "prodaja.pregled", "prodaja.dodaj", "prodaja.obrisi", "prodaja.storno":
+		case "prodaja.pregled", "prodaja.dodaj", "prodaja.storno":
 			return true
 		// klijent
 		case "klijent.pregled", "klijent.dodaj",
@@ -102,6 +104,9 @@ func ImaDozvolu(uloga, akcija string) bool {
 			return true
 		// PDV evidencija (KIR/KPR) — administrativno, radnik nema
 		case "pdv.pregled", "pdv.dodaj", "pdv.obrisi":
+			return true
+		// KPO (knjiga o ostvarenom prometu) — administrativno, radnik nema
+		case "kpo.pregled", "kpo.dodaj", "kpo.obrisi":
 			return true
 		}
 		return false

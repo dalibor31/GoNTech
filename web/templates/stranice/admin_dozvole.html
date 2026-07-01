@@ -197,12 +197,6 @@
 
                         </tr>
                         <tr style="border-bottom:0.5px solid var(--ivica);">
-                            <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Brisanje prodaje</td>
-                            <td class="matrica-checkbox"><input type="checkbox" name="radnik__prodaja.obrisi" {{if index .DozvoleRadnik "prodaja.obrisi"}}checked{{end}}></td>
-                            {{if eq .KorisnikUloga "superadmin"}}<td class="matrica-checkbox"><input type="checkbox" name="admin__prodaja.obrisi" {{if index .DozvoleAdmin "prodaja.obrisi"}}checked{{end}}></td>{{end}}
-
-                        </tr>
-                        <tr style="border-bottom:0.5px solid var(--ivica);">
                             <td style="padding:9px 16px;font-size:13px;color:var(--tekst-glavni);">Storniranje prodaje</td>
                             <td class="matrica-checkbox"><input type="checkbox" name="radnik__prodaja.storno" {{if index .DozvoleRadnik "prodaja.storno"}}checked{{end}}></td>
                             {{if eq .KorisnikUloga "superadmin"}}<td class="matrica-checkbox"><input type="checkbox" name="admin__prodaja.storno" {{if index .DozvoleAdmin "prodaja.storno"}}checked{{end}}></td>{{end}}

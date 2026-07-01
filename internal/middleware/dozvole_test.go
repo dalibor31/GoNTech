@@ -32,7 +32,7 @@ func TestImaDozvoluRadnik(t *testing.T) {
 		}
 	}
 	// radnik NE sme: brisanje, storno, izveštaje, podešavanja, backup
-	neSme := []string{"prodaja.obrisi", "prodaja.storno", "servis.obrisi", "klijent.obrisi",
+	neSme := []string{"prodaja.storno", "servis.obrisi", "klijent.obrisi",
 		"dobavljac.obrisi", "izvestaj.pregled", "podesavanja.izmeni", "backup.pokreni", "dashboard.prihod"}
 	for _, a := range neSme {
 		if ImaDozvolu("radnik", a) {

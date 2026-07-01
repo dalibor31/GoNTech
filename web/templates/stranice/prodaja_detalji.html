@@ -241,7 +241,7 @@
   </div>
 
   <!-- storno i brisanje -->
-  <div class="kartica detalji-kartica animiraj" style="border-color:#dc262633;">
+  <div id="storno" class="kartica detalji-kartica animiraj" style="border-color:#dc262633;">
     <div class="kolona" style="gap:16px;">
 
       {{if and (index $.Dozvole "prodaja.storno") (not .Nalog.Stornirano) }}
@@ -276,7 +276,7 @@
             <p style="margin:0 0 4px 0;color:var(--tekst-sekundarno);"><strong>Brojač:</strong> {{.FiskalniRacun.Brojac}}</p>
             {{if .FiskalniRacun.UrlVerifikacija}}
             <p style="margin:4px 0 0 0;font-size:13px;">
-              <a href="{{.FiskalniRacun.UrlVerifikacija}}" target="_blank" rel="noopener noreferrer" style="color: var(--sb-akcent); font-weight: 500">Provera na PURS-u →</a>
+              <a href="{{.FiskalniRacun.UrlVerifikacija}}" target="_blank" rel="noopener noreferrer" style="color: var(--sb-akcent); font-weight: 500">Otvori QR verifikaciju (test) →</a>
             </p>
             {{end}}
           </div>
@@ -312,27 +312,6 @@
           </form>
           {{end}}
         </div>
-      </div>
-      {{end}}
-
-      {{if index $.Dozvole "prodaja.obrisi"}}
-      <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;padding-top:14px;border-top:0.5px solid var(--ivica);">
-        <div style="flex:1;min-width:200px;">
-          <div style="font-size:14px;font-weight:500;color:#f97316;margin-bottom:4px;">Uklanjanje naloga</div>
-          <div class="pomocni-tekst">
-            Nalog će biti storniran (vraća artikle na stanje) i označen kao uklonjen. Ne briše se fizički — ostaje u evidenciji.
-          </div>
-        </div>
-        <form method="POST" action="/prodaja/obrisi/{{.Nalog.ID}}" style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
-          <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
-          {{if .PotrebnaIdentKupca}}
-          <input type="text" name="poreski_broj_kupca" placeholder="PIB ili JMBG kupca (obavezno za refundaciju)" required style="width:240px;">
-          {{end}}
-          <button type="submit" class="btn-upozorenje"
-            data-potvrda="Stornirati nalog {{.Nalog.BrojNaloga}}? Količine artikala biće vraćene na stanje.">
-            Ukloni nalog
-          </button>
-        </form>
       </div>
       {{end}}
 

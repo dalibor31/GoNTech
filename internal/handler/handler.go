@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"io/fs"
 	"net/http"
+	"strings"
 	"sync"
 
 	"ntech/internal/config"
@@ -256,4 +257,26 @@ func (h *Handler) fiskalKlijent() *fiskal.Klijent {
 		key = "test"
 	}
 	return fiskal.NoviKlijent(url, key)
+}
+
+// imeKasira vraća ime i prezime prijavljenog korisnika za polje "kasir" na fiskalnom
+// računu (korisničko ime kao rezerva ako ime/prezime nisu uneti). Pada nazad na
+// podešavanje pfr_kasir (npr. za pozadinske pozive bez korisnika u kontekstu), pa na
+// "NTech" ako ni to nije uneto.
+func (h *Handler) imeKasira(ctx context.Context) string {
+	kasir := ""
+	if k := middleware.KorisnikIzKonteksta(ctx); k != nil {
+		if k.Ime != "" || k.Prezime != "" {
+			kasir = strings.TrimSpace(k.Ime + " " + k.Prezime)
+		} else {
+			kasir = k.KorisnickoIme
+		}
+	}
+	if kasir == "" {
+		kasir, _ = sqlite.DohvatiPodesavanje(ctx, h.DB, "pfr_kasir")
+	}
+	if kasir == "" {
+		kasir = "NTech"
+	}
+	return kasir
 }

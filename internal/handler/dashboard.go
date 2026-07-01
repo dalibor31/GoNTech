@@ -101,6 +101,13 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var prazninaKnjigovodstva model.PrazninaKnjigovodstva
+	if p, err := h.PraznineKnjigovodstva(ctx); err != nil {
+		slog.Error("dashboard: praznine knjigovodstva", "error", err)
+	} else {
+		prazninaKnjigovodstva = p
+	}
+
 	// poslednjih 5 prodajnih naloga
 	var poslednjeProdaje []model.StavkaProdajePregled
 	if redovi, err := h.IzvestajRepo.PoslednjeProdaje(ctx, 5); err != nil {
@@ -130,6 +137,7 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		KriticneZalihe:    kriticneZalihe,
 		PoslednjeProdaje:  poslednjeProdaje,
 		FlashGreska:       flashGreska,
+		PrazninaKnjige:    prazninaKnjigovodstva,
 	}
 
 	h.renderujTemplate(w, "dashboard", podaci)

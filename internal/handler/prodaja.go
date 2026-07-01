@@ -27,7 +27,6 @@ type PodaciProdaje struct {
 	model.PodaciStranice
 	Nalozi         []model.ProdajniNalogSaDetaljem
 	Sacuvano       bool
-	Obrisan        bool
 	Pretraga       string
 	Od             string
 	Do             string
@@ -189,7 +188,6 @@ func (h *Handler) Prodaja(w http.ResponseWriter, r *http.Request) {
 		PodaciStranice: ps,
 		Nalozi:         nalozi,
 		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
-		Obrisan:        r.URL.Query().Get("obrisan") == "1",
 		Pretraga:       pretraga,
 		Od:             od,
 		Do:             do,
@@ -533,39 +531,6 @@ pre{white-space:pre;margin:0;padding:0;font-family:inherit;font-size:inherit;dis
 	fmt.Fprint(w, `<p style="margin-top:16px;"><button onclick="window.print()" style="padding:8px 16px;">Štampaj</button></p></body></html>`)
 }
 
-// ObrisiProdaju prima POST zahtev i stornira nalog umesto fizičkog brisanja.
-// Jednom izdat račun ne sme da nestane — umesto brisanja koristi se storno.
-func (h *Handler) ObrisiProdaju(w http.ResponseWriter, r *http.Request) {
-	k, ok := h.zahtevajDozvolu(w, r, "prodaja.obrisi")
-	if !ok {
-		return
-	}
-	id, err := parseID(chi.URLParam(r, "id"))
-	if err != nil {
-		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
-		return
-	}
-
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
-		return
-	}
-	poreskiBrojKupca := strings.TrimSpace(r.FormValue("poreski_broj_kupca"))
-	if err := h.stornirajProdaju(r.Context(), id, "administrativno uklanjanje", &k.ID, poreskiBrojKupca); err != nil {
-		poruka := "Greška pri uklanjanju. Možda je nalog već storniran."
-		if errors.Is(err, errPotrebnaIdentKupca) {
-			poruka = errPotrebnaIdentKupca.Error()
-		} else {
-			slog.Error("greška pri uklanjanju naloga", "error", err)
-		}
-		middleware.SetFlash(w, r, h.DB, "greska", poruka)
-		http.Redirect(w, r, "/prodaja/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
-		return
-	}
-
-	http.Redirect(w, r, "/prodaja?obrisan=1", http.StatusSeeOther)
-}
-
 // parseFormuProdaje čita zaglavlje i stavke iz HTTP forme i vraća model i eventualnu grešku
 func parseFormuProdaje(r *http.Request) (model.ProdajniNalog, []model.StavkaProdaje, string) {
 	var nalog model.ProdajniNalog
@@ -701,8 +666,6 @@ func klasifikujPoreskiBroj(broj string) (pib, jmbg string) {
 // stornirajProdaju sprovodi kompletan storno prodajnog naloga: menja status naloga i
 // vraća artikle na stanje, uklanja vezani auto-KIR zapis, šalje fiskalni refund
 // (best-effort — storno ostaje validan i bez uspešnog refunda) i briše KPO zapis.
-// Zajednička je za StornoProdaje i ObrisiProdaju kako obe akcije imaju isti,
-// potpuni efekat prema PDV/fiskalnoj i KPO evidenciji.
 func (h *Handler) stornirajProdaju(ctx context.Context, id int64, razlog string, korisnikID *int64, poreskiBrojKupca string) error {
 	// Refundacija po propisu zahteva identifikaciju kupca (PIB/JMBG) — ako je nalog
 	// bez klijenta (ili klijent nema upisan PIB/JMBG), mora se ručno uneti pre storna.
@@ -735,10 +698,7 @@ func (h *Handler) stornirajProdaju(ctx context.Context, id int64, razlog string,
 			if fk := h.fiskalKlijent(); fk != nil {
 				if nalogFisk, e := h.ProdajaRepo.DohvatiID(ctx, id); e == nil {
 					if stavkeFisk, e2 := h.ProdajaRepo.DohvatiStavke(ctx, id); e2 == nil {
-						kasirFisk, _ := sqlite.DohvatiPodesavanje(ctx, h.DB, "pfr_kasir")
-						if kasirFisk == "" {
-							kasirFisk = "NTech"
-						}
+						kasirFisk := h.imeKasira(ctx)
 						var pibFisk, jmbgFisk string
 						if nalogFisk.KlijentID != nil {
 							if kk, e3 := h.KlijentiRepo.DohvatiID(ctx, *nalogFisk.KlijentID); e3 == nil {
@@ -810,10 +770,7 @@ func (h *Handler) fiskalizujProdaju(ctx context.Context, prodajaID int64, klijen
 		return
 	}
 
-	kasir, _ := sqlite.DohvatiPodesavanje(ctx, h.DB, "pfr_kasir")
-	if kasir == "" {
-		kasir = "NTech"
-	}
+	kasir := h.imeKasira(ctx)
 
 	var pib, jmbg string
 	if nalog.KlijentID != nil {

@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	appdb "ntech/internal/db"
 	"ntech/internal/db/sqlite"
 	"ntech/internal/middleware"
 	"ntech/internal/model"
@@ -161,22 +160,26 @@ func (h *Handler) KpoBackfill(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	var kreirano, preskoceno int
+	var kreirano, preskoceno, sumnjivo int
 
 	// prodajni nalozi
-	nalozi, err := h.ProdajaRepo.Lista(ctx, appdb.ProdajaFilter{})
+	nalozi, prodajaPostoji, prodajaKandidati, err := h.kpoKandidatiProdaje(ctx)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju prodaje", http.StatusInternalServerError)
 		return
 	}
+	prodajaDuplikati := sumnjiviDuplikati(prodajaKandidati)
 	for _, nd := range nalozi {
 		if nd.Stornirano {
 			preskoceno++
 			continue
 		}
-		postoji, _ := h.KpoRepo.PostojiZaIzvor(ctx, "prodaja", nd.ID)
-		if postoji {
+		if prodajaPostoji[nd.ID] {
 			preskoceno++
+			continue
+		}
+		if prodajaDuplikati[nd.ID] {
+			sumnjivo++
 			continue
 		}
 		z := model.KpoZapis{
@@ -196,18 +199,19 @@ func (h *Handler) KpoBackfill(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// naplaćeni servisni nalozi
-	servisNalozi, err := h.ServisRepo.Lista(ctx, "", "")
+	naplaceni, servisPostoji, servisKandidati, nenaplaceniBroj, err := h.kpoKandidatiServisa(ctx)
 	if err != nil {
 		slog.Error("kpo backfill: greška pri učitavanju servisa", "error", err)
 	} else {
-		for _, sn := range servisNalozi {
-			if sn.Status != model.StatusPreuzeto || sn.Naplaceno == 0 {
+		preskoceno += nenaplaceniBroj
+		servisDuplikati := sumnjiviDuplikati(servisKandidati)
+		for _, sn := range naplaceni {
+			if servisPostoji[sn.ID] {
 				preskoceno++
 				continue
 			}
-			postoji, _ := h.KpoRepo.PostojiZaIzvor(ctx, "servis", sn.ID)
-			if postoji {
-				preskoceno++
+			if servisDuplikati[sn.ID] {
+				sumnjivo++
 				continue
 			}
 			datum := sn.DatumPrijema
@@ -231,6 +235,10 @@ func (h *Handler) KpoBackfill(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	middleware.SetFlash(w, r, h.DB, "uspeh", fmt.Sprintf("Backfill završen: %d novih KPO unosa, %d preskočeno.", kreirano, preskoceno))
+	poruka := fmt.Sprintf("Backfill završen: %d novih KPO unosa, %d preskočeno.", kreirano, preskoceno)
+	if sumnjivo > 0 {
+		poruka += fmt.Sprintf(" %d sumnjivih duplikata NIJE upisano — proveri ručno.", sumnjivo)
+	}
+	middleware.SetFlash(w, r, h.DB, "uspeh", poruka)
 	http.Redirect(w, r, "/kpo", http.StatusSeeOther)
 }
