@@ -34,14 +34,17 @@
                 <tbody>
                     {{range .Nalozi}}
                     <tr class="animiraj red-tabele">
-                        <td style="padding: 12px 16px; font-size: 13px; font-family: monospace; color: var(--tekst-glavni)">{{.BrojNaloga}}</td>
+                        <td style="padding: 12px 16px; font-size: 13px; font-family: monospace; color: var(--tekst-glavni)">
+                            {{.BrojNaloga}}
+                            {{if .Stornirano}}<span class="status-badge status-stornirano" style="margin-left: 8px">Stornirano</span>{{end}}
+                        </td>
                         <td style="padding: 12px 16px; font-size: 13px; color: var(--tekst-sporedni); white-space: nowrap">{{.Datum.Format "02.01.2006."}}</td>
                         <td style="padding: 12px 16px; font-size: 14px; font-weight: 500; color: var(--tekst-glavni)">{{if .KlijentNaziv}}{{.KlijentNaziv}}{{else}}—{{end}}</td>
                         <td style="padding: 12px 16px; text-align: right; font-size: 14px; font-weight: 500; color: var(--tekst-glavni)">{{dinari .Ukupno}} din</td>
                         <td style="padding: 12px 16px; text-align: center">
                             <div style="display: flex; align-items: center; justify-content: center; gap: 8px">
                                 <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja/{{.ID}}" class="btn-primarno-malo">Detalji</a>
-                                {{if index $.Dozvole "prodaja.storno"}}
+                                {{if and (index $.Dozvole "prodaja.storno") (not .Stornirano)}}
                                 <form method="POST" action="/prodaja/storno/{{.ID}}" style="margin: 0; padding: 0">
                                     <input type="hidden" name="_csrf" value="{{$.CsrfToken}}" />
                                     <button type="submit" class="btn-obrisi-malo" data-potvrda="Da li ste sigurni da želite da stornirate ovaj nalog? Artikli će biti vraćeni na stanje.">Storno</button>
@@ -70,7 +73,10 @@
         <div class="kartica prodaja-kartica animiraj">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px">
                 <div>
-                    <div style="font-size: 13px; font-family: monospace; color: var(--tekst-glavni)">{{.BrojNaloga}}</div>
+                    <div style="font-size: 13px; font-family: monospace; color: var(--tekst-glavni)">
+                        {{.BrojNaloga}}
+                        {{if .Stornirano}}<span class="status-badge status-stornirano" style="margin-left: 8px">Stornirano</span>{{end}}
+                    </div>
                     <div style="font-size: 14px; font-weight: 500; color: var(--tekst-glavni); margin-top: 2px">{{if .KlijentNaziv}}{{.KlijentNaziv}}{{else}}Bez klijenta{{end}}</div>
                     <div style="font-size: 12px; color: var(--tekst-sporedni); margin-top: 2px">{{.Datum.Format "02.01.2006."}}</div>
                 </div>
