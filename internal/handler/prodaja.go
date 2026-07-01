@@ -50,12 +50,13 @@ type PodaciFormeProdaje struct {
 // PodaciDetaljiProdaje su podaci za pregled jedne prodaje sa stavkama
 type PodaciDetaljiProdaje struct {
 	model.PodaciStranice
-	Nalog         model.ProdajniNalog
-	Stavke        []model.StavkaProdajeSaArtiklom
-	KlijentNaziv  string
-	FiskalniRacun *model.FiskalniRacun // nil ako nije fiskalizovano
-	FiskalGreska  bool                 // true: fiskalizacija aktivna, nalog nije storniran, ali nema fiskalnog računa
-	Sacuvano      bool
+	Nalog              model.ProdajniNalog
+	Stavke             []model.StavkaProdajeSaArtiklom
+	KlijentNaziv       string
+	FiskalniRacun      *model.FiskalniRacun // nil ako nije fiskalizovano
+	FiskalGreska       bool                 // true: fiskalizacija aktivna, nalog nije storniran, ali nema fiskalnog računa
+	PotrebnaIdentKupca bool                 // true: refundacija zahteva ručni unos PIB/JMBG kupca (nema ga iz klijenta)
+	Sacuvano           bool
 }
 
 // PodaciStampeProdaje su podaci za stranicu za štampanje priznanice
@@ -354,6 +355,7 @@ func (h *Handler) DetaljiProdaje(w http.ResponseWriter, r *http.Request) {
 	}
 
 	klijentNaziv := ""
+	imaIdentKupca := false
 	if nalog.KlijentID != nil {
 		klijent, err := h.KlijentiRepo.DohvatiID(r.Context(), *nalog.KlijentID)
 		if err == nil {
@@ -362,6 +364,7 @@ func (h *Handler) DetaljiProdaje(w http.ResponseWriter, r *http.Request) {
 			} else {
 				klijentNaziv = strings.TrimSpace(klijent.Ime + " " + klijent.Prezime)
 			}
+			imaIdentKupca = klijent.PIB != "" || klijent.JMBG != ""
 		}
 	}
 
@@ -372,13 +375,14 @@ func (h *Handler) DetaljiProdaje(w http.ResponseWriter, r *http.Request) {
 	ps.Stranica = "prodaja"
 	ps.NaslovStranice = "Detalji prodaje"
 	podaci := PodaciDetaljiProdaje{
-		PodaciStranice: ps,
-		Nalog:          *nalog,
-		Stavke:         stavke,
-		KlijentNaziv:   klijentNaziv,
-		FiskalniRacun:  fr,
-		FiskalGreska:   h.modulUkljucen(r.Context(), config.ModulFiskalizacija) && !nalog.Stornirano && fr == nil,
-		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
+		PodaciStranice:     ps,
+		Nalog:              *nalog,
+		Stavke:             stavke,
+		KlijentNaziv:       klijentNaziv,
+		FiskalniRacun:      fr,
+		FiskalGreska:       h.modulUkljucen(r.Context(), config.ModulFiskalizacija) && !nalog.Stornirano && fr == nil,
+		PotrebnaIdentKupca: h.modulUkljucen(r.Context(), config.ModulFiskalizacija) && !nalog.Stornirano && fr != nil && !fr.Storniran && !imaIdentKupca,
+		Sacuvano:           r.URL.Query().Get("sacuvano") == "1",
 	}
 
 	h.renderujTemplate(w, "prodaja_detalji", podaci)
@@ -457,9 +461,19 @@ func (h *Handler) ObrisiProdaju(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.stornirajProdaju(r.Context(), id, "administrativno uklanjanje", &k.ID); err != nil {
-		slog.Error("greška pri uklanjanju naloga", "error", err)
-		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri uklanjanju. Možda je nalog već storniran.")
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
+		return
+	}
+	poreskiBrojKupca := strings.TrimSpace(r.FormValue("poreski_broj_kupca"))
+	if err := h.stornirajProdaju(r.Context(), id, "administrativno uklanjanje", &k.ID, poreskiBrojKupca); err != nil {
+		poruka := "Greška pri uklanjanju. Možda je nalog već storniran."
+		if errors.Is(err, errPotrebnaIdentKupca) {
+			poruka = errPotrebnaIdentKupca.Error()
+		} else {
+			slog.Error("greška pri uklanjanju naloga", "error", err)
+		}
+		middleware.SetFlash(w, r, h.DB, "greska", poruka)
 		http.Redirect(w, r, "/prodaja/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
 		return
 	}
@@ -565,9 +579,15 @@ func (h *Handler) StornoProdaje(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	razlog := strings.TrimSpace(r.FormValue("razlog"))
-	if err := h.stornirajProdaju(r.Context(), id, razlog, &k.ID); err != nil {
-		slog.Error("greška pri storniranju naloga", "error", err)
-		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri storniranju. Možda je nalog već storniran.")
+	poreskiBrojKupca := strings.TrimSpace(r.FormValue("poreski_broj_kupca"))
+	if err := h.stornirajProdaju(r.Context(), id, razlog, &k.ID, poreskiBrojKupca); err != nil {
+		poruka := "Greška pri storniranju. Možda je nalog već storniran."
+		if errors.Is(err, errPotrebnaIdentKupca) {
+			poruka = errPotrebnaIdentKupca.Error()
+		} else {
+			slog.Error("greška pri storniranju naloga", "error", err)
+		}
+		middleware.SetFlash(w, r, h.DB, "greska", poruka)
 		http.Redirect(w, r, "/prodaja/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
 		return
 	}
@@ -575,12 +595,46 @@ func (h *Handler) StornoProdaje(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/prodaja/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)
 }
 
+// errPotrebnaIdentKupca signalizuje da refundacija zahteva PIB/JMBG kupca koji nije unet.
+var errPotrebnaIdentKupca = errors.New("za fiskalnu refundaciju je obavezan PIB ili JMBG kupca")
+
+// klasifikujPoreskiBroj razvrstava ručno unet poreski broj kupca po broju cifara:
+// 9 cifara je PIB (pravno lice/preduzetnik), 13 cifara je JMBG (fizičko lice).
+func klasifikujPoreskiBroj(broj string) (pib, jmbg string) {
+	cifre := 0
+	for _, r := range broj {
+		if r >= '0' && r <= '9' {
+			cifre++
+		}
+	}
+	if cifre == 13 {
+		return "", broj
+	}
+	return broj, ""
+}
+
 // stornirajProdaju sprovodi kompletan storno prodajnog naloga: menja status naloga i
 // vraća artikle na stanje, uklanja vezani auto-KIR zapis, šalje fiskalni refund
 // (best-effort — storno ostaje validan i bez uspešnog refunda) i briše KPO zapis.
 // Zajednička je za StornoProdaje i ObrisiProdaju kako obe akcije imaju isti,
 // potpuni efekat prema PDV/fiskalnoj i KPO evidenciji.
-func (h *Handler) stornirajProdaju(ctx context.Context, id int64, razlog string, korisnikID *int64) error {
+func (h *Handler) stornirajProdaju(ctx context.Context, id int64, razlog string, korisnikID *int64, poreskiBrojKupca string) error {
+	// Refundacija po propisu zahteva identifikaciju kupca (PIB/JMBG) — ako je nalog
+	// bez klijenta (ili klijent nema upisan PIB/JMBG), mora se ručno uneti pre storna.
+	if h.modulUkljucen(ctx, config.ModulFiskalizacija) {
+		if fr, _ := h.FiskalRepo.DohvatiPoProdaji(ctx, id); fr != nil && !fr.Storniran {
+			imaIdentKupca := false
+			if nalogProvera, e := h.ProdajaRepo.DohvatiID(ctx, id); e == nil && nalogProvera.KlijentID != nil {
+				if kk, e3 := h.KlijentiRepo.DohvatiID(ctx, *nalogProvera.KlijentID); e3 == nil {
+					imaIdentKupca = kk.PIB != "" || kk.JMBG != ""
+				}
+			}
+			if !imaIdentKupca && strings.TrimSpace(poreskiBrojKupca) == "" {
+				return errPotrebnaIdentKupca
+			}
+		}
+	}
+
 	if err := h.ProdajaRepo.Storno(ctx, id, razlog, korisnikID); err != nil {
 		return err
 	}
@@ -605,6 +659,9 @@ func (h *Handler) stornirajProdaju(ctx context.Context, id int64, razlog string,
 							if kk, e3 := h.KlijentiRepo.DohvatiID(ctx, *nalogFisk.KlijentID); e3 == nil {
 								pibFisk, jmbgFisk = kk.PIB, kk.JMBG
 							}
+						}
+						if pibFisk == "" && jmbgFisk == "" {
+							pibFisk, jmbgFisk = klasifikujPoreskiBroj(poreskiBrojKupca)
 						}
 						zahtevFisk := fiskal.NapraviRefundZahtev(*nalogFisk, stavkeFisk, pibFisk, jmbgFisk, kasirFisk, fr.PfrBroj)
 						if odgFisk, errFisk := fk.IzdajRacun(ctx, zahtevFisk); errFisk != nil {
