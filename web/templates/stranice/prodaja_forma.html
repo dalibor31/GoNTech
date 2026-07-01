@@ -64,10 +64,12 @@
             </div>
             <input type="hidden" name="klijent_id" :value="izabraniKlijentId || ''" />
             <template x-if="izabraniKlijent">
-              <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; background: var(--pozadina); border: 0.5px solid var(--ivica); border-radius: 8px">
+              <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 8px 10px; background: var(--pozadina); border: 0.5px solid var(--ivica); border-radius: 8px">
                 <div>
                   <div style="font-size: 13px; font-weight: 500; color: var(--tekst-glavni)" x-text="izabraniKlijent.naziv"></div>
-                  <div style="font-size: 11px; color: var(--tekst-sporedni)" x-text="detaljKlijenta(izabraniKlijent)"></div>
+                  <template x-for="p in poljaIzabranogKlijenta(izabraniKlijent)" :key="p.labela">
+                    <div style="font-size: 11px; color: var(--tekst-sporedni)"><span x-text="p.labela"></span>: <span x-text="p.vrednost"></span></div>
+                  </template>
                 </div>
                 <button type="button" class="btn-sekundarno" @click="ocistiKlijenta()" style="padding: 3px 10px; font-size: 12px">Promeni</button>
               </div>

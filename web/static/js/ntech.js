@@ -201,6 +201,21 @@ document.addEventListener('alpine:init', () => {
             if (k.telefon) d.push(k.telefon)
             return d.join(' · ')
         },
+        // puna lista podataka izabranog klijenta (labela + vrednost), za prikaz kad je klijent već izabran
+        poljaIzabranogKlijenta(k) {
+            if (!k) return []
+            const p = []
+            if (k.tip === 'pravno') {
+                if (k.pib) p.push({ labela: 'PIB', vrednost: k.pib })
+            } else {
+                if (k.jmbg) p.push({ labela: k.tipIdentifikacije === 'licna_karta' ? 'Br. lične karte' : 'JMBG', vrednost: k.jmbg })
+            }
+            if (k.adresa) p.push({ labela: 'Adresa', vrednost: k.adresa })
+            if (k.mesto) p.push({ labela: 'Mesto', vrednost: k.mesto })
+            if (k.telefon) p.push({ labela: 'Telefon', vrednost: k.telefon })
+            if (k.email) p.push({ labela: 'Email', vrednost: k.email })
+            return p
+        },
         init() {
             this.artikliOpcije = window._ntechArtikli || []
             this.klijenti = window._ntechKlijenti || []
