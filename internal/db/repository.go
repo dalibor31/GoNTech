@@ -219,9 +219,17 @@ type ServisRepository interface {
 	SacuvajNaplatu(ctx context.Context, id int64, nacinPlacanja string, naplaceno float64) error
 }
 
+// ProdajaFilter definiše parametre za filtriranje liste prodajnih naloga
+type ProdajaFilter struct {
+	Pretraga       string
+	Od             string // YYYY-MM-DD, prazno = bez donje granice
+	Do             string // YYYY-MM-DD, prazno = bez gornje granice
+	SamoStornirano bool
+}
+
 // ProdajaRepository definiše operacije nad prodajnim nalozima
 type ProdajaRepository interface {
-	Lista(ctx context.Context, pretraga string) ([]model.ProdajniNalogSaDetaljem, error)
+	Lista(ctx context.Context, filter ProdajaFilter) ([]model.ProdajniNalogSaDetaljem, error)
 	DohvatiID(ctx context.Context, id int64) (*model.ProdajniNalog, error)
 	DohvatiStavke(ctx context.Context, nalogID int64) ([]model.StavkaProdajeSaArtiklom, error)
 	Kreiraj(ctx context.Context, n *model.ProdajniNalog, stavke []model.StavkaProdaje, korisnikID *int64) (int64, error)

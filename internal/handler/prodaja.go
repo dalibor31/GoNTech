@@ -25,20 +25,26 @@ import (
 // PodaciProdaje su podaci za stranicu sa listom prodajnih naloga
 type PodaciProdaje struct {
 	model.PodaciStranice
-	Nalozi        []model.ProdajniNalogSaDetaljem
-	Sacuvano      bool
-	Obrisan       bool
-	Pretraga      string
-	NemaFiskalnog map[int64]bool // ID-evi naloga bez izdatog fiskalnog računa
+	Nalozi         []model.ProdajniNalogSaDetaljem
+	Sacuvano       bool
+	Obrisan        bool
+	Pretraga       string
+	Od             string
+	Do             string
+	OvajMesecOd    string
+	OvajMesecDo    string
+	SamoStornirano bool
+	NemaFiskalnog  map[int64]bool // ID-evi naloga bez izdatog fiskalnog računa
 }
 
 // PodaciFormeProdaje su podaci za formu unosa nove prodaje
 type PodaciFormeProdaje struct {
 	model.PodaciStranice
-	Artikli     []model.ArtikalSaKategorijom
-	ArtikliJSON template.JS
-	Klijenti    []model.Klijent
-	Greska      string
+	Artikli      []model.ArtikalSaKategorijom
+	ArtikliJSON  template.JS
+	Klijenti     []model.Klijent
+	KlijentiJSON template.JS
+	Greska       string
 }
 
 // PodaciDetaljiProdaje su podaci za pregled jedne prodaje sa stavkama
@@ -97,6 +103,29 @@ func artikalUJSONSaCenom(artikli []model.ArtikalSaKategorijom) template.JS {
 	return template.JS(b)
 }
 
+// klijentiUJSON pretvara listu klijenata u template.JS vrednost za pretragu na strani klijenta (naziv, tip)
+func klijentiUJSON(klijenti []model.Klijent) template.JS {
+	type stavka struct {
+		ID      int64  `json:"id"`
+		Naziv   string `json:"naziv"`
+		Tip     string `json:"tip"`
+		Mesto   string `json:"mesto"`
+		Telefon string `json:"telefon"`
+	}
+	lista := make([]stavka, 0, len(klijenti))
+	for _, k := range klijenti {
+		lista = append(lista, stavka{
+			ID:      k.ID,
+			Naziv:   k.PunoIme(),
+			Tip:     k.Tip,
+			Mesto:   k.Mesto,
+			Telefon: k.Telefon,
+		})
+	}
+	b, _ := json.Marshal(lista)
+	return template.JS(b)
+}
+
 // Prodaja renderuje listu svih prodajnih naloga
 func (h *Handler) Prodaja(w http.ResponseWriter, r *http.Request) {
 	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
@@ -106,8 +135,16 @@ func (h *Handler) Prodaja(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pretraga := strings.TrimSpace(r.URL.Query().Get("pretraga"))
+	od := r.URL.Query().Get("od")
+	do := r.URL.Query().Get("do")
+	samoStornirano := r.URL.Query().Get("stornirano") == "1"
 
-	nalozi, err := h.ProdajaRepo.Lista(r.Context(), pretraga)
+	nalozi, err := h.ProdajaRepo.Lista(r.Context(), appdb.ProdajaFilter{
+		Pretraga:       pretraga,
+		Od:             od,
+		Do:             do,
+		SamoStornirano: samoStornirano,
+	})
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju prodaje", http.StatusInternalServerError)
 		return
@@ -118,6 +155,10 @@ func (h *Handler) Prodaja(w http.ResponseWriter, r *http.Request) {
 		nemaFiskalnog, _ = h.FiskalRepo.ProdajeBezFiskalnog(r.Context())
 	}
 
+	sada := time.Now()
+	prviDanMeseca := time.Date(sada.Year(), sada.Month(), 1, 0, 0, 0, 0, sada.Location())
+	poslednjiDanMeseca := prviDanMeseca.AddDate(0, 1, -1)
+
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "prodaja"
 	ps.NaslovStranice = "Prodaja"
@@ -127,6 +168,11 @@ func (h *Handler) Prodaja(w http.ResponseWriter, r *http.Request) {
 		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
 		Obrisan:        r.URL.Query().Get("obrisan") == "1",
 		Pretraga:       pretraga,
+		Od:             od,
+		Do:             do,
+		OvajMesecOd:    prviDanMeseca.Format("2006-01-02"),
+		OvajMesecDo:    poslednjiDanMeseca.Format("2006-01-02"),
+		SamoStornirano: samoStornirano,
 		NemaFiskalnog:  nemaFiskalnog,
 	}
 
@@ -161,6 +207,7 @@ func (h *Handler) NovaProdaja(w http.ResponseWriter, r *http.Request) {
 		Artikli:        artikli,
 		ArtikliJSON:    artikalUJSONSaCenom(artikli),
 		Klijenti:       klijenti,
+		KlijentiJSON:   klijentiUJSON(klijenti),
 	})
 }
 
@@ -189,6 +236,7 @@ func (h *Handler) SacuvajProdaju(w http.ResponseWriter, r *http.Request) {
 			Artikli:        artikli,
 			ArtikliJSON:    artikalUJSONSaCenom(artikli),
 			Klijenti:       klijenti,
+			KlijentiJSON:   klijentiUJSON(klijenti),
 			Greska:         poruka,
 		})
 	}

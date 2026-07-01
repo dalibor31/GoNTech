@@ -5,11 +5,21 @@
   .forma-kartica:nth-child(2) { animation-delay: 0.12s; }
   @media (max-width: 768px) { .stavke-tabela-wrapper { display: none; } .stavke-kartice { display: flex !important; } }
   .polje-labela { font-size: 12px; color: var(--tekst-sporedni); display: block; margin-bottom: 4px; }
+  .tip-klijenta-opcija {
+    display: flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border: 1px solid var(--ivica); border-radius: 20px;
+    cursor: pointer; font-size: 12px; color: var(--tekst-sporedni); user-select: none;
+  }
+  .tip-klijenta-opcija-akt { border-color: var(--akcentna); color: var(--tekst-glavni); background: var(--pozadina); }
+  .klijent-stavka:last-child { border-bottom: none; }
+  .klijent-stavka:hover { background: var(--pozadina); }
+  [x-cloak] { display: none !important; }
 </style>
 {{end}} {{define "sadrzaj"}}
 
 <script>
   var _ntechArtikli = {{.ArtikliJSON}};
+  var _ntechKlijenti = {{.KlijentiJSON}};
   var _ntechPdvObveznik = {{if index .Moduli "pdv"}}true{{else}}false{{end}};
 </script>
 
@@ -22,27 +32,60 @@
   </a>
 
   <form method="POST" action="/prodaja/nova">
+    <input type="hidden" name="_csrf" value="{{.CsrfToken}}" />
     {{if .Greska}}
     <div class="poruka-greska greska-animacija">{{.Greska}}</div>
     {{end}}
 
     <!-- zaglavlje prodaje -->
-    <div class="kartica forma-kartica animiraj" style="margin-bottom: 16px">
+    <!-- position:relative + z-index: bez ovoga lista rezultata pretrage klijenata
+         (position:absolute unutra) crta se ISPOD sledeće kartice (Stavke) — kartica
+         bez pozicioniranja slika se u ranijoj fazi rasporeda bez obzira na z-index dece -->
+    <div class="kartica forma-kartica animiraj" style="margin-bottom: 16px; position: relative; z-index: 2">
       <div style="margin-bottom: 16px; padding-bottom: 14px; border-bottom: 0.5px solid var(--ivica);">
         <span style="font-size: 16px; font-weight: 500; color: var(--tekst-glavni)">Nova prodaja</span>
       </div>
       <div style="display: flex; flex-direction: column; gap: 14px">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
           <div>
-            <label class="polje-labela">Klijent</label>
-            <select name="klijent_id" style="width: 100%">
-              <option value="">— bez klijenta —</option>
-              {{range .Klijenti}}
-              <option value="{{.ID}}">{{.PunoIme}}</option>
-              {{end}}
-            </select>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; flex-wrap: wrap; gap: 6px">
+              <label class="polje-labela" style="margin-bottom: 0">Klijent</label>
+              <div style="display: flex; gap: 6px">
+                <label class="tip-klijenta-opcija" :class="klasaTipKlijenta('sve')" @click="postaviTipKlijenta('sve')">
+                  <input type="radio" name="tip-klijenta-filter" value="sve" :checked="jeTipKlijenta('sve')" style="margin: 0" /> Sva lica
+                </label>
+                <label class="tip-klijenta-opcija" :class="klasaTipKlijenta('pravno')" @click="postaviTipKlijenta('pravno')">
+                  <input type="radio" name="tip-klijenta-filter" value="pravno" :checked="jeTipKlijenta('pravno')" style="margin: 0" /> Pravna lica
+                </label>
+                <label class="tip-klijenta-opcija" :class="klasaTipKlijenta('fizicko')" @click="postaviTipKlijenta('fizicko')">
+                  <input type="radio" name="tip-klijenta-filter" value="fizicko" :checked="jeTipKlijenta('fizicko')" style="margin: 0" /> Fizička lica
+                </label>
+              </div>
+            </div>
+            <input type="hidden" name="klijent_id" :value="izabraniKlijentId || ''" />
+            <template x-if="izabraniKlijent">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; background: var(--pozadina); border: 0.5px solid var(--ivica); border-radius: 8px">
+                <div>
+                  <div style="font-size: 13px; font-weight: 500; color: var(--tekst-glavni)" x-text="izabraniKlijent.naziv"></div>
+                  <div style="font-size: 11px; color: var(--tekst-sporedni)" x-text="detaljKlijenta(izabraniKlijent)"></div>
+                </div>
+                <button type="button" class="btn-sekundarno" @click="ocistiKlijenta()" style="padding: 3px 10px; font-size: 12px">Promeni</button>
+              </div>
+            </template>
+            <div x-show="!izabraniKlijent" style="position: relative" @click.outside="prikaziListuKlijenata = false">
+              <input type="text" x-model="pretragaKlijent" autocomplete="off" @focus="pretragaKlijentPromenjena()" @input="pretragaKlijentPromenjena()" placeholder="Pretraži klijenta ili ostavi prazno..." style="width: 100%" />
+              <div x-show="prikaziListuKlijenata && filtriraniKlijenti.length" x-cloak @scroll="ucitajViseKlijenata($event)" style="position: absolute; z-index: 30; left: 0; right: 0; margin-top: 4px; background: var(--pozadina); border: 0.5px solid var(--ivica); border-radius: 10px; max-height: 220px; overflow: auto; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14)">
+                <template x-for="k in filtriraniKlijenti" :key="k.id">
+                  <div @click="izaberiKlijenta(k)" class="klijent-stavka" style="padding: 8px 12px; cursor: pointer; border-bottom: 0.5px solid var(--ivica)">
+                    <div style="font-size: 13px; font-weight: 500; color: var(--tekst-glavni)" x-text="k.naziv"></div>
+                    <div style="font-size: 11px; color: var(--tekst-sporedni)" x-text="detaljKlijenta(k)"></div>
+                  </div>
+                </template>
+                <div x-show="imaJosKlijenata" style="padding: 6px 12px; text-align: center; font-size: 11px; color: var(--tekst-sporedni)">Skrolujte za još rezultata...</div>
+              </div>
+            </div>
           </div>
-          <div>
+          <div style="display: flex; flex-direction: column; justify-content: flex-end">
             <label class="polje-labela">Način plaćanja</label>
             <select name="nacin_placanja" style="width:100%;">
               <option value="gotovina">Gotovina</option>

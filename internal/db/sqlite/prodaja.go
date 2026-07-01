@@ -37,8 +37,8 @@ func (r *ProdajaRepo) SledeciBroj(ctx context.Context) (string, error) {
 	return fmt.Sprintf("PR-%d-%04d", godina, sledeci), nil
 }
 
-// Lista vraća listu prodajnih naloga sa imenom klijenta, opcionom pretragom
-func (r *ProdajaRepo) Lista(ctx context.Context, pretraga string) ([]model.ProdajniNalogSaDetaljem, error) {
+// Lista vraća listu prodajnih naloga sa imenom klijenta, po zadatom filteru
+func (r *ProdajaRepo) Lista(ctx context.Context, filter db.ProdajaFilter) ([]model.ProdajniNalogSaDetaljem, error) {
 	upit := `
 		SELECT
 			pn.id, pn.klijent_id, pn.broj_naloga, pn.napomena, pn.ukupno,
@@ -50,9 +50,22 @@ func (r *ProdajaRepo) Lista(ctx context.Context, pretraga string) ([]model.Proda
 
 	args := []any{}
 
-	if pretraga != "" {
+	if filter.Pretraga != "" {
 		upit += " AND (pn.broj_naloga LIKE ? OR kp.naziv LIKE ? OR pn.napomena LIKE ?)"
-		args = append(args, "%"+pretraga+"%", "%"+pretraga+"%", "%"+pretraga+"%")
+		args = append(args, "%"+filter.Pretraga+"%", "%"+filter.Pretraga+"%", "%"+filter.Pretraga+"%")
+	}
+	// pn.datum se čuva preko time.Time.String() (uključuje monotonic sufiks i naziv zone),
+	// pa ga SQLite-ova date() funkcija ne parsira ispravno — poredimo samo ISO datum na početku stringa
+	if filter.Od != "" {
+		upit += " AND substr(pn.datum, 1, 10) >= ?"
+		args = append(args, filter.Od)
+	}
+	if filter.Do != "" {
+		upit += " AND substr(pn.datum, 1, 10) <= ?"
+		args = append(args, filter.Do)
+	}
+	if filter.SamoStornirano {
+		upit += " AND pn.stornirano = 1"
 	}
 
 	upit += " ORDER BY pn.datum DESC"
