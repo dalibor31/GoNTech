@@ -81,7 +81,7 @@
     {{if gt .Promet.BrojNaloga 0}}
     <!-- forma za upis -->
     <form method="POST" action="/pdv/kir/dnevni-pazar">
-        <input type="hidden" name="csrf_token" value="{{.CsrfToken}}">
+        <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
         <input type="hidden" name="datum" value="{{.Datum}}">
         <input type="hidden" name="osnovica_opsta" value="{{printf "%.2f" .Promet.OsnovicaOpsta}}">
         <input type="hidden" name="pdv_opsta" value="{{printf "%.2f" .Promet.PdvOpsta}}">

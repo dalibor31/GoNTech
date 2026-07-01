@@ -189,7 +189,7 @@
                 </div>
             </div>
             <form method="POST" action="/nabavke/storno/{{.Nabavka.ID}}" data-full-reload style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
-                <input type="hidden" name="csrf_token" value="{{.CsrfToken}}">
+                <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
                 <input type="text" name="razlog" placeholder="Razlog storniranja (opciono)" style="width:240px;">
                 <button type="submit" class="btn-upozorenje"
                     data-potvrda="Stornirati ovu nabavku? Količine artikala biće vraćene na stanje.">
