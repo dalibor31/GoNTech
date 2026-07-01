@@ -19,7 +19,7 @@ func TestKirIzProdaje(t *testing.T) {
 		{Kolicina: 1, CenaPoKomadu: 50, PdvStopa: 0},
 	}
 
-	k := KirIzProdaje(nalog, stavke, "Kupac doo", "123456789", "Niš")
+	k := KirIzProdaje(nalog, stavke, "Kupac doo", "123456789", "Niš", nalog.Datum)
 
 	if k.Izvor != "prodaja" || k.IzvorID == nil || *k.IzvorID != 5 {
 		t.Errorf("izvor=%q izvor_id=%v, očekivano prodaja/5", k.Izvor, k.IzvorID)

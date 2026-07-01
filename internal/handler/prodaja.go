@@ -246,7 +246,7 @@ func (h *Handler) SacuvajProdaju(w http.ResponseWriter, r *http.Request) {
 			if klijent.Tip != "pravno" {
 				pib = klijent.JMBG
 			}
-			kir := model.KirIzProdaje(nalog, stavke, klijent.PunoIme(), pib, klijent.Mesto)
+			kir := model.KirIzProdaje(nalog, stavke, klijent.PunoIme(), pib, klijent.Mesto, nalog.Datum)
 			if _, e := h.PdvKirRepo.Kreiraj(r.Context(), &kir); e != nil {
 				slog.Error("auto-upis u KIR nije uspeo", "prodaja_id", id, "error", e)
 			}
