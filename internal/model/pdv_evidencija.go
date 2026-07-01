@@ -223,6 +223,7 @@ func KprIzNabavke(nabavka Nabavka, dobavljacNaziv, dobavljacPib, dobavljacMesto 
 	k := PdvKpr{
 		DatumPrometa:   datumPrometa,
 		DatumKnjizenja: nabavka.Datum,
+		DatumPlacanja:  nabavka.DatumPlacanja,
 		BrojDokumenta:  brojDok,
 		DobavljacNaziv: dobavljacNaziv,
 		DobavljacPib:   dobavljacPib,

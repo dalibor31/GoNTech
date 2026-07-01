@@ -77,6 +77,11 @@
                         <label class="polje-labela">Datum računa</label>
                         <input type="date" name="datum_racuna" value="{{.Danas}}" style="width:100%;">
                     </div>
+                    <div>
+                        <label class="polje-labela">Datum plaćanja</label>
+                        <input type="date" name="datum_placanja" style="width:100%;">
+                        <div class="pomocni-tekst" style="margin-top:4px;">Ostavite prazno ako još nije plaćeno — relevantno za gotovinski PDV odbitak.</div>
+                    </div>
                 </div>
                 {{if .PdvObveznik}}
                 <div>

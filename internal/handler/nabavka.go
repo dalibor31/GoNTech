@@ -412,6 +412,12 @@ func parseFormuNabavke(r *http.Request) (model.Nabavka, []model.StavkaNabavke, [
 		}
 	}
 
+	if datStr := strings.TrimSpace(r.FormValue("datum_placanja")); datStr != "" {
+		if t, e := time.Parse("2006-01-02", datStr); e == nil {
+			nabavka.DatumPlacanja = &t
+		}
+	}
+
 	// paralelni nizovi stavki
 	artikalIDovi := r.Form["artikal_id[]"]
 	kolicine := r.Form["kolicina[]"]
