@@ -148,6 +148,15 @@ func (r *PdvKirRepo) PostojiZaIzvor(ctx context.Context, izvor string, izvorID i
 	return n > 0, nil
 }
 
+// ObrisiPoBrojuDokumenta briše KIR zapis(e) sa datim brojem dokumenta (za zamenu
+// zbirnog dnevnog pazara ažuriranim iznosima).
+func (r *PdvKirRepo) ObrisiPoBrojuDokumenta(ctx context.Context, brojDokumenta string) error {
+	if _, err := r.db.ExecContext(ctx, "DELETE FROM pdv_kir WHERE broj_dokumenta = ?", brojDokumenta); err != nil {
+		return fmt.Errorf("ntech: PdvKirRepo.ObrisiPoBrojuDokumenta: %w", err)
+	}
+	return nil
+}
+
 // PostojiPoBrojuDokumenta vraća true ako postoji KIR zapis sa datim brojem dokumenta
 func (r *PdvKirRepo) PostojiPoBrojuDokumenta(ctx context.Context, brojDokumenta string) (bool, error) {
 	var n int

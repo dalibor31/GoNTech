@@ -327,11 +327,11 @@ func (h *Handler) SacuvajDnevniPazarKir(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// ako za ovaj dan već postoji zbirni zapis, zameni ga ažuriranim iznosima
+	// (npr. naknadni storno ili prodaja posle prethodnog upisa promenili su promet tog dana)
 	brojDokumenta := fmt.Sprintf("FISK-%s", datum.Format("20060102"))
-	if postoji, _ := h.PdvKirRepo.PostojiPoBrojuDokumenta(r.Context(), brojDokumenta); postoji {
-		middleware.SetFlash(w, r, h.DB, "greska", fmt.Sprintf("Dnevni pazar za %s je već upisan u KIR.", datum.Format("02.01.2006.")))
-		http.Redirect(w, r, "/pdv/kir/dnevni-pazar?datum="+datumStr, http.StatusSeeOther)
-		return
+	if err := h.PdvKirRepo.ObrisiPoBrojuDokumenta(r.Context(), brojDokumenta); err != nil {
+		slog.Error("brisanje starog dnevnog pazara nije uspelo", "datum", datum, "error", err)
 	}
 
 	z := model.PdvKir{
