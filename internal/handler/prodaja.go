@@ -468,12 +468,24 @@ func parseFormuProdaje(r *http.Request) (model.ProdajniNalog, []model.StavkaProd
 
 		var pdvStopa float64
 		if i < len(pdvStope) {
-			pdvStopa, _ = strconv.ParseFloat(strings.TrimSpace(pdvStope[i]), 64)
+			pdvStopa, err = strconv.ParseFloat(strings.TrimSpace(pdvStope[i]), 64)
+			if err != nil {
+				return nalog, nil, "Neispravna PDV stopa u stavci."
+			}
+		}
+		if pdvStopa != 0 && pdvStopa != 10 && pdvStopa != 20 {
+			return nalog, nil, "PDV stopa mora biti 0, 10 ili 20."
 		}
 
 		var popust float64
 		if i < len(popusti) {
-			popust, _ = strconv.ParseFloat(strings.TrimSpace(popusti[i]), 64)
+			popust, err = strconv.ParseFloat(strings.TrimSpace(popusti[i]), 64)
+			if err != nil {
+				return nalog, nil, "Neispravan popust u stavci."
+			}
+		}
+		if popust < 0 || popust > 100 {
+			return nalog, nil, "Popust mora biti u opsegu 0–100%."
 		}
 
 		stavke = append(stavke, model.StavkaProdaje{
