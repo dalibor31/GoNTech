@@ -151,10 +151,10 @@
                 <div x-show="nijeIzabran" style="position:relative;" @click.outside="prikaziListu=false">
                     <label class="polje-labela">Pretraži postojećeg klijenta</label>
                     <input type="text" x-model="pretraga" autocomplete="off"
-                        @focus="prikaziListu=true" @input="prikaziListu=true"
+                        @focus="prikaziListu=true" @input="pretragaPromenjena()"
                         @keydown.enter.prevent="potvrdiNovog()"
                         placeholder="Ukucajte početak imena ili naziva..." style="width:100%;">
-                    <div x-show="prikaziListu && filtrirani.length" x-cloak
+                    <div x-show="prikaziListu && filtrirani.length" x-cloak @scroll="ucitajViseKlijenata($event)"
                         style="position:absolute;z-index:30;left:0;right:0;margin-top:4px;background:var(--pozadina-kartica,var(--pozadina));border:1px solid var(--ivica);border-radius:10px;max-height:240px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.14);">
                         <template x-for="k in filtrirani" :key="k.ID">
                             <div @click="izaberi(k)" class="klijent-stavka"
@@ -164,6 +164,7 @@
                                     x-text="detalj(k)"></div>
                             </div>
                         </template>
+                        <div x-show="imaJosKlijenata" style="padding:6px 12px;text-align:center;font-size:11px;color:var(--tekst-sporedni);">Skrolujte za još rezultata...</div>
                     </div>
                 </div>
 

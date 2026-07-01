@@ -303,6 +303,7 @@ document.addEventListener('alpine:init', () => {
         izabrani: null,
         izabraniId: 0,
         prikaziListu: false,
+        limitKlijenata: 30,
         // polja novog klijenta (vezana x-model-om na inpute)
         noviIme: '',
         noviPrezime: '',
@@ -326,8 +327,9 @@ document.addEventListener('alpine:init', () => {
         get vrednostKlijentId() {
             return this.izabraniId || ''
         },
-        // filtrira klijente po tipu i početnim karakterima unosa (najviše 8)
-        get filtrirani() {
+        // svi klijenti koji odgovaraju tipu/pretrazi (bez ograničenja) — zna se da li ima
+        // još rezultata za dogruzavanje pri skrolu
+        get svihFiltriranih() {
             const q = this.pretraga.trim().toLowerCase()
             const tip = this.tip
             return this.klijenti.filter(k => {
@@ -338,7 +340,19 @@ document.addEventListener('alpine:init', () => {
                 const punoIme = ((k.Ime || '') + ' ' + (k.Prezime || '')).trim()
                 const polja = (tip === 'pravno') ? [k.NazivFirme] : [punoIme, k.Ime, k.Prezime]
                 return polja.some(p => (p || '').toLowerCase().startsWith(q))
-            }).slice(0, 100)
+            })
+        },
+        get filtrirani() {
+            return this.svihFiltriranih.slice(0, this.limitKlijenata)
+        },
+        get imaJosKlijenata() {
+            return this.limitKlijenata < this.svihFiltriranih.length
+        },
+        ucitajViseKlijenata(e) {
+            const el = e.target
+            if (el.scrollTop + el.clientHeight >= el.scrollHeight - 40 && this.imaJosKlijenata) {
+                this.limitKlijenata += 30
+            }
         },
         jeTip(t) {
             return this.tip === t
@@ -387,9 +401,14 @@ document.addEventListener('alpine:init', () => {
             this.tip = t
             this.ocisti()
             this.pretraga = ''
+            this.limitKlijenata = 30
             this.noviIme = ''
             this.noviPrezime = ''
             this.noviNaziv = ''
+        },
+        pretragaPromenjena() {
+            this.prikaziListu = true
+            this.limitKlijenata = 30
         }
     }))
 
