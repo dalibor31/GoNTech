@@ -197,7 +197,8 @@ func (r *ProdajaRepo) Kreiraj(ctx context.Context, n *model.ProdajniNalog, stavk
 	}
 
 	// provera stanja, smanjenje i insert stavki
-	for _, s := range stavke {
+	for i := range stavke {
+		s := stavke[i]
 		var naziv, tip string
 		var stanjePre int
 		err := tx.QueryRowContext(ctx,
@@ -230,14 +231,18 @@ func (r *ProdajaRepo) Kreiraj(ctx context.Context, n *model.ProdajniNalog, stavk
 		}
 		ukupnoStavke := float64(s.Kolicina) * cenaPoslePopusta
 
-		// CenaPoKomadu je neto (bez PDV); PDV se dodaje naviše.
-		// cena_bez_pdv/pdv_iznos moraju biti diskontovani da ostanu konzistentni sa ukupno.
+		// CenaPoKomadu je cena za naplatu: kod punog PDV obveznika bruto (sa PDV-om,
+		// PDV se izdvaja naniže), kod firme na evidenciji nema PDV-a (PdvStopa=0, pa je bez razlike).
 		cenaBezPdv := s.CenaBezPdv
 		pdvIznos := s.PdvIznos
 		if cenaBezPdv == 0 {
-			cenaBezPdv = cenaPoslePopusta
-			pdvIznos = cenaBezPdv * s.PdvStopa / 100
+			cenaBezPdv = cenaPoslePopusta / (1 + s.PdvStopa/100)
+			pdvIznos = cenaPoslePopusta - cenaBezPdv
 		}
+		// vraćamo izračunate vrednosti u slajs pozivaoca (npr. za auto-upis u KIR posle Kreiraj)
+		stavke[i].CenaBezPdv = cenaBezPdv
+		stavke[i].PdvIznos = pdvIznos
+		stavke[i].Ukupno = ukupnoStavke
 		_, err = tx.ExecContext(ctx, `
 			INSERT INTO stavke_prodaje
 				(nalog_id, artikal_id, kolicina, cena_po_komadu, popust_procenat, ukupno, pdv_stopa, pdv_iznos, cena_bez_pdv)
@@ -443,9 +448,10 @@ func (r *ProdajaRepo) DnevniPrometMaloprodaje(ctx context.Context, datum string)
 		return p, fmt.Errorf("ntech: ProdajaRepo.DnevniPrometMaloprodaje: count: %w", err)
 	}
 
-	// stavke grupisane po PDV stopi
+	// stavke grupisane po PDV stopi — osnovica i PDV se čitaju iz već izračunatih
+	// cena_bez_pdv/pdv_iznos kolona (ukupno je bruto iznos za naplatu, ne osnovica)
 	redovi, err := r.db.QueryContext(ctx, `
-		SELECT s.pdv_stopa, SUM(s.ukupno), SUM(s.ukupno * s.pdv_stopa / 100.0)
+		SELECT s.pdv_stopa, SUM(s.cena_bez_pdv * s.kolicina), SUM(s.pdv_iznos * s.kolicina)
 		FROM stavke_prodaje s
 		JOIN prodajni_nalozi p ON p.id = s.nalog_id
 		WHERE p.klijent_id IS NULL AND p.stornirano = 0 AND DATE(p.datum) = ?

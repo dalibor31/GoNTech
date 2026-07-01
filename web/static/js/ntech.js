@@ -136,7 +136,7 @@ document.addEventListener('alpine:init', () => {
 
     // forma za prodaju
     Alpine.data('prodajaForma', () => ({
-        stavke: [{artikal_id: '', kolicina: 1, cena: 0, cena_sa_pdv: 0, pdv_stopa: 20, popust: 0, kategorija_naziv: ''}],
+        stavke: [{artikal_id: '', kolicina: 1, cena: 0, cena_sa_pdv: 0, pdv_stopa: 20, popust: 0, kategorija_naziv: '', _naziv: '', _pretraga: '', _prikaziListu: false, _limit: 30}],
         artikliOpcije: [],
         pretragaArtikal: '',
         pdvObveznik: true,
@@ -225,31 +225,89 @@ document.addEventListener('alpine:init', () => {
                 this.isMobile = e.matches
             })
         },
-        get filtriraniArtikli() {
-            const q = this.pretragaArtikal.trim().toLowerCase()
-            if (!q) return this.artikliOpcije.slice(0, 50)
+        // _filtriraniArtikliSvi vraća SVE opcije koje odgovaraju pretrazi jedne stavke (bez ograničenja),
+        // koristi ga i filtriraniArtikliZaStavku (za prikaz) i imaJosArtikala (da zna da li dogruzati još)
+        _filtriraniArtikliSvi(stavka) {
+            const q = (stavka._pretraga || '').trim().toLowerCase()
+            if (!q) return this.artikliOpcije
             return this.artikliOpcije.filter(a =>
                 (a.naziv || '').toLowerCase().includes(q) ||
                 (a.sifra || '').toLowerCase().includes(q) ||
                 (a.barkod || '').toLowerCase().includes(q)
-            ).slice(0, 30)
+            )
+        },
+        // filtriraniArtikliZaStavku vraća opcije za prilagođeni dropdown izbora artikla jedne stavke
+        // (svaka stavka ima svoju nezavisnu pretragu i limit, poput pretrage klijenta)
+        filtriraniArtikliZaStavku(stavka) {
+            return this._filtriraniArtikliSvi(stavka).slice(0, stavka._limit || 30)
+        },
+        imaJosArtikala(stavka) {
+            return (stavka._limit || 30) < this._filtriraniArtikliSvi(stavka).length
+        },
+        ucitajViseArtikala(stavka, e) {
+            const el = e.target
+            if (el.scrollTop + el.clientHeight >= el.scrollHeight - 40 && this.imaJosArtikala(stavka)) {
+                stavka._limit = (stavka._limit || 30) + 30
+            }
         },
         dodajStavku() {
-            this.stavke.push({artikal_id: '', kolicina: 1, cena: 0, cena_sa_pdv: 0, pdv_stopa: this.pdvObveznik ? 20 : 0, popust: 0, kategorija_naziv: ''})
+            // ne dozvoli gomilanje praznih redova — ako poslednja stavka nema izabran artikal, samo je otvori
+            const poslednja = this.stavke[this.stavke.length - 1]
+            if (poslednja && !poslednja.artikal_id) {
+                poslednja._prikaziListu = true
+                return
+            }
+            this.stavke.push({artikal_id: '', kolicina: 1, cena: 0, cena_sa_pdv: 0, pdv_stopa: this.pdvObveznik ? 20 : 0, popust: 0, kategorija_naziv: '', _naziv: '', _pretraga: '', _prikaziListu: false, _limit: 30})
         },
         ukloniStavku(i) {
             if (this.stavke.length > 1) this.stavke.splice(i, 1)
+        },
+        izaberiArtikal(stavka, a) {
+            stavka.artikal_id = a.id
+            stavka._naziv = a.naziv
+            stavka._pretraga = ''
+            stavka._prikaziListu = false
+            stavka._limit = 30
+            this.popuniCenu(stavka)
+        },
+        promeniArtikal(stavka) {
+            stavka.artikal_id = ''
+            stavka._naziv = ''
+            stavka._pretraga = ''
+            stavka._limit = 30
+            stavka.kategorija_naziv = ''
+            stavka.cena = 0
+            stavka.cena_sa_pdv = 0
+            stavka.pdv_stopa = this.pdvObveznik ? 20 : 0
+        },
+        dodajPoBarkodu() {
+            const kod = this.pretragaArtikal.trim()
+            if (!kod) return
+            const a = this.artikliOpcije.find(x => x.barkod && x.barkod === kod)
+            if (!a) return
+            this.pretragaArtikal = ''
+            const postojeca = this.stavke.find(s => s.artikal_id == a.id)
+            if (postojeca) {
+                postojeca.kolicina = (parseInt(postojeca.kolicina) || 0) + 1
+                return
+            }
+            const prazna = this.stavke.find(s => !s.artikal_id)
+            const stavka = prazna || this.stavke[this.stavke.push({artikal_id: '', kolicina: 1, cena: 0, cena_sa_pdv: 0, pdv_stopa: this.pdvObveznik ? 20 : 0, popust: 0, kategorija_naziv: '', _naziv: '', _pretraga: '', _prikaziListu: false, _limit: 30}) - 1]
+            this.izaberiArtikal(stavka, a)
         },
         popuniCenu(stavka) {
             const a = this.artikliOpcije.find(x => x.id == stavka.artikal_id)
             if (a) {
                 stavka.cena_sa_pdv = a.cena_sa_pdv || 0
                 stavka.kategorija_naziv = a.kategorija_naziv || ''
+                stavka._naziv = a.naziv
                 if (this.pdvObveznik) {
-                    stavka.cena = a.cena || 0
+                    // pun PDV obveznik naplaćuje cenu sa PDV-om (bruto) — PDV se izdvaja naniže
+                    stavka.cena = a.cena_sa_pdv || a.cena || 0
                     stavka.pdv_stopa = a.pdv_stopa !== undefined ? a.pdv_stopa : 20
                 } else {
-                    stavka.cena = a.cena_sa_pdv || a.cena || 0
+                    // firma na evidenciji ne obračunava PDV — naplaćuje se čista prodajna cena
+                    stavka.cena = a.cena || 0
                     stavka.pdv_stopa = 0
                 }
             }
@@ -271,6 +329,9 @@ document.addEventListener('alpine:init', () => {
         imaPrekoracenja() {
             return this.stavke.some((_, i) => this.prekoracenje(i))
         },
+        imaPraznihStavki() {
+            return this.stavke.some(s => !s.artikal_id)
+        },
         ukupnoStavke(s) {
             const cena = parseFloat(s.cena) || 0
             const popust = parseFloat(s.popust) || 0
@@ -284,6 +345,26 @@ document.addEventListener('alpine:init', () => {
                 const cenaPosle = popust > 0 ? cena * (1 - popust/100) : cena
                 return z + (parseFloat(s.kolicina) * cenaPosle || 0)
             }, 0).toFixed(2)
+        },
+        // pdvIznosStavke vraća PDV sadržan u ceni po komadu (cena je bruto — PDV se izdvaja naniže)
+        pdvIznosStavke(s) {
+            const cena = parseFloat(s.cena) || 0
+            const stopa = parseFloat(s.pdv_stopa) || 0
+            if (!stopa) return 0
+            return cena - cena / (1 + stopa / 100)
+        },
+        osnovicaSvega() {
+            return this.stavke.reduce((z, s) => {
+                const cena = parseFloat(s.cena) || 0
+                const popust = parseFloat(s.popust) || 0
+                const cenaPosle = popust > 0 ? cena * (1 - popust/100) : cena
+                const stopa = parseFloat(s.pdv_stopa) || 0
+                const neto = stopa > 0 ? cenaPosle / (1 + stopa / 100) : cenaPosle
+                return z + (parseFloat(s.kolicina) * neto || 0)
+            }, 0).toFixed(2)
+        },
+        pdvSvega() {
+            return (parseFloat(this.ukupnoSvega()) - parseFloat(this.osnovicaSvega())).toFixed(2)
         },
         // fmtDin formatira broj sa separatorom hiljada (tačka) i 2 decimale (zarez): 1234567.5 → "1.234.567,50"
         fmtDin(v) {

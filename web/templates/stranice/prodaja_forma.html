@@ -112,19 +112,19 @@
         </button>
       </div>
 
-      <!-- pretraga artikala -->
+      <!-- pretraga artikala / skener barkoda -->
       <div style="margin-bottom:12px;">
-        <input type="text" x-model="pretragaArtikal" placeholder="Pretraži artikle po nazivu, šifri ili barkodu..." style="width:100%;">
+        <input type="text" x-model="pretragaArtikal" @keydown.enter.prevent="dodajPoBarkodu()" placeholder="Pretraži artikle po nazivu, šifri, barkodu ili skeniraj barkod..." autocomplete="off" style="width:100%;">
       </div>
 
       <!-- desktop tabela stavki -->
-      <div class="stavke-tabela-wrapper" style="overflow-x: auto">
+      <div class="stavke-tabela-wrapper">
         <table class="tabela">
           <thead>
             <tr style="border-bottom: 0.5px solid var(--ivica)">
               <th style="padding: 8px 10px; text-align: left; font-size: 12px; font-weight: 500; color: var(--tekst-sporedni);">Artikal</th>
               <th style="padding: 8px 10px; text-align: center; font-size: 12px; font-weight: 500; color: var(--tekst-sporedni); width: 90px;">Kol.</th>
-              <th style="padding: 8px 10px; text-align: right; font-size: 12px; font-weight: 500; color: var(--tekst-sporedni); width: 130px;">Cena/kom</th>
+              <th style="padding: 8px 10px; text-align: right; font-size: 12px; font-weight: 500; color: var(--tekst-sporedni); width: 130px;">Cena/kom{{if index .Moduli "pdv"}} (sa PDV){{end}}</th>
               <th style="padding: 8px 10px; text-align: right; font-size: 12px; font-weight: 500; color: var(--tekst-sporedni); width: 80px;">Popust%</th>
               <th style="padding: 8px 10px; text-align: right; font-size: 12px; font-weight: 500; color: var(--tekst-sporedni); width: 110px;">Ukupno</th>
               <th style="width: 40px;"></th>
@@ -133,15 +133,37 @@
           <tbody>
             <template x-for="(stavka, i) in stavke" :key="i">
               <tr style="border-bottom: 0.5px solid var(--ivica)">
-                <td style="padding: 8px 10px;">
+                <td style="padding: 8px 10px; position: relative;">
                   <input type="hidden" :name="'pdv_stopa[]'" :value="stavka.pdv_stopa">
-                  <select :name="'artikal_id[]'" x-model="stavka.artikal_id" @change="popuniCenu(stavka)" :disabled="isMobile" style="width: 100%">
-                    <option value="">— odaberi artikal —</option>
-                    <template x-for="a in filtriraniArtikli" :key="a.id">
-                      <option :value="a.id" x-text="a.naziv + (a.kategorija_naziv ? ' [' + a.kategorija_naziv + ']' : '')"></option>
-                    </template>
-                  </select>
-                  <div x-show="stavka.kategorija_naziv" style="font-size:11px;color:var(--tekst-sporedni);margin-top:2px;" x-text="stavka.kategorija_naziv"></div>
+                  <input type="hidden" :name="'artikal_id[]'" :value="stavka.artikal_id" :disabled="isMobile">
+                  <template x-if="stavka.artikal_id">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;padding:7px 10px;border:0.5px solid var(--ivica);border-radius:8px;">
+                      <span style="font-size:13px;color:var(--tekst-glavni);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" x-text="stavka._naziv"></span>
+                      <button type="button" @click="promeniArtikal(stavka)" :disabled="isMobile" title="Promeni artikal"
+                        style="background:none;border:none;cursor:pointer;color:var(--tekst-sporedni);font-size:13px;flex-shrink:0;padding:0;">✎</button>
+                    </div>
+                  </template>
+                  <template x-if="!stavka.artikal_id">
+                    <div @click.outside="stavka._prikaziListu = false">
+                      <input type="text" x-model="stavka._pretraga" @focus="stavka._prikaziListu = true" @input="stavka._prikaziListu = true"
+                        placeholder="Pretraži artikal..." autocomplete="off" :disabled="isMobile" style="width: 100%">
+                      <div x-show="stavka._prikaziListu && filtriraniArtikliZaStavku(stavka).length" x-cloak
+                        @scroll="ucitajViseArtikala(stavka, $event)"
+                        style="position: absolute; z-index: 40; left: 8px; right: 8px; margin-top: 4px; background: var(--pozadina); border: 0.5px solid var(--ivica); border-radius: 10px; max-height: 240px; overflow: auto; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);">
+                        <template x-for="a in filtriraniArtikliZaStavku(stavka)" :key="a.id">
+                          <div @click="izaberiArtikal(stavka, a)" style="display:flex;justify-content:space-between;gap:10px;padding:8px 12px;cursor:pointer;border-bottom:0.5px solid var(--ivica);">
+                            <div style="min-width:0;">
+                              <div style="font-size:13px;font-weight:500;color:var(--tekst-glavni);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" x-text="a.naziv"></div>
+                              <div style="font-size:11px;color:var(--tekst-sporedni);" x-text="a.kategorija_naziv"></div>
+                            </div>
+                            <div style="font-size:13px;font-weight:500;color:var(--tekst-glavni);white-space:nowrap;" x-text="fmtDin(pdvObveznik ? a.cena_sa_pdv : a.cena) + ' din'"></div>
+                          </div>
+                        </template>
+                        <div x-show="imaJosArtikala(stavka)" style="padding: 6px 12px; text-align: center; font-size: 11px; color: var(--tekst-sporedni)">Skrolujte za još rezultata...</div>
+                      </div>
+                    </div>
+                  </template>
+                  <div x-show="stavka.kategorija_naziv" style="font-size:11px;color:var(--tekst-sporedni);background:var(--pozadina);padding:2px 8px;border-radius:4px;display:inline-block;margin-top:4px;" x-text="stavka.kategorija_naziv"></div>
                 </td>
                 <td style="padding: 8px 10px">
                   <input type="number" :name="'kolicina[]'" x-model="stavka.kolicina" min="1" :disabled="isMobile"
@@ -151,9 +173,9 @@
                   <div x-show="prekoracenje(i)" style="font-size: 11px; color: #dc2626; margin-top: 1px; text-align: center; white-space: nowrap;">Prekoračena količina</div>
                 </td>
                 <td style="padding: 8px 10px">
-                  <div style="display:flex;flex-direction:column;gap:2px;">
+                  <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
                     <input type="number" :name="'cena_po_komadu[]'" x-model="stavka.cena" min="0" step="0.01" :disabled="isMobile" style="width: 100%; text-align: right" />
-                    <span x-show="pdvObveznik && stavka.pdv_stopa > 0" style="font-size:10px;color:var(--tekst-sporedni);text-align:right;" x-text="'+PDV ' + stavka.pdv_stopa + '%'"></span>
+                    <span x-show="pdvObveznik && stavka.pdv_stopa > 0" style="font-size:10px;color:var(--tekst-sporedni);background:var(--pozadina);padding:1px 6px;border-radius:4px;" x-text="'PDV ' + stavka.pdv_stopa + '% uključen'"></span>
                   </div>
                 </td>
                 <td style="padding: 8px 10px">
@@ -171,8 +193,22 @@
             </template>
           </tbody>
           <tfoot>
-            <tr style="border-top: 0.5px solid var(--ivica)">
-              <td colspan="4" style="padding: 10px; text-align: right; font-size: 13px; color: var(--tekst-sporedni); font-weight: 500;">Ukupno:</td>
+            <tr x-show="pdvObveznik" x-cloak style="border-top: 0.5px solid var(--ivica)">
+              <td colspan="4" style="padding: 4px 10px; text-align: right; font-size: 12px; color: var(--tekst-sporedni);">Osnovica:</td>
+              <td style="padding: 4px 10px; text-align: right; font-size: 12px; color: var(--tekst-sporedni);">
+                <span x-text="fmtDin(osnovicaSvega()) + ' din'"></span>
+              </td>
+              <td></td>
+            </tr>
+            <tr x-show="pdvObveznik" x-cloak>
+              <td colspan="4" style="padding: 0 10px 4px; text-align: right; font-size: 12px; color: var(--tekst-sporedni);">PDV:</td>
+              <td style="padding: 0 10px 4px; text-align: right; font-size: 12px; color: var(--tekst-sporedni);">
+                <span x-text="fmtDin(pdvSvega()) + ' din'"></span>
+              </td>
+              <td></td>
+            </tr>
+            <tr :style="!pdvObveznik ? 'border-top: 0.5px solid var(--ivica);' : ''">
+              <td colspan="4" style="padding: 10px; text-align: right; font-size: 13px; color: var(--tekst-sporedni); font-weight: 500;" x-text="pdvObveznik ? 'Ukupno za naplatu:' : 'Ukupno:'"></td>
               <td style="padding: 10px; text-align: right; font-size: 15px; font-weight: 600; color: var(--tekst-glavni);">
                 <span x-text="fmtDin(ukupnoSvega()) + ' din'"></span>
               </td>
@@ -185,7 +221,7 @@
       <!-- mobilne kartice stavki -->
       <div class="stavke-kartice" style="display: none; flex-direction: column; gap: 10px">
         <!-- pretraga na mobilnom -->
-        <input type="text" x-model="pretragaArtikal" placeholder="Pretraži artikle..." style="width:100%;">
+        <input type="text" x-model="pretragaArtikal" @keydown.enter.prevent="dodajPoBarkodu()" placeholder="Pretraži artikle ili skeniraj barkod..." autocomplete="off" style="width:100%;">
         <template x-for="(stavka, i) in stavke" :key="i">
           <div style="border: 0.5px solid var(--ivica); border-radius: 8px; padding: 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -197,14 +233,36 @@
               <input type="hidden" :name="'pdv_stopa[]'" :value="stavka.pdv_stopa">
               <!-- kategorija badge -->
               <div x-show="stavka.kategorija_naziv" style="font-size:11px;color:var(--tekst-sporedni);background:var(--pozadina);padding:2px 8px;border-radius:4px;align-self:flex-start;" x-text="stavka.kategorija_naziv"></div>
-              <div>
+              <div style="position: relative;">
                 <label class="polje-labela">Artikal</label>
-                <select :name="'artikal_id[]'" x-model="stavka.artikal_id" @change="popuniCenu(stavka)" :disabled="!isMobile" style="width: 100%">
-                  <option value="">— odaberi artikal —</option>
-                  <template x-for="a in filtriraniArtikli" :key="a.id">
-                    <option :value="a.id" x-text="a.naziv"></option>
-                  </template>
-                </select>
+                <input type="hidden" :name="'artikal_id[]'" :value="stavka.artikal_id" :disabled="!isMobile">
+                <template x-if="stavka.artikal_id">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;padding:7px 10px;border:0.5px solid var(--ivica);border-radius:8px;">
+                    <span style="font-size:13px;color:var(--tekst-glavni);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" x-text="stavka._naziv"></span>
+                    <button type="button" @click="promeniArtikal(stavka)" :disabled="!isMobile" title="Promeni artikal"
+                      style="background:none;border:none;cursor:pointer;color:var(--tekst-sporedni);font-size:13px;flex-shrink:0;padding:0;">✎</button>
+                  </div>
+                </template>
+                <template x-if="!stavka.artikal_id">
+                  <div @click.outside="stavka._prikaziListu = false">
+                    <input type="text" x-model="stavka._pretraga" @focus="stavka._prikaziListu = true" @input="stavka._prikaziListu = true"
+                      placeholder="Pretraži artikal..." autocomplete="off" :disabled="!isMobile" style="width: 100%">
+                    <div x-show="stavka._prikaziListu && filtriraniArtikliZaStavku(stavka).length" x-cloak
+                      @scroll="ucitajViseArtikala(stavka, $event)"
+                      style="position: absolute; z-index: 40; left: 0; right: 0; margin-top: 4px; background: var(--pozadina); border: 0.5px solid var(--ivica); border-radius: 10px; max-height: 240px; overflow: auto; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);">
+                      <template x-for="a in filtriraniArtikliZaStavku(stavka)" :key="a.id">
+                        <div @click="izaberiArtikal(stavka, a)" style="display:flex;justify-content:space-between;gap:10px;padding:8px 12px;cursor:pointer;border-bottom:0.5px solid var(--ivica);">
+                          <div style="min-width:0;">
+                            <div style="font-size:13px;font-weight:500;color:var(--tekst-glavni);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" x-text="a.naziv"></div>
+                            <div style="font-size:11px;color:var(--tekst-sporedni);" x-text="a.kategorija_naziv"></div>
+                          </div>
+                          <div style="font-size:13px;font-weight:500;color:var(--tekst-glavni);white-space:nowrap;" x-text="fmtDin(pdvObveznik ? a.cena_sa_pdv : a.cena) + ' din'"></div>
+                        </div>
+                      </template>
+                      <div x-show="imaJosArtikala(stavka)" style="padding: 6px 12px; text-align: center; font-size: 11px; color: var(--tekst-sporedni)">Skrolujte za još rezultata...</div>
+                    </div>
+                  </div>
+                </template>
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                 <div>
@@ -215,8 +273,9 @@
                     x-text="'Na stanju: ' + dostupnaKolicina(i)" style="font-size: 11px; margin-top: 3px;"></div>
                 </div>
                 <div>
-                  <label class="polje-labela">Cena/kom (din)</label>
+                  <label class="polje-labela">Cena/kom (din){{if index .Moduli "pdv"}} sa PDV{{end}}</label>
                   <input type="number" :name="'cena_po_komadu[]'" x-model="stavka.cena" min="0" step="0.01" :disabled="!isMobile" style="width: 100%" />
+                  <div x-show="pdvObveznik && stavka.pdv_stopa > 0" style="font-size:10px;color:var(--tekst-sporedni);margin-top:3px;" x-text="'PDV ' + stavka.pdv_stopa + '% uključen'"></div>
                 </div>
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -231,8 +290,11 @@
             </div>
           </div>
         </template>
+        <div x-show="pdvObveznik" x-cloak style="text-align: right; font-size: 12px; color: var(--tekst-sporedni); padding: 0 4px;">
+          Osnovica: <span x-text="fmtDin(osnovicaSvega()) + ' din'"></span> · PDV: <span x-text="fmtDin(pdvSvega()) + ' din'"></span>
+        </div>
         <div style="text-align: right; font-size: 15px; font-weight: 600; color: var(--tekst-glavni); padding: 8px 4px;">
-          Ukupno: <span x-text="fmtDin(ukupnoSvega()) + ' din'"></span>
+          <span x-text="pdvObveznik ? 'Ukupno za naplatu:' : 'Ukupno:'"></span> <span x-text="fmtDin(ukupnoSvega()) + ' din'"></span>
         </div>
       </div>
     </div>
@@ -240,7 +302,7 @@
     <!-- dugmad forme -->
     <div style="display: flex; justify-content: flex-end; gap: 10px">
       <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja" class="btn-sekundarno">Odustani</a>
-      <button type="submit" class="btn-primarno" :disabled="imaPrekoracenja()" :style="imaPrekoracenja() ? 'opacity:0.4;cursor:not-allowed;' : ''">
+      <button type="submit" class="btn-primarno" :disabled="imaPrekoracenja() || imaPraznihStavki()" :style="(imaPrekoracenja() || imaPraznihStavki()) ? 'opacity:0.4;cursor:not-allowed;' : ''">
         Sačuvaj prodaju
       </button>
     </div>

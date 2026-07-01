@@ -11,12 +11,12 @@ func blizu(a, b float64) bool { return math.Abs(a-b) < 0.01 }
 func TestKirIzProdaje(t *testing.T) {
 	nalog := ProdajniNalog{ID: 5, BrojNaloga: "P-1", Datum: time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)}
 	stavke := []StavkaProdaje{
-		// 20%: CenaPoKomadu je NETO → osnovica 2×120=240, PDV 240×20%=48
-		{Kolicina: 2, CenaPoKomadu: 120, PdvStopa: 20},
+		// 20%: CenaBezPdv je već izračunata neto vrednost (v. ProdajaRepo.Kreiraj) → osnovica 2×120=240, PDV 240×20%=48
+		{Kolicina: 2, CenaBezPdv: 120, PdvStopa: 20},
 		// 10%: osnovica 1×110=110, PDV 110×10%=11
-		{Kolicina: 1, CenaPoKomadu: 110, PdvStopa: 10},
+		{Kolicina: 1, CenaBezPdv: 110, PdvStopa: 10},
 		// 0%: 1 × 50 = 50 (oslobođeno, bez PDV)
-		{Kolicina: 1, CenaPoKomadu: 50, PdvStopa: 0},
+		{Kolicina: 1, CenaBezPdv: 50, PdvStopa: 0},
 	}
 
 	k := KirIzProdaje(nalog, stavke, "Kupac doo", "123456789", "Niš", nalog.Datum)
