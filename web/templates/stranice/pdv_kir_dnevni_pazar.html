@@ -82,13 +82,13 @@
     <div class="kartica animiraj" style="margin-bottom:16px;border:1.5px solid #f59e0b;background:color-mix(in srgb,#fef3c7 60%,var(--pozadina));">
         <div style="padding:16px;">
             <div style="font-size:14px;font-weight:600;color:#92400e;margin-bottom:4px;">⚠ Već upisano</div>
-            <div style="font-size:13px;color:#78350f;">Dnevni pazar za {{.Datum}} je već upisan u KIR. Ponovni upis bi duplirao promet za ovaj dan.</div>
+            <div style="font-size:13px;color:#78350f;">Dnevni pazar za {{.Datum}} je već upisan u KIR. Ako je promet tog dana naknadno promenjen (storno ili nova prodaja), ažuriranjem se stari zapis zamenjuje trenutnim iznosima.</div>
         </div>
     </div>
     {{end}}
 
-    {{if and (gt .Promet.BrojNaloga 0) (not .VecUpisano)}}
-    <!-- forma za upis -->
+    {{if gt .Promet.BrojNaloga 0}}
+    <!-- forma za upis/ažuriranje -->
     <form method="POST" action="/pdv/kir/dnevni-pazar">
         <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
         <input type="hidden" name="datum" value="{{.Datum}}">
@@ -99,10 +99,17 @@
         <div class="kartica animiraj">
             <div style="padding:16px;display:flex;justify-content:flex-end;gap:12px;">
                 <a href="/pdv/kir" class="btn-sekundarno" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML">Odustani</a>
+                {{if .VecUpisano}}
+                <button type="submit" class="btn-primarno"
+                    data-potvrda="Dnevni pazar za {{.Datum}} je već upisan. Zameniti stari zapis trenutnim iznosima?">
+                    Ažuriraj KIR za ovaj dan
+                </button>
+                {{else}}
                 <button type="submit" class="btn-primarno"
                     data-potvrda="Upisati dnevni pazar za {{.Datum}} u KIR?">
                     Upiši u KIR
                 </button>
+                {{end}}
             </div>
         </div>
     </form>

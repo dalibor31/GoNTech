@@ -71,8 +71,10 @@ type PdvKirRepository interface {
 	// PostojiZaIzvor vraća true ako postoji bar jedan zapis za dati izvor i izvorID
 	PostojiZaIzvor(ctx context.Context, izvor string, izvorID int64) (bool, error)
 	// PostojiPoBrojuDokumenta vraća true ako postoji zapis sa datim brojem dokumenta
-	// (npr. zaštita od duplog unosa dnevnog pazara "FISK-YYYYMMDD")
+	// (npr. za prikaz upozorenja da je dnevni pazar "FISK-YYYYMMDD" već upisan)
 	PostojiPoBrojuDokumenta(ctx context.Context, brojDokumenta string) (bool, error)
+	// ObrisiPoBrojuDokumenta briše zapis(e) sa datim brojem dokumenta (zamena pri ažuriranju)
+	ObrisiPoBrojuDokumenta(ctx context.Context, brojDokumenta string) error
 }
 
 // PdvKprRepository definiše operacije nad knjigom primljenih računa (KPR)
