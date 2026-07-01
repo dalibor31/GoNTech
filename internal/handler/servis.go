@@ -2212,17 +2212,19 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// automatski upis u KIR ako je firma PDV obveznik
+		// automatski upis u KIR ako je firma PDV obveznik i servis je na klijenta (B2B/identifikovan
+		// kupac) — maloprodaja bez klijenta ide samo preko fiskalizacije, isto kao u Prodaji.
 		if h.modulUkljucen(r.Context(), "pdv") {
 			nalog, _ := h.ServisRepo.DohvatiID(r.Context(), id)
-			if nalog != nil && !nalog.PopravkaOdbijena {
+			if nalog != nil && !nalog.PopravkaOdbijena && nalog.KlijentID != nil {
 				kupacNaziv, kupacPib, kupacMesto := "", "", ""
-				if nalog.KlijentID != nil {
-					if k, e := h.KlijentiRepo.DohvatiID(r.Context(), *nalog.KlijentID); e == nil {
-						kupacNaziv = k.PunoIme()
-						kupacPib = k.PIB
-						kupacMesto = k.Mesto
+				if k, e := h.KlijentiRepo.DohvatiID(r.Context(), *nalog.KlijentID); e == nil {
+					kupacNaziv = k.PunoIme()
+					kupacPib = k.PIB
+					if k.Tip != "pravno" {
+						kupacPib = k.JMBG
 					}
+					kupacMesto = k.Mesto
 				}
 				radovi, _ := h.ServisniRadoviRepo.DohvatiZaNalog(r.Context(), id)
 				delovi, _ := h.ServisniDeloviRepo.DohvatiZaNalog(r.Context(), id)
