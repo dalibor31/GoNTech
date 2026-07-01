@@ -164,7 +164,7 @@
     <!-- paginacija -->
     {{if gt .UkupnoStranica 1}}
     <div class="paginacija" style="display:flex;align-items:center;justify-content:center;gap:12px;padding:12px 0;flex-wrap:wrap;">
-        <span style="font-size:13px;color:var(--tekst-sporedni);">{{.UkupnoKlijenata}} klijenata — {{.StranicaBr}}/{{.UkupnoStranica}}</span>
+        <span class="pomocni-tekst">{{.UkupnoKlijenata}} klijenata — {{.StranicaBr}}/{{.UkupnoStranica}}</span>
         <div style="display:flex;gap:4px;">
             {{if gt .StranicaBr 1}}
             <a href="?stranica={{.StranicaPrev}}{{.StranicaQueryUrl}}" class="btn-sekundarno-malo" hx-target="#klijenti-rezultati" hx-select="#klijenti-rezultati" hx-swap="innerHTML" hx-push-url="true">← Prethodna</a>

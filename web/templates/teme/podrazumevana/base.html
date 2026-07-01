@@ -59,6 +59,10 @@
         pointer-events: none;
       }
       .raspored { position: relative; z-index: 2; }
+      /* podrazumevana boja teksta u glavnom sadržaju — nasleđuje se na sve gole elemente
+         (npr. radio-labele bez ijedne klase) koji inače ostaju u tamnoj boji teme i gube
+         se preko slike; specifičnija pravila ispod (npr. .kartica p) i dalje važe */
+      .sadrzaj { color: rgba(255,255,255,0.9) !important; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
       .sidebar { background: rgba(0,0,0,var(--app-glass-sb)) !important; backdrop-filter: blur(var(--app-blur)); -webkit-backdrop-filter: blur(var(--app-blur)); border-right: 1px solid rgba(255,255,255,0.12) !important; }
       .sidebar .nav-stavka, .sidebar .logo-naziv, .sidebar .logo-podnazlov { text-shadow: 0 1px 3px rgba(0,0,0,0.8); color: rgba(255,255,255,0.95) !important; }
       .sidebar .nav-stavka svg { color: rgba(255,255,255,0.95) !important; stroke: rgba(255,255,255,0.95) !important; }
@@ -81,17 +85,26 @@
       div:has(> canvas) { background: rgba(0,0,0,0.3); border-radius: 8px; padding: 8px; }
       /* elementi van kartica (i preskočeni tagovi) koje glass override gore ne dohvata —
          dobijaju sopstvenu staklenu podlogu da se vide bez obzira na sliku ispod */
-      .nazad-link, .btn-sekundarno, .btn-obrisi-ghost, .cek-filter {
+      .nazad-link, .btn-sekundarno, .btn-obrisi-ghost, .cek-filter, .dugme-prekidac {
         background: rgba(0,0,0,0.28) !important;
         backdrop-filter: blur(var(--app-blur)); -webkit-backdrop-filter: blur(var(--app-blur));
         border: 1px solid rgba(255,255,255,0.18) !important;
         color: rgba(255,255,255,0.95) !important; text-shadow: 0 1px 3px rgba(0,0,0,0.8);
       }
+      /* prekidač-dugme (npr. „Samo stornirano") — kad je uključen zadrži akcenat da se vidi stanje */
+      .dugme-prekidac:has(input:checked) { background: color-mix(in srgb, var(--sb-akcent) 45%, rgba(0,0,0,0.28)) !important; border-color: var(--sb-akcent) !important; color: #fff !important; }
       /* .nazad-link i checkbox-traka nemaju sopstveni padding — dajemo „pill" oblik */
       .nazad-link, .cek-filter { padding: 6px 12px; border-radius: 8px; }
       .nazad-link svg, .btn-sekundarno svg, .cek-filter svg { color: rgba(255,255,255,0.95) !important; stroke: rgba(255,255,255,0.95) !important; }
       /* sitne napomene (npr. „maksimum 5 MB") i naslovi van kartica — svetli tekst + halo, bez podloge */
       .pomocni-tekst { color: rgba(255,255,255,0.9) !important; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+      /* labele filter-traka/formi, naslovi sekcija i prazna stanja liste — često van .kartica,
+         renderuju se direktno preko slike; damo im svetli tekst + halo (bez podloge) */
+      .polje-labela, .sekcija-naslov, .prazno-stanje { color: rgba(255,255,255,0.9) !important; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+      /* opšta zaštitna mreža: bilo koji element sa inline bojom teme (var(--tekst-glavni)
+         ili var(--tekst-sporedni)) van .kartica ostaje čitljiv i preko slike — hvata i buduće
+         opise/prazna stanja koja nisu prošla kroz gornje imenovane klase */
+      [style*="var(--tekst-glavni)"], [style*="var(--tekst-sporedni)"] { color: rgba(255,255,255,0.9) !important; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
       /* jača dvoslojna senka: oštar tamni obris + širi mekan halo, da naslov „iskoči" i na svetloj slici */
       /* tri sloja u opadajućem zatamnjenju: skoro crn obris → upola → bled široki halo */
       .naslov-traka { color: rgba(255,255,255,0.95) !important; text-shadow: 0 1px 2px rgba(0,0,0,0.95), 0 0 8px rgba(0,0,0,0.5), 0 2px 16px rgba(0,0,0,0.25); }
@@ -105,6 +118,7 @@
         .topbar-naslov { text-shadow: 0 1px 3px rgba(0,0,0,1), 0 0 8px rgba(0,0,0,0.85); }
         .naslov-traka { text-shadow: 0 1px 3px rgba(0,0,0,1), 0 0 8px rgba(0,0,0,0.9), 0 2px 16px rgba(0,0,0,0.4); }
         .pomocni-tekst { text-shadow: 0 1px 3px rgba(0,0,0,1), 0 0 6px rgba(0,0,0,0.85); }
+        .polje-labela, .sekcija-naslov, .prazno-stanje { text-shadow: 0 1px 3px rgba(0,0,0,1), 0 0 6px rgba(0,0,0,0.85); }
       }
     </style>
     <script>
