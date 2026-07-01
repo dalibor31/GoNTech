@@ -148,6 +148,18 @@ func (r *PdvKirRepo) PostojiZaIzvor(ctx context.Context, izvor string, izvorID i
 	return n > 0, nil
 }
 
+// PostojiPoBrojuDokumenta vraća true ako postoji KIR zapis sa datim brojem dokumenta
+func (r *PdvKirRepo) PostojiPoBrojuDokumenta(ctx context.Context, brojDokumenta string) (bool, error) {
+	var n int
+	err := r.db.QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM pdv_kir WHERE broj_dokumenta = ?", brojDokumenta,
+	).Scan(&n)
+	if err != nil {
+		return false, fmt.Errorf("ntech: PdvKirRepo.PostojiPoBrojuDokumenta: %w", err)
+	}
+	return n > 0, nil
+}
+
 // izvorIliRucno vraća izvor ili podrazumevano „rucno" (izvor kolona je NOT NULL)
 func izvorIliRucno(izvor string) string {
 	if izvor == "" {
