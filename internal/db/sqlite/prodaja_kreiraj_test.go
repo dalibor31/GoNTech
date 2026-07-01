@@ -81,7 +81,7 @@ func TestProdajaKreiraj_NedovoljnoStanja(t *testing.T) {
 }
 
 // TestProdajaKreiraj_PdvAutoKalkulacija: kada CenaBezPdv=0 a PdvStopa>0,
-// cena_bez_pdv i pdv_iznos se automatski računaju iz bruto cene.
+// cena_bez_pdv i pdv_iznos se automatski računaju iz neto cene (CenaPoKomadu je neto).
 func TestProdajaKreiraj_PdvAutoKalkulacija(t *testing.T) {
 	ctx := context.Background()
 	baza := testDB(t)
@@ -92,11 +92,11 @@ func TestProdajaKreiraj_PdvAutoKalkulacija(t *testing.T) {
 		Naziv: "Tastatura", Tip: model.TipProizvod, Kolicina: 10,
 	})
 
-	// bruto cena 1200, PDV 20% → neto = 1200/1.2 = 1000, pdv_iznos = 200
+	// neto cena 1000, PDV 20% → pdv_iznos = 200
 	_, err := prodRepo.Kreiraj(ctx, &model.ProdajniNalog{
-		BrojNaloga: "PR-PDV-001", Ukupno: 1200, NacinPlacanja: "gotovina", Datum: time.Now(),
+		BrojNaloga: "PR-PDV-001", Ukupno: 1000, NacinPlacanja: "gotovina", Datum: time.Now(),
 	}, []model.StavkaProdaje{
-		{ArtikalID: artID, Kolicina: 1, CenaPoKomadu: 1200, PdvStopa: 20},
+		{ArtikalID: artID, Kolicina: 1, CenaPoKomadu: 1000, PdvStopa: 20},
 		// CenaBezPdv=0 namerno — treba da se auto-izračuna
 	}, nil)
 	if err != nil {

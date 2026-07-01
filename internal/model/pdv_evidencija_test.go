@@ -11,9 +11,9 @@ func blizu(a, b float64) bool { return math.Abs(a-b) < 0.01 }
 func TestKirIzProdaje(t *testing.T) {
 	nalog := ProdajniNalog{ID: 5, BrojNaloga: "P-1", Datum: time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)}
 	stavke := []StavkaProdaje{
-		// 20%: 2 × 120 = 240 (osnovica 200, PDV 40)
+		// 20%: CenaPoKomadu je NETO → osnovica 2×120=240, PDV 240×20%=48
 		{Kolicina: 2, CenaPoKomadu: 120, PdvStopa: 20},
-		// 10%: 1 × 110 = 110 (osnovica 100, PDV 10)
+		// 10%: osnovica 1×110=110, PDV 110×10%=11
 		{Kolicina: 1, CenaPoKomadu: 110, PdvStopa: 10},
 		// 0%: 1 × 50 = 50 (oslobođeno, bez PDV)
 		{Kolicina: 1, CenaPoKomadu: 50, PdvStopa: 0},
@@ -27,17 +27,17 @@ func TestKirIzProdaje(t *testing.T) {
 	if k.BrojDokumenta != "P-1" || k.KupacNaziv != "Kupac doo" || k.KupacPib != "123456789" {
 		t.Errorf("zaglavlje ne odgovara: %+v", k)
 	}
-	if !blizu(k.OsnovicaOpsta, 200) || !blizu(k.PdvOpsta, 40) {
-		t.Errorf("opšta: osnovica=%v pdv=%v, očekivano 200/40", k.OsnovicaOpsta, k.PdvOpsta)
+	if !blizu(k.OsnovicaOpsta, 240) || !blizu(k.PdvOpsta, 48) {
+		t.Errorf("opšta: osnovica=%v pdv=%v, očekivano 240/48", k.OsnovicaOpsta, k.PdvOpsta)
 	}
-	if !blizu(k.OsnovicaPosebna, 100) || !blizu(k.PdvPosebna, 10) {
-		t.Errorf("posebna: osnovica=%v pdv=%v, očekivano 100/10", k.OsnovicaPosebna, k.PdvPosebna)
+	if !blizu(k.OsnovicaPosebna, 110) || !blizu(k.PdvPosebna, 11) {
+		t.Errorf("posebna: osnovica=%v pdv=%v, očekivano 110/11", k.OsnovicaPosebna, k.PdvPosebna)
 	}
 	if !blizu(k.OslobodenSaPravom, 50) {
 		t.Errorf("oslobođeno=%v, očekivano 50", k.OslobodenSaPravom)
 	}
-	if !blizu(k.Ukupno, 400) {
-		t.Errorf("ukupno=%v, očekivano 400 (240+110+50)", k.Ukupno)
+	if !blizu(k.Ukupno, 459) {
+		t.Errorf("ukupno=%v, očekivano 459 (288+121+50 bruto)", k.Ukupno)
 	}
 }
 

@@ -120,7 +120,11 @@ func KirIzProdaje(nalog ProdajniNalog, stavke []StavkaProdaje, kupacNaziv, kupac
 		IzvorID:        &id,
 	}
 	for _, s := range stavke {
-		k.DodajNeto(float64(s.Kolicina)*s.CenaPoKomadu, s.PdvStopa)
+		cenaPoslePopusta := s.CenaPoKomadu
+		if s.PopustProcenat > 0 {
+			cenaPoslePopusta = cenaPoslePopusta * (1 - s.PopustProcenat/100)
+		}
+		k.DodajNeto(float64(s.Kolicina)*cenaPoslePopusta, s.PdvStopa)
 	}
 	return k
 }

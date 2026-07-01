@@ -62,13 +62,14 @@ func NapraviZahtev(
 		if s.PdvStopa > 0 {
 			stopa = s.PdvStopa
 		}
-		// CenaPoKomadu je neto cena — konvertujemo u bruto; popust umanjuje neto cenu pre PDV-a
+		// CenaBezPdv iz baze je već diskontovana (popust primenjen pri kreiranju naloga);
+		// popust se ponovo primenjuje samo u fallback grani kad CenaBezPdv nije popunjena.
 		netoCena := s.CenaBezPdv
 		if netoCena == 0 {
 			netoCena = s.CenaPoKomadu
-		}
-		if s.PopustProcenat > 0 {
-			netoCena = math.Round(netoCena*(1-s.PopustProcenat/100)*100) / 100
+			if s.PopustProcenat > 0 {
+				netoCena = math.Round(netoCena*(1-s.PopustProcenat/100)*100) / 100
+			}
 		}
 		brutoCena := BrutoCena(netoCena, stopa)
 		brutoTotal := math.Round(brutoCena*float64(s.Kolicina)*100) / 100
