@@ -21,7 +21,7 @@ import socket
 import urllib.parse
 
 import qrcode
-from receipt import generate_receipt, generate_receipt_html, generate_report, load_locale
+from receipt import generate_receipt, generate_receipt_html, generate_report, render_report_pdf, load_locale
 
 # ── Konfiguracija ──────────────────────────────────────────
 PORT  = 4566          # Teron standard port
@@ -665,7 +665,8 @@ def resp_financial_report_summary(request_body=None):
         "perTransactionType": [],
     }
     tekst = generate_report(report_data, lang)
-    pdf_b64 = base64.b64encode(tekst.encode("utf-8")).decode("ascii")
+    pdf_bytes = render_report_pdf(tekst)
+    pdf_b64 = base64.b64encode(pdf_bytes).decode("ascii")
     filename = f"{title} - {report_data['startDate']} - {report_data['endDate']}.pdf"
     log(f"  📄 Dnevni izveštaj #{report_data['number']} generisan ({summary['invoiceCount']} računa)")
     return {"reportPdfBase64": pdf_b64, "reportName": title, "filename": filename}
