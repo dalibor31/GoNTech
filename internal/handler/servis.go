@@ -2204,17 +2204,21 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 			middleware.SetFlash(w, r, h.DB, "greska", "Naplata nije sačuvana. Pokušajte ponovo.")
 		}
 
-		// fiskalizacija servisa — ako je modul uključen
+		// fiskalizacija servisa — ako je modul uključen; preskoči ako fiskalni račun
+		// za ovaj nalog već postoji (ponovni ulazak u Preuzeto ne sme duplirati PFR zahtev)
 		if h.modulUkljucen(r.Context(), config.ModulFiskalizacija) {
-			klijent := h.fiskalKlijent()
-			if klijent != nil && iznos > 0 {
-				h.fiskalizujServis(r.Context(), id, klijent, nacin, iznos)
+			if fr, _ := h.FiskalRepo.DohvatiPoServisu(r.Context(), id); fr == nil {
+				klijent := h.fiskalKlijent()
+				if klijent != nil && iznos > 0 {
+					h.fiskalizujServis(r.Context(), id, klijent, nacin, iznos)
+				}
 			}
 		}
 
 		// automatski upis u KIR ako je firma PDV obveznik i servis je na klijenta (B2B/identifikovan
 		// kupac) — maloprodaja bez klijenta ide samo preko fiskalizacije, isto kao u Prodaji.
-		if h.modulUkljucen(r.Context(), "pdv") {
+		// Preskoči ako KIR zapis za ovaj nalog već postoji (ponovni ulazak u Preuzeto).
+		if postojiKir, _ := h.PdvKirRepo.PostojiZaIzvor(r.Context(), "servis", id); h.modulUkljucen(r.Context(), "pdv") && !postojiKir {
 			nalog, _ := h.ServisRepo.DohvatiID(r.Context(), id)
 			if nalog != nil && !nalog.PopravkaOdbijena && nalog.KlijentID != nil {
 				kupacNaziv, kupacPib, kupacMesto := "", "", ""
@@ -2229,29 +2233,8 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 				radovi, _ := h.ServisniRadoviRepo.DohvatiZaNalog(r.Context(), id)
 				delovi, _ := h.ServisniDeloviRepo.DohvatiZaNalog(r.Context(), id)
 
-				kir := model.PdvKir{
-					DatumPrometa:   time.Now(),
-					DatumKnjizenja: time.Now(),
-					BrojDokumenta:  nalog.BrojNaloga,
-					KupacNaziv:     kupacNaziv,
-					KupacPib:       kupacPib,
-					KupacMesto:     kupacMesto,
-					Izvor:          "servis",
-					IzvorID:        &id,
-				}
-				// cena_komada rada/dela je NETO; PDV se dodaje naviše po stvarnoj stopi
-				for _, r := range radovi {
-					if r.Predlozeno {
-						continue
-					}
-					kir.DodajNeto(r.Ukupno(), r.PdvStopa)
-				}
-				for _, d := range delovi {
-					if d.Predlozeno {
-						continue
-					}
-					kir.DodajNeto(d.Ukupno(), d.PdvStopa)
-				}
+				sada := time.Now()
+				kir := model.KirIzServisa(*nalog, radovi, delovi, kupacNaziv, kupacPib, kupacMesto, sada, sada)
 				if kir.Ukupno > 0 {
 					if _, e := h.PdvKirRepo.Kreiraj(r.Context(), &kir); e != nil {
 						slog.Error("auto-upis u KIR za servis nije uspeo", "servis_id", id, "error", e)
@@ -2259,8 +2242,9 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-		// auto-KPO za servisni nalog
-		if h.modulUkljucen(r.Context(), "kpo") && iznos > 0 {
+		// auto-KPO za servisni nalog — preskoči ako zapis već postoji (ponovni ulazak u Preuzeto)
+		postojiKpo, _ := h.KpoRepo.PostojiZaIzvor(r.Context(), "servis", id)
+		if h.modulUkljucen(r.Context(), "kpo") && iznos > 0 && !postojiKpo {
 			nalogKpo, _ := h.ServisRepo.DohvatiID(r.Context(), id)
 			if nalogKpo != nil {
 				kpoZ := model.KpoZapis{

@@ -129,6 +129,38 @@ func KirIzProdaje(nalog ProdajniNalog, stavke []StavkaProdaje, kupacNaziv, kupac
 	return k
 }
 
+// KirIzServisa gradi KIR zapis iz preuzetog servisnog naloga: radovi i ugrađeni
+// delovi (bez predloženih koji čekaju odobrenje klijenta) se sabiraju kao NETO
+// stavke po svojoj PDV stopi. datumPrometa je trenutak prometa (za sveže naloge
+// „sada", za backfill starih naloga datum preuzimanja); datumKnjizenja je kad se
+// zapis stvarno upisuje u knjigu (za backfill kasni za periodom).
+func KirIzServisa(nalog ServisniNalog, radovi []ServisniRad, delovi []ServisniDeoSaArtiklom, kupacNaziv, kupacPib, kupacMesto string, datumPrometa, datumKnjizenja time.Time) PdvKir {
+	id := nalog.ID
+	k := PdvKir{
+		DatumPrometa:   datumPrometa,
+		DatumKnjizenja: datumKnjizenja,
+		BrojDokumenta:  nalog.BrojNaloga,
+		KupacNaziv:     kupacNaziv,
+		KupacPib:       kupacPib,
+		KupacMesto:     kupacMesto,
+		Izvor:          "servis",
+		IzvorID:        &id,
+	}
+	for _, r := range radovi {
+		if r.Predlozeno {
+			continue
+		}
+		k.DodajNeto(r.Ukupno(), r.PdvStopa)
+	}
+	for _, d := range delovi {
+		if d.Predlozeno {
+			continue
+		}
+		k.DodajNeto(d.Ukupno(), d.PdvStopa)
+	}
+	return k
+}
+
 // KirStorno gradi storno (knjižno odobrenje) zapis za dati KIR red: iznosi su
 // negirani original, upisan pod istim izvorom/izvor_id tako da PostojiZaIzvor
 // ostane tačan i backfill ne pokuša ponovni upis. Zakon o računovodstvu ne

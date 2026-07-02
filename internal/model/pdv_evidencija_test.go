@@ -70,6 +70,38 @@ func TestPdvKirDodajNeto(t *testing.T) {
 	}
 }
 
+// TestKirIzServisa: radovi i ugrađeni delovi se sabiraju kao NETO stavke po
+// PDV stopi; predloženi (neprihvaćeni) redovi se ne naplaćuju.
+func TestKirIzServisa(t *testing.T) {
+	nalog := ServisniNalog{ID: 7, BrojNaloga: "SN-2607-001"}
+	radovi := []ServisniRad{
+		{Naziv: "Zamena ekrana", Kolicina: 1, CenaKomada: 1000, PdvStopa: 20}, // osnovica 1000, PDV 200
+		{Naziv: "Predlog", Kolicina: 1, CenaKomada: 5000, PdvStopa: 20, Predlozeno: true},
+	}
+	delovi := []ServisniDeoSaArtiklom{
+		{ServisniDeo: ServisniDeo{Kolicina: 2, CenaKomada: 300}, PdvStopa: 10}, // osnovica 600, PDV 60
+	}
+
+	k := KirIzServisa(nalog, radovi, delovi, "Kupac doo", "123456789", "Niš",
+		time.Date(2026, 7, 2, 0, 0, 0, 0, time.UTC), time.Date(2026, 7, 3, 0, 0, 0, 0, time.UTC))
+
+	if k.Izvor != "servis" || k.IzvorID == nil || *k.IzvorID != 7 {
+		t.Errorf("izvor=%q izvor_id=%v, očekivano servis/7", k.Izvor, k.IzvorID)
+	}
+	if k.BrojDokumenta != "SN-2607-001" {
+		t.Errorf("broj_dokumenta=%q, očekivano SN-2607-001", k.BrojDokumenta)
+	}
+	if !blizu(k.OsnovicaOpsta, 1000) || !blizu(k.PdvOpsta, 200) {
+		t.Errorf("opšta: osnovica=%v pdv=%v, očekivano 1000/200 (predloženi rad se ne računa)", k.OsnovicaOpsta, k.PdvOpsta)
+	}
+	if !blizu(k.OsnovicaPosebna, 600) || !blizu(k.PdvPosebna, 60) {
+		t.Errorf("posebna: osnovica=%v pdv=%v, očekivano 600/60", k.OsnovicaPosebna, k.PdvPosebna)
+	}
+	if !blizu(k.Ukupno, 1860) {
+		t.Errorf("ukupno=%v, očekivano 1860 (1200+660)", k.Ukupno)
+	}
+}
+
 // TestKirStorno: storno stavka negira sve kolone originala, čuva izvor/izvor_id
 // (da PostojiZaIzvor ostane tačan i backfill ne pokuša ponovni upis) i original
 // se ne dira — storno se samo dograđuje kao novi red.

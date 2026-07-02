@@ -70,12 +70,14 @@ func (r *KpoRepo) Lista(ctx context.Context, od, do time.Time) ([]model.KpoZapis
 	return rezultat, redovi.Err()
 }
 
-// Kreiraj upisuje novi KPO zapis i vraća njegov ID.
+// Kreiraj upisuje novi KPO zapis i vraća njegov ID. redni_broj se dodeljuje
+// automatski kao sledeći u nizu (Pravilnik o KPO zahteva kontinuiran redni broj
+// bez prekida — knjiga se nikad ne briše, pa brojevi ostaju u nizu i posle storna).
 func (r *KpoRepo) Kreiraj(ctx context.Context, z *model.KpoZapis) (int64, error) {
 	rez, err := r.db.ExecContext(ctx, `
 		INSERT INTO kpo_unosi
-			(datum_prometa, broj_dokumenta, opis, prihod, nacin_placanja, napomena, izvor, izvor_id)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+			(datum_prometa, redni_broj, broj_dokumenta, opis, prihod, nacin_placanja, napomena, izvor, izvor_id)
+		VALUES (?, (SELECT COALESCE(MAX(redni_broj), 0) + 1 FROM kpo_unosi), ?, ?, ?, ?, ?, ?, ?)`,
 		z.DatumPrometa.Format("2006-01-02"),
 		z.BrojDokumenta,
 		nullString(z.Opis),
