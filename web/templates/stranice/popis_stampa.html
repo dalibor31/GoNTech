@@ -55,9 +55,10 @@
         .potpis-linija { border-top: 1px solid #888; margin-top: 28px; padding-top: 3px; font-size: 10px; color: #777; }
 
         @media print {
-            body { font-size: 11px; }
-            .strana { padding: 20px 28px; max-width: 780px; }
-            @page { size: A4 landscape; margin: 8mm 10mm; }
+            body { font-size: 10px; min-width: 0; }
+            .strana { padding: 0; max-width: 100%; }
+            @page { size: A4 portrait; margin: 8mm 10mm; }
+            .tabela th, .tabela td { padding: 3px 4px; }
             .tabela tr { break-inside: avoid; }
             .tabela thead { display: table-header-group; }
             .dugme-stampa { display: none !important; }
