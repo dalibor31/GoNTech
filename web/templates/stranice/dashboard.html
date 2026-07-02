@@ -22,19 +22,35 @@
 {{ if gt .PrazninaKnjige.Ukupno 0 }}
 	<div class="kartica animiraj" style="margin-bottom:16px;background:#fef3c7;border:1px solid #fde68a;">
 		<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-			<div>
-				<div style="font-weight:600;color:#92400e;">Knjigovodstvo — praznine u evidenciji</div>
-				<div style="font-size:13px;color:#92400e;margin-top:2px;">
+			<div style="display:flex;align-items:center;gap:12px;">
+				<div style="font-size:46px;line-height:1;color:#fdba74;flex-shrink:0;">⚠</div>
+				<div>
+				<div style="font-weight:600;color:#fdba74;">Knjigovodstvo — praznine u evidenciji</div>
+				<div style="font-size:13px;color:#fdba74;margin-top:2px;">
 					{{ if gt .PrazninaKnjige.BezKir 0 }}{{ .PrazninaKnjige.BezKir }} bez KIR upisa{{ if or (gt .PrazninaKnjige.BezKpo 0) (gt .PrazninaKnjige.BezFiskalnogProdaja 0) (gt .PrazninaKnjige.BezFiskalnogServis 0) (gt .PrazninaKnjige.BezRefunda 0) }}, {{ end }}{{ end }}{{ if gt .PrazninaKnjige.BezKpo 0 }}{{ .PrazninaKnjige.BezKpo }} bez KPO upisa{{ if or (gt .PrazninaKnjige.BezFiskalnogProdaja 0) (gt .PrazninaKnjige.BezFiskalnogServis 0) (gt .PrazninaKnjige.BezRefunda 0) }}, {{ end }}{{ end }}{{ if gt .PrazninaKnjige.BezFiskalnogProdaja 0 }}{{ .PrazninaKnjige.BezFiskalnogProdaja }} prodaja bez fiskalnog računa{{ if or (gt .PrazninaKnjige.BezFiskalnogServis 0) (gt .PrazninaKnjige.BezRefunda 0) }}, {{ end }}{{ end }}{{ if gt .PrazninaKnjige.BezFiskalnogServis 0 }}{{ .PrazninaKnjige.BezFiskalnogServis }} servis bez fiskalnog računa{{ if gt .PrazninaKnjige.BezRefunda 0 }}, {{ end }}{{ end }}{{ if gt .PrazninaKnjige.BezRefunda 0 }}{{ .PrazninaKnjige.BezRefunda }} storno bez fiskalnog refunda{{ end }}
 					{{ if gt .PrazninaKnjige.SumnjiviDupli 0 }}{{ if or (gt .PrazninaKnjige.BezKir 0) (gt .PrazninaKnjige.BezKpo 0) (gt .PrazninaKnjige.BezFiskalnogProdaja 0) (gt .PrazninaKnjige.BezFiskalnogServis 0) (gt .PrazninaKnjige.BezRefunda 0) }} · {{ end }}{{ .PrazninaKnjige.SumnjiviDupli }} sumnjivih duplikata (proveri ručno){{ end }}
+					{{ if or (gt .PrazninaKnjige.BezFiskalnogProdaja 0) (gt .PrazninaKnjige.BezFiskalnogServis 0) }}
+					<div style="margin-top:4px;">
+						Bez fiskalnog računa:
+						{{ range $i, $id := .PrazninaKnjige.BezFiskalnogProdajaID }}{{ if $i }}, {{ end }}<a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja/{{ $id }}" style="color:#2563eb;text-decoration:underline;">Prodaja #{{ $id }}</a>{{ end }}
+						{{ if and .PrazninaKnjige.BezFiskalnogProdajaID .PrazninaKnjige.BezFiskalnogServisID }}, {{ end }}
+						{{ range $i, $id := .PrazninaKnjige.BezFiskalnogServisID }}{{ if $i }}, {{ end }}<a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/servis/{{ $id }}" style="color:#2563eb;text-decoration:underline;">Servis #{{ $id }}</a>{{ end }}
+					</div>
+					{{ end }}
+					{{ if gt .PrazninaKnjige.BezRefunda 0 }}
+					<div style="margin-top:4px;">
+						Storno bez refunda:
+						{{ range $i, $id := .PrazninaKnjige.BezRefundaProdajaID }}{{ if $i }}, {{ end }}<a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja/{{ $id }}" style="color:#2563eb;text-decoration:underline;">Prodaja #{{ $id }}</a>{{ end }}
+						{{ if and .PrazninaKnjige.BezRefundaProdajaID .PrazninaKnjige.BezRefundaServisID }}, {{ end }}
+						{{ range $i, $id := .PrazninaKnjige.BezRefundaServisID }}{{ if $i }}, {{ end }}<a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/servis/{{ $id }}" style="color:#2563eb;text-decoration:underline;">Servis #{{ $id }}</a>{{ end }}
+					</div>
+					{{ end }}
+				</div>
 				</div>
 			</div>
 			<div style="display:flex;gap:8px;flex-wrap:wrap;">
-				{{ if gt .PrazninaKnjige.BezKir 0 }}<a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/pdv/kir" class="btn-sekundarno" style="font-size:13px;">KIR</a>{{ end }}
-				{{ if gt .PrazninaKnjige.BezKpo 0 }}<a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/kpo" class="btn-sekundarno" style="font-size:13px;">KPO</a>{{ end }}
-				{{ if gt .PrazninaKnjige.BezFiskalnogProdaja 0 }}<a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja?prikazi=sve" class="btn-sekundarno" style="font-size:13px;">Fiskalizacija — prodaja</a>{{ end }}
-				{{ if gt .PrazninaKnjige.BezFiskalnogServis 0 }}<a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/servis/arhiva" class="btn-sekundarno" style="font-size:13px;">Fiskalizacija — servis</a>{{ end }}
-				{{ if gt .PrazninaKnjige.BezRefunda 0 }}<a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja?stornirano=1&prikazi=sve" class="btn-sekundarno" style="font-size:13px;">Storno bez refunda</a>{{ end }}
+				{{ if gt .PrazninaKnjige.BezKir 0 }}<a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/pdv/kir" class="btn-sekundarno" style="font-size:13px;">KIR — pokreni usklađivanje</a>{{ end }}
+				{{ if gt .PrazninaKnjige.BezKpo 0 }}<a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/kpo" class="btn-sekundarno" style="font-size:13px;">KPO — pokreni usklađivanje</a>{{ end }}
 			</div>
 		</div>
 	</div>

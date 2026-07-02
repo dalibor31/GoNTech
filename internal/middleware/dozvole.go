@@ -46,6 +46,8 @@ var sveAkcije = []string{
 	"kpo.pregled",
 	"kpo.dodaj",
 	"kpo.obrisi",
+	"fiskal.pazar",
+	"fiskal.zakljucenje",
 }
 
 // SveAkcije vraća listu svih poznatih akcija — koristi se pri inicijalizaciji baze i resetu
@@ -108,6 +110,9 @@ func ImaDozvolu(uloga, akcija string) bool {
 			return true
 		// KPO (knjiga o ostvarenom prometu) — administrativno, radnik nema
 		case "kpo.pregled", "kpo.dodaj", "kpo.obrisi":
+			return true
+		// dnevni fiskalni pazar — administrativno, radnik nema (zaključenje dana je nepovratno)
+		case "fiskal.pazar", "fiskal.zakljucenje":
 			return true
 		}
 		return false

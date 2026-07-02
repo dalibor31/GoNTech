@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"image/png"
 	"log/slog"
@@ -86,10 +87,13 @@ type PodaciDetaljiNaloga struct {
 	KorisceneUsluge         map[int64]bool // ID-evi usluga već dodatih na nalog — izostavljaju se iz dropdown-a
 	SviStatusi              []string
 	FiskalniRacun           *model.FiskalniRacun // konačan (Normal/Sale) ako postoji, inače najnoviji izdat; nil ako nije fiskalizovano
+	AvansRacun              *model.FiskalniRacun // avansni (Advance/Sale) — prikazan zasebno kad ga konačan račun "prekrije" u FiskalniRacun
 	PovracajAvansa          *model.FiskalniRacun // avansni povraćaj (Advance/Refund) — kad je avans premašio konačnu cenu
 	RokPodizanja            *time.Time           // DatumZavrsetka + 30 dana; nil dok nije završeno
 	FiskalGreska            bool                 // true: fiskalizacija aktivna, status Preuzeto, ali nema fiskalnog računa
+	StornoBezRefunda        bool                 // true: nalog je storniran, ali fiskalni refund ka PFR-u nije uspeo
 	PotrebnaIdentKupca      bool                 // true: refundacija zahteva ručni unos PIB/JMBG kupca (nema ga iz klijenta)
+	PotrebnaIdentKupcaRetry bool                 // isto, ali za retry dugme na već storniranom nalogu (StornoBezRefunda)
 }
 
 // Servis renderuje listu servisnih naloga sa opcionom pretragom i filterom statusa
@@ -597,7 +601,7 @@ func (h *Handler) StornoNaloga(w http.ResponseWriter, r *http.Request) {
 	// refundacija po propisu zahteva identifikaciju kupca (PIB/JMBG)
 	var originalniFiskal *model.FiskalniRacun
 	if h.modulUkljucen(ctx, config.ModulFiskalizacija) {
-		if fr, _ := h.FiskalRepo.DohvatiPoServisu(ctx, id); fr != nil && !fr.Storniran {
+		if fr, _ := h.FiskalRepo.DohvatiPoServisuITip(ctx, id, "Normal", "Sale"); fr != nil && !fr.Storniran {
 			originalniFiskal = fr
 			imaIdentKupca := false
 			if nalog, e := h.ServisRepo.DohvatiID(ctx, id); e == nil && nalog.KlijentID != nil {
@@ -653,11 +657,57 @@ func (h *Handler) StornoNaloga(w http.ResponseWriter, r *http.Request) {
 	// fiskalni refund — best-effort
 	if originalniFiskal != nil {
 		if fk := h.fiskalKlijent(); fk != nil {
-			h.refundujServis(ctx, id, fk, originalniFiskal.ID, originalniFiskal.PfrBroj, poreskiBrojKupca)
+			if err := h.refundujServis(ctx, id, fk, originalniFiskal.ID, originalniFiskal.PfrBroj, poreskiBrojKupca); err != nil {
+				slog.Error("fiskalni refund servisa nije uspeo", "servis_id", id, "error", err)
+			}
 		}
 	}
 
 	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)
+}
+
+// PokusajRefundServisa je ručni retry za "storno bez fiskalnog refunda" — kad je
+// servisni nalog već storniran u NTech-u, ali fiskalni refund ka PFR-u nije uspeo pri
+// samom stornu (best-effort poziv je pao). Prikazuje se kao dugme na stranici detalja.
+func (h *Handler) PokusajRefundServisa(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "servis.storno"); !ok {
+		return
+	}
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
+		return
+	}
+	poreskiBrojKupca := strings.TrimSpace(r.FormValue("poreski_broj_kupca"))
+	ctx := r.Context()
+
+	fr, err := h.FiskalRepo.DohvatiPoServisuITip(ctx, id, "Normal", "Sale")
+	if err != nil || fr == nil || fr.Storniran {
+		middleware.SetFlash(w, r, h.DB, "greska", "Nema fiskalnog računa koji čeka refund.")
+		http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+		return
+	}
+	fk := h.fiskalKlijent()
+	if fk == nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Fiskalizacija nije podešena.")
+		http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+		return
+	}
+
+	if err := h.refundujServis(ctx, id, fk, fr.ID, fr.PfrBroj, poreskiBrojKupca); err != nil {
+		poruka := "Fiskalni refund nije uspeo — fiskalni server nije dostupan."
+		if errors.Is(err, errPotrebnaIdentKupca) {
+			poruka = errPotrebnaIdentKupca.Error()
+		}
+		middleware.SetFlash(w, r, h.DB, "greska", poruka)
+	} else {
+		middleware.SetFlash(w, r, h.DB, "uspeh", "Fiskalni refund je uspešno poslat.")
+	}
+	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
 }
 
 // DetaljiNaloga prikazuje sve podatke jednog servisnog naloga sa ugrađenim delovima
@@ -907,6 +957,13 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 	if fr3, err := h.FiskalRepo.DohvatiPoServisuITip(r.Context(), id, "Advance", "Refund"); err == nil {
 		podaci.PovracajAvansa = fr3
 	}
+	// avansni račun se prikazuje kao FiskalniRacun samo dok konačan (Normal/Sale) ne postoji;
+	// posle preuzimanja ga konačan "prekrije" u glavnom prikazu, pa ga ovde učitavamo zasebno
+	if fr4, err := h.FiskalRepo.DohvatiPoServisuITip(r.Context(), id, "Advance", "Sale"); err == nil && fr4 != nil {
+		if podaci.FiskalniRacun == nil || podaci.FiskalniRacun.TipRacuna != "Advance" {
+			podaci.AvansRacun = fr4
+		}
+	}
 	// fiskalna greška: modul aktivan, nalog preuzet, ali nema KONAČNOG (Normal/Sale)
 	// fiskalnog računa — avansni (Advance/Sale) se ne računa kao konačan, inače bi
 	// nalog sa avansom lažno izgledao fiskalizovan i dugme Fiskalizuj bi bilo skriveno
@@ -915,9 +972,17 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 			podaci.FiskalGreska = true
 		}
 	}
+	// storno bez refunda: nalog storniran, ali originalni fiskalni Sale račun nije
+	// naknadno označen kao storniran — znači da je storno u bazi prošao, a fiskalni
+	// refund ka PFR-u NIJE uspeo (best-effort poziv je pao)
+	if h.modulUkljucen(r.Context(), config.ModulFiskalizacija) && nalog.Stornirano &&
+		podaci.FiskalniRacun != nil && podaci.FiskalniRacun.TipTransakcije == "Sale" && !podaci.FiskalniRacun.Storniran {
+		podaci.StornoBezRefunda = true
+	}
 	// storno zahteva PIB/JMBG kupca za refundaciju ako klijent nema upisan poreski broj
 	podaci.PotrebnaIdentKupca = h.modulUkljucen(r.Context(), config.ModulFiskalizacija) &&
 		!nalog.Stornirano && podaci.FiskalniRacun != nil && !podaci.FiskalniRacun.Storniran && !imaIdentKupca
+	podaci.PotrebnaIdentKupcaRetry = podaci.StornoBezRefunda && !imaIdentKupca
 
 	h.renderujTemplate(w, "servis_detalji", podaci)
 }
@@ -2686,26 +2751,27 @@ func stavkeFiskalnogServisa(radovi []model.ServisniRad, delovi []model.ServisniD
 
 // refundujServis šalje fiskalni Refund zahtev za storniran servisni nalog —
 // best-effort, greška se samo loguje (storno u bazi ostaje validan i bez uspešnog
-// refunda; PraznineKnjigovodstva prati takve slučajeve preko stornoBezRefunda).
-func (h *Handler) refundujServis(ctx context.Context, servisID int64, klijent *fiskal.Klijent, originalniFiskalID int64, referentBroj, poreskiBrojKupca string) {
+// refunda; PraznineKnjigovodstva prati takve slučajeve preko stornoBezRefunda). Vraća
+// grešku i pozivaocu (npr. PokusajRefundServisa) da bi ručni retry mogao da je prikaže.
+func (h *Handler) refundujServis(ctx context.Context, servisID int64, klijent *fiskal.Klijent, originalniFiskalID int64, referentBroj, poreskiBrojKupca string) error {
 	nalog, err := h.ServisRepo.DohvatiID(ctx, servisID)
 	if err != nil {
 		slog.Error("refundujServis: nije pronađen nalog", "id", servisID, "error", err)
-		return
+		return err
 	}
 	radovi, err := h.ServisniRadoviRepo.DohvatiZaNalog(ctx, servisID)
 	if err != nil {
 		slog.Error("refundujServis: greška pri dohvatanju radova", "id", servisID, "error", err)
-		return
+		return err
 	}
 	delovi, err := h.deloviSaPotrazivanima(ctx, servisID)
 	if err != nil {
 		slog.Error("refundujServis: greška pri dohvatanju delova", "id", servisID, "error", err)
-		return
+		return err
 	}
 	items := stavkeFiskalnogServisa(radovi, delovi)
 	if len(items) == 0 {
-		return
+		return nil
 	}
 
 	pib, jmbg := "", ""
@@ -2716,6 +2782,9 @@ func (h *Handler) refundujServis(ctx context.Context, servisID int64, klijent *f
 	}
 	if pib == "" && jmbg == "" {
 		pib, jmbg = klasifikujPoreskiBroj(poreskiBrojKupca)
+		if pib == "" && jmbg == "" {
+			return errPotrebnaIdentKupca
+		}
 	}
 
 	zahtev := fiskal.InvoiceRequest{
@@ -2739,7 +2808,7 @@ func (h *Handler) refundujServis(ctx context.Context, servisID int64, klijent *f
 	odgovor, errFisk := klijent.IzdajRacun(ctx, zahtev)
 	if errFisk != nil {
 		slog.Error("fiskalni refund servisa nije uspeo", "servis_id", servisID, "error", errFisk)
-		return
+		return errFisk
 	}
 
 	poreskeJSON, _ := json.Marshal(odgovor.TaxItems)
@@ -2764,9 +2833,9 @@ func (h *Handler) refundujServis(ctx context.Context, servisID int64, klijent *f
 	}
 	if _, e := h.FiskalRepo.Kreiraj(ctx, fr); e != nil {
 		slog.Error("čuvanje fiskalnog refunda servisa nije uspelo", "servis_id", servisID, "error", e)
-		return
+		return e
 	}
-	_ = h.FiskalRepo.OznačiKaoStorniran(ctx, originalniFiskalID)
+	return h.FiskalRepo.OznačiKaoStorniran(ctx, originalniFiskalID)
 }
 
 // RetryFiskalizacija pokušava ponovo da izda fiskalni račun za nalog čija je
@@ -2783,9 +2852,16 @@ func (h *Handler) RetryFiskalizacija(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// provjeri da KONAČAN (Normal/Sale) fiskal još nije izdat (zaštita od duplikata) —
-	// avansni (Advance/Sale) račun se ne računa kao konačan, ne sme blokirati retry
+	// avansni (Advance/Sale) račun se ne računa kao konačan, ne sme blokirati retry.
+	// Provera NE filtrira po storniran — i storniran (refundovan) Sale znači da je
+	// nalog već bio fiskalizovan; ponovno izdavanje bi fiskalno duplo naplatilo
+	// stornirani servis (bag koji je izazivao beskonačnu petlju sa refund retry-jem).
 	if fr, _ := h.FiskalRepo.DohvatiPoServisuITip(r.Context(), id, "Normal", "Sale"); fr != nil {
-		middleware.SetFlash(w, r, h.DB, "uspeh", "Fiskalni račun već postoji.")
+		poruka := "Fiskalni račun već postoji."
+		if fr.Storniran {
+			poruka = "Nalog je već bio fiskalizovan i storniran — ne može se ponovo fiskalizovati."
+		}
+		middleware.SetFlash(w, r, h.DB, "uspeh", poruka)
 		http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
 		return
 	}
@@ -2823,7 +2899,8 @@ func (h *Handler) StampaFiskalnog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var racuni []*model.FiskalniRacun
-	if r.URL.Query().Get("tip") == "povracaj" {
+	switch r.URL.Query().Get("tip") {
+	case "povracaj":
 		// avansni povraćaj viška — eksplicitno traženo (drugi dokument, ne konačan račun)
 		fr, err := h.FiskalRepo.DohvatiPoServisuITip(r.Context(), id, "Advance", "Refund")
 		if err != nil || fr == nil {
@@ -2831,7 +2908,15 @@ func (h *Handler) StampaFiskalnog(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		racuni = []*model.FiskalniRacun{fr}
-	} else {
+	case "avans":
+		// izvorni avansni račun — eksplicitno traženo (konačan ga posle preuzimanja "prekrije")
+		fr, err := h.FiskalRepo.DohvatiPoServisuITip(r.Context(), id, "Advance", "Sale")
+		if err != nil || fr == nil {
+			http.Error(w, "Fiskalni račun nije pronađen", http.StatusNotFound)
+			return
+		}
+		racuni = []*model.FiskalniRacun{fr}
+	default:
 		// podrazumevano: konačan (Normal/Sale) račun — ako još ne postoji (npr. samo avans
 		// je fiskalizovan pre preuzimanja), padni nazad na najnoviji izdat
 		fr, err := h.FiskalRepo.DohvatiPoServisuITip(r.Context(), id, "Normal", "Sale")

@@ -1,0 +1,96 @@
+{{template "base" .}}
+
+{{define "naslov"}}Dnevni fiskalni presek — NTech{{end}}
+
+{{define "sadrzaj"}}
+<div class="stranica-stack" style="width:100%;max-width:720px;">
+
+    <div class="kartica animiraj" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sb-akcent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Dnevni fiskalni presek</span>
+        </div>
+
+        {{if .Greska}}
+        <div class="fisk-status greska" style="margin-bottom:16px;">&#10007; {{.Greska}}</div>
+        {{end}}
+
+        {{if .Presek}}
+        <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:16px;">
+            Promet od poslednjeg preseka stanja: <strong>{{.Presek.StartOfPeriod}}</strong> do sada.
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+            <div style="padding:14px;background:var(--pozadina);border:0.5px solid var(--ivica);border-radius:10px;">
+                <div style="font-size:12px;color:var(--tekst-sporedni);">Broj računa</div>
+                <div style="font-size:22px;font-weight:700;color:var(--tekst-glavni);">{{.Presek.InvoiceCount}}</div>
+            </div>
+            <div style="padding:14px;background:var(--pozadina);border:0.5px solid var(--ivica);border-radius:10px;">
+                <div style="font-size:12px;color:var(--tekst-sporedni);">Ukupan promet</div>
+                <div style="font-size:22px;font-weight:700;color:var(--tekst-glavni);">{{dinari .Presek.Total}} din</div>
+            </div>
+            <div style="padding:14px;background:var(--pozadina);border:0.5px solid var(--ivica);border-radius:10px;">
+                <div style="font-size:12px;color:var(--tekst-sporedni);">Gotovina</div>
+                <div style="font-size:18px;font-weight:600;color:var(--tekst-glavni);">{{dinari .Presek.TotalCash}} din</div>
+            </div>
+        </div>
+
+        {{if .Presek.TotalByPaymentType}}
+        <div style="margin-bottom:16px;">
+            <div style="font-size:13px;font-weight:500;color:var(--tekst-glavni);margin-bottom:8px;">Po vrsti plaćanja</div>
+            {{range .Presek.TotalByPaymentType}}
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--ivica);font-size:13px;">
+                <span style="color:var(--tekst-sporedni);">{{.PaymentType}}</span>
+                <span style="color:var(--tekst-glavni);">{{dinari .Amount}} din</span>
+            </div>
+            {{end}}
+        </div>
+        {{end}}
+
+        {{if .Presek.TotalByTax}}
+        <div style="margin-bottom:16px;">
+            <div style="font-size:13px;font-weight:500;color:var(--tekst-glavni);margin-bottom:8px;">Po poreskim stopama</div>
+            {{range .Presek.TotalByTax}}
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--ivica);font-size:13px;">
+                <span style="color:var(--tekst-sporedni);">{{.Label}} ({{.Rate}}%)</span>
+                <span style="color:var(--tekst-glavni);">{{dinari .Amount}} din</span>
+            </div>
+            {{end}}
+        </div>
+        {{end}}
+
+        {{if .Presek.TotalByCashier}}
+        <div style="margin-bottom:16px;">
+            <div style="font-size:13px;font-weight:500;color:var(--tekst-glavni);margin-bottom:8px;">Po kasiru</div>
+            {{range .Presek.TotalByCashier}}
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--ivica);font-size:13px;">
+                <span style="color:var(--tekst-sporedni);">{{.Name}}</span>
+                <span style="color:var(--tekst-glavni);">{{dinari .Amount}} din</span>
+            </div>
+            {{end}}
+        </div>
+        {{end}}
+        {{end}}
+
+        {{if .FiskalPodesen}}
+        <div style="display:flex;gap:10px;flex-wrap:wrap;padding-top:12px;border-top:0.5px solid var(--ivica);">
+            <a href="/fiskal/pazar" class="btn-sekundarno" style="font-size:13px;padding:8px 16px;">Osveži</a>
+
+            <form method="POST" action="/fiskal/pazar/izvestaj" style="display:inline;">
+                <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+                <button type="submit" class="btn-sekundarno" style="font-size:13px;padding:8px 16px;">Preuzmi dnevni izveštaj</button>
+            </form>
+
+            {{if index .Dozvole "fiskal.zakljucenje"}}
+            <form method="POST" action="/fiskal/pazar/zakljuci" style="display:inline;"
+                  onsubmit="return confirm('Zaključiti dan? Ovo trajno svodi brojače prometa na nulu — radnja se ne može poništiti.')">
+                <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+                <button type="submit" style="padding:8px 16px;background:#dc2626;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:500;cursor:pointer;">Zaključi dan</button>
+            </form>
+            {{end}}
+        </div>
+        {{end}}
+    </div>
+
+</div>
+{{end}}

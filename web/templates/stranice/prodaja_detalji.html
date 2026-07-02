@@ -300,10 +300,11 @@
 
       {{if .FiskalGreska}}
       <div class="fiskalni-racun" style="padding:14px;border:1.5px solid #f59e0b;border-radius:8px;background:color-mix(in srgb,#fef3c7 60%,var(--pozadina));">
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+          <div style="font-size:46px;line-height:1;color:#fdba74;flex-shrink:0;">⚠</div>
           <div style="flex:1;">
-            <div style="font-size:14px;font-weight:600;color:#92400e;margin-bottom:4px;">⚠ Fiskalni račun nije izdat</div>
-            <div style="font-size:13px;color:#78350f;">Veza sa ESIR/PFR serverom nije bila dostupna pri kreiranju prodaje.</div>
+            <div style="font-size:14px;font-weight:600;color:#fdba74;margin-bottom:4px;">Fiskalni račun nije izdat</div>
+            <div style="font-size:13px;color:#fdba74;">Veza sa ESIR/PFR serverom nije bila dostupna pri kreiranju prodaje.</div>
           </div>
           {{if index $.Dozvole "prodaja.dodaj"}}
           <form method="POST" action="/prodaja/{{.Nalog.ID}}/fiskalizuj">
@@ -311,6 +312,27 @@
             <button type="submit" class="btn-primarno" style="background:#d97706;border-color:#d97706;white-space:nowrap;">Pokušaj ponovo</button>
           </form>
           {{end}}
+        </div>
+      </div>
+      {{end}}
+
+      {{if .StornoBezRefunda}}
+      <div class="fiskalni-racun" style="padding:14px;border:1.5px solid #dc2626;border-radius:8px;background:color-mix(in srgb,#fee2e2 60%,var(--pozadina));">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div style="font-size:46px;line-height:1;color:#fca5a5;flex-shrink:0;">⚠</div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:600;color:#fca5a5;margin-bottom:4px;">Storno bez fiskalnog refunda</div>
+            <div style="font-size:13px;color:#fca5a5;margin-bottom:10px;">Storno je upisan u NTech, ali fiskalni refund ka PFR uređaju nije uspeo (originalni fiskalni račun i dalje nije označen kao storniran).</div>
+        {{if index $.Dozvole "prodaja.storno"}}
+        <form method="POST" action="/prodaja/{{.Nalog.ID}}/refund-fiskalizuj" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+          {{if .PotrebnaIdentKupcaRetry}}
+          <input type="text" name="poreski_broj_kupca" placeholder="PIB ili JMBG kupca (obavezno za refundaciju)" required style="padding:7px 10px;border:1px solid #dc2626;border-radius:6px;font-size:13px;">
+          {{end}}
+          <button type="submit" style="padding:8px 16px;background:#dc2626;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;">Pokušaj refund ponovo</button>
+        </form>
+        {{end}}
+          </div>
         </div>
       </div>
       {{end}}

@@ -131,7 +131,7 @@ func (r *FiskalRepo) DohvatiPoServisuITip(ctx context.Context, servisID int64, t
 			   poreske_stavke, ukupno_za_naplatu, ukupan_porez,
 			   sirovi_odgovor, potpisao, zatrazio, poruka, storniran, vreme_kreiranja
 		FROM fiskalni_racuni
-		WHERE servis_id = ? AND tip_racuna = ? AND tip_transakcije = ? AND storniran = 0
+		WHERE servis_id = ? AND tip_racuna = ? AND tip_transakcije = ?
 		ORDER BY id DESC LIMIT 1
 	`, servisID, tipRacuna, tipTransakcije).Scan(
 		&fr.ID, &pID, &sID, &fr.TipRacuna, &fr.TipTransakcije, &fr.PfrBroj, &fr.PfrVreme,

@@ -194,7 +194,7 @@ func (h *Handler) PraznineKnjigovodstva(ctx context.Context) (model.PrazninaKnji
 				p.SumnjiviDupli++
 				continue
 			}
-			p.BezKir++
+			p.BezKirProdajaID = append(p.BezKirProdajaID, id)
 		}
 		for id, postoji := range postojiMapS {
 			if postoji {
@@ -204,8 +204,10 @@ func (h *Handler) PraznineKnjigovodstva(ctx context.Context) (model.PrazninaKnji
 				p.SumnjiviDupli++
 				continue
 			}
-			p.BezKir++
+			p.BezKirServisID = append(p.BezKirServisID, id)
 		}
+		p.BezKirProdaja = len(p.BezKirProdajaID)
+		p.BezKirServis = len(p.BezKirServisID)
 	}
 
 	if h.modulUkljucen(ctx, "kpo") {
@@ -227,7 +229,7 @@ func (h *Handler) PraznineKnjigovodstva(ctx context.Context) (model.PrazninaKnji
 				p.SumnjiviDupli++
 				continue
 			}
-			p.BezKpo++
+			p.BezKpoProdajaID = append(p.BezKpoProdajaID, id)
 		}
 		for id, postoji := range postojiMapS {
 			if postoji {
@@ -237,44 +239,86 @@ func (h *Handler) PraznineKnjigovodstva(ctx context.Context) (model.PrazninaKnji
 				p.SumnjiviDupli++
 				continue
 			}
-			p.BezKpo++
+			p.BezKpoServisID = append(p.BezKpoServisID, id)
 		}
+		p.BezKpoProdaja = len(p.BezKpoProdajaID)
+		p.BezKpoServis = len(p.BezKpoServisID)
 	}
 
 	if h.modulUkljucen(ctx, "fiskalizacija") {
 		if m, err := h.FiskalRepo.ProdajeBezFiskalnog(ctx); err == nil {
-			p.BezFiskalnogProdaja += len(m)
+			for id := range m {
+				p.BezFiskalnogProdajaID = append(p.BezFiskalnogProdajaID, id)
+			}
+			p.BezFiskalnogProdaja = len(p.BezFiskalnogProdajaID)
 		}
 		if m, err := h.FiskalRepo.ServisiBezFiskalnog(ctx); err == nil {
-			p.BezFiskalnogServis += len(m)
+			for id := range m {
+				p.BezFiskalnogServisID = append(p.BezFiskalnogServisID, id)
+			}
+			p.BezFiskalnogServis = len(p.BezFiskalnogServisID)
 		}
-		if n, err := h.stornoBezRefunda(ctx); err == nil {
-			p.BezRefunda = n
+		if idsP, idsS, err := h.stornoBezRefunda(ctx); err == nil {
+			p.BezRefundaProdajaID = idsP
+			p.BezRefundaServisID = idsS
+			p.BezRefundaProdaja = len(idsP)
+			p.BezRefundaServis = len(idsS)
 		}
 	}
 
 	return p, nil
 }
 
-// stornoBezRefunda broji stornirane prodajne i servisne naloge čiji je originalni
-// fiskalni račun i dalje neoznačen kao storniran — znači da je storno u bazi
-// prošao, ali fiskalni refund ka ESIR/L-PFR uređaju NIJE uspeo (best-effort poziv
-// je pao).
-func (h *Handler) stornoBezRefunda(ctx context.Context) (int, error) {
-	var n int
-	err := h.DB.QueryRowContext(ctx, `
-		SELECT
-			(SELECT COUNT(*) FROM prodajni_nalozi pn
-				JOIN fiskalni_racuni fr ON fr.prodaja_id = pn.id
-					AND fr.tip_transakcije = 'Sale' AND fr.storniran = 0
-				WHERE pn.stornirano = 1)
-			+
-			(SELECT COUNT(*) FROM servisni_nalozi sn
-				JOIN fiskalni_racuni fr ON fr.servis_id = sn.id
-					AND fr.tip_transakcije = 'Sale' AND fr.storniran = 0
-				WHERE sn.stornirano = 1)
-	`).Scan(&n)
-	return n, err
+// stornoBezRefunda vraća ID-jeve storniranih prodajnih i servisnih naloga čiji je
+// originalni fiskalni račun i dalje neoznačen kao storniran — znači da je storno u
+// bazi prošao, ali fiskalni refund ka ESIR/L-PFR uređaju NIJE uspeo (best-effort
+// poziv je pao).
+func (h *Handler) stornoBezRefunda(ctx context.Context) (prodajaIDs, servisIDs []int64, err error) {
+	redoviP, err := h.DB.QueryContext(ctx, `
+		SELECT DISTINCT pn.id FROM prodajni_nalozi pn
+			JOIN fiskalni_racuni fr ON fr.prodaja_id = pn.id
+				AND fr.tip_racuna = 'Normal' AND fr.tip_transakcije = 'Sale' AND fr.storniran = 0
+			WHERE pn.stornirano = 1
+	`)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer redoviP.Close()
+	for redoviP.Next() {
+		var id int64
+		if err := redoviP.Scan(&id); err != nil {
+			return nil, nil, err
+		}
+		prodajaIDs = append(prodajaIDs, id)
+	}
+	if err := redoviP.Err(); err != nil {
+		return nil, nil, err
+	}
+
+	// tip_racuna='Normal' je bitno: servis sa avansom ima i Advance/Sale zapis koji
+	// se NIKAD ne stornira pri storno servisa (samo konačan Normal/Sale) — bez ovog
+	// filtera bi JOIN dao dva reda za isti servis (duplikat u listi na dashboard-u)
+	redoviS, err := h.DB.QueryContext(ctx, `
+		SELECT DISTINCT sn.id FROM servisni_nalozi sn
+			JOIN fiskalni_racuni fr ON fr.servis_id = sn.id
+				AND fr.tip_racuna = 'Normal' AND fr.tip_transakcije = 'Sale' AND fr.storniran = 0
+			WHERE sn.stornirano = 1
+	`)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer redoviS.Close()
+	for redoviS.Next() {
+		var id int64
+		if err := redoviS.Scan(&id); err != nil {
+			return nil, nil, err
+		}
+		servisIDs = append(servisIDs, id)
+	}
+	if err := redoviS.Err(); err != nil {
+		return nil, nil, err
+	}
+	return prodajaIDs, servisIDs, nil
 }
 
 func istKlijent(a, b *int64) bool {
