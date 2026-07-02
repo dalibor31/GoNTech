@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 	"unicode"
 
 	ntechsqlite "ntech/internal/db/sqlite"
@@ -34,7 +35,8 @@ type PodaciFiskalniPazar struct {
 	model.PodaciStranice
 	Presek        *fiskal.FinancialSummary
 	Greska        string
-	FiskalPodesen bool // true: pfr_url je podešen
+	FiskalPodesen bool   // true: pfr_url je podešen
+	Danas         string // YYYY-MM-DD, podrazumevani datum za izveštaj (od=do=danas)
 }
 
 // FiskalniPazar prikazuje trenutni promet od poslednjeg preseka stanja
@@ -52,7 +54,7 @@ func (h *Handler) FiskalniPazar(w http.ResponseWriter, r *http.Request) {
 	ps.Stranica = "fiskal-pazar"
 	ps.NaslovStranice = "Dnevni fiskalni presek"
 
-	podaci := PodaciFiskalniPazar{PodaciStranice: ps}
+	podaci := PodaciFiskalniPazar{PodaciStranice: ps, Danas: time.Now().Format("2006-01-02")}
 
 	klijent := h.fiskalKlijent()
 	if klijent == nil {
@@ -72,7 +74,10 @@ func (h *Handler) FiskalniPazar(w http.ResponseWriter, r *http.Request) {
 }
 
 // ZakljuciFiskalniDan svodi promet PFR-a na nulu (DELETE /api/financial/summary).
-// Nepovratna akcija — traži potvrdu na strani korisnika (confirm() u šablonu).
+// OPCIONA radnja — samo resetuje brojače na ekranu „Promet od poslednjeg preseka";
+// nije zakonska obaveza (za razliku od starih fiskalnih kasa, novi sistem izveštava
+// SUF kontinuirano po računu). Pravi dnevni/periodični izveštaj (FiskalniIzvestaj)
+// radi nezavisno preko datumskog opsega, bez obzira na to da li je ovo ikad urađeno.
 func (h *Handler) ZakljuciFiskalniDan(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.zahtevajDozvolu(w, r, "fiskal.zakljucenje"); !ok {
 		return
@@ -88,13 +93,15 @@ func (h *Handler) ZakljuciFiskalniDan(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/fiskal/pazar", http.StatusSeeOther)
 		return
 	}
-	middleware.SetFlash(w, r, h.DB, "uspeh", "Dan je zaključen — presek stanja urađen, brojači prometa resetovani.")
+	middleware.SetFlash(w, r, h.DB, "uspeh", "Brojači prometa na ekranu su resetovani.")
 	http.Redirect(w, r, "/fiskal/pazar", http.StatusSeeOther)
 }
 
 // FiskalniIzvestaj traži od PFR-a dnevni/periodični izveštaj (POST
 // /api/financial/report/summary) i vraća ga korisniku kao fajl za preuzimanje.
-// Bez fromDate/toDate parametara izveštaj pokriva period od poslednjeg preseka stanja.
+// FromDate/ToDate dolaze iz forme (podrazumevano danas-danas) — izveštaj radi
+// nezavisno od preseka stanja, pa je tačan bez obzira na to da li je Zaključi dan
+// ikad korišćeno.
 func (h *Handler) FiskalniIzvestaj(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.zahtevajDozvolu(w, r, "fiskal.pazar"); !ok {
 		return
