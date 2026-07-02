@@ -139,6 +139,36 @@ func (h *Handler) kpoKandidatiServisa(ctx context.Context) (naplaceni []model.Se
 	return naplaceni, postojiMap, kandidati, nenaplaceniBroj, nil
 }
 
+// kirKandidatiServisa vraća sve preuzete servisne naloge sa identifikovanim kupcem
+// (KlijentID != nil, isti kriterijum kao u Prodaji — B2B/identifikovan kupac) sa
+// mapom postojećih KIR upisa i kandidatima za detekciju duplikata.
+func (h *Handler) kirKandidatiServisa(ctx context.Context) ([]model.ServisniNalogSaKlijentom, map[int64]bool, []kandidatUskladjivanja, error) {
+	svi, err := h.ServisRepo.Lista(ctx, "", "")
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	var kandidatNalozi []model.ServisniNalogSaKlijentom
+	for _, sn := range svi {
+		if sn.Status == model.StatusPreuzeto && !sn.Stornirano && !sn.PopravkaOdbijena && sn.KlijentID != nil {
+			kandidatNalozi = append(kandidatNalozi, sn)
+		}
+	}
+	postojiMap := make(map[int64]bool, len(kandidatNalozi))
+	var kandidati []kandidatUskladjivanja
+	for _, sn := range kandidatNalozi {
+		postoji, _ := h.PdvKirRepo.PostojiZaIzvor(ctx, "servis", sn.ID)
+		postojiMap[sn.ID] = postoji
+		datum := sn.DatumPrijema
+		if sn.DatumZavrsetka != nil {
+			datum = *sn.DatumZavrsetka
+		}
+		kandidati = append(kandidati, kandidatUskladjivanja{
+			ID: sn.ID, KlijentID: sn.KlijentID, Iznos: sn.Naplaceno, Datum: datum, ImaUpis: postoji,
+		})
+	}
+	return kandidatNalozi, postojiMap, kandidati, nil
+}
+
 // PraznineKnjigovodstva broji naloge (prodaja + servis) koji čekaju KIR/KPO/fiskalni
 // upis prema TRENUTNO aktivnim modulima firme, i naloge koji su sumnjivi duplikati
 // (double-submit) pa ih automatski backfill preskače.
@@ -146,16 +176,31 @@ func (h *Handler) PraznineKnjigovodstva(ctx context.Context) (model.PrazninaKnji
 	var p model.PrazninaKnjigovodstva
 
 	if h.modulUkljucen(ctx, "pdv") {
-		_, postojiMap, kandidati, err := h.kirKandidatiProdaje(ctx)
+		_, postojiMapP, kandidatiP, err := h.kirKandidatiProdaje(ctx)
 		if err != nil {
 			return p, err
 		}
-		duplikati := sumnjiviDuplikati(kandidati)
-		for id, postoji := range postojiMap {
+		_, postojiMapS, kandidatiS, err := h.kirKandidatiServisa(ctx)
+		if err != nil {
+			return p, err
+		}
+		duplikatiP := sumnjiviDuplikati(kandidatiP)
+		duplikatiS := sumnjiviDuplikati(kandidatiS)
+		for id, postoji := range postojiMapP {
 			if postoji {
 				continue
 			}
-			if duplikati[id] {
+			if duplikatiP[id] {
+				p.SumnjiviDupli++
+				continue
+			}
+			p.BezKir++
+		}
+		for id, postoji := range postojiMapS {
+			if postoji {
+				continue
+			}
+			if duplikatiS[id] {
 				p.SumnjiviDupli++
 				continue
 			}

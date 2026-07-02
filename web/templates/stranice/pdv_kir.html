@@ -33,6 +33,13 @@
                         Uvezi iz prodaje
                     </button>
                 </form>
+                <form method="POST" action="/pdv/kir/backfill-servisa" data-full-reload>
+                    <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+                    <button type="submit" class="btn-sekundarno" style="font-size:13px;padding:8px 16px;white-space:nowrap;"
+                        data-potvrda="Uvesti sve preuzete servisne naloge koji još nisu u KIR-u?">
+                        Uvezi iz servisa
+                    </button>
+                </form>
                 {{end}}
                 <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/pdv/kir/nova" class="btn-primarno" style="font-size:13px;padding:8px 16px;white-space:nowrap;">+ Nov izlazni račun</a>
             </div>
