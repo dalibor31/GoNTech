@@ -70,6 +70,38 @@ func TestPdvKirDodajNeto(t *testing.T) {
 	}
 }
 
+// TestKirStorno: storno stavka negira sve kolone originala, čuva izvor/izvor_id
+// (da PostojiZaIzvor ostane tačan i backfill ne pokuša ponovni upis) i original
+// se ne dira — storno se samo dograđuje kao novi red.
+func TestKirStorno(t *testing.T) {
+	izvorID := int64(18)
+	original := PdvKir{
+		BrojDokumenta: "PR-2607-0013", KupacNaziv: "Kupac doo", KupacPib: "123456789",
+		OsnovicaOpsta: 1000, PdvOpsta: 200, OsnovicaPosebna: 100, PdvPosebna: 10,
+		OslobodenSaPravom: 50, OslobodenBezPrava: 20, Ukupno: 1380,
+		Izvor: "prodaja", IzvorID: &izvorID,
+	}
+	datumStorna := time.Date(2026, 7, 2, 0, 0, 0, 0, time.UTC)
+
+	s := KirStorno(original, "kupac odustao", datumStorna)
+
+	if s.BrojDokumenta != "STORNO-PR-2607-0013" {
+		t.Errorf("broj_dokumenta=%q, očekivano STORNO-PR-2607-0013", s.BrojDokumenta)
+	}
+	if s.Izvor != "prodaja" || s.IzvorID == nil || *s.IzvorID != 18 {
+		t.Errorf("izvor=%q izvor_id=%v, očekivano prodaja/18 (isto kao original)", s.Izvor, s.IzvorID)
+	}
+	if !blizu(s.OsnovicaOpsta, -1000) || !blizu(s.PdvOpsta, -200) {
+		t.Errorf("opšta: osnovica=%v pdv=%v, očekivano -1000/-200", s.OsnovicaOpsta, s.PdvOpsta)
+	}
+	if !blizu(s.Ukupno, -1380) {
+		t.Errorf("ukupno=%v, očekivano -1380", s.Ukupno)
+	}
+	if original.Ukupno != 1380 {
+		t.Errorf("original izmenjen: ukupno=%v, očekivano da ostane 1380", original.Ukupno)
+	}
+}
+
 func TestKprIzNabavke(t *testing.T) {
 	nabavka := Nabavka{ID: 3, Napomena: "test", Datum: time.Date(2026, 6, 2, 0, 0, 0, 0, time.UTC)}
 	stavke := []NabavkaStavkaPdv{

@@ -129,6 +129,36 @@ func KirIzProdaje(nalog ProdajniNalog, stavke []StavkaProdaje, kupacNaziv, kupac
 	return k
 }
 
+// KirStorno gradi storno (knjižno odobrenje) zapis za dati KIR red: iznosi su
+// negirani original, upisan pod istim izvorom/izvor_id tako da PostojiZaIzvor
+// ostane tačan i backfill ne pokuša ponovni upis. Zakon o računovodstvu ne
+// dozvoljava brisanje knjigovodstvenih evidencija — storno se knjiži kao
+// poništavajuća stavka koja upućuje na original, a ne kao brisanje reda.
+func KirStorno(original PdvKir, razlog string, datumStorna time.Time) PdvKir {
+	napomena := "Storno računa " + original.BrojDokumenta
+	if razlog != "" {
+		napomena += ": " + razlog
+	}
+	return PdvKir{
+		DatumPrometa:      datumStorna,
+		DatumKnjizenja:    datumStorna,
+		BrojDokumenta:     "STORNO-" + original.BrojDokumenta,
+		KupacNaziv:        original.KupacNaziv,
+		KupacPib:          original.KupacPib,
+		KupacMesto:        original.KupacMesto,
+		OsnovicaOpsta:     -original.OsnovicaOpsta,
+		PdvOpsta:          -original.PdvOpsta,
+		OsnovicaPosebna:   -original.OsnovicaPosebna,
+		PdvPosebna:        -original.PdvPosebna,
+		OslobodenSaPravom: -original.OslobodenSaPravom,
+		OslobodenBezPrava: -original.OslobodenBezPrava,
+		Ukupno:            -original.Ukupno,
+		Napomena:          napomena,
+		Izvor:             original.Izvor,
+		IzvorID:           original.IzvorID,
+	}
+}
+
 // PdvKpr je jedan zapis u knjizi primljenih računa (ulazni PDV).
 type PdvKpr struct {
 	ID               int64
@@ -151,6 +181,33 @@ type PdvKpr struct {
 	IzvorID          *int64 // id izvorne nabavke (nil za ručni unos)
 	Uvoz             bool   // true = uvoz (JCI) → PPPDV 006/106; false = domaća nabavka → 008/108
 	DatumUnosa       time.Time
+}
+
+// KprStorno gradi storno zapis za dati KPR red — vidi KirStorno.
+func KprStorno(original PdvKpr, razlog string, datumStorna time.Time) PdvKpr {
+	napomena := "Storno dokumenta " + original.BrojDokumenta
+	if razlog != "" {
+		napomena += ": " + razlog
+	}
+	return PdvKpr{
+		DatumPrometa:     datumStorna,
+		DatumKnjizenja:   datumStorna,
+		BrojDokumenta:    "STORNO-" + original.BrojDokumenta,
+		DobavljacNaziv:   original.DobavljacNaziv,
+		DobavljacPib:     original.DobavljacPib,
+		DobavljacMesto:   original.DobavljacMesto,
+		OsnovicaOpsta:    -original.OsnovicaOpsta,
+		PdvOpsta:         -original.PdvOpsta,
+		OsnovicaPosebna:  -original.OsnovicaPosebna,
+		PdvPosebna:       -original.PdvPosebna,
+		PdvBezOdbitka:    -original.PdvBezOdbitka,
+		OslobodenNabavka: -original.OslobodenNabavka,
+		Ukupno:           -original.Ukupno,
+		Napomena:         napomena,
+		Izvor:            original.Izvor,
+		IzvorID:          original.IzvorID,
+		Uvoz:             original.Uvoz,
+	}
 }
 
 // OznakaPoreskogBroja vraća „JMBG" za 13-cifreni broj, inače „PIB" (dobavljači su obično firme).

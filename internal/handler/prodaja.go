@@ -687,9 +687,17 @@ func (h *Handler) stornirajProdaju(ctx context.Context, id int64, razlog string,
 		return err
 	}
 
-	// stornirana prodaja ne ulazi u PDV — ukloni vezani auto-KIR zapis
-	if err := h.PdvKirRepo.ObrisiPoIzvoru(ctx, "prodaja", id); err != nil {
-		slog.Error("brisanje vezanog KIR zapisa nije uspelo", "prodaja_id", id, "error", err)
+	// stornirana prodaja se ne briše iz KIR (zakon o računovodstvu ne dozvoljava
+	// brisanje poslovnih knjiga) — dograđuje se storno stavka koja poništava original
+	if zapisi, err := h.PdvKirRepo.DohvatiPoIzvoru(ctx, "prodaja", id); err != nil {
+		slog.Error("čitanje vezanog KIR zapisa nije uspelo", "prodaja_id", id, "error", err)
+	} else {
+		for _, z := range zapisi {
+			storno := model.KirStorno(z, razlog, time.Now())
+			if _, e := h.PdvKirRepo.Kreiraj(ctx, &storno); e != nil {
+				slog.Error("upis storno KIR zapisa nije uspeo", "prodaja_id", id, "error", e)
+			}
+		}
 	}
 
 	// fiskalni refund — best-effort
@@ -744,10 +752,18 @@ func (h *Handler) stornirajProdaju(ctx context.Context, id int64, razlog string,
 		}
 	}
 
-	// brisanje KPO zapisa na storno
+	// stornirana prodaja se ne briše iz KPO (redni broj mora ostati bez prekida) —
+	// dograđuje se storno stavka koja poništava original
 	if h.modulUkljucen(ctx, "kpo") {
-		if e := h.KpoRepo.ObrisiPoIzvoru(ctx, "prodaja", id); e != nil {
-			slog.Error("brisanje vezanog KPO zapisa nije uspelo", "prodaja_id", id, "error", e)
+		if zapisi, e := h.KpoRepo.DohvatiPoIzvoru(ctx, "prodaja", id); e != nil {
+			slog.Error("čitanje vezanog KPO zapisa nije uspelo", "prodaja_id", id, "error", e)
+		} else {
+			for _, z := range zapisi {
+				storno := model.KpoStorno(z, razlog, time.Now())
+				if _, e := h.KpoRepo.Kreiraj(ctx, &storno); e != nil {
+					slog.Error("upis storno KPO zapisa nije uspeo", "prodaja_id", id, "error", e)
+				}
+			}
 		}
 	}
 

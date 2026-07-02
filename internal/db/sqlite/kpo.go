@@ -115,10 +115,41 @@ func (r *KpoRepo) PostojiZaIzvor(ctx context.Context, izvor string, izvorID int6
 	return n > 0, nil
 }
 
-// ObrisiPoIzvoru briše KPO zapise vezane za dati izvor (npr. pri stornu prodaje).
-func (r *KpoRepo) ObrisiPoIzvoru(ctx context.Context, izvor string, izvorID int64) error {
-	if _, err := r.db.ExecContext(ctx, "DELETE FROM kpo_unosi WHERE izvor = ? AND izvor_id = ?", izvor, izvorID); err != nil {
-		return fmt.Errorf("ntech: KpoRepo.ObrisiPoIzvoru: %w", err)
+// DohvatiPoIzvoru vraća sve KPO zapise vezane za dati izvor (npr. za storno prodaje).
+func (r *KpoRepo) DohvatiPoIzvoru(ctx context.Context, izvor string, izvorID int64) ([]model.KpoZapis, error) {
+	redovi, err := r.db.QueryContext(ctx, `
+		SELECT id, datum_prometa, redni_broj, broj_dokumenta, opis, prihod,
+		       nacin_placanja, napomena, izvor, izvor_id, datum_unosa
+		FROM kpo_unosi WHERE izvor = ? AND izvor_id = ?`, izvor, izvorID)
+	if err != nil {
+		return nil, fmt.Errorf("ntech: KpoRepo.DohvatiPoIzvoru: %w", err)
 	}
-	return nil
+	defer redovi.Close()
+
+	var rezultat []model.KpoZapis
+	for redovi.Next() {
+		var z model.KpoZapis
+		var opis, nacinPlacanja, napomena sql.NullString
+		var redniBroj sql.NullInt64
+		var izvorIDCol sql.NullInt64
+
+		if err := redovi.Scan(
+			&z.ID, &z.DatumPrometa, &redniBroj, &z.BrojDokumenta, &opis, &z.Prihod,
+			&nacinPlacanja, &napomena, &z.Izvor, &izvorIDCol, &z.DatumUnosa,
+		); err != nil {
+			return nil, fmt.Errorf("ntech: KpoRepo.DohvatiPoIzvoru: scan: %w", err)
+		}
+		if redniBroj.Valid {
+			n := int(redniBroj.Int64)
+			z.RedniBroj = &n
+		}
+		z.Opis = opis.String
+		z.NacinPlacanja = nacinPlacanja.String
+		z.Napomena = napomena.String
+		if izvorIDCol.Valid {
+			z.IzvorID = &izvorIDCol.Int64
+		}
+		rezultat = append(rezultat, z)
+	}
+	return rezultat, redovi.Err()
 }

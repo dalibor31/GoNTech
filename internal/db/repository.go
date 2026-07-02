@@ -66,8 +66,9 @@ type PdvKirRepository interface {
 	DohvatiID(ctx context.Context, id int64) (*model.PdvKir, error)
 	Kreiraj(ctx context.Context, k *model.PdvKir) (int64, error)
 	Obrisi(ctx context.Context, id int64) error
-	// ObrisiPoIzvoru briše zapise vezane za dati izvor (npr. pri stornu prodaje)
-	ObrisiPoIzvoru(ctx context.Context, izvor string, izvorID int64) error
+	// DohvatiPoIzvoru vraća zapise vezane za dati izvor (npr. za storno prodaje —
+	// original se ne briše, storno stavka se dograđuje na osnovu ovih zapisa)
+	DohvatiPoIzvoru(ctx context.Context, izvor string, izvorID int64) ([]model.PdvKir, error)
 	// PostojiZaIzvor vraća true ako postoji bar jedan zapis za dati izvor i izvorID
 	PostojiZaIzvor(ctx context.Context, izvor string, izvorID int64) (bool, error)
 	// PostojiPoBrojuDokumenta vraća true ako postoji zapis sa datim brojem dokumenta
@@ -83,8 +84,9 @@ type PdvKprRepository interface {
 	DohvatiID(ctx context.Context, id int64) (*model.PdvKpr, error)
 	Kreiraj(ctx context.Context, k *model.PdvKpr) (int64, error)
 	Obrisi(ctx context.Context, id int64) error
-	// ObrisiPoIzvoru briše zapise vezane za dati izvor (npr. pri brisanju nabavke)
-	ObrisiPoIzvoru(ctx context.Context, izvor string, izvorID int64) error
+	// DohvatiPoIzvoru vraća zapise vezane za dati izvor (npr. za storno nabavke —
+	// original se ne briše, storno stavka se dograđuje na osnovu ovih zapisa)
+	DohvatiPoIzvoru(ctx context.Context, izvor string, izvorID int64) ([]model.PdvKpr, error)
 	// PostojiZaIzvor vraća true ako postoji bar jedan zapis za dati izvor i izvorID
 	PostojiZaIzvor(ctx context.Context, izvor string, izvorID int64) (bool, error)
 }
@@ -413,5 +415,7 @@ type KpoRepository interface {
 	Kreiraj(ctx context.Context, z *model.KpoZapis) (int64, error)
 	Obrisi(ctx context.Context, id int64) error
 	PostojiZaIzvor(ctx context.Context, izvor string, izvorID int64) (bool, error)
-	ObrisiPoIzvoru(ctx context.Context, izvor string, izvorID int64) error
+	// DohvatiPoIzvoru vraća zapise vezane za dati izvor (npr. za storno prodaje —
+	// original se ne briše, storno stavka se dograđuje na osnovu ovih zapisa)
+	DohvatiPoIzvoru(ctx context.Context, izvor string, izvorID int64) ([]model.KpoZapis, error)
 }

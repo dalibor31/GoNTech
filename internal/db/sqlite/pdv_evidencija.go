@@ -128,12 +128,32 @@ func (r *PdvKirRepo) Obrisi(ctx context.Context, id int64) error {
 	return nil
 }
 
-// ObrisiPoIzvoru briše KIR zapise vezane za dati izvor (npr. pri stornu/brisanju prodaje)
-func (r *PdvKirRepo) ObrisiPoIzvoru(ctx context.Context, izvor string, izvorID int64) error {
-	if _, err := r.db.ExecContext(ctx, "DELETE FROM pdv_kir WHERE izvor = ? AND izvor_id = ?", izvor, izvorID); err != nil {
-		return fmt.Errorf("ntech: PdvKirRepo.ObrisiPoIzvoru: %w", err)
+// DohvatiPoIzvoru vraća sve KIR zapise vezane za dati izvor (npr. za storno prodaje)
+func (r *PdvKirRepo) DohvatiPoIzvoru(ctx context.Context, izvor string, izvorID int64) ([]model.PdvKir, error) {
+	redovi, err := r.db.QueryContext(ctx, `
+		SELECT id, datum_prometa, datum_knjizenja, broj_dokumenta,
+		       kupac_naziv, COALESCE(kupac_pib, ''), COALESCE(kupac_mesto, ''),
+		       osnovica_opsta, pdv_opsta, osnovica_posebna, pdv_posebna,
+		       osloboden_sa_pravom, osloboden_bez_prava, ukupno,
+		       COALESCE(napomena, ''), izvor, izvor_id, datum_unosa
+		FROM pdv_kir WHERE izvor = ? AND izvor_id = ?`, izvor, izvorID)
+	if err != nil {
+		return nil, fmt.Errorf("ntech: PdvKirRepo.DohvatiPoIzvoru: %w", err)
 	}
-	return nil
+	defer redovi.Close()
+
+	var rezultat []model.PdvKir
+	for redovi.Next() {
+		k, err := skenirajKir(redovi.Scan)
+		if err != nil {
+			return nil, fmt.Errorf("ntech: PdvKirRepo.DohvatiPoIzvoru: scan: %w", err)
+		}
+		rezultat = append(rezultat, k)
+	}
+	if err := redovi.Err(); err != nil {
+		return nil, fmt.Errorf("ntech: PdvKirRepo.DohvatiPoIzvoru: %w", err)
+	}
+	return rezultat, nil
 }
 
 // PostojiZaIzvor vraća true ako postoji bar jedan KIR zapis za dati izvor i izvorID
@@ -318,12 +338,32 @@ func (r *PdvKprRepo) Obrisi(ctx context.Context, id int64) error {
 	return nil
 }
 
-// ObrisiPoIzvoru briše KPR zapise vezane za dati izvor (npr. pri brisanju nabavke)
-func (r *PdvKprRepo) ObrisiPoIzvoru(ctx context.Context, izvor string, izvorID int64) error {
-	if _, err := r.db.ExecContext(ctx, "DELETE FROM pdv_kpr WHERE izvor = ? AND izvor_id = ?", izvor, izvorID); err != nil {
-		return fmt.Errorf("ntech: PdvKprRepo.ObrisiPoIzvoru: %w", err)
+// DohvatiPoIzvoru vraća sve KPR zapise vezane za dati izvor (npr. za storno nabavke)
+func (r *PdvKprRepo) DohvatiPoIzvoru(ctx context.Context, izvor string, izvorID int64) ([]model.PdvKpr, error) {
+	redovi, err := r.db.QueryContext(ctx, `
+		SELECT id, datum_prometa, datum_knjizenja, datum_placanja, broj_dokumenta,
+		       dobavljac_naziv, COALESCE(dobavljac_pib, ''), COALESCE(dobavljac_mesto, ''),
+		       osnovica_opsta, pdv_opsta, osnovica_posebna, pdv_posebna,
+		       pdv_bez_odbitka, osloboden_nabavka, ukupno,
+		       COALESCE(napomena, ''), izvor, izvor_id, uvoz, datum_unosa
+		FROM pdv_kpr WHERE izvor = ? AND izvor_id = ?`, izvor, izvorID)
+	if err != nil {
+		return nil, fmt.Errorf("ntech: PdvKprRepo.DohvatiPoIzvoru: %w", err)
 	}
-	return nil
+	defer redovi.Close()
+
+	var rezultat []model.PdvKpr
+	for redovi.Next() {
+		k, err := skenirajKpr(redovi.Scan)
+		if err != nil {
+			return nil, fmt.Errorf("ntech: PdvKprRepo.DohvatiPoIzvoru: scan: %w", err)
+		}
+		rezultat = append(rezultat, k)
+	}
+	if err := redovi.Err(); err != nil {
+		return nil, fmt.Errorf("ntech: PdvKprRepo.DohvatiPoIzvoru: %w", err)
+	}
+	return rezultat, nil
 }
 
 // PostojiZaIzvor vraća true ako postoji bar jedan KPR zapis za dati izvor i izvorID

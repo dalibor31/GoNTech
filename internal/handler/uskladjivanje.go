@@ -59,9 +59,17 @@ func sumnjiviDuplikati(svi []kandidatUskladjivanja) map[int64]bool {
 // KIR upis) sa mapom postojećih upisa i kandidatima za detekciju duplikata. Koristi se
 // i za backfill (KirBackfillProdaje) i za brojanje praznina na dashboard-u.
 func (h *Handler) kirKandidatiProdaje(ctx context.Context) ([]model.ProdajniNalogSaDetaljem, map[int64]bool, []kandidatUskladjivanja, error) {
-	nalozi, err := h.ProdajaRepo.Lista(ctx, appdb.ProdajaFilter{})
+	svi, err := h.ProdajaRepo.Lista(ctx, appdb.ProdajaFilter{})
 	if err != nil {
 		return nil, nil, nil, err
+	}
+	// stornirani nalozi se nikad ne razmatraju za KIR upis — ni za backfill ni za
+	// brojanje praznina — jer stornirana prodaja ne predstavlja oporeziv promet
+	var nalozi []model.ProdajniNalogSaDetaljem
+	for _, nd := range svi {
+		if !nd.Stornirano {
+			nalozi = append(nalozi, nd)
+		}
 	}
 	postojiMap := make(map[int64]bool, len(nalozi))
 	var kandidati []kandidatUskladjivanja

@@ -162,12 +162,12 @@ func TestPdvKirIzvor(t *testing.T) {
 		}
 	}
 
-	// ObrisiPoIzvoru briše samo vezani auto zapis, ručni ostaje
-	if err := repo.ObrisiPoIzvoru(ctx, "prodaja", 7); err != nil {
-		t.Fatalf("ObrisiPoIzvoru: %v", err)
+	// DohvatiPoIzvoru vraća samo vezani auto zapis
+	poIzvoru, err := repo.DohvatiPoIzvoru(ctx, "prodaja", 7)
+	if err != nil {
+		t.Fatalf("DohvatiPoIzvoru: %v", err)
 	}
-	preostali, _ := repo.Lista(ctx, time.Time{}, time.Time{})
-	if len(preostali) != 1 || preostali[0].BrojDokumenta != "R-1" {
-		t.Errorf("posle ObrisiPoIzvoru očekivan samo ručni zapis, dobijeno %d", len(preostali))
+	if len(poIzvoru) != 1 || poIzvoru[0].BrojDokumenta != "P-1" {
+		t.Errorf("očekivan samo auto zapis P-1, dobijeno %d", len(poIzvoru))
 	}
 }
