@@ -20,9 +20,14 @@ func NoviServisniRadoviRepo(baza *sql.DB) *ServisniRadoviRepo {
 
 // DohvatiZaNalog vraća sve radove (usluge) jednog naloga, redom unosa
 func (r *ServisniRadoviRepo) DohvatiZaNalog(ctx context.Context, nalogID int64) ([]model.ServisniRad, error) {
+	// COALESCE fallback je za „ad-hoc" rad bez veze na cenovnik usluga
+	// (sr.usluga_id NULL) — tad se PDV stopa uzima iz šifarnika (Podešavanja →
+	// Kalkulacija i PDV), ne hardkodovana vrednost. 20.0 ostaje samo kao
+	// apsolutno poslednje utočište ako šifarnik nema nijednu aktivnu opštu stopu.
 	redovi, err := r.db.QueryContext(ctx, `
 		SELECT sr.id, sr.nalog_id, COALESCE(sr.usluga_id, 0), sr.naziv, sr.kolicina, sr.cena_komada, sr.datum, sr.predlozeno,
-		       COALESCE(u.sifra, ''), COALESCE(u.pdv_stopa, 20.0)
+		       COALESCE(u.sifra, ''),
+		       COALESCE(u.pdv_stopa, (SELECT stopa FROM pdv_stope WHERE oznaka = 'opsta' AND aktivna = 1 ORDER BY redosled ASC, stopa DESC LIMIT 1), 20.0)
 		FROM servis_radovi sr
 		LEFT JOIN usluge u ON u.id = sr.usluga_id
 		WHERE sr.nalog_id = ? ORDER BY sr.id`, nalogID)

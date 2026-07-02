@@ -245,7 +245,7 @@ func (h *Handler) SacuvajProdaju(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	nalog, stavke, greska := parseFormuProdaje(r)
+	nalog, stavke, greska := parseFormuProdaje(r, h.validnePdvStope(r.Context()))
 
 	renderujGresku := func(poruka string) {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
@@ -536,7 +536,9 @@ pre{white-space:pre;margin:0;padding:0;font-family:inherit;font-size:inherit;dis
 }
 
 // parseFormuProdaje čita zaglavlje i stavke iz HTTP forme i vraća model i eventualnu grešku
-func parseFormuProdaje(r *http.Request) (model.ProdajniNalog, []model.StavkaProdaje, string) {
+// validneStope su dozvoljene PDV stope na stavci (v. Handler.validnePdvStope) —
+// izvedene iz šifarnika, ne hardkodovane.
+func parseFormuProdaje(r *http.Request, validneStope map[float64]bool) (model.ProdajniNalog, []model.StavkaProdaje, string) {
 	var nalog model.ProdajniNalog
 
 	if klijentIDStr := r.FormValue("klijent_id"); klijentIDStr != "" {
@@ -589,8 +591,8 @@ func parseFormuProdaje(r *http.Request) (model.ProdajniNalog, []model.StavkaProd
 				return nalog, nil, "Neispravna PDV stopa u stavci."
 			}
 		}
-		if pdvStopa != 0 && pdvStopa != 10 && pdvStopa != 20 {
-			return nalog, nil, "PDV stopa mora biti 0, 10 ili 20."
+		if !validneStope[pdvStopa] {
+			return nalog, nil, "PDV stopa u stavci nije u šifarniku PDV stopa."
 		}
 
 		var popust float64

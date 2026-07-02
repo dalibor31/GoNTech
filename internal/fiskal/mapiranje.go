@@ -64,10 +64,11 @@ func NapraviZahtev(
 	ukupanIznos := 0.0
 
 	for _, s := range stavke {
-		stopa := 20.0 // podrazumevano 20% ako stopa nije eksplicitno postavljena
-		if s.PdvStopa > 0 {
-			stopa = s.PdvStopa
-		}
+		// stopa je uvek ono što je snimljeno na stavci — 0 je legitimna vrednost
+		// (van sistema PDV/neobveznik), ne „nije postavljeno". Nikad je ne prepisivati
+		// nazad na opštu stopu, jer bi to poništilo nuliranje PDV-a za ne-PDV obveznike
+		// (v. docs/Greške.md).
+		stopa := s.PdvStopa
 		// CenaBezPdv iz baze je već diskontovana (popust primenjen pri kreiranju naloga);
 		// popust se ponovo primenjuje samo u fallback grani kad CenaBezPdv nije popunjena.
 		netoCena := s.CenaBezPdv
@@ -147,16 +148,12 @@ func NapraviRefundZahtev(
 // mora biti dosledan, jer ga PFR ne povezuje po ID-u već po sadržaju stavke).
 const NazivAvansneStavke = "Аванс"
 
-// StopaAvansa je pretpostavljena PDV stopa za avans — u trenutku uplate avansa
-// stavke (radovi/delovi) obično još nisu poznate, pa se ne može tačno odrediti
-// stvarna stopa. Koristi se opšta stopa (20%) kao razumna pretpostavka za
-// srpsko tržište; ako firma posluje isključivo po posebnoj/nultoj stopi, ovo
-// treba prilagoditi ručno (nema opšteg rešenja bez poznavanja stavki unapred).
-const StopaAvansa = 20.0
-
 // NapraviAvansZahtev gradi Advance/Sale zahtev za primljeni avans — jedna stavka
-// "Аванс" u punom (bruto) iznosu.
-func NapraviAvansZahtev(iznos float64, nacinPlacanja, kasir string) InvoiceRequest {
+// "Аванс" u punom (bruto) iznosu. stopa je PDV stopa avansa — u trenutku uplate
+// stavke (radovi/delovi) obično još nisu poznate, pa pozivalac prosleđuje opštu
+// stopu iz šifarnika (Podešavanja → Kalkulacija i PDV) kad je firma PDV obveznik,
+// ili 0 kad nije — nikad hardkodovanu vrednost (v. docs/Greške.md §4.1).
+func NapraviAvansZahtev(iznos, stopa float64, nacinPlacanja, kasir string) InvoiceRequest {
 	return InvoiceRequest{
 		InvoiceRequest: InvoiceRequestBody{
 			InvoiceType:     "Advance",
@@ -165,7 +162,7 @@ func NapraviAvansZahtev(iznos float64, nacinPlacanja, kasir string) InvoiceReque
 				{Amount: iznos, PaymentType: TipPlacanja(nacinPlacanja)},
 			},
 			Items: []InvoiceItem{
-				{Name: NazivAvansneStavke, Labels: []string{OznakaPDV(StopaAvansa)}, TotalAmount: iznos, UnitPrice: iznos, Quantity: 1},
+				{Name: NazivAvansneStavke, Labels: []string{OznakaPDV(stopa)}, TotalAmount: iznos, UnitPrice: iznos, Quantity: 1},
 			},
 			Cashier: kasir,
 		},
@@ -175,15 +172,18 @@ func NapraviAvansZahtev(iznos float64, nacinPlacanja, kasir string) InvoiceReque
 // NapraviAvansRefundZahtev gradi Advance/Refund zahtev za povraćaj dela ili celog
 // avansa (npr. kad avans premaši konačnu cenu popravke). referentBroj je PfrBroj
 // originalnog avansnog računa.
-func NapraviAvansRefundZahtev(iznos float64, nacinPlacanja, kasir, referentBroj string) InvoiceRequest {
-	zahtev := NapraviAvansZahtev(iznos, nacinPlacanja, kasir)
+func NapraviAvansRefundZahtev(iznos, stopa float64, nacinPlacanja, kasir, referentBroj string) InvoiceRequest {
+	zahtev := NapraviAvansZahtev(iznos, stopa, nacinPlacanja, kasir)
 	zahtev.InvoiceRequest.TransactionType = "Refund"
 	zahtev.InvoiceRequest.ReferentDocumentNumber = referentBroj
 	return zahtev
 }
 
-// PorezIzBrutoAvansa izvlači poreski deo iz bruto iznosa avansa po StopaAvansa
-// (npr. 500 din avansa po 20% → porez ≈ 83.33 din).
-func PorezIzBrutoAvansa(bruto float64) float64 {
-	return math.Round(bruto*StopaAvansa/(100+StopaAvansa)*100) / 100
+// PorezIzBrutoAvansa izvlači poreski deo iz bruto iznosa avansa po datoj stopi
+// (npr. 500 din avansa po 20% → porez ≈ 83.33 din). stopa=0 (ne-PDV obveznik) → 0.
+func PorezIzBrutoAvansa(bruto, stopa float64) float64 {
+	if stopa <= 0 {
+		return 0
+	}
+	return math.Round(bruto*stopa/(100+stopa)*100) / 100
 }

@@ -63,7 +63,7 @@ func (h *Handler) NovaUsluga(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		sifra = "USL-001"
 	}
-	h.renderujFormuUsluge(w, r, model.Usluga{Sifra: sifra, PdvStopa: 20, JedinicaMere: "usluga"}, false, "")
+	h.renderujFormuUsluge(w, r, model.Usluga{Sifra: sifra, PdvStopa: h.podrazumevanaPdvStopa(r.Context()), JedinicaMere: "usluga"}, false, "")
 }
 
 // IzmeniUslugu prikazuje formu sa postojećom uslugom
@@ -86,7 +86,7 @@ func (h *Handler) SacuvajUslugu(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.zahtevajDozvolu(w, r, "artikal.dodaj"); !ok {
 		return
 	}
-	usluga, greska := parseFormuUsluge(r)
+	usluga, greska := parseFormuUsluge(r, h.podrazumevanaPdvStopa(r.Context()))
 	if greska != "" {
 		h.renderujFormuUsluge(w, r, usluga, false, greska)
 		return
@@ -108,7 +108,7 @@ func (h *Handler) SacuvajIzmenuUsluge(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Neispravan ID usluge", http.StatusBadRequest)
 		return
 	}
-	usluga, greska := parseFormuUsluge(r)
+	usluga, greska := parseFormuUsluge(r, h.podrazumevanaPdvStopa(r.Context()))
 	usluga.ID = id
 	if greska != "" {
 		h.renderujFormuUsluge(w, r, usluga, true, greska)
@@ -139,7 +139,9 @@ func (h *Handler) ObrisiUslugu(w http.ResponseWriter, r *http.Request) {
 }
 
 // parseFormuUsluge čita i validira polja forme usluge. Vraća model i poruku o grešci.
-func parseFormuUsluge(r *http.Request) (model.Usluga, string) {
+// podrazumevanaStopa je opšta PDV stopa iz šifarnika (v. Handler.podrazumevanaPdvStopa) —
+// koristi se samo kad korisnik nije uneo stopu, nikad hardkodovana vrednost.
+func parseFormuUsluge(r *http.Request, podrazumevanaStopa float64) (model.Usluga, string) {
 	if err := r.ParseForm(); err != nil {
 		return model.Usluga{}, "Greška pri čitanju forme."
 	}
@@ -154,7 +156,7 @@ func parseFormuUsluge(r *http.Request) (model.Usluga, string) {
 	}
 	pdv, err := strconv.ParseFloat(strings.TrimSpace(r.FormValue("pdv_stopa")), 64)
 	if err != nil || pdv < 0 {
-		pdv = 20
+		pdv = podrazumevanaStopa
 	}
 
 	jm := strings.TrimSpace(r.FormValue("jedinica_mere"))

@@ -58,6 +58,9 @@ type PdvStopaRepository interface {
 	Kreiraj(ctx context.Context, s *model.PdvStopa) (int64, error)
 	Izmeni(ctx context.Context, s *model.PdvStopa) error
 	PostaviAktivnu(ctx context.Context, id int64, aktivna bool) error
+	// PodrazumevanaOpsta vraća aktivnu opštu stopu iz šifarnika (prva po redosledu),
+	// ili nil ako u šifarniku nema nijedne aktivne opšte stope.
+	PodrazumevanaOpsta(ctx context.Context) (*model.PdvStopa, error)
 }
 
 // PdvKirRepository definiše operacije nad knjigom izdatih računa (KIR)

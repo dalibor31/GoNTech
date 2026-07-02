@@ -62,7 +62,7 @@ func (h *Handler) NoviArtikal(w http.ResponseWriter, r *http.Request) {
 		PodaciStranice: ps,
 		Kategorije:     kategorije,
 		Dobavljaci:     dobavljaci,
-		Artikal:        model.Artikal{Sifra: predlogSifre, Tip: tip, JedinicaMere: "kom", PdvStopa: 20.0},
+		Artikal:        model.Artikal{Sifra: predlogSifre, Tip: tip, JedinicaMere: "kom", PdvStopa: h.podrazumevanaPdvStopa(r.Context())},
 		Izmena:         false,
 	})
 }
@@ -79,7 +79,7 @@ func (h *Handler) SacuvajArtikal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	artikal, greska := parseFormuArtikla(r)
+	artikal, greska := parseFormuArtikla(r, h.podrazumevanaPdvStopa(r.Context()))
 	if greska != "" {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		kategorije, _ := h.KategorijeRepo.Lista(r.Context())
@@ -210,7 +210,7 @@ func (h *Handler) SacuvajIzmenuArtikla(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	artikal, greska := parseFormuArtikla(r)
+	artikal, greska := parseFormuArtikla(r, h.podrazumevanaPdvStopa(r.Context()))
 	if greska != "" {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		kategorije, _ := h.KategorijeRepo.Lista(r.Context())
@@ -325,7 +325,9 @@ func citajDobavljaceForme(r *http.Request) []int64 {
 }
 
 // parseFormuArtikla čita polja iz forme i vraća artikal i eventualnu grešku
-func parseFormuArtikla(r *http.Request) (model.Artikal, string) {
+// podrazumevanaStopa je opšta PDV stopa iz šifarnika (v. Handler.podrazumevanaPdvStopa) —
+// koristi se samo kad korisnik nije uneo stopu, nikad hardkodovana vrednost.
+func parseFormuArtikla(r *http.Request, podrazumevanaStopa float64) (model.Artikal, string) {
 	naziv := r.FormValue("naziv")
 	if naziv == "" {
 		return model.Artikal{}, "Naziv artikla je obavezan."
@@ -389,8 +391,8 @@ func parseFormuArtikla(r *http.Request) (model.Artikal, string) {
 		artikal.NabavnaCena = v
 	}
 
-	// PDV stopa — podrazumevano 20%
-	pdvStopa := 20.0
+	// PDV stopa — podrazumevano opšta stopa iz šifarnika
+	pdvStopa := podrazumevanaStopa
 	if p := r.FormValue("pdv_stopa"); p != "" {
 		if v, err := strconv.ParseFloat(p, 64); err == nil && v >= 0 {
 			pdvStopa = v
