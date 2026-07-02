@@ -401,6 +401,11 @@ type FiskalRepository interface {
 	Kreiraj(ctx context.Context, fr *model.FiskalniRacun) (int64, error)
 	DohvatiPoProdaji(ctx context.Context, prodajaID int64) (*model.FiskalniRacun, error)
 	DohvatiPoServisu(ctx context.Context, servisID int64) (*model.FiskalniRacun, error)
+	// DohvatiPoServisuITip vraća poslednji nestorniran račun tačno određenog tipa
+	// (npr. avansni Sale) — za razliku od DohvatiPoServisu (samo najnoviji, bilo kog tipa)
+	DohvatiPoServisuITip(ctx context.Context, servisID int64, tipRacuna, tipTransakcije string) (*model.FiskalniRacun, error)
+	// SumaAvansaPoServisu vraća neto fiskalizovan avans (Sale - Refund) za nalog
+	SumaAvansaPoServisu(ctx context.Context, servisID int64) (float64, error)
 	OznačiKaoStorniran(ctx context.Context, id int64) error
 	ServisiBezFiskalnog(ctx context.Context) (map[int64]bool, error)
 	ProdajeBezFiskalnog(ctx context.Context) (map[int64]bool, error)

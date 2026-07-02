@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"image/png"
 	"log/slog"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -78,6 +79,8 @@ type PodaciDetaljiNaloga struct {
 	Avans                   float64
 	PreostaloSve            float64
 	PreostaloSveSaPdv       float64
+	VisakAvansa             float64 // >0 kad avans premaši ukupnu cenu — iznos za povraćaj klijentu
+	VisakAvansaSaPdv        float64
 	ZakljucanStatus         bool           // onemogući promenu statusa dok ima potraživanih delova
 	CenaDijagnostikePredlog string         // podrazumevana cena dijagnostike iz podešavanja (za prefill input-a)
 	KorisceneUsluge         map[int64]bool // ID-evi usluga već dodatih na nalog — izostavljaju se iz dropdown-a
@@ -305,6 +308,10 @@ func (h *Handler) SacuvajNalog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if nalog.Avans != nil && *nalog.Avans > 0 {
+		h.fiskalizujAvansServisa(r.Context(), id, *nalog.Avans, "Gotovina")
+	}
+
 	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)
 }
 
@@ -497,6 +504,10 @@ func (h *Handler) SacuvajIzmenaNaloga(w http.ResponseWriter, r *http.Request) {
 			Izmena:         true,
 		})
 		return
+	}
+
+	if nalog.Avans != nil && *nalog.Avans > 0 {
+		h.fiskalizujAvansServisa(r.Context(), id, *nalog.Avans, "Gotovina")
 	}
 
 	if autosave {
@@ -822,11 +833,15 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 		avans = *nalog.Avans
 	}
 	preostaloSve := ukupnoSve - avans
+	var visakAvansa float64
 	if preostaloSve < 0 {
+		visakAvansa = -preostaloSve
 		preostaloSve = 0
 	}
 	preostaloSveSaPdv := ukupnoSveSaPdv - avans
+	var visakAvansaSaPdv float64
 	if preostaloSveSaPdv < 0 {
+		visakAvansaSaPdv = -preostaloSveSaPdv
 		preostaloSveSaPdv = 0
 	}
 
@@ -867,6 +882,8 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 		Avans:                   avans,
 		PreostaloSve:            preostaloSve,
 		PreostaloSveSaPdv:       preostaloSveSaPdv,
+		VisakAvansa:             visakAvansa,
+		VisakAvansaSaPdv:        visakAvansaSaPdv,
 		ZakljucanStatus:         zakljucanStatus,
 		CenaDijagnostikePredlog: podesavanja["servis_cena_dijagnostike"],
 		KorisceneUsluge:         korisceneUsluge,
@@ -880,11 +897,13 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 	} else if err != nil {
 		slog.Error("greška pri učitavanju fiskalnog računa za servis", "servis_id", id, "error", err)
 	}
-	// fiskalna greška: modul aktivan, nalog preuzet, ali nema fiskalnog računa
-	if h.modulUkljucen(r.Context(), config.ModulFiskalizacija) &&
-		nalog.Status == model.StatusPreuzeto &&
-		podaci.FiskalniRacun == nil {
-		podaci.FiskalGreska = true
+	// fiskalna greška: modul aktivan, nalog preuzet, ali nema KONAČNOG (Normal/Sale)
+	// fiskalnog računa — avansni (Advance/Sale) se ne računa kao konačan, inače bi
+	// nalog sa avansom lažno izgledao fiskalizovan i dugme Fiskalizuj bi bilo skriveno
+	if h.modulUkljucen(r.Context(), config.ModulFiskalizacija) && nalog.Status == model.StatusPreuzeto {
+		if konacan, err := h.FiskalRepo.DohvatiPoServisuITip(r.Context(), id, "Normal", "Sale"); err == nil && konacan == nil {
+			podaci.FiskalGreska = true
+		}
 	}
 	// storno zahteva PIB/JMBG kupca za refundaciju ako klijent nema upisan poreski broj
 	podaci.PotrebnaIdentKupca = h.modulUkljucen(r.Context(), config.ModulFiskalizacija) &&
@@ -2343,12 +2362,15 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 			middleware.SetFlash(w, r, h.DB, "greska", "Naplata nije sačuvana. Pokušajte ponovo.")
 		}
 
-		// fiskalizacija servisa — ako je modul uključen; preskoči ako fiskalni račun
-		// za ovaj nalog već postoji (ponovni ulazak u Preuzeto ne sme duplirati PFR zahtev)
+		// fiskalizacija servisa — ako je modul uključen; preskoči ako KONAČAN (Normal/Sale)
+		// fiskalni račun za ovaj nalog već postoji (ponovni ulazak u Preuzeto ne sme
+		// duplirati PFR zahtev) — avansni (Advance/Sale) račun se ne računa kao konačan.
+		// iznos==0 je dozvoljen (npr. avans premašuje cenu) jer i tada treba izdati
+		// konačan račun da zatvori avans i pokrene eventualni povraćaj viška.
 		if h.modulUkljucen(r.Context(), config.ModulFiskalizacija) {
-			if fr, _ := h.FiskalRepo.DohvatiPoServisu(r.Context(), id); fr == nil {
+			if fr, _ := h.FiskalRepo.DohvatiPoServisuITip(r.Context(), id, "Normal", "Sale"); fr == nil {
 				klijent := h.fiskalKlijent()
-				if klijent != nil && iznos > 0 {
+				if klijent != nil {
 					h.fiskalizujServis(r.Context(), id, klijent, nacin, iznos, primljeno)
 				}
 			}
@@ -2403,6 +2425,68 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)
+}
+
+// fiskalizujAvansServisa izdaje avansni fiskalni račun (Advance/Sale) za primljeni
+// avans. Best-effort: greška se loguje, ne zaustavlja tok pozivaoca. noviAvans je
+// UKUPAN trenutni iznos avansa na nalogu (ne delta) — funkcija sama izračunava i
+// fiskalizuje samo razliku u odnosu na već fiskalizovan avans, da izmena/dopuna
+// avansa ne fiskalizuje ceo iznos ponovo. Bez efekta ako razlika nije pozitivna
+// (smanjenje avansa se ne fiskalizuje automatski — v. razgovor o povraćaju).
+func (h *Handler) fiskalizujAvansServisa(ctx context.Context, servisID int64, noviAvans float64, nacinPlacanja string) {
+	if noviAvans <= 0 {
+		return
+	}
+	if !h.modulUkljucen(ctx, config.ModulFiskalizacija) {
+		return
+	}
+	vecFiskalizovano, err := h.FiskalRepo.SumaAvansaPoServisu(ctx, servisID)
+	if err != nil {
+		slog.Error("fiskalizujAvansServisa: provera postojećeg avansa nije uspela", "servis_id", servisID, "error", err)
+		return
+	}
+	delta := math.Round((noviAvans-vecFiskalizovano)*100) / 100
+	if delta <= 0 {
+		return
+	}
+	klijent := h.fiskalKlijent()
+	if klijent == nil {
+		return
+	}
+	if nacinPlacanja == "" {
+		nacinPlacanja = "Gotovina"
+	}
+
+	zahtev := fiskal.NapraviAvansZahtev(delta, nacinPlacanja, h.imeKasira(ctx))
+	odgovor, err := klijent.IzdajRacun(ctx, zahtev)
+	if err != nil {
+		slog.Error("fiskalizacija avansa servisa nije uspela", "servis_id", servisID, "error", err)
+		return
+	}
+
+	poreskeJSON, _ := json.Marshal(odgovor.TaxItems)
+	siroviJSON, _ := json.Marshal(odgovor)
+	fr := &model.FiskalniRacun{
+		ServisID:          servisID,
+		TipRacuna:         "Advance",
+		TipTransakcije:    "Sale",
+		PfrBroj:           odgovor.InvoiceNumber,
+		PfrVreme:          odgovor.SdcDateTime,
+		Brojac:            odgovor.InvoiceCounter,
+		EkstenzijaBrojaca: odgovor.InvoiceCounterExtension,
+		UrlVerifikacija:   odgovor.VerificationURL,
+		QRKod:             odgovor.VerificationQRCode,
+		PoreskeStavke:     string(poreskeJSON),
+		UkupnoZaNaplatu:   odgovor.TotalAmount,
+		UkupanPorez:       odgovor.TotalTax,
+		SiroviOdgovor:     string(siroviJSON),
+		Potpisao:          odgovor.SignedBy,
+		Zatrazio:          odgovor.RequestedBy,
+		Poruka:            odgovor.Messages,
+	}
+	if _, err := h.FiskalRepo.Kreiraj(ctx, fr); err != nil {
+		slog.Error("greška pri čuvanju avansnog fiskalnog računa servisa", "servis_id", servisID, "error", err)
+	}
 }
 
 // fiskalizujServis šalje fiskalni zahtev za servisni nalog pri preuzimanju.
@@ -2463,6 +2547,35 @@ func (h *Handler) fiskalizujServis(ctx context.Context, servisID int64, klijent 
 		zahtev.InvoiceRequest.BuyerID = "10:" + pib
 	}
 
+	// ako je avans fiskalizovan (v. fiskalizujAvansServisa), konačni račun ga
+	// zatvara — PFR sam raspoređuje avans na ovaj račun preko Advance* polja.
+	// Ako avans premašuje punu cenu (visak), zatvara se samo do pune cene, a
+	// razlika se posle uspešnog Sale-a vraća posebnim Advance/Refund zahtevom.
+	var visakAvansa float64
+	var avansRacun *model.FiskalniRacun
+	if avansNeto, e := h.FiskalRepo.SumaAvansaPoServisu(ctx, servisID); e == nil && avansNeto > 0 {
+		if ar, e2 := h.FiskalRepo.DohvatiPoServisuITip(ctx, servisID, "Advance", "Sale"); e2 == nil && ar != nil {
+			avansRacun = ar
+			punaCena := 0.0
+			for _, it := range items {
+				punaCena += it.TotalAmount
+			}
+			punaCena = math.Round(punaCena*100) / 100
+			iskoriscenAvans := avansNeto
+			if iskoriscenAvans > punaCena {
+				visakAvansa = math.Round((iskoriscenAvans-punaCena)*100) / 100
+				iskoriscenAvans = punaCena
+			}
+			porez := fiskal.PorezIzBrutoAvansa(iskoriscenAvans)
+			zahtev.AdvancePaid = &iskoriscenAvans
+			zahtev.AdvanceTax = &porez
+			zahtev.AdvanceLastInvoiceNumber = avansRacun.PfrBroj
+			zahtev.AdvanceLastInvoiceDateTime = avansRacun.PfrVreme
+		}
+	} else if e != nil {
+		slog.Error("fiskalizujServis: provera avansa nije uspela", "servis_id", servisID, "error", e)
+	}
+
 	odgovor, errFisk := klijent.IzdajRacun(ctx, zahtev)
 	if errFisk != nil {
 		slog.Error("fiskalizacija servisa nije uspela", "servis_id", servisID, "error", errFisk)
@@ -2492,6 +2605,40 @@ func (h *Handler) fiskalizujServis(ctx context.Context, servisID int64, klijent 
 	}
 	if _, err := h.FiskalRepo.Kreiraj(ctx, fr); err != nil {
 		slog.Error("greška pri čuvanju fiskalnog računa za servis", "servis_id", servisID, "error", err)
+		return
+	}
+
+	// avans je premašio punu cenu — vrati razliku posebnim Advance/Refund zahtevom
+	if visakAvansa > 0 && avansRacun != nil {
+		refundZahtev := fiskal.NapraviAvansRefundZahtev(visakAvansa, nacinPlacanja, kasir, avansRacun.PfrBroj)
+		refundOdgovor, errRefund := klijent.IzdajRacun(ctx, refundZahtev)
+		if errRefund != nil {
+			slog.Error("povraćaj viška avansa nije uspeo", "servis_id", servisID, "error", errRefund)
+			return
+		}
+		poreskeRefJSON, _ := json.Marshal(refundOdgovor.TaxItems)
+		siroviRefJSON, _ := json.Marshal(refundOdgovor)
+		refFr := &model.FiskalniRacun{
+			ServisID:          servisID,
+			TipRacuna:         "Advance",
+			TipTransakcije:    "Refund",
+			PfrBroj:           refundOdgovor.InvoiceNumber,
+			PfrVreme:          refundOdgovor.SdcDateTime,
+			Brojac:            refundOdgovor.InvoiceCounter,
+			EkstenzijaBrojaca: refundOdgovor.InvoiceCounterExtension,
+			UrlVerifikacija:   refundOdgovor.VerificationURL,
+			QRKod:             refundOdgovor.VerificationQRCode,
+			PoreskeStavke:     string(poreskeRefJSON),
+			UkupnoZaNaplatu:   refundOdgovor.TotalAmount,
+			UkupanPorez:       refundOdgovor.TotalTax,
+			SiroviOdgovor:     string(siroviRefJSON),
+			Potpisao:          refundOdgovor.SignedBy,
+			Zatrazio:          refundOdgovor.RequestedBy,
+			Poruka:            refundOdgovor.Messages,
+		}
+		if _, err := h.FiskalRepo.Kreiraj(ctx, refFr); err != nil {
+			slog.Error("greška pri čuvanju povraćaja viška avansa", "servis_id", servisID, "error", err)
+		}
 	}
 }
 
@@ -2625,8 +2772,9 @@ func (h *Handler) RetryFiskalizacija(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// provjeri da fiskal još nije izdat (zaštita od duplikata)
-	if fr, _ := h.FiskalRepo.DohvatiPoServisu(r.Context(), id); fr != nil {
+	// provjeri da KONAČAN (Normal/Sale) fiskal još nije izdat (zaštita od duplikata) —
+	// avansni (Advance/Sale) račun se ne računa kao konačan, ne sme blokirati retry
+	if fr, _ := h.FiskalRepo.DohvatiPoServisuITip(r.Context(), id, "Normal", "Sale"); fr != nil {
 		middleware.SetFlash(w, r, h.DB, "uspeh", "Fiskalni račun već postoji.")
 		http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
 		return
@@ -2637,11 +2785,8 @@ func (h *Handler) RetryFiskalizacija(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Nalog nije u statusu Preuzeto", http.StatusBadRequest)
 		return
 	}
-	if nalog.Naplaceno <= 0 {
-		middleware.SetFlash(w, r, h.DB, "greska", "Iznos naplate je 0 — fiskalizacija nije moguća.")
-		http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
-		return
-	}
+	// Naplaceno==0 je dozvoljeno kad avans u potpunosti pokriva cenu — konačan
+	// račun se i tada mora izdati da zatvori avans (i eventualno vrati višak)
 
 	klijent := h.fiskalKlijent()
 	if klijent == nil {

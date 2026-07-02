@@ -130,6 +130,14 @@
                                 <span style="font-size:16px;font-weight:600;color:var(--tekst-glavni);">Za naplatu</span>
                                 <span style="font-size:18px;font-weight:600;color:var(--tekst-glavni);" id="za-naplatu-iznos">{{if index .Moduli "pdv"}}{{dinari .PreostaloSveSaPdv}}{{else}}{{dinari .PreostaloSve}}{{end}} din</span>
                             </div>
+                            {{$visak := .VisakAvansa}}{{if index .Moduli "pdv"}}{{$visak = .VisakAvansaSaPdv}}{{end}}
+                            {{if gt $visak 0.0}}
+                            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:color-mix(in srgb,#f59e0b 12%,transparent);border:0.5px solid #f59e0b;border-radius:8px;">
+                                <span style="color:#92400e;font-weight:500;">Avans premašuje cenu — vratiti klijentu</span>
+                                <span style="font-size:16px;font-weight:600;color:#92400e;">{{dinari $visak}} din</span>
+                            </div>
+                            <div class="pomocni-tekst">Ovaj iznos se automatski vraća kroz avansni povraćaj na fiskalnom računu.</div>
+                            {{end}}
                             <form method="POST" action="/servis/{{.Nalog.ID}}/status" data-refresh="#sadrzaj" style="margin-top:8px;">
                                 <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
                                 <input type="hidden" name="status" value="Preuzeto">

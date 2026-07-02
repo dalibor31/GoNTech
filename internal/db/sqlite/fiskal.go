@@ -117,6 +117,61 @@ func (r *FiskalRepo) DohvatiPoServisu(ctx context.Context, servisID int64) (*mod
 	return fr, nil
 }
 
+// DohvatiPoServisuITip vraća poslednji nestorniran fiskalni račun za dati servisni
+// nalog sa tačno određenim tipom (npr. tip_racuna="Advance", tip_transakcije="Sale"
+// za avansni račun) — za razliku od DohvatiPoServisu koji vraća samo najnoviji
+// zapis bilo kog tipa. Vraća nil bez greške ako takav račun ne postoji.
+func (r *FiskalRepo) DohvatiPoServisuITip(ctx context.Context, servisID int64, tipRacuna, tipTransakcije string) (*model.FiskalniRacun, error) {
+	fr := &model.FiskalniRacun{}
+	var storniran int
+	var sID, pID sql.NullInt64
+	err := r.db.QueryRowContext(ctx, `
+		SELECT id, prodaja_id, servis_id, tip_racuna, tip_transakcije, pfr_broj, pfr_vreme,
+			   brojac, ekstenzija_brojaca, url_verifikacija, qr_kod,
+			   poreske_stavke, ukupno_za_naplatu, ukupan_porez,
+			   sirovi_odgovor, potpisao, zatrazio, poruka, storniran, vreme_kreiranja
+		FROM fiskalni_racuni
+		WHERE servis_id = ? AND tip_racuna = ? AND tip_transakcije = ? AND storniran = 0
+		ORDER BY id DESC LIMIT 1
+	`, servisID, tipRacuna, tipTransakcije).Scan(
+		&fr.ID, &pID, &sID, &fr.TipRacuna, &fr.TipTransakcije, &fr.PfrBroj, &fr.PfrVreme,
+		&fr.Brojac, &fr.EkstenzijaBrojaca, &fr.UrlVerifikacija, &fr.QRKod,
+		&fr.PoreskeStavke, &fr.UkupnoZaNaplatu, &fr.UkupanPorez,
+		&fr.SiroviOdgovor, &fr.Potpisao, &fr.Zatrazio, &fr.Poruka, &storniran, &fr.VremeKreiranja,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("ntech: FiskalRepo.DohvatiPoServisuITip: %w", err)
+	}
+	if pID.Valid {
+		fr.ProdajaID = pID.Int64
+	}
+	if sID.Valid {
+		fr.ServisID = sID.Int64
+	}
+	fr.Storniran = storniran != 0
+	return fr, nil
+}
+
+// SumaAvansaPoServisu vraća neto fiskalizovan avans za dati servisni nalog —
+// zbir Advance/Sale iznosa umanjen za Advance/Refund iznose (nestornirani).
+// Koristi se da se pri izmeni avansa fiskalizuje samo razlika (delta), ne ceo
+// novi iznos ponovo.
+func (r *FiskalRepo) SumaAvansaPoServisu(ctx context.Context, servisID int64) (float64, error) {
+	var suma float64
+	err := r.db.QueryRowContext(ctx, `
+		SELECT COALESCE(SUM(CASE WHEN tip_transakcije = 'Refund' THEN -ukupno_za_naplatu ELSE ukupno_za_naplatu END), 0)
+		FROM fiskalni_racuni
+		WHERE servis_id = ? AND tip_racuna = 'Advance' AND storniran = 0
+	`, servisID).Scan(&suma)
+	if err != nil {
+		return 0, fmt.Errorf("ntech: FiskalRepo.SumaAvansaPoServisu: %w", err)
+	}
+	return suma, nil
+}
+
 // ServisiBezFiskalnog vraća skup ID-eva servisnih naloga koji su u statusu "Preuzeto"
 // a nemaju fiskalni račun (za oznaku u listi naloga).
 func (r *FiskalRepo) ServisiBezFiskalnog(ctx context.Context) (map[int64]bool, error) {

@@ -29,9 +29,15 @@ func NoviKlijent(baseURL, apiKey string) *Klijent {
 	}
 }
 
-// InvoiceRequest je omotač za Teron invoiceRequest JSON objekat.
+// InvoiceRequest je omotač za Teron invoiceRequest JSON objekat. Polja Advance*
+// su na vrhu (van invoiceRequest) — Teron ih tako očekuje za konačni račun koji
+// zatvara prethodno izdat avansni račun (v. NapraviKonacniZahtevSaAvansom).
 type InvoiceRequest struct {
-	InvoiceRequest InvoiceRequestBody `json:"invoiceRequest"`
+	InvoiceRequest             InvoiceRequestBody `json:"invoiceRequest"`
+	AdvancePaid                *float64           `json:"advancePaid,omitempty"`
+	AdvanceTax                 *float64           `json:"advanceTax,omitempty"`
+	AdvanceLastInvoiceNumber   string             `json:"advanceLastInvoiceNumber,omitempty"`
+	AdvanceLastInvoiceDateTime string             `json:"advanceLastInvoiceDateTime,omitempty"`
 }
 
 // InvoiceRequestBody su podaci koje Teron očekuje unutar invoiceRequest polja.

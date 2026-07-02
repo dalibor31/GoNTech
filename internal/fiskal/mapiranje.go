@@ -142,3 +142,48 @@ func NapraviRefundZahtev(
 	zahtev.InvoiceRequest.ReferentDocumentNumber = referentBroj
 	return zahtev
 }
+
+// NazivAvansneStavke je naziv stavke na avansnim fiskalnim računima (isti naziv
+// mora biti dosledan, jer ga PFR ne povezuje po ID-u već po sadržaju stavke).
+const NazivAvansneStavke = "Аванс"
+
+// StopaAvansa je pretpostavljena PDV stopa za avans — u trenutku uplate avansa
+// stavke (radovi/delovi) obično još nisu poznate, pa se ne može tačno odrediti
+// stvarna stopa. Koristi se opšta stopa (20%) kao razumna pretpostavka za
+// srpsko tržište; ako firma posluje isključivo po posebnoj/nultoj stopi, ovo
+// treba prilagoditi ručno (nema opšteg rešenja bez poznavanja stavki unapred).
+const StopaAvansa = 20.0
+
+// NapraviAvansZahtev gradi Advance/Sale zahtev za primljeni avans — jedna stavka
+// "Аванс" u punom (bruto) iznosu.
+func NapraviAvansZahtev(iznos float64, nacinPlacanja, kasir string) InvoiceRequest {
+	return InvoiceRequest{
+		InvoiceRequest: InvoiceRequestBody{
+			InvoiceType:     "Advance",
+			TransactionType: "Sale",
+			Payment: []PaymentItem{
+				{Amount: iznos, PaymentType: TipPlacanja(nacinPlacanja)},
+			},
+			Items: []InvoiceItem{
+				{Name: NazivAvansneStavke, Labels: []string{OznakaPDV(StopaAvansa)}, TotalAmount: iznos, UnitPrice: iznos, Quantity: 1},
+			},
+			Cashier: kasir,
+		},
+	}
+}
+
+// NapraviAvansRefundZahtev gradi Advance/Refund zahtev za povraćaj dela ili celog
+// avansa (npr. kad avans premaši konačnu cenu popravke). referentBroj je PfrBroj
+// originalnog avansnog računa.
+func NapraviAvansRefundZahtev(iznos float64, nacinPlacanja, kasir, referentBroj string) InvoiceRequest {
+	zahtev := NapraviAvansZahtev(iznos, nacinPlacanja, kasir)
+	zahtev.InvoiceRequest.TransactionType = "Refund"
+	zahtev.InvoiceRequest.ReferentDocumentNumber = referentBroj
+	return zahtev
+}
+
+// PorezIzBrutoAvansa izvlači poreski deo iz bruto iznosa avansa po StopaAvansa
+// (npr. 500 din avansa po 20% → porez ≈ 83.33 din).
+func PorezIzBrutoAvansa(bruto float64) float64 {
+	return math.Round(bruto*StopaAvansa/(100+StopaAvansa)*100) / 100
+}
