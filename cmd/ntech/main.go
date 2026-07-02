@@ -292,7 +292,7 @@ func main() {
 		r.Get("/podesavanja/fiskalizacija/be-status", h.BeStatus)
 		r.Post("/podesavanja/fiskalizacija/be-reset-audit", h.BeResetAudit)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "fiskal.pazar")).Get("/fiskal/pazar", h.FiskalniPazar)
-		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "fiskal.pazar")).Post("/fiskal/pazar/izvestaj", h.FiskalniIzvestaj)
+		r.With(doz("fiskal.pazar")).Post("/fiskal/pazar/izvestaj", h.FiskalniIzvestaj)
 		r.With(doz("fiskal.zakljucenje")).Post("/fiskal/pazar/zakljuci", h.ZakljuciFiskalniDan)
 		r.Get("/admin/podesavanja/kalkulacija-pdv", h.PdvStope)
 		r.With(doz("podesavanja.izmeni")).Post("/podesavanja/pdv-stope/dodaj", h.DodajPdvStopu)

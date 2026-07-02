@@ -76,13 +76,13 @@
         <div style="display:flex;gap:10px;flex-wrap:wrap;padding-top:12px;border-top:0.5px solid var(--ivica);">
             <a href="/fiskal/pazar" class="btn-sekundarno" style="font-size:13px;padding:8px 16px;">Osveži</a>
 
-            <form method="POST" action="/fiskal/pazar/izvestaj" style="display:inline;">
+            <form method="POST" action="/fiskal/pazar/izvestaj" style="display:inline;" data-full-reload>
                 <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
                 <button type="submit" class="btn-sekundarno" style="font-size:13px;padding:8px 16px;">Preuzmi dnevni izveštaj</button>
             </form>
 
             {{if index .Dozvole "fiskal.zakljucenje"}}
-            <form method="POST" action="/fiskal/pazar/zakljuci" style="display:inline;"
+            <form method="POST" action="/fiskal/pazar/zakljuci" style="display:inline;" data-full-reload
                   onsubmit="return confirm('Zaključiti dan? Ovo trajno svodi brojače prometa na nulu — radnja se ne može poništiti.')">
                 <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
                 <button type="submit" style="padding:8px 16px;background:#dc2626;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:500;cursor:pointer;">Zaključi dan</button>

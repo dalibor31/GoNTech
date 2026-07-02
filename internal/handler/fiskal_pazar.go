@@ -4,13 +4,30 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
+	"unicode"
 
 	ntechsqlite "ntech/internal/db/sqlite"
 	"ntech/internal/fiskal"
 	"ntech/internal/middleware"
 	"ntech/internal/model"
 )
+
+// contentDispositionZaFajl gradi Content-Disposition header za dati naziv fajla.
+// HTTP header vrednosti moraju biti ASCII — naziv sa slovima kao što su Š/Č/Ž
+// (npr. iz PFR-a: "DNEVNI IZVEŠTAJ - ...pdf") bi inače napravio nevalidan header
+// koji pregledač ne može da parsira. RFC 6266 filename* nosi pravo UTF-8 ime,
+// dok filename (ASCII) služi kao fallback za starije klijente.
+func contentDispositionZaFajl(ime string) string {
+	ascii := strings.Map(func(r rune) rune {
+		if r > unicode.MaxASCII {
+			return '_'
+		}
+		return r
+	}, ime)
+	return fmt.Sprintf(`attachment; filename="%s"; filename*=UTF-8''%s`, ascii, url.PathEscape(ime))
+}
 
 // PodaciFiskalniPazar su podaci za stranicu dnevnog fiskalnog preseka (pazara).
 type PodaciFiskalniPazar struct {
@@ -115,6 +132,6 @@ func (h *Handler) FiskalniIzvestaj(w http.ResponseWriter, r *http.Request) {
 		imeFajla = "dnevni-izvestaj.pdf"
 	}
 	w.Header().Set("Content-Type", "application/pdf")
-	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, imeFajla))
+	w.Header().Set("Content-Disposition", contentDispositionZaFajl(imeFajla))
 	w.Write(sadrzaj)
 }
