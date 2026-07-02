@@ -152,11 +152,19 @@
                     <td></td>
                 </tr>
                 {{end}}
+                {{if .Nalog.DatumOdluke}}
+                <tr class="auto">
+                    <td>Poziv klijenta (obaveštenje o dijagnozi)</td>
+                    <td><strong>{{.Nalog.DatumOdluke.Format "02.01.2006."}}</strong> <span class="badge-auto">auto</span></td>
+                    <td>Klijent odgovorio preko javne stranice (QR kod)</td>
+                </tr>
+                {{else}}
                 <tr>
                     <td>Poziv klijenta (obaveštenje o dijagnozi)</td>
                     <td><span class="linija-unos"></span></td>
                     <td></td>
                 </tr>
+                {{end}}
                 {{if .Nalog.DatumOdluke}}
                 <tr class="auto">
                     <td>Odobrenje klijenta</td>

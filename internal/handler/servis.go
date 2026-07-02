@@ -1855,6 +1855,12 @@ func (h *Handler) StampaEskalacionogLista(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// predviđeni datum popravke: isti default kao na stranici detalja naloga
+	// (datum prijema + rok iz podešavanja) ako nema ručnog unosa u bazi
+	if nalog.PredvidjenDatum == nil {
+		nalog.PredvidjenDatum = defaultPredvidjenDatum(nalog.DatumPrijema, podesavanja)
+	}
+
 	var klijent *model.Klijent
 	klijentNaziv := ""
 	if nalog.KlijentID != nil {
