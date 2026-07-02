@@ -85,7 +85,8 @@ type PodaciDetaljiNaloga struct {
 	CenaDijagnostikePredlog string         // podrazumevana cena dijagnostike iz podešavanja (za prefill input-a)
 	KorisceneUsluge         map[int64]bool // ID-evi usluga već dodatih na nalog — izostavljaju se iz dropdown-a
 	SviStatusi              []string
-	FiskalniRacun           *model.FiskalniRacun // nil ako nije fiskalizovano
+	FiskalniRacun           *model.FiskalniRacun // konačan (Normal/Sale) ako postoji, inače najnoviji izdat; nil ako nije fiskalizovano
+	PovracajAvansa          *model.FiskalniRacun // avansni povraćaj (Advance/Refund) — kad je avans premašio konačnu cenu
 	RokPodizanja            *time.Time           // DatumZavrsetka + 30 dana; nil dok nije završeno
 	FiskalGreska            bool                 // true: fiskalizacija aktivna, status Preuzeto, ali nema fiskalnog računa
 	PotrebnaIdentKupca      bool                 // true: refundacija zahteva ručni unos PIB/JMBG kupca (nema ga iz klijenta)
@@ -891,11 +892,20 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 		RokPodizanja:            rokPodizanja(nalog.DatumZavrsetka),
 	}
 
-	// učitaj fiskalni račun ako postoji (za prikaz u detaljima)
-	if fr, err := h.FiskalRepo.DohvatiPoServisu(r.Context(), id); fr != nil {
-		podaci.FiskalniRacun = fr
-	} else if err != nil {
+	// učitaj fiskalni račun ako postoji (za prikaz u detaljima) — preferira konačan
+	// (Normal/Sale) nad bilo kojim drugim, jer avansni povraćaj viška (upisan POSLE
+	// konačnog računa, kad avans premaši cenu) ne sme da ga "prekrije" u prikazu
+	if fr, err := h.FiskalRepo.DohvatiPoServisuITip(r.Context(), id, "Normal", "Sale"); err != nil {
 		slog.Error("greška pri učitavanju fiskalnog računa za servis", "servis_id", id, "error", err)
+	} else if fr != nil {
+		podaci.FiskalniRacun = fr
+	} else if fr2, err2 := h.FiskalRepo.DohvatiPoServisu(r.Context(), id); err2 != nil {
+		slog.Error("greška pri učitavanju fiskalnog računa za servis", "servis_id", id, "error", err2)
+	} else {
+		podaci.FiskalniRacun = fr2
+	}
+	if fr3, err := h.FiskalRepo.DohvatiPoServisuITip(r.Context(), id, "Advance", "Refund"); err == nil {
+		podaci.PovracajAvansa = fr3
 	}
 	// fiskalna greška: modul aktivan, nalog preuzet, ali nema KONAČNOG (Normal/Sale)
 	// fiskalnog računa — avansni (Advance/Sale) se ne računa kao konačan, inače bi
@@ -2812,28 +2822,40 @@ func (h *Handler) StampaFiskalnog(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Neispravan ID", http.StatusBadRequest)
 		return
 	}
-	fr, err := h.FiskalRepo.DohvatiPoServisu(r.Context(), id)
-	if err != nil || fr == nil {
-		http.Error(w, "Fiskalni račun nije pronađen", http.StatusNotFound)
-		return
-	}
-	nalog, _ := h.ServisRepo.DohvatiID(r.Context(), id)
-	journal := ""
-	if fr.SiroviOdgovor != "" {
-		var raw map[string]any
-		if json.Unmarshal([]byte(fr.SiroviOdgovor), &raw) == nil {
-			if j, ok := raw["journal"].(string); ok {
-				journal = j
+	var racuni []*model.FiskalniRacun
+	if r.URL.Query().Get("tip") == "povracaj" {
+		// avansni povraćaj viška — eksplicitno traženo (drugi dokument, ne konačan račun)
+		fr, err := h.FiskalRepo.DohvatiPoServisuITip(r.Context(), id, "Advance", "Refund")
+		if err != nil || fr == nil {
+			http.Error(w, "Fiskalni račun nije pronađen", http.StatusNotFound)
+			return
+		}
+		racuni = []*model.FiskalniRacun{fr}
+	} else {
+		// podrazumevano: konačan (Normal/Sale) račun — ako još ne postoji (npr. samo avans
+		// je fiskalizovan pre preuzimanja), padni nazad na najnoviji izdat
+		fr, err := h.FiskalRepo.DohvatiPoServisuITip(r.Context(), id, "Normal", "Sale")
+		if err != nil {
+			http.Error(w, "Fiskalni račun nije pronađen", http.StatusNotFound)
+			return
+		}
+		if fr == nil {
+			if fr, err = h.FiskalRepo.DohvatiPoServisu(r.Context(), id); err != nil || fr == nil {
+				http.Error(w, "Fiskalni račun nije pronađen", http.StatusNotFound)
+				return
+			}
+		}
+		racuni = append(racuni, fr)
+		// avans premašio cenu → povraćaj viška je DRUGI fiskalni dokument, izdat odmah
+		// posle konačnog računa — štampa se u istom prozoru (izbegava se drugi popup,
+		// koji brauzer bez pravog user-gesture-a često blokira)
+		if fr.TipRacuna == "Normal" {
+			if povracaj, err := h.FiskalRepo.DohvatiPoServisuITip(r.Context(), id, "Advance", "Refund"); err == nil && povracaj != nil {
+				racuni = append(racuni, povracaj)
 			}
 		}
 	}
-	if nalog != nil {
-		journal += "\n\n--- NTech servisni nalog: " + nalog.BrojNaloga + " ---\n"
-	}
-
-	// Podeli journal na deo pre i posle QR placeholder-a
-	const qrPlaceholder = "{{{{QR-KOD}}}}"
-	pre, post, hasQR := strings.Cut(journal, qrPlaceholder)
+	nalog, _ := h.ServisRepo.DohvatiID(r.Context(), id)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	fmt.Fprint(w, `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Fiskalni račun</title>
@@ -2841,20 +2863,41 @@ func (h *Handler) StampaFiskalnog(w http.ResponseWriter, r *http.Request) {
 *{box-sizing:border-box;}
 body{font-family:monospace;font-size:12px;padding:20px;max-width:max-content;margin:0 auto;}
 pre{white-space:pre;margin:0;padding:0;font-family:inherit;font-size:inherit;display:block;}
-@media print{body{font-size:11px;padding:10px;}}
+.ntech-razdvajac{margin:24px 0;border-top:2px dashed #999;padding-top:24px;}
+@media print{body{font-size:11px;padding:10px;}.ntech-razdvajac{page-break-before:always;}}
 </style></head><body>`)
 
-	fmt.Fprint(w, `<pre>`)
-	fmt.Fprint(w, pre)
-	fmt.Fprint(w, `</pre>`)
+	const qrPlaceholder = "{{{{QR-KOD}}}}"
+	for i, fr := range racuni {
+		if i > 0 {
+			fmt.Fprint(w, `<div class="ntech-razdvajac"></div>`)
+		}
+		journal := ""
+		if fr.SiroviOdgovor != "" {
+			var raw map[string]any
+			if json.Unmarshal([]byte(fr.SiroviOdgovor), &raw) == nil {
+				if j, ok := raw["journal"].(string); ok {
+					journal = j
+				}
+			}
+		}
+		if nalog != nil {
+			journal += "\n\n--- NTech servisni nalog: " + nalog.BrojNaloga + " ---\n"
+		}
+		pre, post, hasQR := strings.Cut(journal, qrPlaceholder)
 
-	if hasQR && fr.QRKod != "" {
-		fmt.Fprintf(w, `<div style="margin:10px 0;"><img src="data:image/png;base64,%s" style="display:block;margin:0 auto;width:72mm;height:72mm;"></div>`, fr.QRKod)
+		fmt.Fprint(w, `<pre>`)
+		fmt.Fprint(w, pre)
+		fmt.Fprint(w, `</pre>`)
+
+		if hasQR && fr.QRKod != "" {
+			fmt.Fprintf(w, `<div style="margin:10px 0;"><img src="data:image/png;base64,%s" style="display:block;margin:0 auto;width:72mm;height:72mm;"></div>`, fr.QRKod)
+		}
+
+		fmt.Fprint(w, `<pre>`)
+		fmt.Fprint(w, post)
+		fmt.Fprint(w, `</pre>`)
 	}
-
-	fmt.Fprint(w, `<pre>`)
-	fmt.Fprint(w, post)
-	fmt.Fprint(w, `</pre>`)
 
 	fmt.Fprint(w, `<p style="margin-top:16px;"><button onclick="window.print()" style="padding:8px 16px;">Štampaj</button></p></body></html>`)
 }

@@ -78,16 +78,23 @@ type PodaciDashboarda struct {
 // sumnjivih duplikata (naloga koje automatski backfill namerno preskače) — prikazuje
 // se kao kartica na dashboard-u.
 type PrazninaKnjigovodstva struct {
-	BezKir        int
-	BezKpo        int
-	BezFiskalnog  int
-	BezRefunda    int // stornirani nalozi čiji fiskalni refund nije uspeo (best-effort poziv pao)
-	SumnjiviDupli int
+	BezKir              int
+	BezKpo              int
+	BezFiskalnogProdaja int // prodajni nalozi bez izdatog fiskalnog računa
+	BezFiskalnogServis  int // preuzeti servisni nalozi bez izdatog fiskalnog računa
+	BezRefunda          int // stornirani nalozi čiji fiskalni refund nije uspeo (best-effort poziv pao)
+	SumnjiviDupli       int
+}
+
+// BezFiskalnog vraća ukupan broj naloga (prodaja + servis) bez izdatog fiskalnog
+// računa — koristi se za prikaz zbirnog broja na dashboard-u.
+func (p PrazninaKnjigovodstva) BezFiskalnog() int {
+	return p.BezFiskalnogProdaja + p.BezFiskalnogServis
 }
 
 // Ukupno vraća zbir svih praznina UKLJUČUJUĆI sumnjive duplikate — koristi se da se
 // odluči da li se kartica uopšte prikazuje na dashboard-u (i kad ostanu samo
 // duplikati za ručnu proveru, kartica mora da ostane vidljiva).
 func (p PrazninaKnjigovodstva) Ukupno() int {
-	return p.BezKir + p.BezKpo + p.BezFiskalnog + p.BezRefunda + p.SumnjiviDupli
+	return p.BezKir + p.BezKpo + p.BezFiskalnog() + p.BezRefunda + p.SumnjiviDupli
 }

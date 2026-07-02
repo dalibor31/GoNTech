@@ -243,10 +243,10 @@ func (h *Handler) PraznineKnjigovodstva(ctx context.Context) (model.PrazninaKnji
 
 	if h.modulUkljucen(ctx, "fiskalizacija") {
 		if m, err := h.FiskalRepo.ProdajeBezFiskalnog(ctx); err == nil {
-			p.BezFiskalnog += len(m)
+			p.BezFiskalnogProdaja += len(m)
 		}
 		if m, err := h.FiskalRepo.ServisiBezFiskalnog(ctx); err == nil {
-			p.BezFiskalnog += len(m)
+			p.BezFiskalnogServis += len(m)
 		}
 		if n, err := h.stornoBezRefunda(ctx); err == nil {
 			p.BezRefunda = n
