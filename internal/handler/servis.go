@@ -2766,6 +2766,11 @@ func (h *Handler) AzurirajGarancijaDana(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
 		return
 	}
+	// garancija se ne menja posle preuzimanja — garantni list je već izdat na osnovu nje
+	if nalog, e := h.ServisRepo.DohvatiID(r.Context(), id); e == nil && nalog.Status == model.StatusPreuzeto {
+		http.Error(w, "Garancija se ne može menjati nakon preuzimanja uređaja.", http.StatusBadRequest)
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
 		return
@@ -2843,6 +2848,11 @@ func (h *Handler) AzurirajTehnicar(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+	// serviser se ne menja posle preuzimanja — nalog je zatvoren
+	if nalog, e := h.ServisRepo.DohvatiID(r.Context(), id); e == nil && nalog.Status == model.StatusPreuzeto {
+		http.Error(w, "Serviser se ne može menjati nakon preuzimanja uređaja.", http.StatusBadRequest)
 		return
 	}
 	if err := r.ParseForm(); err != nil {
