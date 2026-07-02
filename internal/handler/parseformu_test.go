@@ -22,7 +22,7 @@ func TestParseFormuArtikla(t *testing.T) {
 	t.Run("validan", func(t *testing.T) {
 		a, greska := parseFormuArtikla(formZahtev(url.Values{
 			"naziv": {"Pumpa"}, "kolicina": {"10"}, "prodajna_cena": {"1500.50"},
-		}))
+		}), 20.0)
 		if greska != "" {
 			t.Fatalf("neočekivana greška: %q", greska)
 		}
@@ -31,18 +31,18 @@ func TestParseFormuArtikla(t *testing.T) {
 		}
 	})
 	t.Run("naziv obavezan", func(t *testing.T) {
-		if _, greska := parseFormuArtikla(formZahtev(url.Values{"naziv": {""}})); greska == "" {
+		if _, greska := parseFormuArtikla(formZahtev(url.Values{"naziv": {""}}), 20.0); greska == "" {
 			t.Fatal("prazan naziv mora dati grešku")
 		}
 	})
 	t.Run("negativna količina", func(t *testing.T) {
-		_, greska := parseFormuArtikla(formZahtev(url.Values{"naziv": {"X"}, "kolicina": {"-5"}}))
+		_, greska := parseFormuArtikla(formZahtev(url.Values{"naziv": {"X"}, "kolicina": {"-5"}}), 20.0)
 		if greska == "" {
 			t.Fatal("negativna količina mora dati grešku")
 		}
 	})
 	t.Run("neispravna cena", func(t *testing.T) {
-		_, greska := parseFormuArtikla(formZahtev(url.Values{"naziv": {"X"}, "prodajna_cena": {"abc"}}))
+		_, greska := parseFormuArtikla(formZahtev(url.Values{"naziv": {"X"}, "prodajna_cena": {"abc"}}), 20.0)
 		if greska == "" {
 			t.Fatal("neispravna cena mora dati grešku")
 		}
@@ -91,7 +91,7 @@ func TestParseFormuKlijenta(t *testing.T) {
 
 func TestParseFormuProdaje(t *testing.T) {
 	t.Run("bez stavki", func(t *testing.T) {
-		_, _, greska := parseFormuProdaje(formZahtev(url.Values{}))
+		_, _, greska := parseFormuProdaje(formZahtev(url.Values{}), map[float64]bool{0: true, 10: true, 20: true})
 		if greska == "" {
 			t.Fatal("prodaja bez stavki mora dati grešku")
 		}
@@ -99,7 +99,7 @@ func TestParseFormuProdaje(t *testing.T) {
 	t.Run("količina nula", func(t *testing.T) {
 		_, _, greska := parseFormuProdaje(formZahtev(url.Values{
 			"artikal_id[]": {"1"}, "kolicina[]": {"0"}, "cena_po_komadu[]": {"100"},
-		}))
+		}), map[float64]bool{0: true, 10: true, 20: true})
 		if greska == "" {
 			t.Fatal("količina 0 mora dati grešku")
 		}
@@ -107,7 +107,7 @@ func TestParseFormuProdaje(t *testing.T) {
 	t.Run("neispravan artikal", func(t *testing.T) {
 		_, _, greska := parseFormuProdaje(formZahtev(url.Values{
 			"artikal_id[]": {"0"}, "kolicina[]": {"1"}, "cena_po_komadu[]": {"100"},
-		}))
+		}), map[float64]bool{0: true, 10: true, 20: true})
 		if greska == "" {
 			t.Fatal("artikal_id 0 mora dati grešku")
 		}
@@ -115,7 +115,7 @@ func TestParseFormuProdaje(t *testing.T) {
 	t.Run("validna stavka", func(t *testing.T) {
 		nalog, stavke, greska := parseFormuProdaje(formZahtev(url.Values{
 			"artikal_id[]": {"3"}, "kolicina[]": {"2"}, "cena_po_komadu[]": {"250"}, "pdv_stopa[]": {"20"},
-		}))
+		}), map[float64]bool{0: true, 10: true, 20: true})
 		if greska != "" {
 			t.Fatalf("neočekivana greška: %q", greska)
 		}
@@ -133,7 +133,7 @@ func TestParseFormuProdaje(t *testing.T) {
 	t.Run("nesklad broja stavki", func(t *testing.T) {
 		_, _, greska := parseFormuProdaje(formZahtev(url.Values{
 			"artikal_id[]": {"1", "2"}, "kolicina[]": {"1"}, "cena_po_komadu[]": {"100"},
-		}))
+		}), map[float64]bool{0: true, 10: true, 20: true})
 		if greska == "" {
 			t.Fatal("nesklad broja stavki mora dati grešku")
 		}

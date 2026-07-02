@@ -168,6 +168,35 @@ func (h *Handler) modulUkljucen(ctx context.Context, modul string) bool {
 	return config.ModulUkljucen(podesavanja, modul)
 }
 
+// podrazumevanaPdvStopa vraća opštu PDV stopu iz šifarnika (Podešavanja → Kalkulacija
+// i PDV → Šifarnik PDV stopa) — jedini izvor „koja je opšta stopa" u programu.
+// 20.0 se koristi samo kao krajnji fallback ako šifarnik nema nijednu aktivnu
+// opštu stopu (npr. korisnik ih sve arhivirao) — ne kao podrazumevana poslovna
+// pretpostavka, već da se izbegne prekid rada.
+func (h *Handler) podrazumevanaPdvStopa(ctx context.Context) float64 {
+	stopa, err := h.PdvStopeRepo.PodrazumevanaOpsta(ctx)
+	if err != nil || stopa == nil {
+		return 20.0
+	}
+	return stopa.Stopa
+}
+
+// validnePdvStope vraća skup PDV stopa koje korisnik sme da izabere na stavci —
+// aktivne stope iz šifarnika (Podešavanja → Kalkulacija i PDV), plus 0 koje je
+// uvek dozvoljeno (van sistema PDV/oslobođeno). Zamenjuje hardkodovanu proveru
+// „0, 10 ili 20" — šifarnik je jedini izvor važećih stopa.
+func (h *Handler) validnePdvStope(ctx context.Context) map[float64]bool {
+	validne := map[float64]bool{0: true}
+	stope, err := h.PdvStopeRepo.Lista(ctx, true)
+	if err != nil {
+		return validne
+	}
+	for _, s := range stope {
+		validne[s.Stopa] = true
+	}
+	return validne
+}
+
 // zahtevajDozvolu vraća prijavljenog korisnika ako njegova uloga sme da izvrši akciju.
 // U suprotnom šalje 403 sa srpskom porukom i vraća ok=false (handler tada return-uje).
 func (h *Handler) zahtevajDozvolu(w http.ResponseWriter, r *http.Request, akcija string) (*model.Korisnik, bool) {

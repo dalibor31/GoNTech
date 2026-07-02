@@ -2531,8 +2531,15 @@ func (h *Handler) fiskalizujAvansServisa(ctx context.Context, servisID int64, no
 	if nacinPlacanja == "" {
 		nacinPlacanja = "Gotovina"
 	}
+	// stopa avansa: opšta stopa iz šifarnika za PDV obveznika, 0 (van sistema PDV)
+	// za ne-obveznika — stavke (radovi/delovi) još nisu poznate u trenutku avansa,
+	// pa se ne može koristiti njihova stvarna stopa (v. docs/Greške.md §4.2).
+	stopaAvansa := 0.0
+	if h.modulUkljucen(ctx, config.ModulPdv) {
+		stopaAvansa = h.podrazumevanaPdvStopa(ctx)
+	}
 
-	zahtev := fiskal.NapraviAvansZahtev(delta, nacinPlacanja, h.imeKasira(ctx))
+	zahtev := fiskal.NapraviAvansZahtev(delta, stopaAvansa, nacinPlacanja, h.imeKasira(ctx))
 	odgovor, err := klijent.IzdajRacun(ctx, zahtev)
 	if err != nil {
 		slog.Error("fiskalizacija avansa servisa nije uspela", "servis_id", servisID, "error", err)
@@ -2587,7 +2594,7 @@ func (h *Handler) fiskalizujServis(ctx context.Context, servisID int64, klijent 
 		return
 	}
 
-	items := stavkeFiskalnogServisa(radovi, delovi)
+	items := stavkeFiskalnogServisa(radovi, delovi, h.modulUkljucen(ctx, config.ModulPdv))
 	if len(items) == 0 {
 		slog.Warn("fiskalizujServis: nema stavki za fiskalni račun, zahtev odbačen", "id", servisID)
 		return
@@ -2626,6 +2633,13 @@ func (h *Handler) fiskalizujServis(ctx context.Context, servisID int64, klijent 
 	// zatvara — PFR sam raspoređuje avans na ovaj račun preko Advance* polja.
 	// Ako avans premašuje punu cenu (visak), zatvara se samo do pune cene, a
 	// razlika se posle uspešnog Sale-a vraća posebnim Advance/Refund zahtevom.
+	// stopa avansa — ista logika kao pri fiskalizaciji avansa (v. fiskalizujAvansServisa);
+	// pretpostavlja da se profil firme nije promenio između avansa i konačne naplate.
+	stopaAvansa := 0.0
+	if h.modulUkljucen(ctx, config.ModulPdv) {
+		stopaAvansa = h.podrazumevanaPdvStopa(ctx)
+	}
+
 	var visakAvansa float64
 	var avansRacun *model.FiskalniRacun
 	if avansNeto, e := h.FiskalRepo.SumaAvansaPoServisu(ctx, servisID); e == nil && avansNeto > 0 {
@@ -2641,7 +2655,7 @@ func (h *Handler) fiskalizujServis(ctx context.Context, servisID int64, klijent 
 				visakAvansa = math.Round((iskoriscenAvans-punaCena)*100) / 100
 				iskoriscenAvans = punaCena
 			}
-			porez := fiskal.PorezIzBrutoAvansa(iskoriscenAvans)
+			porez := fiskal.PorezIzBrutoAvansa(iskoriscenAvans, stopaAvansa)
 			zahtev.AdvancePaid = &iskoriscenAvans
 			zahtev.AdvanceTax = &porez
 			zahtev.AdvanceLastInvoiceNumber = avansRacun.PfrBroj
@@ -2685,7 +2699,7 @@ func (h *Handler) fiskalizujServis(ctx context.Context, servisID int64, klijent 
 
 	// avans je premašio punu cenu — vrati razliku posebnim Advance/Refund zahtevom
 	if visakAvansa > 0 && avansRacun != nil {
-		refundZahtev := fiskal.NapraviAvansRefundZahtev(visakAvansa, nacinPlacanja, kasir, avansRacun.PfrBroj)
+		refundZahtev := fiskal.NapraviAvansRefundZahtev(visakAvansa, stopaAvansa, nacinPlacanja, kasir, avansRacun.PfrBroj)
 		refundOdgovor, errRefund := klijent.IzdajRacun(ctx, refundZahtev)
 		if errRefund != nil {
 			slog.Error("povraćaj viška avansa nije uspeo", "servis_id", servisID, "error", errRefund)
@@ -2720,17 +2734,27 @@ func (h *Handler) fiskalizujServis(ctx context.Context, servisID int64, klijent 
 // stavkeFiskalnogServisa gradi stavke fiskalnog računa od radova i ugrađenih
 // delova servisnog naloga — koristi se i za Sale (fiskalizujServis) i za
 // Refund (refundujServis), predloženi (neprihvaćeni) redovi se ne naplaćuju.
-func stavkeFiskalnogServisa(radovi []model.ServisniRad, delovi []model.ServisniDeoSaArtiklom) []fiskal.InvoiceItem {
+// pdvUkljucen odražava trenutni profil firme (modul „pdv") — kad je false,
+// stope se prisilno nuliraju bez obzira šta piše u tabelama usluga/artikala
+// (ista odbrana kao u Prodaji, v. prodaja.go i docs/Greške.md §2.1).
+func stavkeFiskalnogServisa(radovi []model.ServisniRad, delovi []model.ServisniDeoSaArtiklom, pdvUkljucen bool) []fiskal.InvoiceItem {
+	stopaZa := func(stopa float64) float64 {
+		if !pdvUkljucen {
+			return 0
+		}
+		return stopa
+	}
 	items := make([]fiskal.InvoiceItem, 0)
 	for _, r := range radovi {
 		if r.Predlozeno {
 			continue
 		}
+		stopa := stopaZa(r.PdvStopa)
 		items = append(items, fiskal.InvoiceItem{
 			Name:        r.Naziv,
-			Labels:      []string{fiskal.OznakaPDV(r.PdvStopa)},
-			TotalAmount: fiskal.BrutoCena(r.Ukupno(), r.PdvStopa),
-			UnitPrice:   fiskal.BrutoCena(r.CenaKomada, r.PdvStopa),
+			Labels:      []string{fiskal.OznakaPDV(stopa)},
+			TotalAmount: fiskal.BrutoCena(r.Ukupno(), stopa),
+			UnitPrice:   fiskal.BrutoCena(r.CenaKomada, stopa),
 			Quantity:    r.Kolicina,
 		})
 	}
@@ -2738,11 +2762,12 @@ func stavkeFiskalnogServisa(radovi []model.ServisniRad, delovi []model.ServisniD
 		if d.Predlozeno {
 			continue
 		}
+		stopa := stopaZa(d.PdvStopa)
 		items = append(items, fiskal.InvoiceItem{
 			Name:        d.ArtikalNaziv,
-			Labels:      []string{fiskal.OznakaPDV(d.PdvStopa)},
-			TotalAmount: fiskal.BrutoCena(d.Ukupno(), d.PdvStopa),
-			UnitPrice:   fiskal.BrutoCena(d.CenaKomada, d.PdvStopa),
+			Labels:      []string{fiskal.OznakaPDV(stopa)},
+			TotalAmount: fiskal.BrutoCena(d.Ukupno(), stopa),
+			UnitPrice:   fiskal.BrutoCena(d.CenaKomada, stopa),
 			Quantity:    float64(d.Kolicina),
 		})
 	}
@@ -2769,7 +2794,7 @@ func (h *Handler) refundujServis(ctx context.Context, servisID int64, klijent *f
 		slog.Error("refundujServis: greška pri dohvatanju delova", "id", servisID, "error", err)
 		return err
 	}
-	items := stavkeFiskalnogServisa(radovi, delovi)
+	items := stavkeFiskalnogServisa(radovi, delovi, h.modulUkljucen(ctx, config.ModulPdv))
 	if len(items) == 0 {
 		return nil
 	}
