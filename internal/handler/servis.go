@@ -1829,8 +1829,10 @@ type PodaciEskalacionogLista struct {
 	PIB           string
 	MaticniBroj   string
 	Barkod        string
-	// LogDogadjaji mapa dogadjaj→vreme, npr. "status:U dijagnostici"→datum
-	LogDogadjaji map[string]time.Time
+	// LogDogadjaji mapa dogadjaj→vreme, npr. "status:U dijagnostici"→datum.
+	// Vrednost je pokazivač: nedostajući ključ mora dati nil (a ne nultu time.Time,
+	// koju {{with}} u šablonu tretira kao "istinitu" pa bi ispisao 01.01.0001.)
+	LogDogadjaji map[string]*time.Time
 }
 
 // StampaEskalacionogLista renderuje interni list praćenja rokova.
@@ -1875,11 +1877,12 @@ func (h *Handler) StampaEskalacionogLista(w http.ResponseWriter, r *http.Request
 	}
 
 	logZapisi, _ := h.ServisniLogRepo.DohvatiZaNalog(r.Context(), id)
-	logDogadjaji := make(map[string]time.Time, len(logZapisi))
+	logDogadjaji := make(map[string]*time.Time, len(logZapisi))
 	for _, l := range logZapisi {
 		// čuvamo samo prvi zapis za svaki tip događaja
 		if _, postoji := logDogadjaji[l.Dogadjaj]; !postoji {
-			logDogadjaji[l.Dogadjaj] = l.Datum
+			datum := l.Datum
+			logDogadjaji[l.Dogadjaj] = &datum
 		}
 	}
 
