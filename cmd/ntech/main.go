@@ -457,6 +457,8 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(ntechmw.RequireSuperAdmin)
 			r.Post("/admin/dozvole/uloga/{id}", h.AdminDozvolePromeniUlogu)
+			r.Get("/admin/blokirane-ip", h.AdminBlokiraneIP)
+			r.Post("/admin/blokirane-ip/odblokiraj", h.AdminOdblokirajIP)
 		})
 		r.Get("/admin/profil", h.AdminProfil)
 		r.Post("/admin/profil/lozinka", h.AdminPromeniLozinku)

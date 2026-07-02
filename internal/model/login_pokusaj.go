@@ -12,3 +12,10 @@ type LoginPokusaj struct {
 	Razlog     string
 	Vreme      time.Time
 }
+
+// BlokiranaIP predstavlja IP adresu trenutno zaključanu zbog previše neuspelih pokušaja prijave
+type BlokiranaIP struct {
+	IP               string
+	BrojNeuspeha     int
+	PoslednjiPokusaj time.Time
+}

@@ -19,7 +19,7 @@ var bazniSabloni = []string{
 
 // saSidebar su šabloni koji koriste base layout (sidebar + topbar)
 var saSidebar = []string{
-	"admin_korisnici", "admin_profil", "admin_login_istorija", "admin_dozvole",
+	"admin_korisnici", "admin_profil", "admin_login_istorija", "admin_dozvole", "blokirane_ip",
 	"dashboard",
 	"dobavljaci", "dobavljac_forma",
 	"izvestaji", "prometni_list", "stanje_zaliha", "popis",

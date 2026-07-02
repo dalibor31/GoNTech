@@ -336,6 +336,10 @@ type PokusajiPrijaveRepository interface {
 	BrojNeuspeha(ctx context.Context, ip string, od time.Time) (int, error)
 	VremePoslednjeg(ctx context.Context, ip string, od time.Time) (time.Time, bool, error)
 	ObrisiStare(ctx context.Context, pre time.Time) error
+	// ListaBlokiranih vraća IP adrese sa >= prag neuspelih pokušaja od zadatog trenutka
+	ListaBlokiranih(ctx context.Context, od time.Time, prag int) ([]model.BlokiranaIP, error)
+	// Odblokiraj briše neuspele pokušaje za IP adresu, čime se ona odmah oslobađa blokade
+	Odblokiraj(ctx context.Context, ip string) error
 }
 
 // LoginIstorijsaRepository definiše operacije nad evidencijom prijava
