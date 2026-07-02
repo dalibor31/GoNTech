@@ -45,6 +45,11 @@
                 <span style="font-size:20px;font-weight:600;color:var(--tekst-glavni);font-family:monospace;">
                     {{.Nalog.BrojNaloga}}
                 </span>
+                {{if .Nalog.Stornirano}}
+                <span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500;background:rgba(220,38,38,0.12);color:#dc2626;">
+                    Stornirano
+                </span>
+                {{end}}
                 {{if .Nalog.PopravkaOdbijena}}
                 <div style="padding:8px 14px;background:color-mix(in srgb, var(--crvena, #ef4444) 14%, transparent);border:1px solid color-mix(in srgb, var(--crvena, #ef4444) 35%, transparent);border-radius:8px;">
                     <span style="font-size:15px;font-weight:700;color:var(--crvena, #ef4444);">✕ Klijent je odbio popravku</span>
@@ -1013,6 +1018,31 @@
                 <button type="submit" class="btn-primarno" style="background:#d97706;border-color:#d97706;white-space:nowrap;">Pokušaj ponovo</button>
             </form>
             {{end}}
+        </div>
+    </div>
+    {{end}}
+
+    <!-- storno -->
+    {{if and (index .Dozvole "servis.storno") (eq .Nalog.Status "Preuzeto") (not .Nalog.Stornirano)}}
+    <div class="kartica detalji-kartica animiraj" style="border-color:#dc262633;">
+        <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:200px;">
+                <div style="font-size:14px;font-weight:500;color:#f97316;margin-bottom:4px;">Storniranje naloga</div>
+                <div class="pomocni-tekst">
+                    Storno vraća ugrađene delove na stanje u magacinu. Nalog ostaje u evidenciji sa oznakom storniran.
+                </div>
+            </div>
+            <form method="POST" action="/servis/storno/{{.Nalog.ID}}" style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
+                <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+                <input type="text" name="razlog" placeholder="Razlog storniranja (opciono)" style="width:240px;">
+                {{if .PotrebnaIdentKupca}}
+                <input type="text" name="poreski_broj_kupca" placeholder="PIB ili JMBG kupca (obavezno za refundaciju)" required style="width:240px;">
+                {{end}}
+                <button type="submit" class="btn-upozorenje"
+                    data-potvrda="Stornirati nalog {{.Nalog.BrojNaloga}}?">
+                    Storniraj nalog
+                </button>
+            </form>
         </div>
     </div>
     {{end}}

@@ -118,7 +118,7 @@ func (h *Handler) kpoKandidatiServisa(ctx context.Context) (naplaceni []model.Se
 	}
 	naplaceni = make([]model.ServisniNalogSaKlijentom, 0, len(servisNalozi))
 	for _, sn := range servisNalozi {
-		if sn.Status == model.StatusPreuzeto && sn.Naplaceno != 0 {
+		if sn.Status == model.StatusPreuzeto && sn.Naplaceno != 0 && !sn.Stornirano {
 			naplaceni = append(naplaceni, sn)
 		} else {
 			nenaplaceniBroj++
@@ -211,17 +211,23 @@ func (h *Handler) PraznineKnjigovodstva(ctx context.Context) (model.PrazninaKnji
 	return p, nil
 }
 
-// stornoBezRefunda broji stornirane prodajne naloge čiji je originalni fiskalni
-// račun i dalje neoznačen kao storniran — znači da je storno u bazi prošao, ali
-// fiskalni refund ka ESIR/L-PFR uređaju NIJE uspeo (best-effort poziv je pao).
-// Servis nema storno funkciju — obuhvaćena je samo prodaja.
+// stornoBezRefunda broji stornirane prodajne i servisne naloge čiji je originalni
+// fiskalni račun i dalje neoznačen kao storniran — znači da je storno u bazi
+// prošao, ali fiskalni refund ka ESIR/L-PFR uređaju NIJE uspeo (best-effort poziv
+// je pao).
 func (h *Handler) stornoBezRefunda(ctx context.Context) (int, error) {
 	var n int
 	err := h.DB.QueryRowContext(ctx, `
-		SELECT COUNT(*) FROM prodajni_nalozi pn
-		JOIN fiskalni_racuni fr ON fr.prodaja_id = pn.id
-			AND fr.tip_transakcije = 'Sale' AND fr.storniran = 0
-		WHERE pn.stornirano = 1
+		SELECT
+			(SELECT COUNT(*) FROM prodajni_nalozi pn
+				JOIN fiskalni_racuni fr ON fr.prodaja_id = pn.id
+					AND fr.tip_transakcije = 'Sale' AND fr.storniran = 0
+				WHERE pn.stornirano = 1)
+			+
+			(SELECT COUNT(*) FROM servisni_nalozi sn
+				JOIN fiskalni_racuni fr ON fr.servis_id = sn.id
+					AND fr.tip_transakcije = 'Sale' AND fr.storniran = 0
+				WHERE sn.stornirano = 1)
 	`).Scan(&n)
 	return n, err
 }

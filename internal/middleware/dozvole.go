@@ -24,6 +24,7 @@ var sveAkcije = []string{
 	"servis.dodaj",
 	"servis.izmeni",
 	"servis.obrisi",
+	"servis.storno",
 	"prodaja.pregled",
 	"prodaja.dodaj",
 	"prodaja.storno",
@@ -77,7 +78,7 @@ func ImaDozvolu(uloga, akcija string) bool {
 			return true
 		// servis
 		case "servis.pregled", "servis.dodaj",
-			"servis.izmeni", "servis.obrisi":
+			"servis.izmeni", "servis.obrisi", "servis.storno":
 			return true
 		// prodaja
 		case "prodaja.pregled", "prodaja.dodaj", "prodaja.storno":

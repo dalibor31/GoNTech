@@ -380,6 +380,7 @@ func main() {
 		r.Get("/servis/izmeni/{id}", h.IzmeniNalog)
 		r.With(doz("servis.izmeni")).Post("/servis/izmeni/{id}", h.SacuvajIzmenaNaloga)
 		r.With(doz("servis.obrisi")).Post("/servis/obrisi/{id}", h.ObrisiNalog)
+		r.With(doz("servis.storno")).Post("/servis/storno/{id}", h.StornoNaloga)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "servis.pregled")).Get("/servis/{id}", h.DetaljiNaloga)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "servis.pregled")).Get("/servis/{id}/radni-nalog", h.StampaRadnogNaloga)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "servis.pregled")).Get("/servis/{id}/otpremnica", h.StampaOtpremnice)

@@ -217,6 +217,9 @@ type ServisRepository interface {
 	SacuvajOdlukuKlijenta(ctx context.Context, id int64, odluka string, odgovor string) error
 	ObrisiOdlukuKlijenta(ctx context.Context, id int64) error
 	Obrisi(ctx context.Context, id int64, korisnikID *int64) error
+	// Storno stornira nalog (vraća ugrađene delove na stanje, markira stornirano=1)
+	// bez brisanja — koristi se kad nalog već ima finansijske zapise (KIR/KPO/fiskalni)
+	Storno(ctx context.Context, id int64, razlog string, korisnikID *int64) error
 	SledeciBroj(ctx context.Context) (string, error)
 	SacuvajNaplatu(ctx context.Context, id int64, nacinPlacanja string, naplaceno float64) error
 }

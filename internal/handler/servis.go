@@ -85,6 +85,7 @@ type PodaciDetaljiNaloga struct {
 	FiskalniRacun           *model.FiskalniRacun // nil ako nije fiskalizovano
 	RokPodizanja            *time.Time           // DatumZavrsetka + 30 dana; nil dok nije završeno
 	FiskalGreska            bool                 // true: fiskalizacija aktivna, status Preuzeto, ali nema fiskalnog računa
+	PotrebnaIdentKupca      bool                 // true: refundacija zahteva ručni unos PIB/JMBG kupca (nema ga iz klijenta)
 }
 
 // Servis renderuje listu servisnih naloga sa opcionom pretragom i filterom statusa
@@ -505,7 +506,9 @@ func (h *Handler) SacuvajIzmenaNaloga(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)
 }
 
-// ObrisiNalog prima POST zahtev i briše servisni nalog po ID-u
+// ObrisiNalog prima POST zahtev i briše servisni nalog po ID-u. Odbija brisanje
+// ako nalog već ima finansijske zapise (fiskalni račun, KIR ili KPO) — brisanje bi
+// ostavilo te zapise sa mrtvim izvor_id; za takve naloge koristi se Storno.
 func (h *Handler) ObrisiNalog(w http.ResponseWriter, r *http.Request) {
 	k, ok := h.zahtevajDozvolu(w, r, "servis.obrisi")
 	if !ok {
@@ -517,6 +520,17 @@ func (h *Handler) ObrisiNalog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if imaFinansijskeZapise, err := h.servisImaFinansijskeZapise(r.Context(), id); err != nil {
+		slog.Error("provera finansijskih zapisa nije uspela", "id", id, "error", err)
+		http.Error(w, "Greška pri brisanju naloga", http.StatusInternalServerError)
+		return
+	} else if imaFinansijskeZapise {
+		middleware.SetFlash(w, r, h.DB, "greska",
+			"Nalog ima fiskalni račun i/ili KIR/KPO upis — ne može se obrisati. Koristite Storno.")
+		http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+		return
+	}
+
 	if err := h.ServisRepo.Obrisi(r.Context(), id, &k.ID); err != nil {
 		slog.Error("greška pri brisanju naloga", "id", id, "error", err)
 		http.Error(w, "Greška pri brisanju naloga", http.StatusInternalServerError)
@@ -524,6 +538,114 @@ func (h *Handler) ObrisiNalog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/servis?obrisan=1", http.StatusSeeOther)
+}
+
+// servisImaFinansijskeZapise proverava da li servisni nalog već ima fiskalni
+// račun ili KIR/KPO upis — takav nalog se ne sme fizički obrisati.
+func (h *Handler) servisImaFinansijskeZapise(ctx context.Context, id int64) (bool, error) {
+	if fr, _ := h.FiskalRepo.DohvatiPoServisu(ctx, id); fr != nil {
+		return true, nil
+	}
+	if postoji, err := h.PdvKirRepo.PostojiZaIzvor(ctx, "servis", id); err != nil {
+		return false, err
+	} else if postoji {
+		return true, nil
+	}
+	if postoji, err := h.KpoRepo.PostojiZaIzvor(ctx, "servis", id); err != nil {
+		return false, err
+	} else if postoji {
+		return true, nil
+	}
+	return false, nil
+}
+
+// StornoNaloga stornira servisni nalog: vraća ugrađene delove na stanje, dograđuje
+// storno stavke u KIR/KPO (original se ne briše — v. model.KirStorno/KpoStorno) i
+// šalje fiskalni refund (best-effort). Koristi se umesto brisanja kad nalog već
+// ima finansijske zapise.
+func (h *Handler) StornoNaloga(w http.ResponseWriter, r *http.Request) {
+	k, ok := h.zahtevajDozvolu(w, r, "servis.storno")
+	if !ok {
+		return
+	}
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Neispravan ID naloga", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
+		return
+	}
+	razlog := strings.TrimSpace(r.FormValue("razlog"))
+	poreskiBrojKupca := strings.TrimSpace(r.FormValue("poreski_broj_kupca"))
+
+	ctx := r.Context()
+
+	// refundacija po propisu zahteva identifikaciju kupca (PIB/JMBG)
+	var originalniFiskal *model.FiskalniRacun
+	if h.modulUkljucen(ctx, config.ModulFiskalizacija) {
+		if fr, _ := h.FiskalRepo.DohvatiPoServisu(ctx, id); fr != nil && !fr.Storniran {
+			originalniFiskal = fr
+			imaIdentKupca := false
+			if nalog, e := h.ServisRepo.DohvatiID(ctx, id); e == nil && nalog.KlijentID != nil {
+				if kk, e2 := h.KlijentiRepo.DohvatiID(ctx, *nalog.KlijentID); e2 == nil {
+					imaIdentKupca = kk.PIB != "" || kk.JMBG != ""
+				}
+			}
+			if !imaIdentKupca && poreskiBrojKupca == "" {
+				middleware.SetFlash(w, r, h.DB, "greska", errPotrebnaIdentKupca.Error())
+				http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+				return
+			}
+		}
+	}
+
+	if err := h.ServisRepo.Storno(ctx, id, razlog, &k.ID); err != nil {
+		slog.Error("greška pri storniranju servisnog naloga", "id", id, "error", err)
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri storniranju. Možda je nalog već storniran.")
+		http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+		return
+	}
+	if k := middleware.KorisnikIzKonteksta(ctx); k != nil {
+		kid := k.ID
+		_ = h.ServisniLogRepo.Kreiraj(ctx, id, "storno", &kid)
+	}
+
+	// KIR — original se ne briše, dograđuje se storno stavka
+	if zapisi, e := h.PdvKirRepo.DohvatiPoIzvoru(ctx, "servis", id); e != nil {
+		slog.Error("čitanje vezanog KIR zapisa nije uspelo", "servis_id", id, "error", e)
+	} else {
+		for _, z := range zapisi {
+			storno := model.KirStorno(z, razlog, time.Now())
+			if _, e := h.PdvKirRepo.Kreiraj(ctx, &storno); e != nil {
+				slog.Error("upis storno KIR zapisa nije uspeo", "servis_id", id, "error", e)
+			}
+		}
+	}
+
+	// KPO — original se ne briše, dograđuje se storno stavka
+	if h.modulUkljucen(ctx, "kpo") {
+		if zapisi, e := h.KpoRepo.DohvatiPoIzvoru(ctx, "servis", id); e != nil {
+			slog.Error("čitanje vezanog KPO zapisa nije uspelo", "servis_id", id, "error", e)
+		} else {
+			for _, z := range zapisi {
+				storno := model.KpoStorno(z, razlog, time.Now())
+				if _, e := h.KpoRepo.Kreiraj(ctx, &storno); e != nil {
+					slog.Error("upis storno KPO zapisa nije uspeo", "servis_id", id, "error", e)
+				}
+			}
+		}
+	}
+
+	// fiskalni refund — best-effort
+	if originalniFiskal != nil {
+		if fk := h.fiskalKlijent(); fk != nil {
+			h.refundujServis(ctx, id, fk, originalniFiskal.ID, originalniFiskal.PfrBroj, poreskiBrojKupca)
+		}
+	}
+
+	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)
 }
 
 // DetaljiNaloga prikazuje sve podatke jednog servisnog naloga sa ugrađenim delovima
@@ -601,10 +723,12 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 	bezGarancije := nalog.GarancijaDana == nil || *nalog.GarancijaDana <= 0
 
 	klijentNaziv := ""
+	imaIdentKupca := false
 	if nalog.KlijentID != nil {
 		klijent, err := h.KlijentiRepo.DohvatiID(r.Context(), *nalog.KlijentID)
 		if err == nil {
 			klijentNaziv = klijent.PunoIme()
+			imaIdentKupca = klijent.PIB != "" || klijent.JMBG != ""
 		}
 	}
 
@@ -762,6 +886,9 @@ func (h *Handler) DetaljiNaloga(w http.ResponseWriter, r *http.Request) {
 		podaci.FiskalniRacun == nil {
 		podaci.FiskalGreska = true
 	}
+	// storno zahteva PIB/JMBG kupca za refundaciju ako klijent nema upisan poreski broj
+	podaci.PotrebnaIdentKupca = h.modulUkljucen(r.Context(), config.ModulFiskalizacija) &&
+		!nalog.Stornirano && podaci.FiskalniRacun != nil && !podaci.FiskalniRacun.Storniran && !imaIdentKupca
 
 	h.renderujTemplate(w, "servis_detalji", podaci)
 }
@@ -2286,32 +2413,7 @@ func (h *Handler) fiskalizujServis(ctx context.Context, servisID int64, klijent 
 		return
 	}
 
-	// napravi stavke za fiskalni račun
-	items := make([]fiskal.InvoiceItem, 0)
-	for _, r := range radovi {
-		if r.Predlozeno {
-			continue
-		}
-		items = append(items, fiskal.InvoiceItem{
-			Name:        r.Naziv,
-			Labels:      []string{fiskal.OznakaPDV(r.PdvStopa)},
-			TotalAmount: fiskal.BrutoCena(r.Ukupno(), r.PdvStopa),
-			UnitPrice:   fiskal.BrutoCena(r.CenaKomada, r.PdvStopa),
-			Quantity:    r.Kolicina,
-		})
-	}
-	for _, d := range delovi {
-		if d.Predlozeno {
-			continue
-		}
-		items = append(items, fiskal.InvoiceItem{
-			Name:        d.ArtikalNaziv,
-			Labels:      []string{fiskal.OznakaPDV(d.PdvStopa)},
-			TotalAmount: fiskal.BrutoCena(d.Ukupno(), d.PdvStopa),
-			UnitPrice:   fiskal.BrutoCena(d.CenaKomada, d.PdvStopa),
-			Quantity:    float64(d.Kolicina),
-		})
-	}
+	items := stavkeFiskalnogServisa(radovi, delovi)
 	if len(items) == 0 {
 		slog.Warn("fiskalizujServis: nema stavki za fiskalni račun, zahtev odbačen", "id", servisID)
 		return
@@ -2371,6 +2473,123 @@ func (h *Handler) fiskalizujServis(ctx context.Context, servisID int64, klijent 
 	if _, err := h.FiskalRepo.Kreiraj(ctx, fr); err != nil {
 		slog.Error("greška pri čuvanju fiskalnog računa za servis", "servis_id", servisID, "error", err)
 	}
+}
+
+// stavkeFiskalnogServisa gradi stavke fiskalnog računa od radova i ugrađenih
+// delova servisnog naloga — koristi se i za Sale (fiskalizujServis) i za
+// Refund (refundujServis), predloženi (neprihvaćeni) redovi se ne naplaćuju.
+func stavkeFiskalnogServisa(radovi []model.ServisniRad, delovi []model.ServisniDeoSaArtiklom) []fiskal.InvoiceItem {
+	items := make([]fiskal.InvoiceItem, 0)
+	for _, r := range radovi {
+		if r.Predlozeno {
+			continue
+		}
+		items = append(items, fiskal.InvoiceItem{
+			Name:        r.Naziv,
+			Labels:      []string{fiskal.OznakaPDV(r.PdvStopa)},
+			TotalAmount: fiskal.BrutoCena(r.Ukupno(), r.PdvStopa),
+			UnitPrice:   fiskal.BrutoCena(r.CenaKomada, r.PdvStopa),
+			Quantity:    r.Kolicina,
+		})
+	}
+	for _, d := range delovi {
+		if d.Predlozeno {
+			continue
+		}
+		items = append(items, fiskal.InvoiceItem{
+			Name:        d.ArtikalNaziv,
+			Labels:      []string{fiskal.OznakaPDV(d.PdvStopa)},
+			TotalAmount: fiskal.BrutoCena(d.Ukupno(), d.PdvStopa),
+			UnitPrice:   fiskal.BrutoCena(d.CenaKomada, d.PdvStopa),
+			Quantity:    float64(d.Kolicina),
+		})
+	}
+	return items
+}
+
+// refundujServis šalje fiskalni Refund zahtev za storniran servisni nalog —
+// best-effort, greška se samo loguje (storno u bazi ostaje validan i bez uspešnog
+// refunda; PraznineKnjigovodstva prati takve slučajeve preko stornoBezRefunda).
+func (h *Handler) refundujServis(ctx context.Context, servisID int64, klijent *fiskal.Klijent, originalniFiskalID int64, referentBroj, poreskiBrojKupca string) {
+	nalog, err := h.ServisRepo.DohvatiID(ctx, servisID)
+	if err != nil {
+		slog.Error("refundujServis: nije pronađen nalog", "id", servisID, "error", err)
+		return
+	}
+	radovi, err := h.ServisniRadoviRepo.DohvatiZaNalog(ctx, servisID)
+	if err != nil {
+		slog.Error("refundujServis: greška pri dohvatanju radova", "id", servisID, "error", err)
+		return
+	}
+	delovi, err := h.deloviSaPotrazivanima(ctx, servisID)
+	if err != nil {
+		slog.Error("refundujServis: greška pri dohvatanju delova", "id", servisID, "error", err)
+		return
+	}
+	items := stavkeFiskalnogServisa(radovi, delovi)
+	if len(items) == 0 {
+		return
+	}
+
+	pib, jmbg := "", ""
+	if nalog.KlijentID != nil {
+		if k, e := h.KlijentiRepo.DohvatiID(ctx, *nalog.KlijentID); e == nil {
+			pib, jmbg = k.PIB, k.JMBG
+		}
+	}
+	if pib == "" && jmbg == "" {
+		pib, jmbg = klasifikujPoreskiBroj(poreskiBrojKupca)
+	}
+
+	zahtev := fiskal.InvoiceRequest{
+		InvoiceRequest: fiskal.InvoiceRequestBody{
+			InvoiceType:            "Normal",
+			TransactionType:        "Refund",
+			ReferentDocumentNumber: referentBroj,
+			Payment: []fiskal.PaymentItem{
+				{Amount: nalog.Naplaceno, PaymentType: fiskal.TipPlacanja(nalog.NacinPlacanja)},
+			},
+			Items:   items,
+			Cashier: h.imeKasira(ctx),
+		},
+	}
+	if pib != "" {
+		zahtev.InvoiceRequest.BuyerID = "10:" + pib
+	} else if jmbg != "" {
+		zahtev.InvoiceRequest.BuyerID = "01:" + jmbg
+	}
+
+	odgovor, errFisk := klijent.IzdajRacun(ctx, zahtev)
+	if errFisk != nil {
+		slog.Error("fiskalni refund servisa nije uspeo", "servis_id", servisID, "error", errFisk)
+		return
+	}
+
+	poreskeJSON, _ := json.Marshal(odgovor.TaxItems)
+	siroviJSON, _ := json.Marshal(odgovor)
+	fr := &model.FiskalniRacun{
+		ServisID:          servisID,
+		TipRacuna:         "Normal",
+		TipTransakcije:    "Refund",
+		PfrBroj:           odgovor.InvoiceNumber,
+		PfrVreme:          odgovor.SdcDateTime,
+		Brojac:            odgovor.InvoiceCounter,
+		EkstenzijaBrojaca: odgovor.InvoiceCounterExtension,
+		UrlVerifikacija:   odgovor.VerificationURL,
+		QRKod:             odgovor.VerificationQRCode,
+		PoreskeStavke:     string(poreskeJSON),
+		UkupnoZaNaplatu:   odgovor.TotalAmount,
+		UkupanPorez:       odgovor.TotalTax,
+		SiroviOdgovor:     string(siroviJSON),
+		Potpisao:          odgovor.SignedBy,
+		Zatrazio:          odgovor.RequestedBy,
+		Poruka:            odgovor.Messages,
+	}
+	if _, e := h.FiskalRepo.Kreiraj(ctx, fr); e != nil {
+		slog.Error("čuvanje fiskalnog refunda servisa nije uspelo", "servis_id", servisID, "error", e)
+		return
+	}
+	_ = h.FiskalRepo.OznačiKaoStorniran(ctx, originalniFiskalID)
 }
 
 // RetryFiskalizacija pokušava ponovo da izda fiskalni račun za nalog čija je
