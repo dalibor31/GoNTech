@@ -188,12 +188,13 @@ func (h *Handler) NoviNalog(w http.ResponseWriter, r *http.Request) {
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "servis"
 	ps.NaslovStranice = "Novi nalog"
+	dana := defaultGarancijaDana(podesavanja)
 	noviNalog := model.ServisniNalog{
 		BrojNaloga:   brojNaloga,
 		Status:       model.StatusPrimljeno,
 		DatumPrijema: time.Now(),
 	}
-	noviNalog.GarancijaDo = defaultGarancija(noviNalog.DatumPrijema, podesavanja)
+	noviNalog.GarancijaDana = &dana
 	h.renderujFormuNaloga(w, PodaciFormeNaloga{
 		PodaciStranice: ps,
 		Nalog:          noviNalog,
@@ -236,9 +237,10 @@ func (h *Handler) SacuvajNalog(w http.ResponseWriter, r *http.Request) {
 
 	// forma novog naloga ne sadrži polje garancije — primeni podrazumevanu
 	// garanciju iz podešavanja, osim ako je korisnik izričito izabrao „bez garancije"
-	if nalog.GarancijaDo == nil && r.FormValue("bez_garancije") != "1" {
+	if nalog.GarancijaDana == nil && r.FormValue("bez_garancije") != "1" {
 		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
-		nalog.GarancijaDo = defaultGarancija(nalog.DatumPrijema, podesavanja)
+		dana := defaultGarancijaDana(podesavanja)
+		nalog.GarancijaDana = &dana
 	}
 
 	// garancija ne sme da bude pre datuma prijema
@@ -337,14 +339,12 @@ func (h *Handler) IzmeniNalog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	garancijaDefault := ""
-	if d := defaultGarancija(nalog.DatumPrijema, podesavanja); d != nil {
-		garancijaDefault = d.Format("2006-01-02")
-	}
+	garancijaDefault := strconv.Itoa(defaultGarancijaDana(podesavanja))
 	// stanje „bez garancije" čitamo iz baze pre nego što popunimo default za prikaz
-	bezGarancije := nalog.GarancijaDo == nil
-	if nalog.GarancijaDo == nil {
-		nalog.GarancijaDo = defaultGarancija(nalog.DatumPrijema, podesavanja)
+	bezGarancije := nalog.GarancijaDana == nil || *nalog.GarancijaDana <= 0
+	if nalog.GarancijaDana == nil {
+		dana := defaultGarancijaDana(podesavanja)
+		nalog.GarancijaDana = &dana
 	}
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "servis"
@@ -1228,17 +1228,6 @@ func (h *Handler) mozdaKreirajKlijenta(ctx context.Context, r *http.Request, nal
 	}
 	nalog.KlijentID = &id
 	return ""
-}
-
-// defaultGarancija vraća datum garancije na osnovu datuma prijema i podešavanja;
-// vraća nil ako je rok 0 ili podešavanje nedostaje
-func defaultGarancija(datumPrijema time.Time, podesavanja map[string]string) *time.Time {
-	meseci, err := strconv.Atoi(vrednostIliDefault(podesavanja, "servis_garancija_meseci", "2"))
-	if err != nil || meseci <= 0 {
-		return nil
-	}
-	t := datumPrijema.AddDate(0, meseci, 0)
-	return &t
 }
 
 // defaultPredvidjenDatum računa predviđen rok popravke kao datum prijema + broj
@@ -2154,6 +2143,17 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 		_ = h.ServisniLogRepo.Kreiraj(r.Context(), id, "status:"+noviStatus, nil)
 	}
 
+	// pri prelasku u Završeno ili Preuzeto — auto-izračunaj garancija_do ako je postavljeno trajanje
+	if noviStatus == model.StatusZavrseno || noviStatus == model.StatusPreuzeto {
+		nalog, _ := h.ServisRepo.DohvatiID(r.Context(), id)
+		if nalog != nil && nalog.GarancijaDana != nil && *nalog.GarancijaDana > 0 && nalog.GarancijaDo == nil {
+			if nalog.DatumZavrsetka != nil {
+				garancijaDo := nalog.DatumZavrsetka.AddDate(0, 0, *nalog.GarancijaDana)
+				_ = h.ServisRepo.AzurirajGaranciju(r.Context(), id, &garancijaDo)
+			}
+		}
+	}
+
 	// pri prelasku u Preuzeto — auto-izračunaj cenu_konacnu ako nije uneta, pa sačuvaj naplatu i fiskalizuj
 	if noviStatus == model.StatusPreuzeto {
 		nalog, _ := h.ServisRepo.DohvatiID(r.Context(), id)
@@ -2565,6 +2565,18 @@ func (h *Handler) AzurirajGarancijaDana(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "Greška pri ažuriranju garancije", http.StatusInternalServerError)
 		return
 	}
+
+	// ako je nalog već završen/preuzet, odmah preračunaj i garancija_do
+	if dana != nil && *dana > 0 {
+		nalog, _ := h.ServisRepo.DohvatiID(r.Context(), id)
+		if nalog != nil && (nalog.Status == model.StatusZavrseno || nalog.Status == model.StatusPreuzeto) {
+			if nalog.DatumZavrsetka != nil {
+				garancijaDo := nalog.DatumZavrsetka.AddDate(0, 0, *dana)
+				_ = h.ServisRepo.AzurirajGaranciju(r.Context(), id, &garancijaDo)
+			}
+		}
+	}
+
 	http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
 }
 
