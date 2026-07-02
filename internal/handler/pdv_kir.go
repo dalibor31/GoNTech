@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	appdb "ntech/internal/db"
 	"ntech/internal/db/sqlite"
 	"ntech/internal/middleware"
 	"ntech/internal/model"
@@ -20,11 +21,12 @@ import (
 // PodaciPdvKir su podaci za pregled knjige izdatih računa
 type PodaciPdvKir struct {
 	model.PodaciStranice
-	Zapisi   []model.PdvKir
-	Sume     model.PdvKirSume
-	Od       string // filter perioda (YYYY-MM-DD), prazno = bez granice
-	Do       string
-	Zastareo map[int64]bool // ID zapisa dnevnog pazara čiji je iznos van sinhronizacije sa trenutnim prometom (npr. posle naknadnog storna)
+	Zapisi            []model.PdvKir
+	Sume              model.PdvKirSume
+	Od                string
+	Do                string
+	Zastareo          map[int64]bool
+	SumnjiviDuplikati []model.ProdajniNalogSaDetaljem // B2B prodaje preskočene pri backfill-u (double-submit)
 }
 
 // PodaciPdvKirForma su podaci za formu unosa zapisa KIR
@@ -105,13 +107,29 @@ func (h *Handler) PdvKir(w http.ResponseWriter, r *http.Request) {
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "pdv-kir"
 	ps.NaslovStranice = "KIR — knjiga izdatih računa"
+
+	// detektuj sumnjive duplikate (double-submit) da ih korisnik vidi
+	var sumnjivi []model.ProdajniNalogSaDetaljem
+	if _, _, kandidati, err := h.kirKandidatiProdaje(r.Context()); err == nil {
+		duplikati := sumnjiviDuplikati(kandidati)
+		if len(duplikati) > 0 {
+			nalozi, _ := h.ProdajaRepo.Lista(r.Context(), appdb.ProdajaFilter{})
+			for _, nd := range nalozi {
+				if duplikati[nd.ID] {
+					sumnjivi = append(sumnjivi, nd)
+				}
+			}
+		}
+	}
+
 	h.renderujTemplate(w, "pdv_kir", PodaciPdvKir{
-		PodaciStranice: ps,
-		Zapisi:         zapisi,
-		Sume:           model.SumirajKir(zapisi),
-		Od:             odStr,
-		Do:             doStr,
-		Zastareo:       zastareo,
+		PodaciStranice:    ps,
+		Zapisi:            zapisi,
+		Sume:              model.SumirajKir(zapisi),
+		Od:                odStr,
+		Do:                doStr,
+		Zastareo:          zastareo,
+		SumnjiviDuplikati: sumnjivi,
 	})
 }
 

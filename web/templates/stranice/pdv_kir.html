@@ -101,5 +101,49 @@
         </div>
     </div>
 
+    <!-- sumnjivi duplikati (double-submit) — prodaje preskočene pri automatskom uvozu -->
+    {{if .SumnjiviDuplikati}}
+    <div class="kartica animiraj" style="margin-top:24px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+            <span style="font-size:14px;font-weight:600;">⚠ Sumnjivi duplikati</span>
+            <span style="font-size:12px;color:var(--tekst-sporedni);">({{len .SumnjiviDuplikati}} preskočeno pri uvozu — mogući double-submit, proveri ručno)</span>
+        </div>
+        <div style="overflow-x:auto;">
+            <table class="tabela" style="width:100%;border-collapse:collapse;font-size:13px;min-width:600px;">
+                <thead>
+                    <tr style="text-align:left;color:var(--tekst-sporedni);border-bottom:0.5px solid var(--ivica);">
+                        <th style="padding:8px 12px;">Broj</th>
+                        <th style="padding:8px 12px;">Datum</th>
+                        <th style="padding:8px 12px;">Kupac</th>
+                        <th style="padding:8px 12px;text-align:right;">Iznos</th>
+                        <th style="padding:8px 12px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .SumnjiviDuplikati}}
+                    <tr style="border-bottom:0.5px solid var(--ivica);{{if .Stornirano}}opacity:.5;{{end}}">
+                        <td style="padding:8px 12px;font-family:monospace;">{{.BrojNaloga}}</td>
+                        <td style="padding:8px 12px;white-space:nowrap;">{{.Datum.Format "02.01.2006. 15:04"}}</td>
+                        <td style="padding:8px 12px;">{{.KlijentNaziv}}</td>
+                        <td style="padding:8px 12px;text-align:right;font-weight:500;">{{dinari .Ukupno}}</td>
+                        <td style="padding:8px 12px;text-align:right;white-space:nowrap;">
+                            <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML"
+                               href="/prodaja/{{.ID}}" class="btn-sekundarno" style="font-size:12px;padding:4px 10px;">Pregled</a>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+        <div style="margin-top:12px;font-size:12px;color:var(--tekst-sporedni);line-height:1.6;">
+            Ovo su prodaje koje izgledaju kao dupli unos (isti kupac, isti iznos, unutar 60 sekundi).
+            Automatski uvoz ih preskače da ne bi duplirao prihod u KIR-u.
+            <strong>Ako su to stvarno dve odvojene prodaje</strong> — unesi ručno preko
+            <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/pdv/kir/nova">+ Nov izlazni račun</a>.
+            <strong>Ako je greška (double-submit)</strong> — storniraj/obriši duplikat u Prodaji.
+        </div>
+    </div>
+    {{end}}
+
 </div>
 {{end}}
