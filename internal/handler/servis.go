@@ -2307,6 +2307,9 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 		if nacin == "" {
 			nacin = "Gotovina"
 		}
+		// primljeno je iznos koji je klijent stvarno predao (za tačan kusur na fiskalnom
+		// računu, isto kao kod Prodaje — v. fiskal.NapraviZahtev) — 0 ako nije unet
+		primljeno, _ := strconv.ParseFloat(strings.TrimSpace(r.FormValue("primljeno")), 64)
 		iznosStr := strings.TrimSpace(r.FormValue("naplaceno"))
 		iznos := 0.0
 		if iznosStr != "" {
@@ -2346,7 +2349,7 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 			if fr, _ := h.FiskalRepo.DohvatiPoServisu(r.Context(), id); fr == nil {
 				klijent := h.fiskalKlijent()
 				if klijent != nil && iznos > 0 {
-					h.fiskalizujServis(r.Context(), id, klijent, nacin, iznos)
+					h.fiskalizujServis(r.Context(), id, klijent, nacin, iznos, primljeno)
 				}
 			}
 		}
@@ -2403,8 +2406,11 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 // fiskalizujServis šalje fiskalni zahtev za servisni nalog pri preuzimanju.
-// Best-effort: greške se loguju, ne zaustavljaju promenu statusa.
-func (h *Handler) fiskalizujServis(ctx context.Context, servisID int64, klijent *fiskal.Klijent, nacinPlacanja string, iznos float64) {
+// Best-effort: greške se loguju, ne zaustavljaju promenu statusa. primljeno je
+// iznos koji je klijent stvarno predao — ako je veći od iznos (dug posle avansa),
+// na računu se iskazuje stvarno primljen iznos i PFR sam izračunava povraćaj
+// (isto kao fiskal.NapraviZahtev za Prodaju); 0 ili manje od duga → bez povraćaja.
+func (h *Handler) fiskalizujServis(ctx context.Context, servisID int64, klijent *fiskal.Klijent, nacinPlacanja string, iznos, primljeno float64) {
 	nalog, err := h.ServisRepo.DohvatiID(ctx, servisID)
 	if err != nil {
 		slog.Error("fiskalizujServis: nije pronađen nalog", "id", servisID, "error", err)
@@ -2437,12 +2443,17 @@ func (h *Handler) fiskalizujServis(ctx context.Context, servisID int64, klijent 
 
 	kasir := h.imeKasira(ctx)
 
+	iznosPlacanja := iznos
+	if primljeno > iznos {
+		iznosPlacanja = primljeno
+	}
+
 	zahtev := fiskal.InvoiceRequest{
 		InvoiceRequest: fiskal.InvoiceRequestBody{
 			InvoiceType:     "Normal",
 			TransactionType: "Sale",
 			Payment: []fiskal.PaymentItem{
-				{Amount: iznos, PaymentType: fiskal.TipPlacanja(nacinPlacanja)},
+				{Amount: iznosPlacanja, PaymentType: fiskal.TipPlacanja(nacinPlacanja)},
 			},
 			Items:   items,
 			Cashier: kasir,
@@ -2639,7 +2650,7 @@ func (h *Handler) RetryFiskalizacija(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.fiskalizujServis(r.Context(), id, klijent, nalog.NacinPlacanja, nalog.Naplaceno)
+	h.fiskalizujServis(r.Context(), id, klijent, nalog.NacinPlacanja, nalog.Naplaceno, 0)
 
 	// provjeri da li je uspelo
 	if fr, _ := h.FiskalRepo.DohvatiPoServisu(r.Context(), id); fr != nil {
