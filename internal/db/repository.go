@@ -383,6 +383,8 @@ type IzvestajRepository interface {
 	// izveštaji
 	MesecniPrihodProdaja(ctx context.Context) ([]model.MesecniIznos, error)
 	MesecniPrihodServis(ctx context.Context) ([]model.MesecniIznos, error)
+	MesecniZaradaProdaja(ctx context.Context) ([]model.MesecniIznos, error)
+	MesecniZaradaServis(ctx context.Context) ([]model.MesecniIznos, error)
 	StariOtvoreniNalozi(ctx context.Context) ([]model.StariNalogRed, error)
 	TopArtikli(ctx context.Context, limit int) ([]model.TopArtikalRed, error)
 	TopKlijenti(ctx context.Context, limit int) ([]model.TopKlijentRed, error)

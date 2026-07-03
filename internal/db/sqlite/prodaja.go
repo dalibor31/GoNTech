@@ -204,9 +204,10 @@ func (r *ProdajaRepo) Kreiraj(ctx context.Context, n *model.ProdajniNalog, stavk
 		s := stavke[i]
 		var naziv, tip string
 		var stanjePre int
+		var nabavnaCena float64
 		err := tx.QueryRowContext(ctx,
-			"SELECT naziv, kolicina, tip FROM artikli WHERE id = ?", s.ArtikalID,
-		).Scan(&naziv, &stanjePre, &tip)
+			"SELECT naziv, kolicina, tip, nabavna_cena FROM artikli WHERE id = ?", s.ArtikalID,
+		).Scan(&naziv, &stanjePre, &tip, &nabavnaCena)
 		if err != nil {
 			return 0, fmt.Errorf("ntech: ProdajaRepo.Kreiraj: dohvati artikal: %w", err)
 		}
@@ -248,10 +249,10 @@ func (r *ProdajaRepo) Kreiraj(ctx context.Context, n *model.ProdajniNalog, stavk
 		stavke[i].Ukupno = ukupnoStavke
 		_, err = tx.ExecContext(ctx, `
 			INSERT INTO stavke_prodaje
-				(nalog_id, artikal_id, kolicina, cena_po_komadu, popust_procenat, ukupno, pdv_stopa, pdv_iznos, cena_bez_pdv)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+				(nalog_id, artikal_id, kolicina, cena_po_komadu, popust_procenat, ukupno, pdv_stopa, pdv_iznos, cena_bez_pdv, nabavna_cena)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			nalogID, s.ArtikalID, s.Kolicina, s.CenaPoKomadu, s.PopustProcenat, ukupnoStavke,
-			s.PdvStopa, pdvIznos, cenaBezPdv,
+			s.PdvStopa, pdvIznos, cenaBezPdv, nabavnaCena,
 		)
 		if err != nil {
 			return 0, fmt.Errorf("ntech: ProdajaRepo.Kreiraj: insert stavka: %w", err)
