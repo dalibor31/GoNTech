@@ -3,6 +3,7 @@ package middleware
 import (
 	"database/sql"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"ntech/internal/model"
@@ -18,9 +19,11 @@ func SetFlash(w http.ResponseWriter, r *http.Request, db *sql.DB, tip, poruka st
 	if err != nil {
 		return
 	}
-	db.ExecContext(r.Context(),
+	if _, err := db.ExecContext(r.Context(),
 		`UPDATE sesije SET flash = ? WHERE token = ?`,
-		string(data), kolacic.Value)
+		string(data), kolacic.Value); err != nil {
+		slog.Error("SetFlash: upis nije uspeo", "error", err)
+	}
 }
 
 // GetFlash čita i atomično briše flash poruku iz aktivne sesije

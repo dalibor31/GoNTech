@@ -29,7 +29,18 @@ func ProveriLozinku(hash, lozinka string) bool {
 
 // dummyHash je bcrypt heš fiksne vrednosti, izračunat jednom pri pokretanju.
 // Koristi ga IzjednaciVremeProvere kada korisnik ne postoji.
-var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("ntech-dummy-lozinka"), bcryptCost)
+var dummyHash []byte
+
+func init() {
+	h, err := bcrypt.GenerateFromPassword([]byte("ntech-dummy-lozinka"), bcryptCost)
+	if err != nil {
+		// cost je fiksna konstanta i lozinka nije prazna — ovo se praktično ne
+		// može desiti; ako se ipak desi, tiho propadanje bi obesmislilo
+		// anti-enumeraciju u IzjednaciVremeProvere, pa je bolje pući na startu.
+		panic(fmt.Sprintf("ntech: auth: generisanje dummyHash nije uspelo: %v", err))
+	}
+	dummyHash = h
+}
 
 // IzjednaciVremeProvere izvršava bcrypt poređenje protiv fiksnog heša da bi vreme
 // odgovora bilo isto kao kod postojećeg korisnika sa pogrešnom lozinkom —

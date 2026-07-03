@@ -999,16 +999,18 @@ func (h *Handler) TestFiskalizacije(w http.ResponseWriter, r *http.Request) {
 	klijent := &http.Client{Timeout: 5 * time.Second}
 	resp, err := klijent.Get(statusURL) // lgtm[go/request-forgery] -- host je validiran kroz jePrivatnaAdresa (privatne/localhost adrese)
 	if err != nil {
+		slog.Error("test fiskalizacije: konekcija nije uspela", "url", statusURL, "error", err)
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprintf(w, `<div class="fisk-status greska">&#10007; Nije dostupan — %s</div>`, html.EscapeString(err.Error()))
+		fmt.Fprint(w, `<div class="fisk-status greska">&#10007; Nije dostupan — proverite adresu i mrežu</div>`)
 		return
 	}
 	defer resp.Body.Close()
 
 	var status map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
+		slog.Error("test fiskalizacije: neispravan odgovor servera", "url", statusURL, "error", err)
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprintf(w, `<div class="fisk-status greska">&#10007; Neispravan odgovor servera — %s</div>`, html.EscapeString(err.Error()))
+		fmt.Fprint(w, `<div class="fisk-status greska">&#10007; Neispravan odgovor servera</div>`)
 		return
 	}
 
@@ -1041,9 +1043,10 @@ func (h *Handler) BeStatus(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := net.DialTimeout("tcp", addr, 2*time.Second)
 	if err != nil {
+		slog.Error("BeStatus: emulator nedostupan", "addr", addr, "error", err)
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprintf(w, `<div class="fisk-status greska">&#10007; Emulator nije dostupan na %s — %s</div>`,
-			html.EscapeString(addr), html.EscapeString(err.Error()))
+		fmt.Fprintf(w, `<div class="fisk-status greska">&#10007; Emulator nije dostupan na %s</div>`,
+			html.EscapeString(addr))
 		return
 	}
 	defer conn.Close()

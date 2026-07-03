@@ -58,7 +58,9 @@ func main() {
 	// kreiraj prazan fajl ako ne postoji da se ne pokrene setup wizard
 	if env := os.Getenv("NTECH_ENV"); env == "production" || env == "demo" {
 		if _, err := os.Stat(envFajl); os.IsNotExist(err) {
-			os.WriteFile(envFajl, []byte(""), 0600)
+			if err := os.WriteFile(envFajl, []byte(""), 0600); err != nil {
+				slog.Error("kreiranje praznog ntech.env nije uspelo", "putanja", envFajl, "error", err)
+			}
 		}
 	}
 	godotenv.Load(envFajl)
@@ -141,7 +143,9 @@ func main() {
 		napraviBackup(db, putanjaBaze, max)
 	}
 
-	os.MkdirAll("web/static/uploads", 0755)
+	if err := os.MkdirAll("web/static/uploads", 0755); err != nil {
+		slog.Error("kreiranje foldera za uploade nije uspelo", "error", err)
+	}
 
 	h := handler.Novi(db, totpKljuc)
 	h.Verzija = Verzija
@@ -238,6 +242,16 @@ func main() {
 			http.FileServer(http.FS(staticFS)).ServeHTTP(w, req)
 		})))
 
+	// health check — bez autentifikacije, za monitoring/orkestraciju (Docker healthcheck i sl.)
+	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		if err := db.PingContext(r.Context()); err != nil {
+			http.Error(w, "baza nedostupna", http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	})
+
 	// javne rute (bez autentifikacije), ali i dalje sa CSRF zaštitom — sprečava login-CSRF
 	r.Group(func(r chi.Router) {
 		r.Use(ntechmw.CsrfMiddleware)
@@ -254,9 +268,18 @@ func main() {
 	// primenjuje isti pretpostavljeni napadački model (napadač bez tokena ne može
 	// ni da pogodi rutu).
 	r.Get("/status/{token}", h.ServisJavniStatus)
-	r.Post("/status/{token}/prihvati", h.ServisJavniPrihvati)
-	r.Post("/status/{token}/odbij", h.ServisJavniOdbij)
-	r.Post("/status/{token}/odluka-odabrano", h.ServisJavniOdlukaOdabrano)
+	r.Group(func(r chi.Router) {
+		// telo javnih POST-ova (komentar klijenta) ograničeno na 4KB — nema razloga da bude veće
+		r.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				r.Body = http.MaxBytesReader(w, r.Body, 4<<10)
+				next.ServeHTTP(w, r)
+			})
+		})
+		r.Post("/status/{token}/prihvati", h.ServisJavniPrihvati)
+		r.Post("/status/{token}/odbij", h.ServisJavniOdbij)
+		r.Post("/status/{token}/odluka-odabrano", h.ServisJavniOdlukaOdabrano)
+	})
 	r.Get("/v/", h.FiskalVerifikacija)
 
 	// zaštićene rute — zahtevaju prijavljenog korisnika

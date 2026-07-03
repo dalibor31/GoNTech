@@ -149,7 +149,12 @@ func RequireDozvolaMut(proveri func(ctx context.Context, uloga, akcija string) b
 	}
 }
 
-// postaviFlashGresku upisuje jednokratnu poruku o grešci u kolačić
+// postaviFlashGresku upisuje jednokratnu poruku o grešci u kolačić. Namerno
+// odvojen mehanizam od SetFlash/GetFlash (flash.go): ove funkcije se pozivaju
+// iz middleware-a koji nema pristup *sql.DB, a redirect je uvek na /dashboard
+// (jedino mesto koje čita ovaj kolačić) — pa kolačić bez DB upisa dovoljan.
+// SetFlash/GetFlash (kolona sesije.flash) koristi se u handlerima koji imaju
+// DB i redirect na proizvoljnu stranicu.
 func postaviFlashGresku(w http.ResponseWriter, poruka string) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "ntech_flash_greska",

@@ -259,6 +259,9 @@ func (r *ServisniDeloviRepo) PrihvatiPredlozene(ctx context.Context, nalogID int
 		}
 		stavke = append(stavke, s)
 	}
+	if err := redovi.Err(); err != nil {
+		return fmt.Errorf("ntech: ServisniDeloviRepo.PrihvatiPredlozene: rows: %w", err)
+	}
 
 	// Za svaki predloženi deo: probaj da ugradiš (skine sa lagera koliko može)
 	for _, s := range stavke {
