@@ -52,29 +52,6 @@
         </span>
         {{end}}
       </div>
-      <a
-        href="/prodaja/{{.Nalog.ID}}/stampa"
-        target="_blank"
-        class="btn-sekundarno"
-        style="gap: 6px">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true">
-          <polyline points="6 9 6 2 18 2 18 9" />
-          <path
-            d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-          <rect x="6" y="14" width="12" height="8" />
-        </svg>
-        Štampaj
-      </a>
     </div>
     <div
       style="
@@ -308,7 +285,10 @@
 
       {{if .FiskalniRacun}}
       <div class="fiskalni-racun" style="padding-top:14px;border-top:0.5px solid var(--ivica);">
-        <h3 style="margin:0 0 8px 0;font-size:16px;">Fiskalni račun</h3>
+        <div style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+          <h3 style="margin:0;font-size:16px;">Fiskalni račun</h3>
+          <a href="/prodaja/{{.Nalog.ID}}/fiskalni-racun" target="_blank" class="btn-sekundarno" style="font-size:12px;padding:4px 12px;">Štampaj kopiju</a>
+        </div>
         <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
           <div style="flex:1;min-width:200px;">
             <p style="margin:0 0 4px 0;"><strong>PFR broj:</strong> {{.FiskalniRacun.PfrBroj}}</p>
