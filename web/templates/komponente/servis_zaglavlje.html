@@ -1,0 +1,36 @@
+{{define "zaglavljeFirma"}}
+<!-- LEVO: firma — logo na vrhu, tekst ispod -->
+<div class="zg-okvir">
+    {{if .LogoPutanja}}
+    <img src="{{.LogoPutanja}}" alt="Logo" style="max-height:54px;max-width:100%;object-fit:contain;display:block;margin-bottom:8px;">
+    {{else}}
+    <div class="firma-naziv">{{if .NazivFirme}}{{.NazivFirme}}{{else}}— naziv firme —{{end}}</div>
+    {{end}}
+    <div class="firma-info">
+        {{if .Podnazlov}}{{.Podnazlov}}<br>{{end}}
+        {{if .Adresa}}{{.Adresa}}<br>{{end}}
+        {{if .Telefon}}Tel: {{telefon .Telefon}}<br>{{end}}
+        {{if .PIB}}PIB: {{.PIB}}{{end}}{{if .MaticniBroj}}{{if .PIB}} &middot; {{end}}MB: {{.MaticniBroj}}{{end}}
+    </div>
+</div>
+{{end}}
+
+{{define "zaglavljeKlijent"}}
+<!-- klijent -->
+<div class="zg-okvir">
+    <div class="strana-tip">Klijent</div>
+    {{if .KlijentNaziv}}
+    <div class="strana-naziv">{{.KlijentNaziv}}</div>
+    <div class="strana-info">
+        {{if .Klijent}}
+            {{if .Klijent.Telefon}}Tel: {{telefon .Klijent.Telefon}}<br>{{end}}
+            {{if .Klijent.Email}}{{.Klijent.Email}}<br>{{end}}
+            {{if .Klijent.Mesto}}{{.Klijent.Mesto}}<br>{{end}}
+            {{if .Klijent.PIB}}PIB: {{.Klijent.PIB}}{{end}}
+        {{end}}
+    </div>
+    {{else}}
+    <div class="strana-naziv prazno">— klijent nije naveden —</div>
+    {{end}}
+</div>
+{{end}}

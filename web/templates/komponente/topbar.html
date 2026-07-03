@@ -21,7 +21,7 @@
             {{if .AvatarPutanja}}
             <img src="{{.AvatarPutanja}}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;display:block;">
             {{else}}
-            {{if .Korisnik}}{{slice .Korisnik 0 2}}{{else}}NT{{end}}
+            {{if .Korisnik}}{{inicijali .Korisnik 2}}{{else}}NT{{end}}
             {{end}}
         </div>
         <div id="avatar-meni" style="display:none;position:fixed;background:var(--kartica);backdrop-filter:none;-webkit-backdrop-filter:none;border:0.5px solid var(--ivica);border-radius:10px;box-shadow:var(--senka);min-width:160px;z-index:9999;overflow:hidden;transform-origin:top right;">

@@ -374,13 +374,13 @@ func parseFormuArtikla(r *http.Request, podrazumevanaStopa float64) (model.Artik
 		if err != nil || v < 0 {
 			return artikal, "Minimalna količina mora biti pozitivan broj."
 		}
-		artikal.KolicinMin = v
+		artikal.KolicinaMin = v
 	}
 
 	// usluge i troškovi nemaju stanje na lageru
 	if !artikal.PratiLager() {
 		artikal.Kolicina = 0
-		artikal.KolicinMin = 0
+		artikal.KolicinaMin = 0
 	}
 
 	if c := r.FormValue("nabavna_cena"); c != "" {

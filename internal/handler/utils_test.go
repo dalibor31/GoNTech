@@ -13,8 +13,10 @@ func TestIzvuciIP(t *testing.T) {
 		remoteAddr string
 		ocek       string
 	}{
-		{"X-Real-IP ima prioritet", "1.2.3.4", "9.9.9.9", "5.5.5.5:1234", "1.2.3.4"},
-		{"poslednji X-Forwarded-For", "", "1.1.1.1, 2.2.2.2, 3.3.3.3", "5.5.5.5:1234", "3.3.3.3"},
+		{"X-Real-IP ima prioritet kad je proxy poverljiv (loopback)", "1.2.3.4", "9.9.9.9", "127.0.0.1:1234", "1.2.3.4"},
+		{"X-Real-IP ima prioritet kad je proxy poverljiv (privatna Docker mreža)", "1.2.3.4", "9.9.9.9", "172.18.0.1:1234", "1.2.3.4"},
+		{"poslednji X-Forwarded-For kad je proxy poverljiv", "", "1.1.1.1, 2.2.2.2, 3.3.3.3", "127.0.0.1:1234", "3.3.3.3"},
+		{"zaglavlje se IGNORIŠE kad RemoteAddr nije poverljiv (javna adresa — spoofing)", "1.2.3.4", "", "5.5.5.5:1234", "5.5.5.5"},
 		{"RemoteAddr bez porta kad nema zaglavlja", "", "", "5.5.5.5:1234", "5.5.5.5"},
 		{"RemoteAddr kakav jeste ako nije host:port", "", "", "neispravan", "neispravan"},
 	}

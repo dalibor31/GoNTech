@@ -37,8 +37,14 @@ func (k PdvKir) OslobodenUkupno() float64 {
 // OznakaPoreskogBroja vraća „JMBG" ako uneti broj ima 13 cifara (fizičko lice),
 // inače „PIB" (pravno lice / preduzetnik — PIB ima 9 cifara).
 func (k PdvKir) OznakaPoreskogBroja() string {
+	return oznakaPoreskogBroja(k.KupacPib)
+}
+
+// oznakaPoreskogBroja broji cifre u poreskom broju i vraća „JMBG" (13 cifara)
+// ili „PIB" (ostalo) — zajednička logika za KIR (kupac) i KPR (dobavljač).
+func oznakaPoreskogBroja(poreskiBroj string) string {
 	cifre := 0
-	for _, r := range k.KupacPib {
+	for _, r := range poreskiBroj {
 		if r >= '0' && r <= '9' {
 			cifre++
 		}
@@ -244,16 +250,7 @@ func KprStorno(original PdvKpr, razlog string, datumStorna time.Time) PdvKpr {
 
 // OznakaPoreskogBroja vraća „JMBG" za 13-cifreni broj, inače „PIB" (dobavljači su obično firme).
 func (k PdvKpr) OznakaPoreskogBroja() string {
-	cifre := 0
-	for _, r := range k.DobavljacPib {
-		if r >= '0' && r <= '9' {
-			cifre++
-		}
-	}
-	if cifre == 13 {
-		return "JMBG"
-	}
-	return "PIB"
+	return oznakaPoreskogBroja(k.DobavljacPib)
 }
 
 // PdvKprSume su zbirovi kolona KPR-a (za red „ukupno" u pregledu knjige).

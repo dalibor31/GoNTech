@@ -58,7 +58,9 @@ func main() {
 	// kreiraj prazan fajl ako ne postoji da se ne pokrene setup wizard
 	if env := os.Getenv("NTECH_ENV"); env == "production" || env == "demo" {
 		if _, err := os.Stat(envFajl); os.IsNotExist(err) {
-			os.WriteFile(envFajl, []byte(""), 0600)
+			if err := os.WriteFile(envFajl, []byte(""), 0600); err != nil {
+				slog.Error("kreiranje praznog ntech.env nije uspelo", "putanja", envFajl, "error", err)
+			}
 		}
 	}
 	godotenv.Load(envFajl)
@@ -141,7 +143,9 @@ func main() {
 		napraviBackup(db, putanjaBaze, max)
 	}
 
-	os.MkdirAll("web/static/uploads", 0755)
+	if err := os.MkdirAll("web/static/uploads", 0755); err != nil {
+		slog.Error("kreiranje foldera za uploade nije uspelo", "error", err)
+	}
 
 	h := handler.Novi(db, totpKljuc)
 	h.Verzija = Verzija
@@ -238,18 +242,44 @@ func main() {
 			http.FileServer(http.FS(staticFS)).ServeHTTP(w, req)
 		})))
 
-	// javne rute (bez autentifikacije)
-	r.Get("/prijava", h.PrikazPrijave)
-	r.Post("/prijava", h.Prijava)
-	r.Get("/prijava/totp", h.PrikazTotp)
-	r.Post("/prijava/totp", h.VerifikujTotp)
-	r.Get("/setup", h.PrikazSetupa)
-	r.Post("/setup", h.SacuvajSetup)
+	// health check — bez autentifikacije, za monitoring/orkestraciju (Docker healthcheck i sl.)
+	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		if err := db.PingContext(r.Context()); err != nil {
+			http.Error(w, "baza nedostupna", http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	})
+
+	// javne rute (bez autentifikacije), ali i dalje sa CSRF zaštitom — sprečava login-CSRF
+	r.Group(func(r chi.Router) {
+		r.Use(ntechmw.CsrfMiddleware)
+		r.Get("/prijava", h.PrikazPrijave)
+		r.Post("/prijava", h.Prijava)
+		r.Get("/prijava/totp", h.PrikazTotp)
+		r.Post("/prijava/totp", h.VerifikujTotp)
+		r.Get("/setup", h.PrikazSetupa)
+		r.Post("/setup", h.SacuvajSetup)
+	})
 	r.Get("/odjava", h.Odjava)
+	// /status/{token}/* NAMERNO je van CSRF grupe — autentikacija je jednokratni
+	// tajni token u URL-u (capability model), ne kolačić/sesija, pa CSRF ovde ne
+	// primenjuje isti pretpostavljeni napadački model (napadač bez tokena ne može
+	// ni da pogodi rutu).
 	r.Get("/status/{token}", h.ServisJavniStatus)
-	r.Post("/status/{token}/prihvati", h.ServisJavniPrihvati)
-	r.Post("/status/{token}/odbij", h.ServisJavniOdbij)
-	r.Post("/status/{token}/odluka-odabrano", h.ServisJavniOdlukaOdabrano)
+	r.Group(func(r chi.Router) {
+		// telo javnih POST-ova (komentar klijenta) ograničeno na 4KB — nema razloga da bude veće
+		r.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				r.Body = http.MaxBytesReader(w, r.Body, 4<<10)
+				next.ServeHTTP(w, r)
+			})
+		})
+		r.Post("/status/{token}/prihvati", h.ServisJavniPrihvati)
+		r.Post("/status/{token}/odbij", h.ServisJavniOdbij)
+		r.Post("/status/{token}/odluka-odabrano", h.ServisJavniOdlukaOdabrano)
+	})
 	r.Get("/v/", h.FiskalVerifikacija)
 
 	// zaštićene rute — zahtevaju prijavljenog korisnika
@@ -283,18 +313,19 @@ func main() {
 		})
 		r.Get("/dashboard", h.Dashboard)
 		r.Get("/podesavanja", h.Podesavanja)
-		r.Get("/admin/podesavanja/opste", h.PodesavanjaOpste)
-		r.Get("/admin/podesavanja/izgled", h.PodesavanjaIzgled)
-		r.Get("/admin/podesavanja/sistem", h.PodesavanjaSistem)
-		r.Get("/admin/podesavanja/servis", h.PodesavanjaServis)
-		r.Get("/admin/podesavanja/fiskalizacija", h.PodesavanjaFiskalizacija)
-		r.Get("/podesavanja/fiskalizacija/test", h.TestFiskalizacije)
-		r.Get("/podesavanja/fiskalizacija/be-status", h.BeStatus)
-		r.Post("/podesavanja/fiskalizacija/be-reset-audit", h.BeResetAudit)
-		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "fiskal.pazar")).Get("/fiskal/pazar", h.FiskalniPazar)
-		r.With(doz("fiskal.pazar")).Post("/fiskal/pazar/izvestaj", h.FiskalniIzvestaj)
-		r.With(doz("fiskal.zakljucenje")).Post("/fiskal/pazar/zakljuci", h.ZakljuciFiskalniDan)
-		r.Get("/admin/podesavanja/kalkulacija-pdv", h.PdvStope)
+		pregledPodesavanja := ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "podesavanja.pregled")
+		r.With(pregledPodesavanja).Get("/admin/podesavanja/opste", h.PodesavanjaOpste)
+		r.With(pregledPodesavanja).Get("/admin/podesavanja/izgled", h.PodesavanjaIzgled)
+		r.With(pregledPodesavanja).Get("/admin/podesavanja/sistem", h.PodesavanjaSistem)
+		r.With(pregledPodesavanja).Get("/admin/podesavanja/servis", h.PodesavanjaServis)
+		r.With(pregledPodesavanja).Get("/admin/podesavanja/fiskalizacija", h.PodesavanjaFiskalizacija)
+		r.With(pregledPodesavanja).Get("/podesavanja/fiskalizacija/test", h.TestFiskalizacije)
+		r.With(pregledPodesavanja).Get("/podesavanja/fiskalizacija/be-status", h.BeStatus)
+		r.With(doz("podesavanja.izmeni")).Post("/podesavanja/fiskalizacija/be-reset-audit", h.BeResetAudit)
+		r.With(modul("fiskalizacija"), ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "fiskal.pazar")).Get("/fiskal/pazar", h.FiskalniPazar)
+		r.With(modul("fiskalizacija"), doz("fiskal.pazar")).Post("/fiskal/pazar/izvestaj", h.FiskalniIzvestaj)
+		r.With(modul("fiskalizacija"), doz("fiskal.zakljucenje")).Post("/fiskal/pazar/zakljuci", h.ZakljuciFiskalniDan)
+		r.With(pregledPodesavanja).Get("/admin/podesavanja/kalkulacija-pdv", h.PdvStope)
 		r.With(doz("podesavanja.izmeni")).Post("/podesavanja/pdv-stope/dodaj", h.DodajPdvStopu)
 		r.With(doz("podesavanja.izmeni")).Post("/podesavanja/pdv-stope/{id}/izmeni", h.IzmeniPdvStopu)
 		r.With(doz("podesavanja.izmeni")).Post("/podesavanja/pdv-stope/{id}/aktivnost", h.PromeniAktivnostPdvStope)
@@ -349,8 +380,8 @@ func main() {
 		r.Get("/magacin/sledeca-sifra", h.PredlogSifre)
 		r.Get("/magacin/izmeni/{id}", h.IzmeniArtikal)
 		r.With(doz("artikal.izmeni")).Post("/magacin/izmeni/{id}", h.SacuvajIzmenuArtikla)
-		r.With(doz("artikal.obrisi")).Get("/magacin/obrisi/{id}", h.ObrisiArtikal)
-		r.With(doz("artikal.obrisi")).Get("/magacin/vrati/{id}", h.VratiArtikal)
+		r.With(doz("artikal.obrisi")).Post("/magacin/obrisi/{id}", h.ObrisiArtikal)
+		r.With(doz("artikal.obrisi")).Post("/magacin/vrati/{id}", h.VratiArtikal)
 		r.With(doz("artikal.izmeni")).Post("/magacin/kartica/{id}/dobavljac/dodaj", h.DodajDobavljacaArtiklu)
 		r.With(doz("artikal.izmeni")).Post("/magacin/kartica/{id}/dobavljac/obrisi", h.ObrisiDobavljacaArtikla)
 		r.With(doz("artikal.premesti")).Post("/magacin/premesti/{id}", h.PremestiArtikal)
@@ -359,7 +390,7 @@ func main() {
 		r.Get("/magacin/kategorije", h.Kategorije)
 		r.With(doz("kategorija.dodaj")).Post("/magacin/kategorije/dodaj", h.DodajKategoriju)
 		r.With(doz("kategorija.izmeni")).Post("/magacin/kategorije/izmeni/{id}", h.IzmeniKategoriju)
-		r.With(doz("kategorija.obrisi")).Get("/magacin/kategorije/obrisi/{id}", h.ObrisiKategoriju)
+		r.With(doz("kategorija.obrisi")).Post("/magacin/kategorije/obrisi/{id}", h.ObrisiKategoriju)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "nabavka.pregled")).Get("/nabavke", h.Nabavke)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "nabavka.pregled")).Get("/nabavke/nova", h.NovaNabavka)
 		r.With(doz("nabavka.dodaj")).Post("/nabavke/nova", h.SacuvajNabavku)

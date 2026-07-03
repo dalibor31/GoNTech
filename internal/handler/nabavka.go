@@ -196,12 +196,27 @@ func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// jedan batch-dohvat svih artikala iz stavki — umesto DohvatiID po stavki u svakoj petlji ispod
+	artikalIDji := make([]int64, 0, len(stavke))
+	vidjeni := make(map[int64]bool, len(stavke))
+	for _, s := range stavke {
+		if !vidjeni[s.ArtikalID] {
+			vidjeni[s.ArtikalID] = true
+			artikalIDji = append(artikalIDji, s.ArtikalID)
+		}
+	}
+	artikliMapa, err := h.Artikli.DohvatiVise(r.Context(), artikalIDji)
+	if err != nil {
+		slog.Error("dohvat artikala za nabavku nije uspeo", "error", err)
+		artikliMapa = map[int64]*model.Artikal{}
+	}
+
 	// automatski zavedi u KPR ako je firma PDV obveznik; PDV se izvodi iz stope artikla
 	if h.modulUkljucen(r.Context(), "pdv") {
 		var stavkePdv []model.NabavkaStavkaPdv
 		for _, s := range stavke {
 			var stopa float64
-			if a, e := h.Artikli.DohvatiID(r.Context(), s.ArtikalID); e == nil {
+			if a, ok := artikliMapa[s.ArtikalID]; ok {
 				stopa = a.PdvStopa
 			}
 			stavkePdv = append(stavkePdv, model.NabavkaStavkaPdv{
@@ -241,7 +256,7 @@ func (h *Handler) SacuvajNabavku(w http.ResponseWriter, r *http.Request) {
 		}
 		// stara prodajna i tekuća (ponderisana) nabavna — nabavnu zadržavamo
 		var staraProdajna, nabavna float64
-		if a, e := h.Artikli.DohvatiID(r.Context(), s.ArtikalID); e == nil {
+		if a, ok := artikliMapa[s.ArtikalID]; ok {
 			staraProdajna = a.ProdajnaCena
 			nabavna = a.NabavnaCena
 		}

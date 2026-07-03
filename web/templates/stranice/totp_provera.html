@@ -35,6 +35,11 @@
 
         {{if eq .Greska "1"}}
         <div class="greska">Neispravan kod. Pokušajte ponovo.</div>
+        {{else if eq .Greska "zakljucano"}}
+        <div class="greska">
+            Previše neuspelih pokušaja. IP adresa je privremeno blokirana.
+            {{if .Preostalo}}<br>Pokušajte ponovo za: <strong>{{.Preostalo}}</strong>{{end}}
+        </div>
         {{end}}
 
         <form method="POST" action="/prijava/totp">

@@ -12,11 +12,17 @@ import (
 // (prodaja, nabavka, magacinske promene ili servisni nalozi). Tada se artikal arhivira.
 var ErrArtikalUUpotrebi = errors.New("ntech: artikal je u upotrebi")
 
+// ErrKategorijaUUpotrebi se vraća kad se kategorija ne može obrisati jer je
+// referencirana od strane artikla.
+var ErrKategorijaUUpotrebi = errors.New("ntech: kategorija je u upotrebi")
+
 // ArtikalRepository definiše operacije nad artiklima
 type ArtikalRepository interface {
 	Lista(ctx context.Context, filter ArtikalFilter) ([]model.ArtikalSaKategorijom, error)
 	PrebrojiPoFilteru(ctx context.Context, filter ArtikalFilter) (int, error)
 	DohvatiID(ctx context.Context, id int64) (*model.Artikal, error)
+	// DohvatiVise vraća artikle za dati skup ID-jeva kao mapu id → artikal (jedan upit)
+	DohvatiVise(ctx context.Context, ids []int64) (map[int64]*model.Artikal, error)
 	Kreiraj(ctx context.Context, a *model.Artikal) (int64, error)
 	Izmeni(ctx context.Context, a *model.Artikal) error
 	// AzurirajCene menja samo nabavnu i prodajnu cenu (kalkulacija pri nabavci)
@@ -49,6 +55,8 @@ type KategorijaRepository interface {
 	DohvatiID(ctx context.Context, id int64) (*model.Kategorija, error)
 	Kreiraj(ctx context.Context, k *model.Kategorija) (int64, error)
 	Izmeni(ctx context.Context, k *model.Kategorija) error
+	// Obrisi briše kategoriju; vraća ErrKategorijaUUpotrebi ako je referencirana od artikla
+	Obrisi(ctx context.Context, id int64) error
 }
 
 // PdvStopaRepository definiše operacije nad šifarnikom PDV stopa

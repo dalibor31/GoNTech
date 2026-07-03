@@ -92,7 +92,7 @@ func (r *ArtikalRepo) Lista(ctx context.Context, filter db.ArtikalFilter) ([]mod
 
 		err := redovi.Scan(
 			&a.ID, &kategorijaID, &sifra, &barkod, &a.Naziv, &a.Opis, &a.Tip, &a.JedinicaMere,
-			&a.Kolicina, &a.KolicinMin, &a.Lokacija,
+			&a.Kolicina, &a.KolicinaMin, &a.Lokacija,
 			&a.NabavnaCena, &a.ProdajnaCena, &a.PdvStopa, &a.CenaSaPdv, &marza, &a.Napomena, &a.DatumUnosa, &arhiviran,
 			&a.KategorijaNaziv, &katMarza,
 		)
@@ -118,7 +118,7 @@ func (r *ArtikalRepo) Lista(ctx context.Context, filter db.ArtikalFilter) ([]mod
 		}
 
 		// kritična zaliha važi samo za proizvode (usluge/troškovi nemaju lager)
-		a.KriticnaZaliha = a.PratiLager() && a.Kolicina <= a.KolicinMin
+		a.KriticnaZaliha = a.PratiLager() && a.Kolicina <= a.KolicinaMin
 
 		rezultat = append(rezultat, a)
 	}
@@ -126,24 +126,23 @@ func (r *ArtikalRepo) Lista(ctx context.Context, filter db.ArtikalFilter) ([]mod
 	return rezultat, nil
 }
 
-// DohvatiID vraća jedan artikal po ID-u
-func (r *ArtikalRepo) DohvatiID(ctx context.Context, id int64) (*model.Artikal, error) {
+const artikalKolone = `id, kategorija_id, sifra, barkod, naziv, opis, tip, jedinica_mere, kolicina, kolicina_min,
+	       lokacija, nabavna_cena, prodajna_cena, pdv_stopa, cena_sa_pdv, marza, napomena, datum_unosa, arhiviran`
+
+// skenirajArtikal čita jedan red artikla iz Scan-kompatibilnog izvora (red ili redovi)
+func skenirajArtikal(scan func(...any) error) (*model.Artikal, error) {
 	var a model.Artikal
 	var kategorijaID sql.NullInt64
 	var sifra, barkod sql.NullString
 	var marza sql.NullFloat64
 	var arhiviran int
 
-	err := r.db.QueryRowContext(ctx, `
-		SELECT id, kategorija_id, sifra, barkod, naziv, opis, tip, jedinica_mere, kolicina, kolicina_min,
-		       lokacija, nabavna_cena, prodajna_cena, pdv_stopa, cena_sa_pdv, marza, napomena, datum_unosa, arhiviran
-		FROM artikli WHERE id = ?`, id).Scan(
+	if err := scan(
 		&a.ID, &kategorijaID, &sifra, &barkod, &a.Naziv, &a.Opis, &a.Tip, &a.JedinicaMere,
-		&a.Kolicina, &a.KolicinMin, &a.Lokacija,
+		&a.Kolicina, &a.KolicinaMin, &a.Lokacija,
 		&a.NabavnaCena, &a.ProdajnaCena, &a.PdvStopa, &a.CenaSaPdv, &marza, &a.Napomena, &a.DatumUnosa, &arhiviran,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("ntech: ArtikalRepo.DohvatiID: %w", err)
+	); err != nil {
+		return nil, err
 	}
 	a.Arhiviran = arhiviran == 1
 
@@ -163,6 +162,52 @@ func (r *ArtikalRepo) DohvatiID(ctx context.Context, id int64) (*model.Artikal, 
 	return &a, nil
 }
 
+// DohvatiID vraća jedan artikal po ID-u
+func (r *ArtikalRepo) DohvatiID(ctx context.Context, id int64) (*model.Artikal, error) {
+	row := r.db.QueryRowContext(ctx, "SELECT "+artikalKolone+" FROM artikli WHERE id = ?", id)
+	a, err := skenirajArtikal(row.Scan)
+	if err != nil {
+		return nil, fmt.Errorf("ntech: ArtikalRepo.DohvatiID: %w", err)
+	}
+	return a, nil
+}
+
+// DohvatiVise vraća artikle za dati skup ID-jeva kao mapu id → artikal — jedan upit
+// umesto poziva DohvatiID u petlji (koristi se npr. pri obradi stavki nabavke).
+func (r *ArtikalRepo) DohvatiVise(ctx context.Context, ids []int64) (map[int64]*model.Artikal, error) {
+	rezultat := make(map[int64]*model.Artikal, len(ids))
+	if len(ids) == 0 {
+		return rezultat, nil
+	}
+
+	drzaci := make([]string, len(ids))
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		drzaci[i] = "?"
+		args[i] = id
+	}
+
+	redovi, err := r.db.QueryContext(ctx,
+		"SELECT "+artikalKolone+" FROM artikli WHERE id IN ("+strings.Join(drzaci, ",")+")", args...)
+	if err != nil {
+		return nil, fmt.Errorf("ntech: ArtikalRepo.DohvatiVise: %w", err)
+	}
+	defer redovi.Close()
+
+	for redovi.Next() {
+		a, err := skenirajArtikal(redovi.Scan)
+		if err != nil {
+			return nil, fmt.Errorf("ntech: ArtikalRepo.DohvatiVise: scan: %w", err)
+		}
+		rezultat[a.ID] = a
+	}
+	if err := redovi.Err(); err != nil {
+		return nil, fmt.Errorf("ntech: ArtikalRepo.DohvatiVise: %w", err)
+	}
+
+	return rezultat, nil
+}
+
 // Kreiraj dodaje novi artikal u bazu
 func (r *ArtikalRepo) Kreiraj(ctx context.Context, a *model.Artikal) (int64, error) {
 	var sifra, barkod any
@@ -178,7 +223,7 @@ func (r *ArtikalRepo) Kreiraj(ctx context.Context, a *model.Artikal) (int64, err
 			(kategorija_id, sifra, barkod, naziv, opis, tip, jedinica_mere, kolicina, kolicina_min, lokacija,
 			nabavna_cena, prodajna_cena, pdv_stopa, cena_sa_pdv, marza, napomena)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		a.KategorijaID, sifra, barkod, a.Naziv, a.Opis, a.Tip, a.JedinicaMere, a.Kolicina, a.KolicinMin,
+		a.KategorijaID, sifra, barkod, a.Naziv, a.Opis, a.Tip, a.JedinicaMere, a.Kolicina, a.KolicinaMin,
 		a.Lokacija, a.NabavnaCena, a.ProdajnaCena, a.PdvStopa, a.CenaSaPdv, a.Marza, a.Napomena,
 	)
 	if err != nil {
@@ -210,7 +255,7 @@ func (r *ArtikalRepo) Izmeni(ctx context.Context, a *model.Artikal) error {
 			nabavna_cena = ?, prodajna_cena = ?, pdv_stopa = ?, cena_sa_pdv = ?, marza = ?, napomena = ?
 			WHERE id = ?`,
 		a.KategorijaID, sifra, barkod, a.Naziv, a.Opis, a.Tip, a.JedinicaMere,
-		a.Kolicina, a.KolicinMin, a.Lokacija,
+		a.Kolicina, a.KolicinaMin, a.Lokacija,
 		a.NabavnaCena, a.ProdajnaCena, a.PdvStopa, a.CenaSaPdv, a.Marza, a.Napomena, a.ID,
 	)
 	if err != nil {

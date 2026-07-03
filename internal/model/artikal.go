@@ -20,7 +20,7 @@ type Artikal struct {
 	Tip          string // proizvod | usluga | trosak
 	JedinicaMere string // kom, sat, set, m, l, kg ...
 	Kolicina     int
-	KolicinMin   int
+	KolicinaMin  int
 	Lokacija     string
 	NabavnaCena  float64
 	ProdajnaCena float64

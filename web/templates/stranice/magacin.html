@@ -126,15 +126,19 @@
                                 {{end}}{{end}}
                                 {{if index $.Dozvole "artikal.obrisi"}}
                                 {{if $.PrikazArhivirani}}
-                                <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/magacin/vrati/{{.ID}}" class="btn-sekundarno-malo"
-                                    data-potvrda="Vratiti ovaj artikal u aktivnu listu?">
-                                    Vrati
-                                </a>
+                                <form method="POST" action="/magacin/vrati/{{.ID}}" style="display:inline;">
+                                    <button type="submit" class="btn-sekundarno-malo"
+                                        data-potvrda="Vratiti ovaj artikal u aktivnu listu?">
+                                        Vrati
+                                    </button>
+                                </form>
                                 {{else}}
-                                <a href="/magacin/obrisi/{{.ID}}" class="btn-obrisi-malo"
-                                    data-potvrda="Da li ste sigurni da želite da obrišete ovaj artikal?">
-                                    Obriši
-                                </a>
+                                <form method="POST" action="/magacin/obrisi/{{.ID}}" style="display:inline;">
+                                    <button type="submit" class="btn-obrisi-malo"
+                                        data-potvrda="Da li ste sigurni da želite da obrišete ovaj artikal?">
+                                        Obriši
+                                    </button>
+                                </form>
                                 {{end}}
                                 {{end}}
                             </div>
@@ -176,15 +180,19 @@
                     {{end}}{{end}}
                     {{if index $.Dozvole "artikal.obrisi"}}
                     {{if $.PrikazArhivirani}}
-                    <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/magacin/vrati/{{.ID}}" class="btn-sekundarno-malo"
-                        data-potvrda="Vratiti ovaj artikal u aktivnu listu?">
-                        Vrati
-                    </a>
+                    <form method="POST" action="/magacin/vrati/{{.ID}}" style="display:inline;">
+                        <button type="submit" class="btn-sekundarno-malo"
+                            data-potvrda="Vratiti ovaj artikal u aktivnu listu?">
+                            Vrati
+                        </button>
+                    </form>
                     {{else}}
-                    <a href="/magacin/obrisi/{{.ID}}" class="btn-obrisi-malo"
-                        data-potvrda="Da li ste sigurni da želite da obrišete ovaj artikal?">
-                        Obriši
-                    </a>
+                    <form method="POST" action="/magacin/obrisi/{{.ID}}" style="display:inline;">
+                        <button type="submit" class="btn-obrisi-malo"
+                            data-potvrda="Da li ste sigurni da želite da obrišete ovaj artikal?">
+                            Obriši
+                        </button>
+                    </form>
                     {{end}}
                     {{end}}
                 </div>

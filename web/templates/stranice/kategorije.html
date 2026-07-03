@@ -130,10 +130,12 @@
             </dialog>
             {{end}}
             {{if index $.Dozvole "kategorija.obrisi"}}
-            <a href="/magacin/kategorije/obrisi/{{.ID}}" class="btn-obrisi-malo"
-                data-potvrda="Da li ste sigurni da želite da obrišete ovu kategoriju?">
-                Obriši
-            </a>
+            <form method="POST" action="/magacin/kategorije/obrisi/{{.ID}}" style="display:inline;">
+                <button type="submit" class="btn-obrisi-malo"
+                    data-potvrda="Da li ste sigurni da želite da obrišete ovu kategoriju?">
+                    Obriši
+                </button>
+            </form>
             {{end}}
         </div>
         {{else}}
