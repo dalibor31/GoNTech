@@ -1049,12 +1049,15 @@ func (h *Handler) DodajDeloNalogu(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// predlog ako status nije „Primljeno" (forma više ne određuje — server odlučuje)
-	nalog, _ := h.ServisRepo.DohvatiID(r.Context(), nalogID)
-	predlozeno := nalog != nil && nalog.Status != model.StatusPrimljeno
-	slog.Info("DODAJ_DEO_IN", "status", nalog.Status, "predlozeno", predlozeno, "kol", kolicina)
+	nalog, err := h.ServisRepo.DohvatiID(r.Context(), nalogID)
+	if err != nil || nalog == nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Nalog nije pronađen.")
+		http.Redirect(w, r, "/servis", http.StatusSeeOther)
+		return
+	}
+	predlozeno := nalog.Status != model.StatusPrimljeno
 	// atomično: ugradi ono što imamo (skida sa lagera, ne ide u minus), višak u potraživane
 	ugradjeno, nedostaje, err := h.ServisniDeloviRepo.UgradiIliPotrazuj(r.Context(), nalogID, artikalID, kolicina, cena, &k.ID, predlozeno)
-	slog.Info("DODAJ_DEO_OUT", "ugradjeno", ugradjeno, "nedostaje", nedostaje, "err", err)
 	if err != nil {
 		slog.Error("greška pri dodavanju dela", "error", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri dodavanju dela.")

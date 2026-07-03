@@ -1,5 +1,7 @@
 package model
 
+import "time"
+
 // Usluga je stavka cenovnika usluga (npr. čišćenje laptopa, zamena ventilatora).
 // Za razliku od artikla, usluga ne prati lager i nema nabavnu cenu ni dobavljače —
 // ima samo cenu usluge i PDV stopu. Kategorija je tekstualna oznaka.
@@ -13,7 +15,7 @@ type Usluga struct {
 	PdvStopa     float64
 	Opis         string
 	Arhiviran    bool
-	DatumUnosa   string
+	DatumUnosa   time.Time
 }
 
 func (u Usluga) CenaSaPdv() float64 {

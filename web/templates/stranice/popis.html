@@ -282,7 +282,7 @@
                     </thead>
                     <tbody>
                     {{range .Artikli}}
-                    <tr class="{{if le .Kolicina .KolicinMin}}red-kriticno{{end}}" id="red-{{.ID}}">
+                    <tr class="{{if le .Kolicina .KolicinaMin}}red-kriticno{{end}}" id="red-{{.ID}}">
                         <td class="kart-naslov" style="font-weight:500;">{{.Naziv}}</td>
                         <td class="kol-sek" data-label="Šifra" style="font-family:monospace;font-size:12px;color:var(--tekst-slabi);">{{if .Sifra}}{{.Sifra}}{{else}}—{{end}}</td>
                         <td class="kol-sek" data-label="Kategorija" style="font-size:12px;color:var(--tekst-slabi);">{{if .KategorijaNaziv}}{{.KategorijaNaziv}}{{else}}—{{end}}</td>

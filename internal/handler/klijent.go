@@ -3,6 +3,7 @@ package handler
 import (
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -82,10 +83,10 @@ func (h *Handler) Klijenti(w http.ResponseWriter, r *http.Request) {
 
 	queryDelići := ""
 	if pretraga != "" {
-		queryDelići += "&pretraga=" + pretraga
+		queryDelići += "&pretraga=" + url.QueryEscape(pretraga)
 	}
 	if tipFilter != "" {
-		queryDelići += "&tip=" + tipFilter
+		queryDelići += "&tip=" + url.QueryEscape(tipFilter)
 	}
 
 	stranicaPrev := stranicaBr - 1

@@ -28,12 +28,12 @@
                 </div>
             </div>
             <div style="text-align:right;">
-                <div style="font-size:24px;font-weight:700;color:{{if le .Artikal.Kolicina .Artikal.KolicinMin}}#dc2626{{else}}var(--tekst-glavni){{end}};">
+                <div style="font-size:24px;font-weight:700;color:{{if le .Artikal.Kolicina .Artikal.KolicinaMin}}#dc2626{{else}}var(--tekst-glavni){{end}};">
                     {{.Artikal.Kolicina}} kom
                 </div>
                 <div style="font-size:12px;color:var(--tekst-slabi);">trenutno stanje</div>
-                {{if gt .Artikal.KolicinMin 0}}
-                <div style="font-size:11px;color:var(--tekst-slabi);margin-top:2px;">min. {{.Artikal.KolicinMin}} kom</div>
+                {{if gt .Artikal.KolicinaMin 0}}
+                <div style="font-size:11px;color:var(--tekst-slabi);margin-top:2px;">min. {{.Artikal.KolicinaMin}} kom</div>
                 {{end}}
             </div>
         </div>

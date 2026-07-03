@@ -12,23 +12,26 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-// OtvoriDB otvara konekciju ka SQLite bazi i primenjuje performance PRAGMA podešavanja
+// OtvoriDB otvara konekciju ka SQLite bazi i primenjuje performance PRAGMA podešavanja.
+//
+// Pragme se prosleđuju kroz DSN (_pragma=...) jer database/sql drži pul konekcija —
+// PRAGMA postavljena preko db.Exec važi samo za konekciju koja je taj Exec uslužila,
+// dok DSN _pragma parametri primenjuje driver na SVAKU novu konekciju pri otvaranju.
 func OtvoriDB(putanja string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite", putanja)
+	dsn := "file:" + putanja +
+		"?_pragma=journal_mode(WAL)" +
+		"&_pragma=synchronous(NORMAL)" +
+		"&_pragma=cache_size(10000)" +
+		"&_pragma=foreign_keys(1)" +
+		"&_pragma=busy_timeout(5000)" +
+		"&_txlock=immediate"
+
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: OtvoriDB: %w", err)
 	}
-
-	pragme := []string{
-		"PRAGMA journal_mode=WAL",
-		"PRAGMA synchronous=NORMAL",
-		"PRAGMA cache_size=10000",
-		"PRAGMA foreign_keys=ON",
-	}
-	for _, p := range pragme {
-		if _, err := db.Exec(p); err != nil {
-			return nil, fmt.Errorf("ntech: OtvoriDB: %s: %w", p, err)
-		}
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("ntech: OtvoriDB: %w", err)
 	}
 
 	return db, nil

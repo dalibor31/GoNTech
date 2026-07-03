@@ -7,7 +7,7 @@
   <div class="kartica animiraj" style="padding: 0; overflow: hidden">
     <div style="padding: 16px 20px; border-bottom: 0.5px solid var(--ivica); display: flex; align-items: center; justify-content: space-between">
       <span style="font-size: 15px; font-weight: 500; color: var(--tekst-glavni)">IP adrese trenutno zaključane zbog previše neuspelih pokušaja prijave</span>
-      <a href="/admin/blokirane-ip" class="btn-sekundarno" style="font-size: 13px; padding: 8px 16px">Osveži</a>
+      <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/admin/blokirane-ip" class="btn-sekundarno" style="font-size: 13px; padding: 8px 16px">Osveži</a>
     </div>
 
     {{if .Lista}}

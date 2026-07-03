@@ -78,7 +78,7 @@ type StanjeZalihaRed struct {
 	Sifra          string
 	Kategorija     string
 	Kolicina       int
-	KolicinMin     int
+	KolicinaMin    int
 	NabavnaCena    float64
 	ProdajnaCena   float64
 	CenaSaPdv      float64

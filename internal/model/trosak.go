@@ -1,5 +1,7 @@
 package model
 
+import "time"
+
 // Trosak je stavka šifrarnika vrsta troškova (npr. Prevoz, Carina, Ambalaža).
 // To je katalog dodatnih troškova koji se vezuju za radni nalog i ulaze u cenu
 // koštanja. NIJE evidencija rashoda firme (struja, kirija) — to je poseban modul.
@@ -10,5 +12,5 @@ type Trosak struct {
 	Cena       float64
 	Opis       string
 	Arhiviran  bool
-	DatumUnosa string
+	DatumUnosa time.Time
 }

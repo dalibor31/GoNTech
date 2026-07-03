@@ -122,6 +122,8 @@ func (r *KlijentRepo) Pronadji(ctx context.Context, tip, ime, prezime, nazivFirm
 				FROM klijenti WHERE tip = 'pravno' AND pib = ? LIMIT 1`, jmbg)
 			if err := skeniraj(row); err == nil {
 				goto popuni
+			} else if !errors.Is(err, sql.ErrNoRows) {
+				return nil, fmt.Errorf("ntech: KlijentRepo.Pronadji: %w", err)
 			}
 		}
 		// 2. Naziv firme + mesto
@@ -131,6 +133,8 @@ func (r *KlijentRepo) Pronadji(ctx context.Context, tip, ime, prezime, nazivFirm
 				FROM klijenti WHERE tip = 'pravno' AND naziv_firme = ? AND mesto = ? LIMIT 1`, nazivFirme, mesto)
 			if err := skeniraj(row); err == nil {
 				goto popuni
+			} else if !errors.Is(err, sql.ErrNoRows) {
+				return nil, fmt.Errorf("ntech: KlijentRepo.Pronadji: %w", err)
 			}
 		}
 		// 3. Samo naziv firme
@@ -152,6 +156,8 @@ func (r *KlijentRepo) Pronadji(ctx context.Context, tip, ime, prezime, nazivFirm
 				FROM klijenti WHERE tip != 'pravno' AND jmbg = ? LIMIT 1`, jmbg)
 			if err := skeniraj(row); err == nil {
 				goto popuni
+			} else if !errors.Is(err, sql.ErrNoRows) {
+				return nil, fmt.Errorf("ntech: KlijentRepo.Pronadji: %w", err)
 			}
 		}
 		// 2. Ime + prezime + mesto
@@ -161,6 +167,8 @@ func (r *KlijentRepo) Pronadji(ctx context.Context, tip, ime, prezime, nazivFirm
 				FROM klijenti WHERE tip != 'pravno' AND ime = ? AND prezime = ? AND mesto = ? LIMIT 1`, ime, prezime, mesto)
 			if err := skeniraj(row); err == nil {
 				goto popuni
+			} else if !errors.Is(err, sql.ErrNoRows) {
+				return nil, fmt.Errorf("ntech: KlijentRepo.Pronadji: %w", err)
 			}
 		}
 		// 3. Ime + prezime + telefon
@@ -170,6 +178,8 @@ func (r *KlijentRepo) Pronadji(ctx context.Context, tip, ime, prezime, nazivFirm
 				FROM klijenti WHERE tip != 'pravno' AND ime = ? AND prezime = ? AND telefon = ? LIMIT 1`, ime, prezime, telefon)
 			if err := skeniraj(row); err == nil {
 				goto popuni
+			} else if !errors.Is(err, sql.ErrNoRows) {
+				return nil, fmt.Errorf("ntech: KlijentRepo.Pronadji: %w", err)
 			}
 		}
 		// 4. Ime + prezime + email
@@ -179,6 +189,8 @@ func (r *KlijentRepo) Pronadji(ctx context.Context, tip, ime, prezime, nazivFirm
 				FROM klijenti WHERE tip != 'pravno' AND ime = ? AND prezime = ? AND email = ? LIMIT 1`, ime, prezime, email)
 			if err := skeniraj(row); err == nil {
 				goto popuni
+			} else if !errors.Is(err, sql.ErrNoRows) {
+				return nil, fmt.Errorf("ntech: KlijentRepo.Pronadji: %w", err)
 			}
 		}
 		// 5. Samo ime + prezime (poslednji fallback)

@@ -57,7 +57,7 @@ func (r *sqliteIzvestajRepo) PrihodTekuciMesec(ctx context.Context) (float64, er
 func (r *sqliteIzvestajRepo) BrojKriticnihZaliha(ctx context.Context) (int, error) {
 	var n int
 	err := r.db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM artikli WHERE kolicina <= kolicina_min`).Scan(&n)
+		`SELECT COUNT(*) FROM artikli WHERE (tip = 'proizvod' OR tip = '') AND kolicina <= kolicina_min AND arhiviran = 0`).Scan(&n)
 	if err != nil {
 		return 0, fmt.Errorf("ntech: izvestaj.BrojKriticnihZaliha: %w", err)
 	}
@@ -86,7 +86,7 @@ func (r *sqliteIzvestajRepo) PoslednjiServisi(ctx context.Context, limit int) ([
 func (r *sqliteIzvestajRepo) KriticneZalihe(ctx context.Context, limit int) ([]model.ZalihaRed, error) {
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT naziv, kolicina, kolicina_min FROM artikli
-		WHERE kolicina <= kolicina_min
+		WHERE (tip = 'proizvod' OR tip = '') AND kolicina <= kolicina_min AND arhiviran = 0
 		ORDER BY kolicina ASC LIMIT ?`, limit)
 	if err != nil {
 		return nil, fmt.Errorf("ntech: izvestaj.KriticneZalihe: %w", err)
@@ -333,7 +333,7 @@ func (r *sqliteIzvestajRepo) StanjeZaliha(ctx context.Context) ([]model.StanjeZa
 	for rows.Next() {
 		var s model.StanjeZalihaRed
 		if err := rows.Scan(&s.Naziv, &s.Sifra, &s.Kategorija,
-			&s.Kolicina, &s.KolicinMin, &s.NabavnaCena, &s.ProdajnaCena,
+			&s.Kolicina, &s.KolicinaMin, &s.NabavnaCena, &s.ProdajnaCena,
 			&s.CenaSaPdv, &s.VrednostZalihe, &s.VrednostSaPdv); err != nil {
 			return nil, fmt.Errorf("ntech: IzvestajRepo.StanjeZaliha: scan: %w", err)
 		}

@@ -20,9 +20,9 @@ func TestIzvestajArtikliBrojaci(t *testing.T) {
 			t.Fatalf("Kreiraj: %v", err)
 		}
 	}
-	dodaj(&model.Artikal{Naziv: "A", Kolicina: 10, KolicinMin: 5})
-	dodaj(&model.Artikal{Naziv: "B", Kolicina: 2, KolicinMin: 5})
-	dodaj(&model.Artikal{Naziv: "C", Kolicina: 0, KolicinMin: 5})
+	dodaj(&model.Artikal{Naziv: "A", Kolicina: 10, KolicinaMin: 5})
+	dodaj(&model.Artikal{Naziv: "B", Kolicina: 2, KolicinaMin: 5})
+	dodaj(&model.Artikal{Naziv: "C", Kolicina: 0, KolicinaMin: 5})
 
 	if n, err := izv.BrojArtikala(ctx); err != nil || n != 3 {
 		t.Fatalf("BrojArtikala = %d, err=%v; očekivano 3", n, err)

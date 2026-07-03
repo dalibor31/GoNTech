@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"ntech/internal/db"
@@ -104,10 +105,10 @@ func (h *Handler) magacinPrikaz(w http.ResponseWriter, r *http.Request, tip, str
 	// izgradi query string za paginaciju (čuva filtere)
 	queryDelići := ""
 	if v := filter.Pretraga; v != "" {
-		queryDelići += "&pretraga=" + v
+		queryDelići += "&pretraga=" + url.QueryEscape(v)
 	}
 	if katIDStr != "" {
-		queryDelići += "&kategorija=" + katIDStr
+		queryDelići += "&kategorija=" + url.QueryEscape(katIDStr)
 	}
 	if filter.SamoKriticni {
 		queryDelići += "&kriticni=1"
