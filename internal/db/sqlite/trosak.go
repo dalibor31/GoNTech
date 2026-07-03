@@ -26,15 +26,11 @@ func skenirajTrosak(s interface {
 	var t model.Trosak
 	var sifra sql.NullString
 	var arhiviran int
-	var datumUnosa string
-	if err := s.Scan(&t.ID, &sifra, &t.Naziv, &t.Cena, &t.Opis, &arhiviran, &datumUnosa); err != nil {
+	if err := s.Scan(&t.ID, &sifra, &t.Naziv, &t.Cena, &t.Opis, &arhiviran, &t.DatumUnosa); err != nil {
 		return t, err
 	}
 	t.Sifra = sifra.String
 	t.Arhiviran = arhiviran == 1
-	if parsed, err := parseDatumUnosa(datumUnosa); err == nil {
-		t.DatumUnosa = parsed
-	}
 	return t, nil
 }
 
