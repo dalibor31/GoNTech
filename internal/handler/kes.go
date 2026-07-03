@@ -48,6 +48,16 @@ var standaloneIme = []string{
 	"prijava", "setup", "totp_provera", "prodaja_stampa", "servis_radni_nalog", "servis_otpremnica", "servis_revers", "servis_predracun", "servis_nalepnica", "servis_status_javni", "servis_garantni_list", "servis_eskalacioni_list", "fiskal_verifikacija", "popis_stampa",
 }
 
+// standaloneExtraFajlovi su dodatni fajlovi (partial-i sa {{define}}) koje treba
+// parsirati uz standalone šablon — npr. zajedničko zaglavlje servisnih dokumenata,
+// koje se deli između revers/predračun/otpremnica/eskalacioni list.
+var standaloneExtraFajlovi = map[string][]string{
+	"servis_revers":           {"web/templates/komponente/servis_zaglavlje.html"},
+	"servis_predracun":        {"web/templates/komponente/servis_zaglavlje.html"},
+	"servis_otpremnica":       {"web/templates/komponente/servis_zaglavlje.html"},
+	"servis_eskalacioni_list": {"web/templates/komponente/servis_zaglavlje.html"},
+}
+
 // sablonskeFunkcije su pomoćne funkcije dostupne u svim šablonima.
 // dict gradi mapu iz parova ključ/vrednost — koristi se da se jednom partialu
 // prosledi više vrednosti (npr. {{template "x" (dict "ID" .ID "Lista" $.Lista)}}).
@@ -157,7 +167,8 @@ func KreirajKes(fsys fs.FS) (map[string]*template.Template, error) {
 
 	for _, ime := range standaloneIme {
 		// ime+".html" mora biti ime roota da bi Execute() pronašlo sadržaj fajla
-		t, err := template.New(ime+".html").Funcs(sablonskeFunkcije).ParseFS(fsys, "web/templates/stranice/"+ime+".html")
+		fajlovi := append([]string{"web/templates/stranice/" + ime + ".html"}, standaloneExtraFajlovi[ime]...)
+		t, err := template.New(ime+".html").Funcs(sablonskeFunkcije).ParseFS(fsys, fajlovi...)
 		if err != nil {
 			return nil, fmt.Errorf("kes: %s: %w", ime, err)
 		}
@@ -219,7 +230,8 @@ func (h *Handler) renderujStandalone(w http.ResponseWriter, ime string, podaci a
 	} else {
 		var err error
 		// kao u kreirajKes: root mora biti ime+".html" i moraju biti registrovane šablonske funkcije
-		if tmpl, err = template.New(ime+".html").Funcs(sablonskeFunkcije).ParseFS(h.TemplatesFS, "web/templates/stranice/"+ime+".html"); err != nil {
+		fajlovi := append([]string{"web/templates/stranice/" + ime + ".html"}, standaloneExtraFajlovi[ime]...)
+		if tmpl, err = template.New(ime+".html").Funcs(sablonskeFunkcije).ParseFS(h.TemplatesFS, fajlovi...); err != nil {
 			slog.Error("greška pri parsiranju šablona", "ime", ime, "error", err)
 			http.Error(w, "Greška pri učitavanju stranice", http.StatusInternalServerError)
 			return
