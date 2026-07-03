@@ -1124,7 +1124,14 @@ func jePrivatnaAdresa(hostname string) bool {
 	}
 	ip := net.ParseIP(hostname)
 	if ip == nil {
-		return false
+		// Nije literalna IP adresa (npr. Docker Compose ime servisa poput
+		// "teron-mock") — razrešavamo je preko DNS-a pa proveravamo
+		// razrešenu adresu istim pravilima kao dole.
+		adrese, err := net.LookupIP(hostname)
+		if err != nil || len(adrese) == 0 {
+			return false
+		}
+		ip = adrese[0]
 	}
 	ip4 := ip.To4()
 	if ip4 == nil {
