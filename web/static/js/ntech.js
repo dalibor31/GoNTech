@@ -226,6 +226,10 @@ document.addEventListener('alpine:init', () => {
             this.artikliOpcije = window._ntechArtikli || []
             this.klijenti = window._ntechKlijenti || []
             this.pdvObveznik = window._ntechPdvObveznik === true
+            // ako firma ne fiskalizuje, ne otvaramo ni prazan tab u pripremiFiskalniTab() —
+            // stranica detalja nikad neće imati FiskalniRacun da ga popuni, pa bi ostao
+            // trajno na about:blank (v. docs/Greške.md)
+            this.prikaziRacun = window._ntechFiskalizacija === true
             this.isMobile = window.matchMedia('(max-width: 768px)').matches
             window.matchMedia('(max-width: 768px)').addEventListener('change', e => {
                 this.isMobile = e.matches
