@@ -1,0 +1,52 @@
+name: PR provera (develop)
+
+on:
+  pull_request:
+    branches:
+      - develop
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: Build, test, gofmt, Docker build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Preuzmi kod
+        uses: actions/checkout@v4
+
+      - name: Podesi Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache: true
+
+      - name: gofmt provera
+        run: |
+          neformatirano=$(gofmt -l .)
+          if [ -n "$neformatirano" ]; then
+            echo "Sledeći fajlovi nisu gofmt-ovani:"
+            echo "$neformatirano"
+            exit 1
+          fi
+
+      - name: go build
+        run: go build ./...
+
+      - name: go test
+        run: go test ./...
+
+      - name: Build binarnog fajla (isto kao start.sh, produkcioni build)
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+            -ldflags "-X main.Verzija=pr-${{ github.event.pull_request.number }} -s -w" \
+            -trimpath \
+            -o ntech ./cmd/ntech
+
+      - name: Docker build (bez push-a)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: ntech:pr-${{ github.event.pull_request.number }}
