@@ -55,3 +55,11 @@ func nullDateString(v *time.Time) sql.NullString {
 	}
 	return sql.NullString{String: v.Format("2006-01-02"), Valid: true}
 }
+
+// parseDatumUnosa parsira "YYYY-MM-DD HH:MM:SS" iz kolone deklarisane kao TEXT
+// (npr. usluge/troskovi.datum_unosa, `DEFAULT (datetime('now'))`). Driver
+// vraća string umesto time.Time za TEXT kolone (za razliku od DATETIME kolona
+// koje driver sam parsira), pa Scan ne može direktno u *time.Time.
+func parseDatumUnosa(s string) (time.Time, error) {
+	return time.ParseInLocation("2006-01-02 15:04:05", s, time.UTC)
+}

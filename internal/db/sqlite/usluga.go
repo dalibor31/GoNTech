@@ -26,11 +26,15 @@ func skenirajUslugu(s interface {
 	var u model.Usluga
 	var sifra sql.NullString
 	var arhiviran int
-	if err := s.Scan(&u.ID, &sifra, &u.Naziv, &u.Kategorija, &u.JedinicaMere, &u.Cena, &u.PdvStopa, &u.Opis, &arhiviran, &u.DatumUnosa); err != nil {
+	var datumUnosa string
+	if err := s.Scan(&u.ID, &sifra, &u.Naziv, &u.Kategorija, &u.JedinicaMere, &u.Cena, &u.PdvStopa, &u.Opis, &arhiviran, &datumUnosa); err != nil {
 		return u, err
 	}
 	u.Sifra = sifra.String
 	u.Arhiviran = arhiviran == 1
+	if t, err := parseDatumUnosa(datumUnosa); err == nil {
+		u.DatumUnosa = t
+	}
 	return u, nil
 }
 
