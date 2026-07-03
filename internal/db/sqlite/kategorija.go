@@ -3,9 +3,13 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
+	"ntech/internal/db"
 	"ntech/internal/model"
+
+	mosqlite "modernc.org/sqlite"
 )
 
 // KategorijaRepo je SQLite implementacija KategorijaRepository interfejsa
@@ -106,6 +110,20 @@ func (r *KategorijaRepo) Izmeni(ctx context.Context, k *model.Kategorija) error 
 	)
 	if err != nil {
 		return fmt.Errorf("ntech: KategorijaRepo.Izmeni: %w", err)
+	}
+	return nil
+}
+
+// Obrisi briše kategoriju. Ako je referencirana od artikla (FK ograničenje),
+// vraća db.ErrKategorijaUUpotrebi da pozivalac može da prikaže razumljivu poruku.
+func (r *KategorijaRepo) Obrisi(ctx context.Context, id int64) error {
+	_, err := r.db.ExecContext(ctx, "DELETE FROM kategorije WHERE id = ?", id)
+	if err != nil {
+		var sqliteErr *mosqlite.Error
+		if errors.As(err, &sqliteErr) && sqliteErr.Code() == 787 {
+			return db.ErrKategorijaUUpotrebi
+		}
+		return fmt.Errorf("ntech: KategorijaRepo.Obrisi: %w", err)
 	}
 	return nil
 }

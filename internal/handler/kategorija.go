@@ -1,11 +1,14 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"ntech/internal/db"
 	"ntech/internal/db/sqlite"
+	"ntech/internal/middleware"
 	"ntech/internal/model"
 
 	"github.com/go-chi/chi/v5"
@@ -159,7 +162,12 @@ func (h *Handler) ObrisiKategoriju(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := h.DB.ExecContext(r.Context(), "DELETE FROM kategorije WHERE id = ?", id); err != nil {
+	if err := h.KategorijeRepo.Obrisi(r.Context(), id); err != nil {
+		if errors.Is(err, db.ErrKategorijaUUpotrebi) {
+			middleware.SetFlash(w, r, h.DB, "greska", "Kategorija je u upotrebi kod artikala i ne može se obrisati.")
+			http.Redirect(w, r, "/magacin/kategorije", http.StatusSeeOther)
+			return
+		}
 		http.Error(w, "Greška pri brisanju kategorije", http.StatusInternalServerError)
 		return
 	}

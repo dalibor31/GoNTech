@@ -294,53 +294,8 @@ func (r *ProdajaRepo) Storno(ctx context.Context, id int64, razlog string, koris
 	}
 
 	// vraćanje stanja u magacin
-	redovi, err := tx.QueryContext(ctx,
-		"SELECT artikal_id, kolicina FROM stavke_prodaje WHERE nalog_id = ?", id)
-	if err != nil {
-		return fmt.Errorf("ntech: ProdajaRepo.Storno: dohvati stavke: %w", err)
-	}
-
-	type stavkaPovrat struct {
-		artikalID int64
-		kolicina  int
-	}
-	var stavke []stavkaPovrat
-	for redovi.Next() {
-		var p stavkaPovrat
-		if err := redovi.Scan(&p.artikalID, &p.kolicina); err != nil {
-			redovi.Close()
-			return fmt.Errorf("ntech: ProdajaRepo.Storno: scan stavke: %w", err)
-		}
-		stavke = append(stavke, p)
-	}
-	redovi.Close()
-
-	for _, p := range stavke {
-		var stanjePre int
-		var tip string
-		err := tx.QueryRowContext(ctx, "SELECT kolicina, tip FROM artikli WHERE id = ?", p.artikalID).Scan(&stanjePre, &tip)
-		if err != nil {
-			return fmt.Errorf("ntech: ProdajaRepo.Storno: dohvati stanje: %w", err)
-		}
-
-		// usluge i troškovi nemaju stanje na lageru — preskačemo povraćaj
-		if !(tip == model.TipProizvod || tip == "") {
-			continue
-		}
-
-		stanjePosle := stanjePre + p.kolicina
-		_, err = tx.ExecContext(ctx,
-			"UPDATE artikli SET kolicina = ? WHERE id = ?", stanjePosle, p.artikalID,
-		)
-		if err != nil {
-			return fmt.Errorf("ntech: ProdajaRepo.Storno: vrati stanje: %w", err)
-		}
-
-		err = zabeleziMagacinPromenu(ctx, tx, p.artikalID, model.PromenaPovracaj,
-			p.kolicina, stanjePre, stanjePosle, id, korisnikID, razlog)
-		if err != nil {
-			return fmt.Errorf("ntech: ProdajaRepo.Storno: magacin: %w", err)
-		}
+	if err := vratiStavkeNaStanje(ctx, tx, "stavke_prodaje", id, korisnikID, razlog); err != nil {
+		return fmt.Errorf("ntech: ProdajaRepo.Storno: %w", err)
 	}
 
 	_, err = tx.ExecContext(ctx,
@@ -374,54 +329,8 @@ func (r *ProdajaRepo) Obrisi(ctx context.Context, id int64, korisnikID *int64) e
 	}
 
 	if !stornirano {
-		redovi, err := tx.QueryContext(ctx,
-			"SELECT artikal_id, kolicina FROM stavke_prodaje WHERE nalog_id = ?", id)
-		if err != nil {
-			return fmt.Errorf("ntech: ProdajaRepo.Obrisi: dohvati stavke: %w", err)
-		}
-
-		type povrat struct {
-			artikalID int64
-			kolicina  int
-		}
-		var stavke []povrat
-		for redovi.Next() {
-			var p povrat
-			if err := redovi.Scan(&p.artikalID, &p.kolicina); err != nil {
-				redovi.Close()
-				return fmt.Errorf("ntech: ProdajaRepo.Obrisi: scan stavke: %w", err)
-			}
-			stavke = append(stavke, p)
-		}
-		redovi.Close()
-
-		for _, p := range stavke {
-			// usluge i troškovi nemaju stanje — vraćamo samo proizvodima
-			var stanjePre int
-			var tip string
-			err := tx.QueryRowContext(ctx,
-				"SELECT kolicina, tip FROM artikli WHERE id = ?", p.artikalID,
-			).Scan(&stanjePre, &tip)
-			if err != nil {
-				return fmt.Errorf("ntech: ProdajaRepo.Obrisi: dohvati stanje: %w", err)
-			}
-			if !(tip == model.TipProizvod || tip == "") {
-				continue
-			}
-
-			stanjePosle := stanjePre + p.kolicina
-			_, err = tx.ExecContext(ctx,
-				"UPDATE artikli SET kolicina = ? WHERE id = ?", stanjePosle, p.artikalID,
-			)
-			if err != nil {
-				return fmt.Errorf("ntech: ProdajaRepo.Obrisi: vrati stanje: %w", err)
-			}
-
-			err = zabeleziMagacinPromenu(ctx, tx, p.artikalID, model.PromenaPovracaj,
-				p.kolicina, stanjePre, stanjePosle, id, korisnikID, "brisanje prodajnog naloga")
-			if err != nil {
-				return fmt.Errorf("ntech: ProdajaRepo.Obrisi: magacin: %w", err)
-			}
+		if err := vratiStavkeNaStanje(ctx, tx, "stavke_prodaje", id, korisnikID, "brisanje prodajnog naloga"); err != nil {
+			return fmt.Errorf("ntech: ProdajaRepo.Obrisi: %w", err)
 		}
 	}
 

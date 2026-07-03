@@ -333,7 +333,7 @@ func (r *sqliteIzvestajRepo) StanjeZaliha(ctx context.Context) ([]model.StanjeZa
 	for rows.Next() {
 		var s model.StanjeZalihaRed
 		if err := rows.Scan(&s.Naziv, &s.Sifra, &s.Kategorija,
-			&s.Kolicina, &s.KolicinMin, &s.NabavnaCena, &s.ProdajnaCena,
+			&s.Kolicina, &s.KolicinaMin, &s.NabavnaCena, &s.ProdajnaCena,
 			&s.CenaSaPdv, &s.VrednostZalihe, &s.VrednostSaPdv); err != nil {
 			return nil, fmt.Errorf("ntech: IzvestajRepo.StanjeZaliha: scan: %w", err)
 		}

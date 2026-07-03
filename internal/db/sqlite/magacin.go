@@ -100,3 +100,63 @@ func zabeleziMagacinPromenu(
 	}
 	return nil
 }
+
+// vratiStavkeNaStanje čita (artikal_id, kolicina) iz izvorne tabele stavki
+// (stavke_prodaje ili servisni_delovi — uvek fiksan literal iz poziva, nikad
+// korisnički unos) za dati nalog, vraća proizvode na stanje i beleži magacinsku
+// promenu za svaki. Usluge i troškovi (koji ne prate stanje) se preskaču.
+// Zajednički je za Storno/Obrisi u ProdajaRepo i ServisRepo — sve unutar
+// postojeće transakcije pozivaoca.
+func vratiStavkeNaStanje(ctx context.Context, tx *sql.Tx, tabelaStavki string, nalogID int64, korisnikID *int64, napomena string) error {
+	redovi, err := tx.QueryContext(ctx,
+		"SELECT artikal_id, kolicina FROM "+tabelaStavki+" WHERE nalog_id = ?", nalogID)
+	if err != nil {
+		return fmt.Errorf("dohvati stavke: %w", err)
+	}
+
+	type stavkaPovrat struct {
+		artikalID int64
+		kolicina  int
+	}
+	var stavke []stavkaPovrat
+	for redovi.Next() {
+		var p stavkaPovrat
+		if err := redovi.Scan(&p.artikalID, &p.kolicina); err != nil {
+			redovi.Close()
+			return fmt.Errorf("scan stavke: %w", err)
+		}
+		stavke = append(stavke, p)
+	}
+	redovi.Close()
+	if err := redovi.Err(); err != nil {
+		return fmt.Errorf("iteracija stavki: %w", err)
+	}
+
+	for _, p := range stavke {
+		var stanjePre int
+		var tip string
+		if err := tx.QueryRowContext(ctx,
+			"SELECT kolicina, tip FROM artikli WHERE id = ?", p.artikalID,
+		).Scan(&stanjePre, &tip); err != nil {
+			return fmt.Errorf("dohvati stanje: %w", err)
+		}
+
+		// usluge i troškovi nemaju stanje na lageru — preskačemo povraćaj
+		if !(tip == model.TipProizvod || tip == "") {
+			continue
+		}
+
+		stanjePosle := stanjePre + p.kolicina
+		if _, err := tx.ExecContext(ctx,
+			"UPDATE artikli SET kolicina = ? WHERE id = ?", stanjePosle, p.artikalID,
+		); err != nil {
+			return fmt.Errorf("vrati stanje: %w", err)
+		}
+
+		if err := zabeleziMagacinPromenu(ctx, tx, p.artikalID, model.PromenaPovracaj,
+			p.kolicina, stanjePre, stanjePosle, nalogID, korisnikID, napomena); err != nil {
+			return fmt.Errorf("magacin: %w", err)
+		}
+	}
+	return nil
+}

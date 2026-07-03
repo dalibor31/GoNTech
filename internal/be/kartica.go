@@ -5,6 +5,7 @@ package be
 
 import (
 	"context"
+	"crypto/subtle"
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
@@ -254,7 +255,7 @@ func (k *Kartica) cmdCertificate() map[string]any {
 func (k *Kartica) cmdVerifyPin(pin string) map[string]any {
 	k.mu.Lock()
 	defer k.mu.Unlock()
-	if pin != k.PIN {
+	if subtle.ConstantTimeCompare([]byte(pin), []byte(k.PIN)) != 1 {
 		return map[string]any{"status": "error", "code": "2100", "message": "Pogrešan PIN"}
 	}
 	k.pinUnesen = true

@@ -33,11 +33,11 @@ func (r *PdvKirRepo) Lista(ctx context.Context, od, do time.Time) ([]model.PdvKi
 	args := []any{}
 	if !od.IsZero() {
 		upit += " AND datum_prometa >= ?"
-		args = append(args, od)
+		args = append(args, od.Format("2006-01-02"))
 	}
 	if !do.IsZero() {
 		upit += " AND datum_prometa <= ?"
-		args = append(args, do)
+		args = append(args, do.Format("2006-01-02"))
 	}
 	upit += " ORDER BY datum_prometa ASC, id ASC"
 
@@ -105,7 +105,7 @@ func (r *PdvKirRepo) Kreiraj(ctx context.Context, k *model.PdvKir) (int64, error
 			osnovica_opsta, pdv_opsta, osnovica_posebna, pdv_posebna,
 			osloboden_sa_pravom, osloboden_bez_prava, ukupno, napomena, izvor, izvor_id
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		k.DatumPrometa, k.DatumKnjizenja, k.BrojDokumenta,
+		k.DatumPrometa.Format("2006-01-02"), k.DatumKnjizenja.Format("2006-01-02"), k.BrojDokumenta,
 		k.KupacNaziv, k.KupacPib, k.KupacMesto,
 		k.OsnovicaOpsta, k.PdvOpsta, k.OsnovicaPosebna, k.PdvPosebna,
 		k.OslobodenSaPravom, k.OslobodenBezPrava, k.Ukupno, k.Napomena,
@@ -229,11 +229,11 @@ func (r *PdvKprRepo) Lista(ctx context.Context, od, do time.Time) ([]model.PdvKp
 	args := []any{}
 	if !od.IsZero() {
 		upit += " AND datum_prometa >= ?"
-		args = append(args, od)
+		args = append(args, od.Format("2006-01-02"))
 	}
 	if !do.IsZero() {
 		upit += " AND datum_prometa <= ?"
-		args = append(args, do)
+		args = append(args, do.Format("2006-01-02"))
 	}
 	upit += " ORDER BY datum_prometa ASC, id ASC"
 
@@ -302,7 +302,7 @@ func skenirajKpr(scan func(...any) error) (model.PdvKpr, error) {
 func (r *PdvKprRepo) Kreiraj(ctx context.Context, k *model.PdvKpr) (int64, error) {
 	var datumPlacanja any
 	if k.DatumPlacanja != nil {
-		datumPlacanja = *k.DatumPlacanja
+		datumPlacanja = k.DatumPlacanja.Format("2006-01-02")
 	}
 	uvoz := 0
 	if k.Uvoz {
@@ -315,7 +315,7 @@ func (r *PdvKprRepo) Kreiraj(ctx context.Context, k *model.PdvKpr) (int64, error
 			osnovica_opsta, pdv_opsta, osnovica_posebna, pdv_posebna,
 			pdv_bez_odbitka, osloboden_nabavka, ukupno, napomena, izvor, izvor_id, uvoz
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		k.DatumPrometa, k.DatumKnjizenja, datumPlacanja, k.BrojDokumenta,
+		k.DatumPrometa.Format("2006-01-02"), k.DatumKnjizenja.Format("2006-01-02"), datumPlacanja, k.BrojDokumenta,
 		k.DobavljacNaziv, k.DobavljacPib, k.DobavljacMesto,
 		k.OsnovicaOpsta, k.PdvOpsta, k.OsnovicaPosebna, k.PdvPosebna,
 		k.PdvBezOdbitka, k.OslobodenNabavka, k.Ukupno, k.Napomena,

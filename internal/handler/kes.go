@@ -129,6 +129,15 @@ var sablonskeFunkcije = template.FuncMap{
 	},
 	// zbirF64 vraća zbir dva float64 — za aritmetiku u šablonima
 	"zbirF64": func(a, b float64) float64 { return a + b },
+	// inicijali vraća prva najviše n RUNA stringa (ne bajta) — sigurno za ćirilicu
+	// i č/ć/š/ž/đ, za razliku od ugrađenog {{slice}} koji seče po bajtovima.
+	"inicijali": func(s string, n int) string {
+		r := []rune(s)
+		if len(r) > n {
+			r = r[:n]
+		}
+		return string(r)
+	},
 }
 
 // KreirajKes parsuje sve šablone iz fsys i vraća ih keširane u mapi

@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/base64"
 	"net/http"
 	"os"
@@ -69,7 +70,7 @@ func CsrfMiddleware(next http.Handler) http.Handler {
 			if submitted == "" {
 				submitted = r.Header.Get("X-CSRF-Token")
 			}
-			if token == "" || submitted != token {
+			if token == "" || subtle.ConstantTimeCompare([]byte(submitted), []byte(token)) != 1 {
 				http.Error(w,
 					"Neispravan sigurnosni token. Osvežite stranicu i pokušajte ponovo.",
 					http.StatusForbidden,
