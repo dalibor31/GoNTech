@@ -152,9 +152,7 @@
             <thead>
                 <tr>
                     <th>Opis rada</th>
-                    <th>Kol.</th>
-                    <th>Cena{{if index .Moduli "pdv"}} sa PDV{{end}}</th>
-                    <th>Ukupno{{if index .Moduli "pdv"}} sa PDV{{end}}</th>
+                    <th style="text-align:right;">Kol.</th>
                 </tr>
             </thead>
             <tbody>
@@ -162,8 +160,6 @@
                 <tr>
                     <td>{{.Naziv}}</td>
                     <td style="text-align:right;">{{printf "%.0f" .Kolicina}}</td>
-                    <td style="text-align:right;">{{if index $.Moduli "pdv"}}{{dinari .CenaSaPdv}}{{else}}{{dinari .CenaKomada}}{{end}}</td>
-                    <td>{{if index $.Moduli "pdv"}}{{dinari .UkupnoSaPdv}}{{else}}{{dinari .Ukupno}}{{end}}</td>
                 </tr>
                 {{end}}
             </tbody>
@@ -182,9 +178,7 @@
                 <tr>
                     <th>Naziv</th>
                     <th>Šifra</th>
-                    <th>Kol.</th>
-                    <th>Cena{{if index .Moduli "pdv"}} sa PDV{{end}}</th>
-                    <th>Ukupno{{if index .Moduli "pdv"}} sa PDV{{end}}</th>
+                    <th style="text-align:right;">Kol.</th>
                 </tr>
             </thead>
             <tbody>
@@ -194,8 +188,6 @@
                     <td>{{.ArtikalNaziv}}</td>
                     <td style="font-family:monospace;">{{.ArtikalSifra}}</td>
                     <td style="text-align:right;">{{.Kolicina}}</td>
-                    <td style="text-align:right;">{{if index $.Moduli "pdv"}}{{dinari .CenaSaPdv}}{{else}}{{dinari .CenaKomada}}{{end}}</td>
-                    <td>{{if index $.Moduli "pdv"}}{{dinari .UkupnoSaPdv}}{{else}}{{dinari .Ukupno}}{{end}}</td>
                 </tr>
                 {{end}}
                 {{end}}

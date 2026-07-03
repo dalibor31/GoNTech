@@ -58,6 +58,9 @@ type PdvStopaRepository interface {
 	Kreiraj(ctx context.Context, s *model.PdvStopa) (int64, error)
 	Izmeni(ctx context.Context, s *model.PdvStopa) error
 	PostaviAktivnu(ctx context.Context, id int64, aktivna bool) error
+	// PodrazumevanaOpsta vraća aktivnu opštu stopu iz šifarnika (prva po redosledu),
+	// ili nil ako u šifarniku nema nijedne aktivne opšte stope.
+	PodrazumevanaOpsta(ctx context.Context) (*model.PdvStopa, error)
 }
 
 // PdvKirRepository definiše operacije nad knjigom izdatih računa (KIR)
@@ -66,8 +69,9 @@ type PdvKirRepository interface {
 	DohvatiID(ctx context.Context, id int64) (*model.PdvKir, error)
 	Kreiraj(ctx context.Context, k *model.PdvKir) (int64, error)
 	Obrisi(ctx context.Context, id int64) error
-	// ObrisiPoIzvoru briše zapise vezane za dati izvor (npr. pri stornu prodaje)
-	ObrisiPoIzvoru(ctx context.Context, izvor string, izvorID int64) error
+	// DohvatiPoIzvoru vraća zapise vezane za dati izvor (npr. za storno prodaje —
+	// original se ne briše, storno stavka se dograđuje na osnovu ovih zapisa)
+	DohvatiPoIzvoru(ctx context.Context, izvor string, izvorID int64) ([]model.PdvKir, error)
 	// PostojiZaIzvor vraća true ako postoji bar jedan zapis za dati izvor i izvorID
 	PostojiZaIzvor(ctx context.Context, izvor string, izvorID int64) (bool, error)
 	// PostojiPoBrojuDokumenta vraća true ako postoji zapis sa datim brojem dokumenta
@@ -83,8 +87,9 @@ type PdvKprRepository interface {
 	DohvatiID(ctx context.Context, id int64) (*model.PdvKpr, error)
 	Kreiraj(ctx context.Context, k *model.PdvKpr) (int64, error)
 	Obrisi(ctx context.Context, id int64) error
-	// ObrisiPoIzvoru briše zapise vezane za dati izvor (npr. pri brisanju nabavke)
-	ObrisiPoIzvoru(ctx context.Context, izvor string, izvorID int64) error
+	// DohvatiPoIzvoru vraća zapise vezane za dati izvor (npr. za storno nabavke —
+	// original se ne briše, storno stavka se dograđuje na osnovu ovih zapisa)
+	DohvatiPoIzvoru(ctx context.Context, izvor string, izvorID int64) ([]model.PdvKpr, error)
 	// PostojiZaIzvor vraća true ako postoji bar jedan zapis za dati izvor i izvorID
 	PostojiZaIzvor(ctx context.Context, izvor string, izvorID int64) (bool, error)
 }
@@ -215,6 +220,9 @@ type ServisRepository interface {
 	SacuvajOdlukuKlijenta(ctx context.Context, id int64, odluka string, odgovor string) error
 	ObrisiOdlukuKlijenta(ctx context.Context, id int64) error
 	Obrisi(ctx context.Context, id int64, korisnikID *int64) error
+	// Storno stornira nalog (vraća ugrađene delove na stanje, markira stornirano=1)
+	// bez brisanja — koristi se kad nalog već ima finansijske zapise (KIR/KPO/fiskalni)
+	Storno(ctx context.Context, id int64, razlog string, korisnikID *int64) error
 	SledeciBroj(ctx context.Context) (string, error)
 	SacuvajNaplatu(ctx context.Context, id int64, nacinPlacanja string, naplaceno float64) error
 }
@@ -331,6 +339,10 @@ type PokusajiPrijaveRepository interface {
 	BrojNeuspeha(ctx context.Context, ip string, od time.Time) (int, error)
 	VremePoslednjeg(ctx context.Context, ip string, od time.Time) (time.Time, bool, error)
 	ObrisiStare(ctx context.Context, pre time.Time) error
+	// ListaBlokiranih vraća IP adrese sa >= prag neuspelih pokušaja od zadatog trenutka
+	ListaBlokiranih(ctx context.Context, od time.Time, prag int) ([]model.BlokiranaIP, error)
+	// Odblokiraj briše neuspele pokušaje za IP adresu, čime se ona odmah oslobađa blokade
+	Odblokiraj(ctx context.Context, ip string) error
 }
 
 // LoginIstorijsaRepository definiše operacije nad evidencijom prijava
@@ -371,6 +383,8 @@ type IzvestajRepository interface {
 	// izveštaji
 	MesecniPrihodProdaja(ctx context.Context) ([]model.MesecniIznos, error)
 	MesecniPrihodServis(ctx context.Context) ([]model.MesecniIznos, error)
+	MesecniZaradaProdaja(ctx context.Context) ([]model.MesecniIznos, error)
+	MesecniZaradaServis(ctx context.Context) ([]model.MesecniIznos, error)
 	StariOtvoreniNalozi(ctx context.Context) ([]model.StariNalogRed, error)
 	TopArtikli(ctx context.Context, limit int) ([]model.TopArtikalRed, error)
 	TopKlijenti(ctx context.Context, limit int) ([]model.TopKlijentRed, error)
@@ -396,6 +410,11 @@ type FiskalRepository interface {
 	Kreiraj(ctx context.Context, fr *model.FiskalniRacun) (int64, error)
 	DohvatiPoProdaji(ctx context.Context, prodajaID int64) (*model.FiskalniRacun, error)
 	DohvatiPoServisu(ctx context.Context, servisID int64) (*model.FiskalniRacun, error)
+	// DohvatiPoServisuITip vraća poslednji nestorniran račun tačno određenog tipa
+	// (npr. avansni Sale) — za razliku od DohvatiPoServisu (samo najnoviji, bilo kog tipa)
+	DohvatiPoServisuITip(ctx context.Context, servisID int64, tipRacuna, tipTransakcije string) (*model.FiskalniRacun, error)
+	// SumaAvansaPoServisu vraća neto fiskalizovan avans (Sale - Refund) za nalog
+	SumaAvansaPoServisu(ctx context.Context, servisID int64) (float64, error)
 	OznačiKaoStorniran(ctx context.Context, id int64) error
 	ServisiBezFiskalnog(ctx context.Context) (map[int64]bool, error)
 	ProdajeBezFiskalnog(ctx context.Context) (map[int64]bool, error)
@@ -413,5 +432,7 @@ type KpoRepository interface {
 	Kreiraj(ctx context.Context, z *model.KpoZapis) (int64, error)
 	Obrisi(ctx context.Context, id int64) error
 	PostojiZaIzvor(ctx context.Context, izvor string, izvorID int64) (bool, error)
-	ObrisiPoIzvoru(ctx context.Context, izvor string, izvorID int64) error
+	// DohvatiPoIzvoru vraća zapise vezane za dati izvor (npr. za storno prodaje —
+	// original se ne briše, storno stavka se dograđuje na osnovu ovih zapisa)
+	DohvatiPoIzvoru(ctx context.Context, izvor string, izvorID int64) ([]model.KpoZapis, error)
 }

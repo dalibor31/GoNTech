@@ -100,9 +100,10 @@
         {{/* Knjigovodstvo — grupa: KIR/KPR/Obračun (modul „pdv") + Nivelacije (dozvola izmene cena) */}}
         {{$pdvVid := and (index .Moduli "pdv") (index .Dozvole "pdv.pregled")}}
         {{$kpoVid := and (index .Moduli "kpo") (index .Dozvole "kpo.pregled")}}
-        {{$knjVid := or $pdvVid $kpoVid (index .Dozvole "artikal.izmeni")}}
+        {{$pazarVid := and (index .Moduli "fiskalizacija") (index .Dozvole "fiskal.pazar")}}
+        {{$knjVid := or $pdvVid $kpoVid $pazarVid (index .Dozvole "artikal.izmeni")}}
         {{if $knjVid}}
-        {{$knjAktivan := or (eq .Stranica "nivelacije") (eq .Stranica "kpo") (eq .Stranica "pdv-kir") (eq .Stranica "pdv-kpr") (eq .Stranica "pdv-obracun")}}
+        {{$knjAktivan := or (eq .Stranica "nivelacije") (eq .Stranica "kpo") (eq .Stranica "pdv-kir") (eq .Stranica "pdv-kpr") (eq .Stranica "pdv-obracun") (eq .Stranica "fiskal-pazar")}}
         <div>
             <button type="button" data-podmeni-dugme
                     class="nav-stavka {{if $knjAktivan}}aktivan{{end}}"
@@ -147,6 +148,13 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="14" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="16" y2="18"/></svg>
                     <span>Obračun</span>
                     <span class="nav-tooltip">PDV obračun za period</span>
+                </a>
+                {{end}}
+                {{if $pazarVid}}
+                <a href="/fiskal/pazar" class="nav-stavka nav-podstavka {{if eq .Stranica "fiskal-pazar"}}aktivan{{end}}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    <span>Dnevni pazar</span>
+                    <span class="nav-tooltip">Dnevni pazar</span>
                 </a>
                 {{end}}
             </div>
@@ -207,19 +215,19 @@
         {{if index .Dozvole "podesavanja.pregled"}}
         <div>
             <button type="button" data-podmeni-dugme
-                    class="nav-stavka {{if or (eq .Stranica "podesavanja") (eq .Stranica "podesavanja-opste") (eq .Stranica "podesavanja-izgled") (eq .Stranica "podesavanja-sistem") (eq .Stranica "podesavanja-kalkulacija-pdv") (eq .Stranica "podesavanja-servis") (eq .Stranica "dozvole")}}aktivan{{end}}"
+                    class="nav-stavka {{if or (eq .Stranica "podesavanja") (eq .Stranica "podesavanja-opste") (eq .Stranica "podesavanja-izgled") (eq .Stranica "podesavanja-sistem") (eq .Stranica "podesavanja-kalkulacija-pdv") (eq .Stranica "podesavanja-servis") (eq .Stranica "dozvole") (eq .Stranica "blokirane-ip")}}aktivan{{end}}"
                     style="width:100%;background:none;border:none;cursor:pointer;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 <span>Podešavanja</span>
                 <span class="nav-strelica">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                         style="transition:transform 0.2s;transform:{{if or (eq .Stranica "podesavanja") (eq .Stranica "podesavanja-opste") (eq .Stranica "podesavanja-izgled") (eq .Stranica "podesavanja-sistem") (eq .Stranica "podesavanja-kalkulacija-pdv") (eq .Stranica "podesavanja-servis") (eq .Stranica "dozvole")}}rotate(180deg){{else}}rotate(0deg){{end}}">
+                         style="transition:transform 0.2s;transform:{{if or (eq .Stranica "podesavanja") (eq .Stranica "podesavanja-opste") (eq .Stranica "podesavanja-izgled") (eq .Stranica "podesavanja-sistem") (eq .Stranica "podesavanja-kalkulacija-pdv") (eq .Stranica "podesavanja-servis") (eq .Stranica "dozvole") (eq .Stranica "blokirane-ip")}}rotate(180deg){{else}}rotate(0deg){{end}}">
                         <polyline points="6 9 12 15 18 9"/>
                     </svg>
                 </span>
                 <span class="nav-tooltip">Podešavanja</span>
             </button>
-            <div class="nav-podmeni {{if or (eq .Stranica "podesavanja") (eq .Stranica "podesavanja-opste") (eq .Stranica "podesavanja-izgled") (eq .Stranica "podesavanja-sistem") (eq .Stranica "podesavanja-kalkulacija-pdv") (eq .Stranica "podesavanja-servis") (eq .Stranica "podesavanja-fiskalizacija") (eq .Stranica "dozvole")}}otvoren{{end}}">
+            <div class="nav-podmeni {{if or (eq .Stranica "podesavanja") (eq .Stranica "podesavanja-opste") (eq .Stranica "podesavanja-izgled") (eq .Stranica "podesavanja-sistem") (eq .Stranica "podesavanja-kalkulacija-pdv") (eq .Stranica "podesavanja-servis") (eq .Stranica "podesavanja-fiskalizacija") (eq .Stranica "dozvole") (eq .Stranica "blokirane-ip")}}otvoren{{end}}">
                 <a href="/admin/podesavanja/opste" class="nav-stavka nav-podstavka {{if eq .Stranica "podesavanja-opste"}}aktivan{{end}}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M9 21v-5h6v5"/><path d="M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/></svg>
                     <span>Opšte</span>
@@ -255,6 +263,13 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                     <span>Dozvole</span>
                     <span class="nav-tooltip">Dozvole</span>
+                </a>
+                {{end}}
+                {{if index .Dozvole "bezbednost.odblokiraj"}}
+                <a href="/admin/blokirane-ip" class="nav-stavka nav-podstavka {{if eq .Stranica "blokirane-ip"}}aktivan{{end}}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <span>Blokirane IP adrese</span>
+                    <span class="nav-tooltip">Blokirane IP adrese</span>
                 </a>
                 {{end}}
             </div>

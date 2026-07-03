@@ -29,9 +29,15 @@ func NoviKlijent(baseURL, apiKey string) *Klijent {
 	}
 }
 
-// InvoiceRequest je omotač za Teron invoiceRequest JSON objekat.
+// InvoiceRequest je omotač za Teron invoiceRequest JSON objekat. Polja Advance*
+// su na vrhu (van invoiceRequest) — Teron ih tako očekuje za konačni račun koji
+// zatvara prethodno izdat avansni račun (v. NapraviKonacniZahtevSaAvansom).
 type InvoiceRequest struct {
-	InvoiceRequest InvoiceRequestBody `json:"invoiceRequest"`
+	InvoiceRequest             InvoiceRequestBody `json:"invoiceRequest"`
+	AdvancePaid                *float64           `json:"advancePaid,omitempty"`
+	AdvanceTax                 *float64           `json:"advanceTax,omitempty"`
+	AdvanceLastInvoiceNumber   string             `json:"advanceLastInvoiceNumber,omitempty"`
+	AdvanceLastInvoiceDateTime string             `json:"advanceLastInvoiceDateTime,omitempty"`
 }
 
 // InvoiceRequestBody su podaci koje Teron očekuje unutar invoiceRequest polja.
@@ -143,6 +149,151 @@ func (k *Klijent) IzdajRacun(ctx context.Context, zahtev InvoiceRequest) (*Invoi
 	var odgovor InvoiceResponse
 	if err := json.NewDecoder(resp.Body).Decode(&odgovor); err != nil {
 		return nil, fmt.Errorf("ntech: fiskal.IzdajRacun: JSON parse: %w", err)
+	}
+	return &odgovor, nil
+}
+
+// FinancialSummary je odgovor na GET /api/financial/summary — promet od
+// poslednjeg preseka stanja (dnevni pazar), razložen po više kategorija.
+type FinancialSummary struct {
+	StartOfPeriod         string             `json:"startOfPeriod"`
+	EndOfPeriod           string             `json:"endOfPeriod"`
+	InvoiceCount          int                `json:"invoiceCount"`
+	Total                 float64            `json:"total"`
+	TotalCash             float64            `json:"totalCash"`
+	TotalByTax            []SummaryTaxStavka `json:"totalByTax"`
+	TotalByCashier        []SummaryImeIznos  `json:"totalByCashier"`
+	TotalByPaymentType    []SummaryPlacanje  `json:"totalByPaymentType"`
+	TotalByArticle        []SummaryArtikal   `json:"totalByArticle"`
+	TotalByArticleAdvance []SummaryArtikal   `json:"totalByArticleAdvance"`
+}
+
+// SummaryTaxStavka je promet po jednoj poreskoj oznaci/stopi.
+type SummaryTaxStavka struct {
+	Label    string  `json:"label"`
+	Category string  `json:"category"`
+	Rate     float64 `json:"rate"`
+	Amount   float64 `json:"amount"`
+	Osnovica float64 `json:"osnovica"`
+}
+
+// SummaryImeIznos je generički par ime-iznos (kasir, i sl.).
+type SummaryImeIznos struct {
+	Name   string  `json:"name"`
+	Amount float64 `json:"amount"`
+}
+
+// SummaryPlacanje je promet po vrsti plaćanja (Cash, Card, ...).
+type SummaryPlacanje struct {
+	PaymentType string  `json:"paymentType"`
+	Amount      float64 `json:"amount"`
+}
+
+// SummaryArtikal je promet po artiklu.
+type SummaryArtikal struct {
+	ArticleName string  `json:"articleName"`
+	TaxLabel    string  `json:"taxLabel"`
+	Amount      float64 `json:"amount"`
+	Quantity    float64 `json:"quantity"`
+}
+
+// ReportSummaryZahtev je telo zahteva za POST /api/financial/report/summary.
+// FromDate/ToDate su opcioni (YYYY-MM-DD) — bez njih izveštaj pokriva period
+// od poslednjeg preseka stanja.
+type ReportSummaryZahtev struct {
+	FromDate string `json:"fromDate,omitempty"`
+	ToDate   string `json:"toDate,omitempty"`
+	Language string `json:"language,omitempty"`
+}
+
+// ReportSummaryOdgovor je odgovor na generisanje dnevnog/periodičnog izveštaja.
+type ReportSummaryOdgovor struct {
+	ReportPdfBase64 string `json:"reportPdfBase64"`
+	ReportName      string `json:"reportName"`
+	Filename        string `json:"filename"`
+}
+
+// Presek vraća promet od poslednjeg preseka stanja (GET /api/financial/summary).
+// Poziv je bezbedan (read-only), ne menja stanje na PFR-u.
+func (k *Klijent) Presek(ctx context.Context) (*FinancialSummary, error) {
+	url := k.BaseURL + "/api/financial/summary"
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("ntech: fiskal.Presek: %w", err)
+	}
+	k.dodajAuth(req)
+
+	resp, err := k.HTTPKlijent.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("ntech: fiskal.Presek: server nedostupan: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		telo, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("ntech: fiskal.Presek: HTTP %d: %s", resp.StatusCode, string(telo))
+	}
+
+	var rezultat FinancialSummary
+	if err := json.NewDecoder(resp.Body).Decode(&rezultat); err != nil {
+		return nil, fmt.Errorf("ntech: fiskal.Presek: JSON parse: %w", err)
+	}
+	return &rezultat, nil
+}
+
+// ZakljuciDan svodi promet PFR-a na nulu — dnevni presek stanja
+// (DELETE /api/financial/summary). Nepovratna akcija.
+func (k *Klijent) ZakljuciDan(ctx context.Context) error {
+	url := k.BaseURL + "/api/financial/summary"
+	req, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
+	if err != nil {
+		return fmt.Errorf("ntech: fiskal.ZakljuciDan: %w", err)
+	}
+	k.dodajAuth(req)
+
+	resp, err := k.HTTPKlijent.Do(req)
+	if err != nil {
+		return fmt.Errorf("ntech: fiskal.ZakljuciDan: server nedostupan: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
+		telo, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("ntech: fiskal.ZakljuciDan: HTTP %d: %s", resp.StatusCode, string(telo))
+	}
+	return nil
+}
+
+// GenerisiIzvestaj traži od PFR-a dnevni/periodični izveštaj u PDF formatu
+// (POST /api/financial/report/summary).
+func (k *Klijent) GenerisiIzvestaj(ctx context.Context, zahtev ReportSummaryZahtev) (*ReportSummaryOdgovor, error) {
+	telo, err := json.Marshal(zahtev)
+	if err != nil {
+		return nil, fmt.Errorf("ntech: fiskal.GenerisiIzvestaj: marshal: %w", err)
+	}
+
+	url := k.BaseURL + "/api/financial/report/summary"
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(telo))
+	if err != nil {
+		return nil, fmt.Errorf("ntech: fiskal.GenerisiIzvestaj: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	k.dodajAuth(req)
+
+	resp, err := k.HTTPKlijent.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("ntech: fiskal.GenerisiIzvestaj: server nedostupan: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		teloOdg, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("ntech: fiskal.GenerisiIzvestaj: HTTP %d: %s", resp.StatusCode, string(teloOdg))
+	}
+
+	var odgovor ReportSummaryOdgovor
+	if err := json.NewDecoder(resp.Body).Decode(&odgovor); err != nil {
+		return nil, fmt.Errorf("ntech: fiskal.GenerisiIzvestaj: JSON parse: %w", err)
 	}
 	return &odgovor, nil
 }

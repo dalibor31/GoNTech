@@ -285,6 +285,20 @@ func validirajMaticniBroj(broj string) string {
 	return ""
 }
 
+// validirajProfilFirme proverava da li je kombinacija pravnog/poreskog statusa
+// pravno moguća — vidi docs/Greške.md §1. „Samo evidencija” gasi ceo zakonski
+// sloj, pa dok je firma u tom režimu ne postoji osnov da bude PDV obveznik
+// niti da izdaje fiskalne račune.
+func validirajProfilFirme(rezim, pdvObveznik, fiskalizacija string) string {
+	if rezim != "samo_evidencija" {
+		return ""
+	}
+	if pdvObveznik == "da" || fiskalizacija == "da" {
+		return "Režim „Samo evidencija” ne dozvoljava PDV obveznika ni izdavanje fiskalnih računa — prebacite firmu na režim „Pun” ako stvarno posluje."
+	}
+	return ""
+}
+
 // SacuvajPodesavanja prima POST i čuva podešavanja u bazu
 func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.zahtevajDozvolu(w, r, "podesavanja.izmeni"); !ok {
@@ -318,6 +332,19 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 		}
 		http.Redirect(w, r, sledeci, http.StatusSeeOther)
 		return
+	}
+
+	if _, jeFirmaSekcija := r.Form["_sekcija_firma"]; jeFirmaSekcija {
+		greska := validirajProfilFirme(r.FormValue("firma_rezim"), r.FormValue("firma_pdv_obveznik"), r.FormValue("firma_fiskalizacija"))
+		if greska != "" {
+			middleware.SetFlash(w, r, h.DB, "greska", greska)
+			sledeci := "/podesavanja"
+			if r.FormValue("_next") == "/admin/podesavanja/opste" {
+				sledeci = "/admin/podesavanja/opste"
+			}
+			http.Redirect(w, r, sledeci, http.StatusSeeOther)
+			return
+		}
 	}
 
 	polja := map[string]string{

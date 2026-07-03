@@ -78,6 +78,28 @@ func (r *PdvStopaRepo) Kreiraj(ctx context.Context, s *model.PdvStopa) (int64, e
 	return id, nil
 }
 
+// PodrazumevanaOpsta vraća aktivnu opštu stopu iz šifarnika (prva po redosledu),
+// ili nil ako u šifarniku nema nijedne aktivne opšte stope — poziocalac tada mora
+// sam odlučiti o fallback vrednosti (šifarnik nikad ne sme biti prazan u praksi,
+// ali ne oslanjamo se na to).
+func (r *PdvStopaRepo) PodrazumevanaOpsta(ctx context.Context) (*model.PdvStopa, error) {
+	var s model.PdvStopa
+	err := r.db.QueryRowContext(ctx, `
+		SELECT id, naziv, stopa, oznaka, aktivna, redosled, datum_unosa
+		FROM pdv_stope
+		WHERE oznaka = 'opsta' AND aktivna = 1
+		ORDER BY redosled ASC, stopa DESC
+		LIMIT 1`).
+		Scan(&s.ID, &s.Naziv, &s.Stopa, &s.Oznaka, &s.Aktivna, &s.Redosled, &s.DatumUnosa)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("ntech: PdvStopaRepo.PodrazumevanaOpsta: %w", err)
+	}
+	return &s, nil
+}
+
 // Izmeni menja podatke postojeće stope (osim datuma unosa)
 func (r *PdvStopaRepo) Izmeni(ctx context.Context, s *model.PdvStopa) error {
 	_, err := r.db.ExecContext(ctx, `

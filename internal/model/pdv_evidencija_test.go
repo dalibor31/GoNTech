@@ -70,6 +70,70 @@ func TestPdvKirDodajNeto(t *testing.T) {
 	}
 }
 
+// TestKirIzServisa: radovi i ugrađeni delovi se sabiraju kao NETO stavke po
+// PDV stopi; predloženi (neprihvaćeni) redovi se ne naplaćuju.
+func TestKirIzServisa(t *testing.T) {
+	nalog := ServisniNalog{ID: 7, BrojNaloga: "SN-2607-001"}
+	radovi := []ServisniRad{
+		{Naziv: "Zamena ekrana", Kolicina: 1, CenaKomada: 1000, PdvStopa: 20}, // osnovica 1000, PDV 200
+		{Naziv: "Predlog", Kolicina: 1, CenaKomada: 5000, PdvStopa: 20, Predlozeno: true},
+	}
+	delovi := []ServisniDeoSaArtiklom{
+		{ServisniDeo: ServisniDeo{Kolicina: 2, CenaKomada: 300}, PdvStopa: 10}, // osnovica 600, PDV 60
+	}
+
+	k := KirIzServisa(nalog, radovi, delovi, "Kupac doo", "123456789", "Niš",
+		time.Date(2026, 7, 2, 0, 0, 0, 0, time.UTC), time.Date(2026, 7, 3, 0, 0, 0, 0, time.UTC))
+
+	if k.Izvor != "servis" || k.IzvorID == nil || *k.IzvorID != 7 {
+		t.Errorf("izvor=%q izvor_id=%v, očekivano servis/7", k.Izvor, k.IzvorID)
+	}
+	if k.BrojDokumenta != "SN-2607-001" {
+		t.Errorf("broj_dokumenta=%q, očekivano SN-2607-001", k.BrojDokumenta)
+	}
+	if !blizu(k.OsnovicaOpsta, 1000) || !blizu(k.PdvOpsta, 200) {
+		t.Errorf("opšta: osnovica=%v pdv=%v, očekivano 1000/200 (predloženi rad se ne računa)", k.OsnovicaOpsta, k.PdvOpsta)
+	}
+	if !blizu(k.OsnovicaPosebna, 600) || !blizu(k.PdvPosebna, 60) {
+		t.Errorf("posebna: osnovica=%v pdv=%v, očekivano 600/60", k.OsnovicaPosebna, k.PdvPosebna)
+	}
+	if !blizu(k.Ukupno, 1860) {
+		t.Errorf("ukupno=%v, očekivano 1860 (1200+660)", k.Ukupno)
+	}
+}
+
+// TestKirStorno: storno stavka negira sve kolone originala, čuva izvor/izvor_id
+// (da PostojiZaIzvor ostane tačan i backfill ne pokuša ponovni upis) i original
+// se ne dira — storno se samo dograđuje kao novi red.
+func TestKirStorno(t *testing.T) {
+	izvorID := int64(18)
+	original := PdvKir{
+		BrojDokumenta: "PR-2607-0013", KupacNaziv: "Kupac doo", KupacPib: "123456789",
+		OsnovicaOpsta: 1000, PdvOpsta: 200, OsnovicaPosebna: 100, PdvPosebna: 10,
+		OslobodenSaPravom: 50, OslobodenBezPrava: 20, Ukupno: 1380,
+		Izvor: "prodaja", IzvorID: &izvorID,
+	}
+	datumStorna := time.Date(2026, 7, 2, 0, 0, 0, 0, time.UTC)
+
+	s := KirStorno(original, "kupac odustao", datumStorna)
+
+	if s.BrojDokumenta != "STORNO-PR-2607-0013" {
+		t.Errorf("broj_dokumenta=%q, očekivano STORNO-PR-2607-0013", s.BrojDokumenta)
+	}
+	if s.Izvor != "prodaja" || s.IzvorID == nil || *s.IzvorID != 18 {
+		t.Errorf("izvor=%q izvor_id=%v, očekivano prodaja/18 (isto kao original)", s.Izvor, s.IzvorID)
+	}
+	if !blizu(s.OsnovicaOpsta, -1000) || !blizu(s.PdvOpsta, -200) {
+		t.Errorf("opšta: osnovica=%v pdv=%v, očekivano -1000/-200", s.OsnovicaOpsta, s.PdvOpsta)
+	}
+	if !blizu(s.Ukupno, -1380) {
+		t.Errorf("ukupno=%v, očekivano -1380", s.Ukupno)
+	}
+	if original.Ukupno != 1380 {
+		t.Errorf("original izmenjen: ukupno=%v, očekivano da ostane 1380", original.Ukupno)
+	}
+}
+
 func TestKprIzNabavke(t *testing.T) {
 	nabavka := Nabavka{ID: 3, Napomena: "test", Datum: time.Date(2026, 6, 2, 0, 0, 0, 0, time.UTC)}
 	stavke := []NabavkaStavkaPdv{

@@ -24,6 +24,7 @@ var sveAkcije = []string{
 	"servis.dodaj",
 	"servis.izmeni",
 	"servis.obrisi",
+	"servis.storno",
 	"prodaja.pregled",
 	"prodaja.dodaj",
 	"prodaja.storno",
@@ -45,6 +46,9 @@ var sveAkcije = []string{
 	"kpo.pregled",
 	"kpo.dodaj",
 	"kpo.obrisi",
+	"fiskal.pazar",
+	"fiskal.zakljucenje",
+	"bezbednost.odblokiraj",
 }
 
 // SveAkcije vraća listu svih poznatih akcija — koristi se pri inicijalizaciji baze i resetu
@@ -77,7 +81,7 @@ func ImaDozvolu(uloga, akcija string) bool {
 			return true
 		// servis
 		case "servis.pregled", "servis.dodaj",
-			"servis.izmeni", "servis.obrisi":
+			"servis.izmeni", "servis.obrisi", "servis.storno":
 			return true
 		// prodaja
 		case "prodaja.pregled", "prodaja.dodaj", "prodaja.storno":
@@ -108,6 +112,11 @@ func ImaDozvolu(uloga, akcija string) bool {
 		// KPO (knjiga o ostvarenom prometu) — administrativno, radnik nema
 		case "kpo.pregled", "kpo.dodaj", "kpo.obrisi":
 			return true
+		// dnevni fiskalni pazar — administrativno, radnik nema (zaključenje dana je nepovratno)
+		case "fiskal.pazar", "fiskal.zakljucenje":
+			return true
+			// "bezbednost.odblokiraj" NAMERNO izostavljeno iz admin uloge — odblokiranje IP
+			// adrese zaobilazi bruteforce zaštitu, pa je rezervisano isključivo za superadmin.
 		}
 		return false
 

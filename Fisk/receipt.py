@@ -6,8 +6,23 @@ Prati izgled definisan u LPFR VM template-u i locale fajlovima.
 
 from pathlib import Path
 from datetime import datetime
+import io
+
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 
 DATA_DIR = Path(__file__).parent / "data"
+
+_FONT_NAME = "Courier"
+_FONT_PATH = Path("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf")
+if _FONT_PATH.exists():
+    try:
+        pdfmetrics.registerFont(TTFont("DejaVuSansMono", str(_FONT_PATH)))
+        _FONT_NAME = "DejaVuSansMono"
+    except Exception:
+        pass
 
 def load_locale(lang="latin"):
     """Učitava lokalizacioni fajl u dict."""
@@ -646,3 +661,30 @@ def generate_report(report_data, lang="latin"):
 
     lines.append(separator("=", W))
     return "\n".join(lines)
+
+
+def render_report_pdf(report_text):
+    """Renderuje monospace tekst izveštaja (48 kolona) u pravi PDF (A4, Courier).
+    Vraća bajtove gotovog PDF fajla."""
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf, pagesize=A4)
+    width, height = A4
+
+    font_name = _FONT_NAME
+    font_size = 10
+    line_height = font_size * 1.15
+    margin_left = 20 * (72 / 25.4)   # 20mm u tačkama
+    margin_top = 15 * (72 / 25.4)    # 15mm u tačkama
+
+    c.setFont(font_name, font_size)
+    y = height - margin_top
+    for line in report_text.split("\n"):
+        if y < margin_top:
+            c.showPage()
+            c.setFont(font_name, font_size)
+            y = height - margin_top
+        c.drawString(margin_left, y, line)
+        y -= line_height
+    c.showPage()
+    c.save()
+    return buf.getvalue()

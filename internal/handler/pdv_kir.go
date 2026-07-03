@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	appdb "ntech/internal/db"
 	"ntech/internal/db/sqlite"
 	"ntech/internal/middleware"
 	"ntech/internal/model"
@@ -20,11 +21,12 @@ import (
 // PodaciPdvKir su podaci za pregled knjige izdatih računa
 type PodaciPdvKir struct {
 	model.PodaciStranice
-	Zapisi   []model.PdvKir
-	Sume     model.PdvKirSume
-	Od       string // filter perioda (YYYY-MM-DD), prazno = bez granice
-	Do       string
-	Zastareo map[int64]bool // ID zapisa dnevnog pazara čiji je iznos van sinhronizacije sa trenutnim prometom (npr. posle naknadnog storna)
+	Zapisi            []model.PdvKir
+	Sume              model.PdvKirSume
+	Od                string
+	Do                string
+	Zastareo          map[int64]bool
+	SumnjiviDuplikati []model.ProdajniNalogSaDetaljem // B2B prodaje preskočene pri backfill-u (double-submit)
 }
 
 // PodaciPdvKirForma su podaci za formu unosa zapisa KIR
@@ -105,13 +107,29 @@ func (h *Handler) PdvKir(w http.ResponseWriter, r *http.Request) {
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "pdv-kir"
 	ps.NaslovStranice = "KIR — knjiga izdatih računa"
+
+	// detektuj sumnjive duplikate (double-submit) da ih korisnik vidi
+	var sumnjivi []model.ProdajniNalogSaDetaljem
+	if _, _, kandidati, err := h.kirKandidatiProdaje(r.Context()); err == nil {
+		duplikati := sumnjiviDuplikati(kandidati)
+		if len(duplikati) > 0 {
+			nalozi, _ := h.ProdajaRepo.Lista(r.Context(), appdb.ProdajaFilter{})
+			for _, nd := range nalozi {
+				if duplikati[nd.ID] {
+					sumnjivi = append(sumnjivi, nd)
+				}
+			}
+		}
+	}
+
 	h.renderujTemplate(w, "pdv_kir", PodaciPdvKir{
-		PodaciStranice: ps,
-		Zapisi:         zapisi,
-		Sume:           model.SumirajKir(zapisi),
-		Od:             odStr,
-		Do:             doStr,
-		Zastareo:       zastareo,
+		PodaciStranice:    ps,
+		Zapisi:            zapisi,
+		Sume:              model.SumirajKir(zapisi),
+		Od:                odStr,
+		Do:                doStr,
+		Zastareo:          zastareo,
+		SumnjiviDuplikati: sumnjivi,
 	})
 }
 
@@ -265,6 +283,75 @@ func (h *Handler) KirBackfillProdaje(w http.ResponseWriter, r *http.Request) {
 		kir := model.KirIzProdaje(nd.ProdajniNalog, ss, klijent.PunoIme(), pib, klijent.Mesto, sada)
 		if _, e := h.PdvKirRepo.Kreiraj(ctx, &kir); e != nil {
 			slog.Error("backfill KIR: greška pri kreiranju zapisa", "prodaja_id", nd.ID, "error", e)
+			continue
+		}
+		kreirano++
+	}
+
+	poruka := fmt.Sprintf("Backfill završen: %d novih KIR zapisa, %d preskočeno.", kreirano, preskoceno)
+	if sumnjivo > 0 {
+		poruka += fmt.Sprintf(" %d sumnjivih duplikata NIJE upisano — proveri ručno.", sumnjivo)
+	}
+	middleware.SetFlash(w, r, h.DB, "uspeh", poruka)
+	http.Redirect(w, r, "/pdv/kir", http.StatusSeeOther)
+}
+
+// KirBackfillServisa kreira KIR zapise za sve preuzete servisne naloge sa
+// identifikovanim kupcem koji ih nemaju. Namenjen za jednokratno popunjavanje.
+func (h *Handler) KirBackfillServisa(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "pdv.dodaj"); !ok {
+		return
+	}
+	ctx := r.Context()
+	sada := time.Now()
+
+	nalozi, postojiMap, kandidati, err := h.kirKandidatiServisa(ctx)
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju servisa", http.StatusInternalServerError)
+		return
+	}
+	duplikati := sumnjiviDuplikati(kandidati)
+
+	var kreirano, preskoceno, sumnjivo int
+	for _, sn := range nalozi {
+		if postojiMap[sn.ID] {
+			preskoceno++
+			continue
+		}
+		if duplikati[sn.ID] {
+			sumnjivo++
+			continue
+		}
+		radovi, err := h.ServisniRadoviRepo.DohvatiZaNalog(ctx, sn.ID)
+		if err != nil {
+			slog.Error("backfill KIR: greška pri čitanju radova", "servis_id", sn.ID, "error", err)
+			continue
+		}
+		delovi, err := h.ServisniDeloviRepo.DohvatiZaNalog(ctx, sn.ID)
+		if err != nil {
+			slog.Error("backfill KIR: greška pri čitanju delova", "servis_id", sn.ID, "error", err)
+			continue
+		}
+		klijent, err := h.KlijentiRepo.DohvatiID(ctx, *sn.KlijentID)
+		if err != nil {
+			slog.Error("backfill KIR: greška pri čitanju klijenta", "servis_id", sn.ID, "error", err)
+			continue
+		}
+		pib := klijent.PIB
+		if klijent.Tip != "pravno" {
+			pib = klijent.JMBG
+		}
+		datumPrometa := sn.DatumPrijema
+		if sn.DatumZavrsetka != nil {
+			datumPrometa = *sn.DatumZavrsetka
+		}
+		kir := model.KirIzServisa(sn.ServisniNalog, radovi, delovi, klijent.PunoIme(), pib, klijent.Mesto, datumPrometa, sada)
+		if kir.Ukupno <= 0 {
+			preskoceno++
+			continue
+		}
+		if _, e := h.PdvKirRepo.Kreiraj(ctx, &kir); e != nil {
+			slog.Error("backfill KIR: greška pri kreiranju zapisa", "servis_id", sn.ID, "error", e)
 			continue
 		}
 		kreirano++

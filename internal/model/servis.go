@@ -60,6 +60,8 @@ type ServisniNalog struct {
 	JavniToken         string
 	NacinPlacanja      string  // način plaćanja pri preuzimanju (Gotovina, Kartica, Virman...)
 	Naplaceno          float64 // iznos koji je naplaćen pri preuzimanju
+	Stornirano         bool
+	RazlogStorniranja  string
 }
 
 // ServisniLog je jedan zapis u istoriji događaja servisnog naloga.

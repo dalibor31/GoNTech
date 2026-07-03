@@ -165,6 +165,42 @@ func (r *sqliteIzvestajRepo) MesecniPrihodServis(ctx context.Context) ([]model.M
 		GROUP BY substr(datum_zavrsetka, 1, 7)`, "MesecniPrihodServis")
 }
 
+// MesecniZaradaProdaja je zarada prodaje (ukupno − nabavna cena × količina),
+// nabavna_cena je zamrznuta na stavci u trenutku prodaje (vidi migraciju 101).
+func (r *sqliteIzvestajRepo) MesecniZaradaProdaja(ctx context.Context) ([]model.MesecniIznos, error) {
+	return r.mesecniPrihod(ctx, `
+		SELECT substr(pn.datum, 1, 7), SUM(sp.ukupno - sp.nabavna_cena * sp.kolicina)
+		FROM prodajni_nalozi pn
+		JOIN stavke_prodaje sp ON sp.nalog_id = pn.id
+		WHERE pn.stornirano = 0
+		  AND substr(pn.datum, 1, 10) >= date('now', '-11 months', 'start of month')
+		GROUP BY substr(pn.datum, 1, 7)`, "MesecniZaradaProdaja")
+}
+
+// MesecniZaradaServis je zarada servisa: ugrađeni delovi (cena − nabavna cena) +
+// rad u punom iznosu (servis_radovi nema polje za trošak). Isti filter statusa/
+// naplate kao MesecniPrihodServis.
+func (r *sqliteIzvestajRepo) MesecniZaradaServis(ctx context.Context) ([]model.MesecniIznos, error) {
+	return r.mesecniPrihod(ctx, `
+		SELECT mesec, SUM(zarada) FROM (
+			SELECT substr(sn.datum_zavrsetka, 1, 7) AS mesec,
+			       (sd.cena_komada - sd.nabavna_cena) * sd.kolicina AS zarada
+			FROM servisni_delovi sd
+			JOIN servisni_nalozi sn ON sn.id = sd.nalog_id
+			WHERE sn.datum_zavrsetka IS NOT NULL AND sn.status = 'Preuzeto'
+			  AND (sn.naplaceno > 0 OR sn.avans > 0) AND sd.predlozeno = 0
+			UNION ALL
+			SELECT substr(sn.datum_zavrsetka, 1, 7) AS mesec,
+			       sr.cena_komada * sr.kolicina AS zarada
+			FROM servis_radovi sr
+			JOIN servisni_nalozi sn ON sn.id = sr.nalog_id
+			WHERE sn.datum_zavrsetka IS NOT NULL AND sn.status = 'Preuzeto'
+			  AND (sn.naplaceno > 0 OR sn.avans > 0)
+		)
+		WHERE mesec >= strftime('%Y-%m', date('now', '-11 months', 'start of month'))
+		GROUP BY mesec`, "MesecniZaradaServis")
+}
+
 func (r *sqliteIzvestajRepo) StariOtvoreniNalozi(ctx context.Context) ([]model.StariNalogRed, error) {
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT sn.id, sn.broj_naloga, sn.uredjaj, sn.status, sn.datum_prijema,

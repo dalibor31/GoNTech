@@ -95,9 +95,10 @@ func ugradiIliPotrazujTx(ctx context.Context, tx *sql.Tx, nalogID, artikalID int
 
 	// Ugrađeni delovi: standardna logika — skidamo sa lagera
 	var stanjePre int
+	var nabavnaCena float64
 	if err = tx.QueryRowContext(ctx,
-		"SELECT kolicina FROM artikli WHERE id = ?", artikalID,
-	).Scan(&stanjePre); err != nil {
+		"SELECT kolicina, nabavna_cena FROM artikli WHERE id = ?", artikalID,
+	).Scan(&stanjePre, &nabavnaCena); err != nil {
 		return 0, 0, fmt.Errorf("ntech: ugradiIliPotrazujTx: dohvati stanje: %w", err)
 	}
 
@@ -119,15 +120,15 @@ func ugradiIliPotrazujTx(ctx context.Context, tx *sql.Tx, nalogID, artikalID int
 		).Scan(&postojeciID, &postojeciKol)
 		if errRed == nil {
 			if _, err = tx.ExecContext(ctx,
-				"UPDATE servisni_delovi SET kolicina = ?, cena_komada = ? WHERE id = ?",
-				postojeciKol+ugradjeno, cenaKomada, postojeciID,
+				"UPDATE servisni_delovi SET kolicina = ?, cena_komada = ?, nabavna_cena = ? WHERE id = ?",
+				postojeciKol+ugradjeno, cenaKomada, nabavnaCena, postojeciID,
 			); err != nil {
 				return 0, 0, fmt.Errorf("ntech: ugradiIliPotrazujTx: merge: %w", err)
 			}
 		} else if errors.Is(errRed, sql.ErrNoRows) {
 			if _, err = tx.ExecContext(ctx,
-				"INSERT INTO servisni_delovi (nalog_id, artikal_id, kolicina, cena_komada, predlozeno) VALUES (?, ?, ?, ?, 0)",
-				nalogID, artikalID, ugradjeno, cenaKomada,
+				"INSERT INTO servisni_delovi (nalog_id, artikal_id, kolicina, cena_komada, predlozeno, nabavna_cena) VALUES (?, ?, ?, ?, 0, ?)",
+				nalogID, artikalID, ugradjeno, cenaKomada, nabavnaCena,
 			); err != nil {
 				return 0, 0, fmt.Errorf("ntech: ugradiIliPotrazujTx: insert: %w", err)
 			}

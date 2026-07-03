@@ -45,6 +45,11 @@
                 <span style="font-size:20px;font-weight:600;color:var(--tekst-glavni);font-family:monospace;">
                     {{.Nalog.BrojNaloga}}
                 </span>
+                {{if .Nalog.Stornirano}}
+                <span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500;background:rgba(220,38,38,0.12);color:#dc2626;">
+                    Stornirano
+                </span>
+                {{end}}
                 {{if .Nalog.PopravkaOdbijena}}
                 <div style="padding:8px 14px;background:color-mix(in srgb, var(--crvena, #ef4444) 14%, transparent);border:1px solid color-mix(in srgb, var(--crvena, #ef4444) 35%, transparent);border-radius:8px;">
                     <span style="font-size:15px;font-weight:700;color:var(--crvena, #ef4444);">✕ Klijent je odbio popravku</span>
@@ -125,19 +130,34 @@
                                 <span style="font-size:16px;font-weight:600;color:var(--tekst-glavni);">Za naplatu</span>
                                 <span style="font-size:18px;font-weight:600;color:var(--tekst-glavni);" id="za-naplatu-iznos">{{if index .Moduli "pdv"}}{{dinari .PreostaloSveSaPdv}}{{else}}{{dinari .PreostaloSve}}{{end}} din</span>
                             </div>
-                            <div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--ivica);">
-                                <label class="polje-labela">Primljeno (din)</label>
-                                <input type="number" id="primljeno" name="primljeno" min="0" step="0.01" placeholder="Unesite primljeni iznos" style="width:100%;padding:8px 12px;background:var(--pozadina);border:0.5px solid var(--ivica);border-radius:8px;color:var(--tekst-glavni);font-size:14px;box-sizing:border-box;" oninput="ntechPrimljenoUpdate(this)">
+                            {{$visak := .VisakAvansa}}{{if index .Moduli "pdv"}}{{$visak = .VisakAvansaSaPdv}}{{end}}
+                            {{if gt $visak 0.0}}
+                            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:color-mix(in srgb,#f59e0b 12%,transparent);border:0.5px solid #f59e0b;border-radius:8px;">
+                                <span style="color:#92400e;font-weight:500;">Avans premašuje cenu — vratiti klijentu</span>
+                                <span style="font-size:16px;font-weight:600;color:#92400e;">{{dinari $visak}} din</span>
                             </div>
-                            <div id="kusur-blok" style="display:none;justify-content:space-between;align-items:center;padding:8px 12px;background:color-mix(in srgb,var(--uspeh) 10%,transparent);border:0.5px solid var(--uspeh);border-radius:8px;">
-                                <span style="color:var(--uspeh);font-weight:500;">Kusur (vratiti)</span>
-                                <span id="kusur" style="font-size:16px;font-weight:600;color:var(--uspeh);">0,00 din</span>
-                            </div>
+                            <div class="pomocni-tekst">Ovaj iznos se automatski vraća kroz avansni povraćaj na fiskalnom računu.</div>
+                            {{end}}
+                            {{$zaNaplatu := .PreostaloSve}}{{if index .Moduli "pdv"}}{{$zaNaplatu = .PreostaloSveSaPdv}}{{end}}
                             <form method="POST" action="/servis/{{.Nalog.ID}}/status" data-refresh="#sadrzaj" style="margin-top:8px;">
                                 <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
                                 <input type="hidden" name="status" value="Preuzeto">
-                                <input type="hidden" name="naplaceno" value="{{if index .Moduli "pdv"}}{{printf "%.2f" .PreostaloSveSaPdv}}{{else}}{{printf "%.2f" .PreostaloSve}}{{end}}">
-                                <div style="margin-bottom:10px;">
+                                <input type="hidden" name="naplaceno" value="{{printf "%.2f" $zaNaplatu}}">
+                                {{if gt $zaNaplatu 0.0}}
+                                <div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--ivica);">
+                                    <label class="polje-labela">Primljeno (din)</label>
+                                    <input type="number" id="primljeno" name="primljeno" min="0" step="0.01" placeholder="Unesite primljeni iznos" style="width:100%;padding:8px 12px;background:var(--pozadina);border:0.5px solid var(--ivica);border-radius:8px;color:var(--tekst-glavni);font-size:14px;box-sizing:border-box;" oninput="ntechPrimljenoUpdate(this)">
+                                </div>
+                                <div id="kusur-blok" style="display:none;justify-content:space-between;align-items:center;padding:8px 12px;background:color-mix(in srgb,var(--uspeh) 10%,transparent);border:0.5px solid var(--uspeh);border-radius:8px;margin-top:10px;">
+                                    <span style="color:var(--uspeh);font-weight:500;">Kusur (vratiti)</span>
+                                    <span id="kusur" style="font-size:16px;font-weight:600;color:var(--uspeh);">0,00 din</span>
+                                </div>
+                                {{else}}
+                                <div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--ivica);font-size:13px;color:var(--tekst-sporedni);">
+                                    Avans pokriva ceo iznos — ništa se dodatno ne naplaćuje.
+                                </div>
+                                {{end}}
+                                <div style="margin-bottom:10px;margin-top:10px;">
                                     <label class="polje-labela">Način plaćanja</label>
                                     <select name="nacin_placanja" id="nacin-placanja-sel" style="width:100%;padding:8px 12px;background:var(--pozadina);border:0.5px solid var(--ivica);border-radius:8px;color:var(--tekst-glavni);font-size:13px;" onchange="ntechNacinPlacanjaBroj(this)">
                                         <option value="Gotovina">Gotovina</option>
@@ -150,7 +170,11 @@
                                         style="width:16px;height:16px;accent-color:var(--sb-akcent);cursor:pointer;flex-shrink:0;">
                                     <span style="font-size:13px;color:var(--tekst-glavni);">Prikaži fiskalni račun</span>
                                 </label>
+                                {{if gt $zaNaplatu 0.0}}
                                 <button type="submit" id="btn-naplati" class="btn-primarno" style="width:100%;opacity:0.4;cursor:not-allowed;" disabled>Naplati i preuzmi</button>
+                                {{else}}
+                                <button type="submit" id="btn-naplati" class="btn-primarno" style="width:100%;">Preuzmi</button>
+                                {{end}}
                             </form>
                             <script>
                             (function(){
@@ -190,11 +214,27 @@
                                 f.addEventListener('submit', function(){
                                     var cb = f.querySelector('#prikazi-racun');
                                     if (!cb || !cb.checked) return;
+                                    // otvori prazan imenovani tab SINHRONO unutar submit-a (očuvan user
+                                    // gesture) — isti obrazac kao pripremiFiskalniTab u Prodaji (ntech.js).
+                                    // Naplata ovde ide preko AJAX-a (data-refresh), pa se popunjava tek
+                                    // kad MutationObserver javi da je swap gotov — a to je već van user
+                                    // gesture-a, pa direktan window.open() u tom trenutku brauzer tretira
+                                    // kao blokiran popup i otvara about:blank (v. docs/Greške.md).
+                                    var tab = window.open('', 'ntech-fiskalni-tab');
                                     var sadrzaj = document.getElementById('sadrzaj');
-                                    if (!sadrzaj) return;
+                                    if (!sadrzaj) {
+                                        if (tab) tab.close();
+                                        return;
+                                    }
                                     var observer = new MutationObserver(function(){
                                         observer.disconnect();
-                                        window.open('/servis/{{.Nalog.ID}}/fiskalni-racun', '_blank');
+                                        // jedan prozor — server u istu stranicu ubacuje i povraćaj viška
+                                        // avansa (ako postoji), da brauzer ne blokira drugi popup
+                                        if (tab && !tab.closed) {
+                                            tab.location.href = '/servis/{{.Nalog.ID}}/fiskalni-racun';
+                                        } else {
+                                            window.open('/servis/{{.Nalog.ID}}/fiskalni-racun', '_blank');
+                                        }
                                     });
                                     observer.observe(sadrzaj.parentElement, {childList: true});
                                 });
@@ -325,7 +365,7 @@
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Garancija</div>
                 <div style="font-size:14px;{{if not .BezGarancije}}color:#16a34a;font-weight:500;{{else}}color:var(--tekst-sporedni);{{end}}">
                     {{garancijaTekst .Nalog.GarancijaDana}}
-                    {{if index .Dozvole "servis.izmeni"}}
+                    {{if and (index .Dozvole "servis.izmeni") (ne .Nalog.Status "Preuzeto")}}
                     <button type="button" class="izmeni-polje" onclick="ntechOtvoriModal(this)">Promeni</button>
                     <dialog class="premesti-modal" onclick="if(event.target===this)this.close()">
                         <form method="dialog" class="premesti-zaglavlje">
@@ -366,7 +406,7 @@
                 <div style="font-size:12px;color:var(--tekst-sporedni);margin-bottom:4px;">Serviser</div>
                 <div style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">
                     {{if .TehnicarNaziv}}{{.TehnicarNaziv}}{{else}}<span style="color:var(--tekst-sporedni);font-weight:normal;">— nedodeljen —</span>{{end}}
-                    {{if index .Dozvole "servis.izmeni"}}
+                    {{if and (index .Dozvole "servis.izmeni") (ne .Nalog.Status "Preuzeto")}}
                     <button type="button" class="izmeni-polje" onclick="ntechOtvoriModal(this)">Promeni</button>
                     <dialog class="premesti-modal" onclick="if(event.target===this)this.close()">
                         <form method="dialog" class="premesti-zaglavlje">
@@ -977,9 +1017,14 @@
     {{if .FiskalniRacun}}
         <div class="kartica detalji-kartica animiraj">
             <div style="margin-bottom:12px;padding-bottom:10px;border-bottom:0.5px solid var(--ivica);display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Fiskalni račun</span>
+                <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">
+                    {{if eq .FiskalniRacun.TipRacuna "Advance"}}Avansni fiskalni račun{{else}}Fiskalni račun{{end}}
+                </span>
                 <a href="/servis/{{.Nalog.ID}}/fiskalni-racun" target="_blank" class="btn-sekundarno" style="font-size:12px;padding:4px 12px;">Štampaj kopiju</a>
             </div>
+            {{if eq .FiskalniRacun.TipRacuna "Advance"}}
+            <div style="font-size:12px;color:var(--tekst-sporedni);margin:-4px 0 10px 0;">Ovo je račun za primljeni avans — konačan račun se izdaje pri preuzimanju uređaja.</div>
+            {{end}}
             <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
                 <div style="flex:1;min-width:200px;">
                     <p style="margin:0 0 4px 0;"><strong>PFR broj:</strong> {{.FiskalniRacun.PfrBroj}}</p>
@@ -1000,12 +1045,57 @@
         </div>
         {{end}}
 
+    {{if .AvansRacun}}
+        <div class="kartica detalji-kartica animiraj">
+            <div style="margin-bottom:12px;padding-bottom:10px;border-bottom:0.5px solid var(--ivica);display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Avansni fiskalni račun</span>
+                <a href="/servis/{{.Nalog.ID}}/fiskalni-racun?tip=avans" target="_blank" class="btn-sekundarno" style="font-size:12px;padding:4px 12px;">Štampaj kopiju</a>
+            </div>
+            <div style="font-size:12px;color:var(--tekst-sporedni);margin:-4px 0 10px 0;">Račun za primljeni avans, izdat pre preuzimanja uređaja.</div>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
+                <div style="flex:1;min-width:200px;">
+                    <p style="margin:0 0 4px 0;"><strong>PFR broj:</strong> {{.AvansRacun.PfrBroj}}</p>
+                    <p style="margin:0 0 4px 0;"><strong>Vreme:</strong> {{.AvansRacun.PfrVreme}}</p>
+                    <p style="margin:0 0 4px 0;color:var(--tekst-sporedno);"><strong>Brojač:</strong> {{.AvansRacun.Brojac}}</p>
+                </div>
+                {{if .AvansRacun.QRKod}}
+                <div>
+                    <img src="data:image/png;base64,{{.AvansRacun.QRKod}}" alt="QR kod" style="width:25mm;height:25mm;">
+                </div>
+                {{end}}
+            </div>
+        </div>
+        {{end}}
+
+    {{if .PovracajAvansa}}
+        <div class="kartica detalji-kartica animiraj">
+            <div style="margin-bottom:12px;padding-bottom:10px;border-bottom:0.5px solid var(--ivica);display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Povraćaj viška avansa</span>
+                <a href="/servis/{{.Nalog.ID}}/fiskalni-racun?tip=povracaj" target="_blank" class="btn-sekundarno" style="font-size:12px;padding:4px 12px;">Štampaj kopiju</a>
+            </div>
+            <div style="font-size:12px;color:var(--tekst-sporedni);margin:-4px 0 10px 0;">Avans je premašio konačnu cenu — razlika je vraćena klijentu posebnim fiskalnim dokumentom.</div>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
+                <div style="flex:1;min-width:200px;">
+                    <p style="margin:0 0 4px 0;"><strong>PFR broj:</strong> {{.PovracajAvansa.PfrBroj}}</p>
+                    <p style="margin:0 0 4px 0;"><strong>Vreme:</strong> {{.PovracajAvansa.PfrVreme}}</p>
+                    <p style="margin:0 0 4px 0;color:var(--tekst-sporedno);"><strong>Brojač:</strong> {{.PovracajAvansa.Brojac}}</p>
+                </div>
+                {{if .PovracajAvansa.QRKod}}
+                <div>
+                    <img src="data:image/png;base64,{{.PovracajAvansa.QRKod}}" alt="QR kod" style="width:25mm;height:25mm;">
+                </div>
+                {{end}}
+            </div>
+        </div>
+        {{end}}
+
     {{if .FiskalGreska}}
     <div class="kartica detalji-kartica animiraj" style="border:1.5px solid #f59e0b;background:color-mix(in srgb,#fef3c7 60%,var(--pozadina));">
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+            <div style="font-size:46px;line-height:1;color:#fdba74;flex-shrink:0;">⚠</div>
             <div style="flex:1;">
-                <div style="font-size:14px;font-weight:600;color:#92400e;margin-bottom:4px;">⚠ Fiskalni račun nije izdat</div>
-                <div style="font-size:13px;color:#78350f;">Veza sa ESIR/PFR serverom nije bila dostupna pri preuzimanju. Status naloga je promenjen, ali fiskalni račun nije poslat.</div>
+                <div style="font-size:14px;font-weight:600;color:#fdba74;margin-bottom:4px;">Fiskalni račun nije izdat</div>
+                <div style="font-size:13px;color:#fdba74;">Veza sa ESIR/PFR serverom nije bila dostupna pri preuzimanju. Status naloga je promenjen, ali fiskalni račun nije poslat.</div>
             </div>
             {{if index .Dozvole "servis.izmeni"}}
             <form method="POST" action="/servis/{{.Nalog.ID}}/fiskalizuj">
@@ -1015,6 +1105,96 @@
             {{end}}
         </div>
     </div>
+    {{end}}
+
+    {{if .StornoBezRefunda}}
+    <div class="kartica detalji-kartica animiraj" style="border:1.5px solid #dc2626;background:color-mix(in srgb,#fee2e2 60%,var(--pozadina));">
+        <div style="display:flex;align-items:center;gap:14px;">
+            <div style="font-size:46px;line-height:1;color:#fca5a5;flex-shrink:0;">⚠</div>
+            <div style="flex:1;">
+                <div style="font-size:14px;font-weight:600;color:#fca5a5;margin-bottom:4px;">Storno bez fiskalnog refunda</div>
+                <div style="font-size:13px;color:#fca5a5;margin-bottom:10px;">Storno je upisan u NTech, ali fiskalni refund ka PFR uređaju nije uspeo (originalni fiskalni račun i dalje nije označen kao storniran).</div>
+        {{if index .Dozvole "servis.storno"}}
+        <form method="POST" action="/servis/{{.Nalog.ID}}/refund-fiskalizuj" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+            {{if .PotrebnaIdentKupcaRetry}}
+            <input type="text" name="poreski_broj_kupca" placeholder="PIB ili JMBG kupca (obavezno za refundaciju)" required style="padding:7px 10px;border:1px solid #dc2626;border-radius:6px;font-size:13px;">
+            {{end}}
+            <button type="submit" style="padding:8px 16px;background:#dc2626;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;">Pokušaj refund ponovo</button>
+        </form>
+        {{end}}
+            </div>
+        </div>
+    </div>
+    {{end}}
+
+    <!-- storno -->
+    {{if and (index .Dozvole "servis.storno") (eq .Nalog.Status "Preuzeto") (not .Nalog.Stornirano)}}
+    <div class="kartica detalji-kartica animiraj" style="border-color:#dc262633;">
+        <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:200px;">
+                <div style="font-size:14px;font-weight:500;color:#f97316;margin-bottom:4px;">Storniranje naloga</div>
+                <div class="pomocni-tekst">
+                    Storno vraća ugrađene delove na stanje u magacinu. Nalog ostaje u evidenciji sa oznakom storniran.
+                </div>
+            </div>
+            <button type="button" class="btn-upozorenje" onclick="ntechPotvrdiPaOtvoriStorno(this, 'Stornirati nalog {{.Nalog.BrojNaloga}}?')">
+                Storniraj nalog
+            </button>
+            <dialog class="premesti-modal" onclick="if(event.target===this)this.close()">
+                <form method="dialog" class="premesti-zaglavlje">
+                    <h3>Storniranje naloga {{.Nalog.BrojNaloga}}</h3>
+                    <button type="submit" class="premesti-zatvori" aria-label="Zatvori">&times;</button>
+                </form>
+                <div style="display:flex;flex-direction:column;gap:10px;padding:16px;">
+                    <form method="POST" action="/servis/storno/{{.Nalog.ID}}" data-refresh="#sadrzaj" style="display:flex;flex-direction:column;gap:10px;">
+                        <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+                        <div>
+                            <label class="polje-labela">Razlog storniranja (opciono)</label>
+                            <input type="text" name="razlog" placeholder="Razlog storniranja" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                        </div>
+                        {{if .PotrebnaIdentKupca}}
+                        <div>
+                            <label class="polje-labela">PIB ili JMBG kupca</label>
+                            <input type="text" id="storno-pib" name="poreski_broj_kupca" placeholder="Obavezno za fiskalni refund" required
+                                style="width:100%;padding:8px 12px;border:1px solid #dc2626;border-radius:8px;font-size:13px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                        </div>
+                        {{end}}
+                        <button type="submit" id="btn-storno-potvrdi" class="btn-upozorenje" style="width:100%;{{if .PotrebnaIdentKupca}}opacity:0.4;cursor:not-allowed;{{end}}" {{if .PotrebnaIdentKupca}}disabled{{end}}>
+                            Potvrdi storno
+                        </button>
+                    </form>
+                </div>
+            </dialog>
+        </div>
+    </div>
+    <script>
+    (function(){
+        // storno: potvrda namere PRE otvaranja modala (dvostepeni tok), pa tek onda
+        // polje za PIB/JMBG (obavezno samo ako je nalog fiskalizovan — v. .PotrebnaIdentKupca).
+        // NE koristi ntechOtvoriModal ovde — ta funkcija snima početno stanje forme i
+        // auto-submituje na zatvaranje dialoga (za popup polja bez dugmeta Sačuvaj), što
+        // bi za storno značilo da se nalog stornira i pri slučajnom zatvaranju bez klika
+        // na „Potvrdi storno".
+        window.ntechPotvrdiPaOtvoriStorno = function (btn, poruka) {
+            window._ntechPotvrdi(poruka).then(function (ok) {
+                if (!ok) return;
+                var d = btn.nextElementSibling;
+                if (d && d.tagName === 'DIALOG') d.showModal();
+            });
+        };
+        var pib = document.getElementById('storno-pib');
+        var btnPotvrdi = document.getElementById('btn-storno-potvrdi');
+        if (pib && btnPotvrdi) {
+            pib.addEventListener('input', function () {
+                var ok = pib.value.trim() !== '';
+                btnPotvrdi.disabled = !ok;
+                btnPotvrdi.style.opacity = ok ? '1' : '0.4';
+                btnPotvrdi.style.cursor = ok ? 'pointer' : 'not-allowed';
+            });
+        }
+    })();
+    </script>
     {{end}}
 
     <!-- zona za brisanje -->

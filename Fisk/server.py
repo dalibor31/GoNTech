@@ -21,7 +21,7 @@ import socket
 import urllib.parse
 
 import qrcode
-from receipt import generate_receipt, generate_receipt_html, generate_report, load_locale
+from receipt import generate_receipt, generate_receipt_html, generate_report, render_report_pdf, load_locale
 
 # ── Konfiguracija ──────────────────────────────────────────
 PORT  = 4566          # Teron standard port
@@ -38,6 +38,7 @@ QR_DIR       = DATA_DIR / "qr"
 RECEIPTS_DIR = DATA_DIR / "receipts"
 LOG_FILE     = DATA_DIR / "server.log"
 COUNTER_DIR  = DATA_DIR / "counters"
+PERIOD_FILE  = DATA_DIR / "period_start.txt"
 
 for d in [DATA_DIR, INVOICES_DIR, QR_DIR, RECEIPTS_DIR, COUNTER_DIR]:
     d.mkdir(parents=True, exist_ok=True)
@@ -525,6 +526,151 @@ def resp_invoice_search(request_body=None):
     ]
     return "\n".join(lines)
 
+# ── Dnevni pazar / presek stanja ───────────────────────────
+
+def get_period_start():
+    """Vreme poslednjeg preseka stanja; ako ga još nema, postavlja se na sada."""
+    if PERIOD_FILE.exists():
+        return PERIOD_FILE.read_text().strip()
+    ts = sada()
+    PERIOD_FILE.write_text(ts)
+    return ts
+
+def reset_period():
+    """Zatvara tekući period (presek stanja) — sledeći GET summary počinje od sada."""
+    PERIOD_FILE.write_text(sada())
+
+def compute_summary(from_iso=None, to_iso=None):
+    """Sabira promet iz sačuvanih fiskalnih računa u zadatom periodu.
+    Bez argumenata: od poslednjeg preseka stanja (get_period_start) do sada."""
+    start = from_iso or get_period_start()
+    end = to_iso or sada()
+
+    total = 0.0
+    total_cash = 0.0
+    count = 0
+    by_tax = {}
+    by_cashier = {}
+    by_payment = {}
+    by_article = {}
+    by_article_advance = {}
+
+    for f in sorted(INVOICES_DIR.glob("*.json")):
+        try:
+            inv = json.loads(f.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        t = inv.get("sdcDateTime", "")
+        if not t or not (start <= t <= end) or not inv.get("isFiscal", True):
+            continue
+        count += 1
+
+        amount = float(inv.get("totalAmount", 0))
+        is_refund = inv.get("transactionType") == "Refund"
+        znak = -1 if is_refund else 1
+        total += znak * amount
+
+        for p in inv.get("payments", []):
+            ptype = p.get("paymentType") or p.get("type") or "Other"
+            pamt = znak * float(p.get("amount", 0))
+            by_payment[ptype] = by_payment.get(ptype, 0.0) + pamt
+            if ptype == "Cash":
+                total_cash += pamt
+
+        kasir = inv.get("cashier", "Kasir")
+        by_cashier[kasir] = by_cashier.get(kasir, 0.0) + znak * amount
+
+        for ti in inv.get("taxItems", []):
+            label = ti.get("label", "")
+            if label not in by_tax:
+                by_tax[label] = {"label": label, "rate": ti.get("rate", 0),
+                                  "category": "VAT" if ti.get("rate", 0) > 0 else "N-TAX",
+                                  "amount": 0.0, "osnovica": 0.0}
+            by_tax[label]["amount"] += znak * float(ti.get("amount", 0))
+
+        cilj = by_article_advance if inv.get("invoiceType") == "Advance" else by_article
+        for item in inv.get("items", []):
+            naziv = item.get("name", "")
+            if naziv not in cilj:
+                cilj[naziv] = {"articleName": naziv, "gtin": None, "plu": None,
+                                "taxLabel": (item.get("labels") or [""])[0],
+                                "amount": 0.0, "quantity": 0.0}
+            cilj[naziv]["amount"] += znak * float(item.get("totalAmount", 0))
+            cilj[naziv]["quantity"] += znak * float(item.get("quantity", 0))
+            for label in item.get("labels", []):
+                if label in by_tax:
+                    by_tax[label]["osnovica"] += znak * float(item.get("totalAmount", 0))
+
+    return {
+        "startOfPeriod": start,
+        "endOfPeriod": end,
+        "invoiceCount": count,
+        "total": round(total, 2),
+        "totalCash": round(total_cash, 2),
+        "totalByTax": [
+            {"amount": round(v["amount"], 4), "category": v["category"], "label": v["label"],
+             "rate": v["rate"], "osnovica": round(v["osnovica"], 2)}
+            for v in by_tax.values()
+        ],
+        "totalByCashier": [{"amount": round(v, 2), "name": k} for k, v in by_cashier.items()],
+        "totalByPaymentType": [{"amount": round(v, 2), "paymentType": k} for k, v in by_payment.items()],
+        "totalByArticle": [
+            {**v, "amount": round(v["amount"], 2)} for v in by_article.values()
+        ],
+        "totalByArticleAdvance": [
+            {**v, "amount": round(v["amount"], 2)} for v in by_article_advance.values()
+        ],
+    }
+
+def resp_financial_summary_get():
+    return compute_summary()
+
+def resp_financial_summary_delete():
+    reset_period()
+    log("  📊 Presek stanja urađen — brojači prometa resetovani")
+    return ("", 204)
+
+def resp_financial_report_summary(request_body=None):
+    body = request_body or {}
+    from_date = body.get("fromDate")
+    to_date = body.get("toDate")
+    from_iso = f"{from_date}T00:00:00.000+02:00" if from_date else None
+    to_iso = f"{to_date}T23:59:59.999+02:00" if to_date else None
+    summary = compute_summary(from_iso, to_iso)
+
+    cert = be_command({"command": "certificate"})
+    firma = ucitaj_firmu()
+    lang = "cyrillic" if str(body.get("language", "")).lower().startswith("sr-cyrl") else "latin"
+    title = "ДНЕВНИ ИЗВЕШТАЈ" if lang == "cyrillic" else "DNEVNI IZVEŠTAJ"
+
+    report_data = {
+        "title": title,
+        "number": get_counter("report"),
+        "dateTime": sada(),
+        "tin": firma["tinPlain"],
+        "businessName": firma["name"],
+        "locationName": firma["locationName"],
+        "address": firma["address"],
+        "district": firma["district"],
+        "uid": cert.get("jid", ESIR_ID),
+        "startDate": (from_date or summary["startOfPeriod"][:10]),
+        "endDate": (to_date or summary["endOfPeriod"][:10]),
+        "total": {
+            "invoiceCount": summary["invoiceCount"],
+            "payments": [{"paymentType": p["paymentType"], "amount": p["amount"]} for p in summary["totalByPaymentType"]],
+            "totalPayments": summary["total"],
+            "taxItems": [{"label": t["label"], "rate": t["rate"], "total": t["osnovica"], "amount": t["amount"]} for t in summary["totalByTax"]],
+            "totalTax": round(sum(t["amount"] for t in summary["totalByTax"]), 2),
+        },
+        "perTransactionType": [],
+    }
+    tekst = generate_report(report_data, lang)
+    pdf_bytes = render_report_pdf(tekst)
+    pdf_b64 = base64.b64encode(pdf_bytes).decode("ascii")
+    filename = f"{title} - {report_data['startDate']} - {report_data['endDate']}.pdf"
+    log(f"  📄 Dnevni izveštaj #{report_data['number']} generisan ({summary['invoiceCount']} računa)")
+    return {"reportPdfBase64": pdf_b64, "reportName": title, "filename": filename}
+
 # ── Rute ────────────────────────────────────────────────────
 
 ROUTES = [
@@ -540,21 +686,27 @@ ROUTES = [
     ("GET",  "api/invoices/:invoiceNumber",     "invoice_by_number"),
     ("POST", "api/invoices/search",             "invoice_search"),
     ("POST", "api/invoices",                    "invoice"),
+    ("GET",  "api/financial/summary",           "financial_summary_get"),
+    ("DELETE", "api/financial/summary",         "financial_summary_delete"),
+    ("POST", "api/financial/report/summary",    "financial_report_summary"),
 ]
 
 HANDLERS = {
-    "attention":          resp_attention,
-    "status":             resp_status,
-    "verify_pin":         resp_verify_pin,
-    "settings_get":       resp_settings_get,
-    "settings_post":      resp_settings_post,
-    "certificate":        resp_certificate,
-    "invoice":            resp_invoice,
-    "invoice_final":      resp_invoice_final,
-    "invoice_last":       resp_invoice_last,
-    "invoice_by_request": resp_invoice_by_request,
-    "invoice_by_number":  resp_invoice_by_number,
-    "invoice_search":     resp_invoice_search,
+    "attention":               resp_attention,
+    "status":                  resp_status,
+    "verify_pin":              resp_verify_pin,
+    "settings_get":            resp_settings_get,
+    "settings_post":           resp_settings_post,
+    "certificate":             resp_certificate,
+    "invoice":                 resp_invoice,
+    "invoice_final":           resp_invoice_final,
+    "invoice_last":            resp_invoice_last,
+    "invoice_by_request":      resp_invoice_by_request,
+    "invoice_by_number":       resp_invoice_by_number,
+    "invoice_search":          resp_invoice_search,
+    "financial_summary_get":   resp_financial_summary_get,
+    "financial_summary_delete": resp_financial_summary_delete,
+    "financial_report_summary": resp_financial_report_summary,
 }
 
 # ── HTTP Handler ─────────────────────────────────────────────
@@ -618,6 +770,8 @@ class FiscalHandler(http.server.BaseHTTPRequestHandler):
             elif r_name == "invoice_by_number":
                 result = handler(params.get("invoiceNumber", ""))
             elif r_name == "invoice_search":
+                result = handler(self._read_body())
+            elif r_name == "financial_report_summary":
                 result = handler(self._read_body())
             elif r_name in ("settings_post",):
                 self._read_body()

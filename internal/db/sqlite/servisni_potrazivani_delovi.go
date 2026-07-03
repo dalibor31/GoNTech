@@ -196,6 +196,13 @@ func (r *ServisniPotrazivaniDeloviRepo) ProveriIPocistiZaArtikal(ctx context.Con
 // uvećava postojeći red za isti artikal na nalogu ili kreira novi. Radi unutar
 // prosleđene transakcije. Ne dira magacin — to radi skiniSaMagacina zasebno.
 func (r *ServisniPotrazivaniDeloviRepo) ugradiUNalog(ctx context.Context, tx *sql.Tx, nalogID, artikalID int64, kolicina int, cenaKomada float64) error {
+	var nabavnaCena float64
+	if err := tx.QueryRowContext(ctx,
+		"SELECT nabavna_cena FROM artikli WHERE id = ?", artikalID,
+	).Scan(&nabavnaCena); err != nil {
+		return fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ugradiUNalog: nabavna cena: %w", err)
+	}
+
 	var postojeciID int64
 	var postojeciKol int
 	err := tx.QueryRowContext(ctx,
@@ -207,8 +214,8 @@ func (r *ServisniPotrazivaniDeloviRepo) ugradiUNalog(ctx context.Context, tx *sq
 		// ne pregazi postojeću cenu nulom (npr. legacy potraživani red bez cene)
 		if cenaKomada > 0 {
 			_, err = tx.ExecContext(ctx,
-				"UPDATE servisni_delovi SET kolicina = ?, cena_komada = ? WHERE id = ?",
-				postojeciKol+kolicina, cenaKomada, postojeciID,
+				"UPDATE servisni_delovi SET kolicina = ?, cena_komada = ?, nabavna_cena = ? WHERE id = ?",
+				postojeciKol+kolicina, cenaKomada, nabavnaCena, postojeciID,
 			)
 		} else {
 			_, err = tx.ExecContext(ctx,
@@ -223,9 +230,9 @@ func (r *ServisniPotrazivaniDeloviRepo) ugradiUNalog(ctx context.Context, tx *sq
 	}
 	if errors.Is(err, sql.ErrNoRows) {
 		_, err = tx.ExecContext(ctx, `
-			INSERT INTO servisni_delovi (nalog_id, artikal_id, kolicina, cena_komada)
-			VALUES (?, ?, ?, ?)`,
-			nalogID, artikalID, kolicina, cenaKomada,
+			INSERT INTO servisni_delovi (nalog_id, artikal_id, kolicina, cena_komada, nabavna_cena)
+			VALUES (?, ?, ?, ?, ?)`,
+			nalogID, artikalID, kolicina, cenaKomada, nabavnaCena,
 		)
 		if err != nil {
 			return fmt.Errorf("ntech: ServisniPotrazivaniDeloviRepo.ugradiUNalog: insert: %w", err)

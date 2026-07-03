@@ -377,9 +377,17 @@ func (h *Handler) StornoNabavke(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/nabavke/"+strconv.FormatInt(id, 10)+"?greska=storno", http.StatusSeeOther)
 		return
 	}
-	// stornirana nabavka ne ulazi u PDV — ukloni vezani auto-KPR zapis
-	if err := h.PdvKprRepo.ObrisiPoIzvoru(r.Context(), "nabavka", id); err != nil {
-		slog.Error("brisanje vezanog KPR zapisa nije uspelo", "nabavka_id", id, "error", err)
+	// stornirana nabavka se ne briše iz KPR (zakon o računovodstvu ne dozvoljava
+	// brisanje poslovnih knjiga) — dograđuje se storno stavka koja poništava original
+	if zapisi, err := h.PdvKprRepo.DohvatiPoIzvoru(r.Context(), "nabavka", id); err != nil {
+		slog.Error("čitanje vezanog KPR zapisa nije uspelo", "nabavka_id", id, "error", err)
+	} else {
+		for _, z := range zapisi {
+			storno := model.KprStorno(z, razlog, time.Now())
+			if _, e := h.PdvKprRepo.Kreiraj(r.Context(), &storno); e != nil {
+				slog.Error("upis storno KPR zapisa nije uspeo", "nabavka_id", id, "error", e)
+			}
+		}
 	}
 
 	http.Redirect(w, r, "/nabavke/"+strconv.FormatInt(id, 10)+"?sacuvano=1", http.StatusSeeOther)

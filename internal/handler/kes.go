@@ -19,7 +19,7 @@ var bazniSabloni = []string{
 
 // saSidebar su šabloni koji koriste base layout (sidebar + topbar)
 var saSidebar = []string{
-	"admin_korisnici", "admin_profil", "admin_login_istorija", "admin_dozvole",
+	"admin_korisnici", "admin_profil", "admin_login_istorija", "admin_dozvole", "blokirane_ip",
 	"dashboard",
 	"dobavljaci", "dobavljac_forma",
 	"izvestaji", "prometni_list", "stanje_zaliha", "popis",
@@ -28,6 +28,7 @@ var saSidebar = []string{
 	"magacin", "magacin_forma", "magacin_kartica",
 	"nabavke", "nabavka_forma", "nabavka_detalji",
 	"podesavanja", "podesavanja_opste", "podesavanja_izgled", "podesavanja_sistem", "podesavanja_servis", "podesavanja_fiskalizacija",
+	"fiskal_pazar",
 	"pdv_stope",
 	"pdv_kir", "pdv_kir_forma", "pdv_kir_dnevni_pazar",
 	"pdv_kpr", "pdv_kpr_forma",

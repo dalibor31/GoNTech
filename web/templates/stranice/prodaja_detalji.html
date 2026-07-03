@@ -52,29 +52,6 @@
         </span>
         {{end}}
       </div>
-      <a
-        href="/prodaja/{{.Nalog.ID}}/stampa"
-        target="_blank"
-        class="btn-sekundarno"
-        style="gap: 6px">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true">
-          <polyline points="6 9 6 2 18 2 18 9" />
-          <path
-            d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-          <rect x="6" y="14" width="12" height="8" />
-        </svg>
-        Štampaj
-      </a>
     </div>
     <div
       style="
@@ -252,23 +229,66 @@
             Storno vraća sve artikle na stanje u magacinu. Nalog ostaje u evidenciji sa oznakom storniran.
           </div>
         </div>
-        <form method="POST" action="/prodaja/storno/{{.Nalog.ID}}" style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
-          <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
-          <input type="text" name="razlog" placeholder="Razlog storniranja (opciono)" style="width:240px;">
-          {{if .PotrebnaIdentKupca}}
-          <input type="text" name="poreski_broj_kupca" placeholder="PIB ili JMBG kupca (obavezno za refundaciju)" required style="width:240px;">
-          {{end}}
-          <button type="submit" class="btn-upozorenje"
-            data-potvrda="Stornirati nalog {{.Nalog.BrojNaloga}}?">
-            Storniraj nalog
-          </button>
-        </form>
+        <button type="button" class="btn-upozorenje" onclick="ntechPotvrdiPaOtvoriStorno(this, 'Stornirati nalog {{.Nalog.BrojNaloga}}?')">
+          Storniraj nalog
+        </button>
+        <dialog class="premesti-modal" onclick="if(event.target===this)this.close()">
+          <form method="dialog" class="premesti-zaglavlje">
+            <h3>Storniranje naloga {{.Nalog.BrojNaloga}}</h3>
+            <button type="submit" class="premesti-zatvori" aria-label="Zatvori">&times;</button>
+          </form>
+          <div style="display:flex;flex-direction:column;gap:10px;padding:16px;">
+            <form method="POST" action="/prodaja/storno/{{.Nalog.ID}}" data-refresh="#sadrzaj" style="display:flex;flex-direction:column;gap:10px;">
+              <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+              <div>
+                <label class="polje-labela">Razlog storniranja (opciono)</label>
+                <input type="text" name="razlog" placeholder="Razlog storniranja" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+              </div>
+              {{if .PotrebnaIdentKupca}}
+              <div>
+                <label class="polje-labela">PIB ili JMBG kupca</label>
+                <input type="text" id="storno-pib" name="poreski_broj_kupca" placeholder="Obavezno za fiskalni refund" required
+                  style="width:100%;padding:8px 12px;border:1px solid #dc2626;border-radius:8px;font-size:13px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+              </div>
+              {{end}}
+              <button type="submit" id="btn-storno-potvrdi" class="btn-upozorenje" style="width:100%;{{if .PotrebnaIdentKupca}}opacity:0.4;cursor:not-allowed;{{end}}" {{if .PotrebnaIdentKupca}}disabled{{end}}>
+                Potvrdi storno
+              </button>
+            </form>
+          </div>
+        </dialog>
       </div>
+      <script>
+      (function(){
+        // isti obrazac kao u Servisu (servis_detalji.html) — v. komentar tamo zašto
+        // se NE koristi ntechOtvoriModal (auto-submit na zatvaranje dialoga).
+        window.ntechPotvrdiPaOtvoriStorno = function (btn, poruka) {
+          window._ntechPotvrdi(poruka).then(function (ok) {
+            if (!ok) return;
+            var d = btn.nextElementSibling;
+            if (d && d.tagName === 'DIALOG') d.showModal();
+          });
+        };
+        var pib = document.getElementById('storno-pib');
+        var btnPotvrdi = document.getElementById('btn-storno-potvrdi');
+        if (pib && btnPotvrdi) {
+          pib.addEventListener('input', function () {
+            var ok = pib.value.trim() !== '';
+            btnPotvrdi.disabled = !ok;
+            btnPotvrdi.style.opacity = ok ? '1' : '0.4';
+            btnPotvrdi.style.cursor = ok ? 'pointer' : 'not-allowed';
+          });
+        }
+      })();
+      </script>
       {{end}}
 
       {{if .FiskalniRacun}}
       <div class="fiskalni-racun" style="padding-top:14px;border-top:0.5px solid var(--ivica);">
-        <h3 style="margin:0 0 8px 0;font-size:16px;">Fiskalni račun</h3>
+        <div style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+          <h3 style="margin:0;font-size:16px;">Fiskalni račun</h3>
+          <a href="/prodaja/{{.Nalog.ID}}/fiskalni-racun" target="_blank" class="btn-sekundarno" style="font-size:12px;padding:4px 12px;">Štampaj kopiju</a>
+        </div>
         <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
           <div style="flex:1;min-width:200px;">
             <p style="margin:0 0 4px 0;"><strong>PFR broj:</strong> {{.FiskalniRacun.PfrBroj}}</p>
@@ -296,14 +316,27 @@
         }
       })();
       </script>
+      {{else}}
+      <script>
+      (function(){
+        // fiskalizacija je pokušana (racun=1 tražen pri naplati) ali računa nema —
+        // PFR nedostupan ili slično (v. FiskalGreska ispod). Prazan tab je već otvoren
+        // pre redirekta — zatvori ga umesto da ostane trajno na about:blank.
+        if (new URLSearchParams(location.search).get('racun') === '1') {
+          var t = window.open('', 'ntech-fiskalni-tab');
+          if (t) t.close();
+        }
+      })();
+      </script>
       {{end}}
 
       {{if .FiskalGreska}}
       <div class="fiskalni-racun" style="padding:14px;border:1.5px solid #f59e0b;border-radius:8px;background:color-mix(in srgb,#fef3c7 60%,var(--pozadina));">
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+          <div style="font-size:46px;line-height:1;color:#fdba74;flex-shrink:0;">⚠</div>
           <div style="flex:1;">
-            <div style="font-size:14px;font-weight:600;color:#92400e;margin-bottom:4px;">⚠ Fiskalni račun nije izdat</div>
-            <div style="font-size:13px;color:#78350f;">Veza sa ESIR/PFR serverom nije bila dostupna pri kreiranju prodaje.</div>
+            <div style="font-size:14px;font-weight:600;color:#fdba74;margin-bottom:4px;">Fiskalni račun nije izdat</div>
+            <div style="font-size:13px;color:#fdba74;">Veza sa ESIR/PFR serverom nije bila dostupna pri kreiranju prodaje.</div>
           </div>
           {{if index $.Dozvole "prodaja.dodaj"}}
           <form method="POST" action="/prodaja/{{.Nalog.ID}}/fiskalizuj">
@@ -311,6 +344,27 @@
             <button type="submit" class="btn-primarno" style="background:#d97706;border-color:#d97706;white-space:nowrap;">Pokušaj ponovo</button>
           </form>
           {{end}}
+        </div>
+      </div>
+      {{end}}
+
+      {{if .StornoBezRefunda}}
+      <div class="fiskalni-racun" style="padding:14px;border:1.5px solid #dc2626;border-radius:8px;background:color-mix(in srgb,#fee2e2 60%,var(--pozadina));">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div style="font-size:46px;line-height:1;color:#fca5a5;flex-shrink:0;">⚠</div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:600;color:#fca5a5;margin-bottom:4px;">Storno bez fiskalnog refunda</div>
+            <div style="font-size:13px;color:#fca5a5;margin-bottom:10px;">Storno je upisan u NTech, ali fiskalni refund ka PFR uređaju nije uspeo (originalni fiskalni račun i dalje nije označen kao storniran).</div>
+        {{if index $.Dozvole "prodaja.storno"}}
+        <form method="POST" action="/prodaja/{{.Nalog.ID}}/refund-fiskalizuj" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+          {{if .PotrebnaIdentKupcaRetry}}
+          <input type="text" name="poreski_broj_kupca" placeholder="PIB ili JMBG kupca (obavezno za refundaciju)" required style="padding:7px 10px;border:1px solid #dc2626;border-radius:6px;font-size:13px;">
+          {{end}}
+          <button type="submit" style="padding:8px 16px;background:#dc2626;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;">Pokušaj refund ponovo</button>
+        </form>
+        {{end}}
+          </div>
         </div>
       </div>
       {{end}}

@@ -53,10 +53,13 @@ type PodaciIzvestaja struct {
 
 // MesecniPrihod drži prihod od prodaje i servisa za jedan mesec
 type MesecniPrihod struct {
-	MesecPrikaz string
-	Prodaja     float64
-	Servis      float64
-	Ukupno      float64
+	MesecPrikaz   string
+	Prodaja       float64
+	Servis        float64
+	Ukupno        float64
+	Zarada        float64
+	ZaradaProdaja float64
+	ZaradaServis  float64
 }
 
 // StariNalog je servisni nalog bez datuma završetka stariji od 14 dana
@@ -120,35 +123,68 @@ func (h *Handler) Izvestaji(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// --- mesečna zarada: prodaja ---
+	zaradaProdajaPoMesecu := map[string]float64{}
+	if redovi, err := h.IzvestajRepo.MesecniZaradaProdaja(ctx); err != nil {
+		slog.Error("izvestaji: zarada prodaja", "error", err)
+	} else {
+		for _, m := range redovi {
+			zaradaProdajaPoMesecu[m.Mesec] = m.Iznos
+		}
+	}
+
+	// --- mesečna zarada: servis ---
+	zaradaServisPoMesecu := map[string]float64{}
+	if redovi, err := h.IzvestajRepo.MesecniZaradaServis(ctx); err != nil {
+		slog.Error("izvestaji: zarada servis", "error", err)
+	} else {
+		for _, m := range redovi {
+			zaradaServisPoMesecu[m.Mesec] = m.Iznos
+		}
+	}
+
 	// gradimo niz za poslednjih 12 meseci (hronološki)
 	var mesecniPrihodi []MesecniPrihod
 	var grafikonLabele []string
 	var grafikonProdaja []float64
 	var grafikonServis []float64
+	var grafikonZaradaProdaja []float64
+	var grafikonZaradaServis []float64
 
 	for _, kljuc := range kljuceviMeseci(time.Now(), 12) {
 		prod := prodajaPoMesecu[kljuc]
 		serv := servisPoMesecu[kljuc]
+		zaradaProd := zaradaProdajaPoMesecu[kljuc]
+		zaradaServ := zaradaServisPoMesecu[kljuc]
 		mesecniPrihodi = append(mesecniPrihodi, MesecniPrihod{
-			MesecPrikaz: formatujMesec(kljuc),
-			Prodaja:     prod,
-			Servis:      serv,
-			Ukupno:      prod + serv,
+			MesecPrikaz:   formatujMesec(kljuc),
+			Prodaja:       prod,
+			Servis:        serv,
+			Ukupno:        prod + serv,
+			Zarada:        zaradaProd + zaradaServ,
+			ZaradaProdaja: zaradaProd,
+			ZaradaServis:  zaradaServ,
 		})
 		grafikonLabele = append(grafikonLabele, formatujMesec(kljuc))
 		grafikonProdaja = append(grafikonProdaja, prod)
 		grafikonServis = append(grafikonServis, serv)
+		grafikonZaradaProdaja = append(grafikonZaradaProdaja, zaradaProd)
+		grafikonZaradaServis = append(grafikonZaradaServis, zaradaServ)
 	}
 
 	type grafikonPodaci struct {
-		Labele  []string  `json:"labele"`
-		Prodaja []float64 `json:"prodaja"`
-		Servis  []float64 `json:"servis"`
+		Labele        []string  `json:"labele"`
+		Prodaja       []float64 `json:"prodaja"`
+		Servis        []float64 `json:"servis"`
+		ZaradaProdaja []float64 `json:"zaradaProdaja"`
+		ZaradaServis  []float64 `json:"zaradaServis"`
 	}
 	jsonBytes, _ := json.Marshal(grafikonPodaci{
-		Labele:  grafikonLabele,
-		Prodaja: grafikonProdaja,
-		Servis:  grafikonServis,
+		Labele:        grafikonLabele,
+		Prodaja:       grafikonProdaja,
+		Servis:        grafikonServis,
+		ZaradaProdaja: grafikonZaradaProdaja,
+		ZaradaServis:  grafikonZaradaServis,
 	})
 
 	// --- stari otvoreni nalozi (>14 dana bez završetka) ---

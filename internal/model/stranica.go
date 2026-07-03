@@ -78,16 +78,50 @@ type PodaciDashboarda struct {
 // sumnjivih duplikata (naloga koje automatski backfill namerno preskače) — prikazuje
 // se kao kartica na dashboard-u.
 type PrazninaKnjigovodstva struct {
-	BezKir        int
-	BezKpo        int
-	BezFiskalnog  int
-	BezRefunda    int // stornirani nalozi čiji fiskalni refund nije uspeo (best-effort poziv pao)
-	SumnjiviDupli int
+	BezKirProdaja         int     // B2B prodaje bez KIR upisa
+	BezKirServis          int     // B2B servisi bez KIR upisa
+	BezKirProdajaID       []int64 // ID-jevi — za direktan link sa dashboard-a
+	BezKirServisID        []int64
+	BezKpoProdaja         int // prodaje bez KPO upisa
+	BezKpoServis          int // servisi bez KPO upisa
+	BezKpoProdajaID       []int64
+	BezKpoServisID        []int64
+	BezFiskalnogProdaja   int // prodajni nalozi bez izdatog fiskalnog računa
+	BezFiskalnogServis    int // preuzeti servisni nalozi bez izdatog fiskalnog računa
+	BezFiskalnogProdajaID []int64
+	BezFiskalnogServisID  []int64
+	BezRefundaProdaja     int     // stornirane prodaje čiji fiskalni refund nije uspeo (best-effort poziv pao)
+	BezRefundaServis      int     // stornirani servisi čiji fiskalni refund nije uspeo (best-effort poziv pao)
+	BezRefundaProdajaID   []int64 // ID-jevi stornirane prodaje bez refunda — za direktan link sa dashboard-a
+	BezRefundaServisID    []int64 // ID-jevi storniranih servisa bez refunda — za direktan link sa dashboard-a
+	SumnjiviDupli         int
+}
+
+// BezKir vraća ukupan broj naloga (prodaja + servis) bez KIR upisa.
+func (p PrazninaKnjigovodstva) BezKir() int {
+	return p.BezKirProdaja + p.BezKirServis
+}
+
+// BezKpo vraća ukupan broj naloga (prodaja + servis) bez KPO upisa.
+func (p PrazninaKnjigovodstva) BezKpo() int {
+	return p.BezKpoProdaja + p.BezKpoServis
+}
+
+// BezFiskalnog vraća ukupan broj naloga (prodaja + servis) bez izdatog fiskalnog
+// računa — koristi se za prikaz zbirnog broja na dashboard-u.
+func (p PrazninaKnjigovodstva) BezFiskalnog() int {
+	return p.BezFiskalnogProdaja + p.BezFiskalnogServis
+}
+
+// BezRefunda vraća ukupan broj storniranih naloga (prodaja + servis) čiji fiskalni
+// refund nije uspeo — koristi se za prikaz zbirnog broja na dashboard-u.
+func (p PrazninaKnjigovodstva) BezRefunda() int {
+	return p.BezRefundaProdaja + p.BezRefundaServis
 }
 
 // Ukupno vraća zbir svih praznina UKLJUČUJUĆI sumnjive duplikate — koristi se da se
 // odluči da li se kartica uopšte prikazuje na dashboard-u (i kad ostanu samo
 // duplikati za ručnu proveru, kartica mora da ostane vidljiva).
 func (p PrazninaKnjigovodstva) Ukupno() int {
-	return p.BezKir + p.BezKpo + p.BezFiskalnog + p.BezRefunda + p.SumnjiviDupli
+	return p.BezKir() + p.BezKpo() + p.BezFiskalnog() + p.BezRefunda() + p.SumnjiviDupli
 }
