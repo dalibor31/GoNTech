@@ -21,6 +21,7 @@
   var _ntechArtikli = {{.ArtikliJSON}};
   var _ntechKlijenti = {{.KlijentiJSON}};
   var _ntechPdvObveznik = {{if index .Moduli "pdv"}}true{{else}}false{{end}};
+  var _ntechFiskalizacija = {{if index .Moduli "fiskalizacija"}}true{{else}}false{{end}};
 </script>
 
 <div style="width: 100%" x-data="prodajaForma">

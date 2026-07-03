@@ -9,6 +9,7 @@ import (
 	"time"
 	"unicode"
 
+	"ntech/internal/config"
 	ntechsqlite "ntech/internal/db/sqlite"
 	"ntech/internal/fiskal"
 	"ntech/internal/middleware"
@@ -56,6 +57,12 @@ func (h *Handler) FiskalniPazar(w http.ResponseWriter, r *http.Request) {
 
 	podaci := PodaciFiskalniPazar{PodaciStranice: ps, Danas: time.Now().Format("2006-01-02")}
 
+	if !h.modulUkljucen(r.Context(), config.ModulFiskalizacija) {
+		podaci.Greska = "Fiskalizacija nije uključena u profilu firme — Podešavanja → Opšte → Pravni i poreski status."
+		h.renderujTemplate(w, "fiskal_pazar", podaci)
+		return
+	}
+
 	klijent := h.fiskalKlijent()
 	if klijent == nil {
 		podaci.Greska = "Fiskalizacija nije podešena — unesi URL PFR servera u Podešavanja → Fiskalizacija."
@@ -80,6 +87,11 @@ func (h *Handler) FiskalniPazar(w http.ResponseWriter, r *http.Request) {
 // radi nezavisno preko datumskog opsega, bez obzira na to da li je ovo ikad urađeno.
 func (h *Handler) ZakljuciFiskalniDan(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.zahtevajDozvolu(w, r, "fiskal.zakljucenje"); !ok {
+		return
+	}
+	if !h.modulUkljucen(r.Context(), config.ModulFiskalizacija) {
+		middleware.SetFlash(w, r, h.DB, "greska", "Fiskalizacija nije uključena u profilu firme.")
+		http.Redirect(w, r, "/fiskal/pazar", http.StatusSeeOther)
 		return
 	}
 	klijent := h.fiskalKlijent()
@@ -108,6 +120,11 @@ func (h *Handler) FiskalniIzvestaj(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
+		return
+	}
+	if !h.modulUkljucen(r.Context(), config.ModulFiskalizacija) {
+		middleware.SetFlash(w, r, h.DB, "greska", "Fiskalizacija nije uključena u profilu firme.")
+		http.Redirect(w, r, "/fiskal/pazar", http.StatusSeeOther)
 		return
 	}
 	klijent := h.fiskalKlijent()

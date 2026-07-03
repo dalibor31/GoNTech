@@ -214,13 +214,27 @@
                                 f.addEventListener('submit', function(){
                                     var cb = f.querySelector('#prikazi-racun');
                                     if (!cb || !cb.checked) return;
+                                    // otvori prazan imenovani tab SINHRONO unutar submit-a (očuvan user
+                                    // gesture) — isti obrazac kao pripremiFiskalniTab u Prodaji (ntech.js).
+                                    // Naplata ovde ide preko AJAX-a (data-refresh), pa se popunjava tek
+                                    // kad MutationObserver javi da je swap gotov — a to je već van user
+                                    // gesture-a, pa direktan window.open() u tom trenutku brauzer tretira
+                                    // kao blokiran popup i otvara about:blank (v. docs/Greške.md).
+                                    var tab = window.open('', 'ntech-fiskalni-tab');
                                     var sadrzaj = document.getElementById('sadrzaj');
-                                    if (!sadrzaj) return;
+                                    if (!sadrzaj) {
+                                        if (tab) tab.close();
+                                        return;
+                                    }
                                     var observer = new MutationObserver(function(){
                                         observer.disconnect();
                                         // jedan prozor — server u istu stranicu ubacuje i povraćaj viška
                                         // avansa (ako postoji), da brauzer ne blokira drugi popup
-                                        window.open('/servis/{{.Nalog.ID}}/fiskalni-racun', '_blank');
+                                        if (tab && !tab.closed) {
+                                            tab.location.href = '/servis/{{.Nalog.ID}}/fiskalni-racun';
+                                        } else {
+                                            window.open('/servis/{{.Nalog.ID}}/fiskalni-racun', '_blank');
+                                        }
                                     });
                                     observer.observe(sadrzaj.parentElement, {childList: true});
                                 });
@@ -1124,19 +1138,63 @@
                     Storno vraća ugrađene delove na stanje u magacinu. Nalog ostaje u evidenciji sa oznakom storniran.
                 </div>
             </div>
-            <form method="POST" action="/servis/storno/{{.Nalog.ID}}" style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
-                <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
-                <input type="text" name="razlog" placeholder="Razlog storniranja (opciono)" style="width:240px;">
-                {{if .PotrebnaIdentKupca}}
-                <input type="text" name="poreski_broj_kupca" placeholder="PIB ili JMBG kupca (obavezno za refundaciju)" required style="width:240px;">
-                {{end}}
-                <button type="submit" class="btn-upozorenje"
-                    data-potvrda="Stornirati nalog {{.Nalog.BrojNaloga}}?">
-                    Storniraj nalog
-                </button>
-            </form>
+            <button type="button" class="btn-upozorenje" onclick="ntechPotvrdiPaOtvoriStorno(this, 'Stornirati nalog {{.Nalog.BrojNaloga}}?')">
+                Storniraj nalog
+            </button>
+            <dialog class="premesti-modal" onclick="if(event.target===this)this.close()">
+                <form method="dialog" class="premesti-zaglavlje">
+                    <h3>Storniranje naloga {{.Nalog.BrojNaloga}}</h3>
+                    <button type="submit" class="premesti-zatvori" aria-label="Zatvori">&times;</button>
+                </form>
+                <div style="display:flex;flex-direction:column;gap:10px;padding:16px;">
+                    <form method="POST" action="/servis/storno/{{.Nalog.ID}}" data-refresh="#sadrzaj" style="display:flex;flex-direction:column;gap:10px;">
+                        <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+                        <div>
+                            <label class="polje-labela">Razlog storniranja (opciono)</label>
+                            <input type="text" name="razlog" placeholder="Razlog storniranja" style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                        </div>
+                        {{if .PotrebnaIdentKupca}}
+                        <div>
+                            <label class="polje-labela">PIB ili JMBG kupca</label>
+                            <input type="text" id="storno-pib" name="poreski_broj_kupca" placeholder="Obavezno za fiskalni refund" required
+                                style="width:100%;padding:8px 12px;border:1px solid #dc2626;border-radius:8px;font-size:13px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                        </div>
+                        {{end}}
+                        <button type="submit" id="btn-storno-potvrdi" class="btn-upozorenje" style="width:100%;{{if .PotrebnaIdentKupca}}opacity:0.4;cursor:not-allowed;{{end}}" {{if .PotrebnaIdentKupca}}disabled{{end}}>
+                            Potvrdi storno
+                        </button>
+                    </form>
+                </div>
+            </dialog>
         </div>
     </div>
+    <script>
+    (function(){
+        // storno: potvrda namere PRE otvaranja modala (dvostepeni tok), pa tek onda
+        // polje za PIB/JMBG (obavezno samo ako je nalog fiskalizovan — v. .PotrebnaIdentKupca).
+        // NE koristi ntechOtvoriModal ovde — ta funkcija snima početno stanje forme i
+        // auto-submituje na zatvaranje dialoga (za popup polja bez dugmeta Sačuvaj), što
+        // bi za storno značilo da se nalog stornira i pri slučajnom zatvaranju bez klika
+        // na „Potvrdi storno".
+        window.ntechPotvrdiPaOtvoriStorno = function (btn, poruka) {
+            window._ntechPotvrdi(poruka).then(function (ok) {
+                if (!ok) return;
+                var d = btn.nextElementSibling;
+                if (d && d.tagName === 'DIALOG') d.showModal();
+            });
+        };
+        var pib = document.getElementById('storno-pib');
+        var btnPotvrdi = document.getElementById('btn-storno-potvrdi');
+        if (pib && btnPotvrdi) {
+            pib.addEventListener('input', function () {
+                var ok = pib.value.trim() !== '';
+                btnPotvrdi.disabled = !ok;
+                btnPotvrdi.style.opacity = ok ? '1' : '0.4';
+                btnPotvrdi.style.cursor = ok ? 'pointer' : 'not-allowed';
+            });
+        }
+    })();
+    </script>
     {{end}}
 
     <!-- zona za brisanje -->

@@ -100,7 +100,7 @@
         {{/* Knjigovodstvo — grupa: KIR/KPR/Obračun (modul „pdv") + Nivelacije (dozvola izmene cena) */}}
         {{$pdvVid := and (index .Moduli "pdv") (index .Dozvole "pdv.pregled")}}
         {{$kpoVid := and (index .Moduli "kpo") (index .Dozvole "kpo.pregled")}}
-        {{$pazarVid := index .Dozvole "fiskal.pazar"}}
+        {{$pazarVid := and (index .Moduli "fiskalizacija") (index .Dozvole "fiskal.pazar")}}
         {{$knjVid := or $pdvVid $kpoVid $pazarVid (index .Dozvole "artikal.izmeni")}}
         {{if $knjVid}}
         {{$knjAktivan := or (eq .Stranica "nivelacije") (eq .Stranica "kpo") (eq .Stranica "pdv-kir") (eq .Stranica "pdv-kpr") (eq .Stranica "pdv-obracun") (eq .Stranica "fiskal-pazar")}}
