@@ -186,6 +186,23 @@ func (h *Handler) VerifikujTotp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// isti bruteforce brojač kao za lozinku — deli IP-bazirano zaključavanje
+	ip := izvuciIP(r)
+	od := time.Now().Add(-prozorPrijave)
+	n, _ := h.PokusajiRepo.BrojNeuspeha(r.Context(), ip, od)
+	if n >= maxNeuspehaPrijave {
+		if preostalo, zaklj := h.preostaloBruteforce(r.Context(), ip, od); zaklj {
+			auth.LogZaklucano(ip, korisnik.KorisnickoIme)
+			_ = h.LoginIstorijsaRepo.Zabeleži(r.Context(), &korisnik.ID, ip, r.UserAgent(), "ip_zaklucano_totp", false)
+			h.renderujStandalone(w, "totp_provera", map[string]any{
+				"Greska":    "zakljucano",
+				"Preostalo": preostalo,
+				"CsrfToken": middleware.CsrfToken(r.Context()),
+			})
+			return
+		}
+	}
+
 	kod := r.FormValue("kod")
 	validan := auth.VerifikujTotpKod(kod, korisnik.TotpTajna)
 	if !validan {
@@ -196,9 +213,14 @@ func (h *Handler) VerifikujTotp(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if !validan {
+		_ = h.PokusajiRepo.Zabeleži(r.Context(), ip, korisnik.KorisnickoIme, false)
+		_ = h.LoginIstorijsaRepo.Zabeleži(r.Context(), &korisnik.ID, ip, r.UserAgent(), "pogrešan_totp", false)
+		auth.LogNeuspehPrijave(ip, korisnik.KorisnickoIme, "wrong_totp")
 		http.Redirect(w, r, "/prijava/totp?greska=1", http.StatusSeeOther)
 		return
 	}
+
+	_ = h.PokusajiRepo.Zabeleži(r.Context(), ip, korisnik.KorisnickoIme, true)
 
 	novoIstice := time.Now().Add(trajanjeSeije)
 	if err := h.SesijeRepo.PotvrdiTotp(r.Context(), kolacic.Value, novoIstice); err != nil {
@@ -295,22 +317,39 @@ func (h *Handler) preostaloBruteforce(ctx context.Context, ip string, od time.Ti
 	return fmt.Sprintf("%d sek", sek), true
 }
 
-// izvuciIP čita pravi IP klijenta — najpre X-Real-IP (koji nginx postavlja),
-// zatim poslednji X-Forwarded-For (dodat od strane proxy-a), pa RemoteAddr
+// izvuciIP čita pravi IP klijenta iz X-Real-IP/X-Forwarded-For, ALI samo ako
+// zahtev fizički stiže sa poverljive adrese (Caddy na istom hostu ili Docker
+// mreža — loopback/privatni opseg). Ova zaglavlja su inače potpuno pod
+// kontrolom klijenta; slepo verovanje u njih zaobilazi bruteforce zaključavanje
+// prijave/TOTP-a. Ako RemoteAddr nije poverljiv, header se ignoriše.
 func izvuciIP(r *http.Request) string {
-	if ip := r.Header.Get("X-Real-IP"); ip != "" {
-		return ip
-	}
-	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
-		// uzimamo poslednju vrednost — nju dodaje naš proxy, ne klijent
-		parts := strings.Split(fwd, ",")
-		return strings.TrimSpace(parts[len(parts)-1])
-	}
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
-		return r.RemoteAddr
+		host = r.RemoteAddr
 	}
+
+	if remoteAdresaJePoverljiva(host) {
+		if ip := r.Header.Get("X-Real-IP"); ip != "" {
+			return ip
+		}
+		if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
+			// uzimamo poslednju vrednost — nju dodaje naš proxy, ne klijent
+			parts := strings.Split(fwd, ",")
+			return strings.TrimSpace(parts[len(parts)-1])
+		}
+	}
+
 	return host
+}
+
+// remoteAdresaJePoverljiva vraća true ako je adresa loopback ili iz privatnog
+// (RFC 1918) opsega — tipično za reverse proxy na istom hostu ili u istoj Docker mreži.
+func remoteAdresaJePoverljiva(host string) bool {
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return false
+	}
+	return ip.IsLoopback() || ip.IsPrivate()
 }
 
 func napraviKolacic(token string, istice time.Time) *http.Cookie {

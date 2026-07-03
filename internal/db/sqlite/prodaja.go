@@ -446,7 +446,7 @@ func (r *ProdajaRepo) DnevniPrometMaloprodaje(ctx context.Context, datum string)
 	// broj naloga tog dana
 	err := r.db.QueryRowContext(ctx, `
 		SELECT COUNT(*) FROM prodajni_nalozi
-		WHERE klijent_id IS NULL AND stornirano = 0 AND DATE(datum) = ?`, datum,
+		WHERE klijent_id IS NULL AND stornirano = 0 AND substr(datum, 1, 10) = ?`, datum,
 	).Scan(&p.BrojNaloga)
 	if err != nil {
 		return p, fmt.Errorf("ntech: ProdajaRepo.DnevniPrometMaloprodaje: count: %w", err)
@@ -458,7 +458,7 @@ func (r *ProdajaRepo) DnevniPrometMaloprodaje(ctx context.Context, datum string)
 		SELECT s.pdv_stopa, SUM(s.cena_bez_pdv * s.kolicina), SUM(s.pdv_iznos * s.kolicina)
 		FROM stavke_prodaje s
 		JOIN prodajni_nalozi p ON p.id = s.nalog_id
-		WHERE p.klijent_id IS NULL AND p.stornirano = 0 AND DATE(p.datum) = ?
+		WHERE p.klijent_id IS NULL AND p.stornirano = 0 AND substr(p.datum, 1, 10) = ?
 		GROUP BY s.pdv_stopa`, datum,
 	)
 	if err != nil {

@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log/slog"
 
 	"ntech/internal/model"
 )
@@ -80,16 +79,13 @@ func (r *ServisniDeloviRepo) UgradiIliPotrazuj(ctx context.Context, nalogID, art
 func ugradiIliPotrazujTx(ctx context.Context, tx *sql.Tx, nalogID, artikalID int64, kolicina int, cenaKomada float64, korisnikID *int64, predlozeno bool) (ugradjeno, nedostaje int, err error) {
 	// Predloženi delovi: ne skidaju sa lagera, svaki predlog je poseban red (ne merge)
 	if predlozeno {
-		slog.Info("PREDLOG_INSERT", "nalogID", nalogID, "artikalID", artikalID, "kolicina", kolicina)
 		_, err = tx.ExecContext(ctx,
 			"INSERT INTO servisni_potrazivani_delovi (nalog_id, artikal_id, kolicina, cena_komada, predlozeno) VALUES (?, ?, ?, ?, 1)",
 			nalogID, artikalID, kolicina, cenaKomada,
 		)
 		if err != nil {
-			slog.Error("PREDLOG_INSERT_ERR", "err", err)
 			return 0, 0, fmt.Errorf("ntech: ugradiIliPotrazujTx: predlozeni: %w", err)
 		}
-		slog.Info("PREDLOG_INSERT_OK")
 		return 0, kolicina, nil
 	}
 

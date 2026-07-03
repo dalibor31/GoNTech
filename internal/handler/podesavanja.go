@@ -1090,7 +1090,7 @@ func (h *Handler) BeStatus(w http.ResponseWriter, r *http.Request) {
 
 // BeResetAudit šalje reset_audit komandu kartica emulatoru i vraća HTMX fragment.
 func (h *Handler) BeResetAudit(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.zahtevajDozvolu(w, r, "podesavanja.izmena"); !ok {
+	if _, ok := h.zahtevajDozvolu(w, r, "podesavanja.izmeni"); !ok {
 		return
 	}
 	bePort := os.Getenv("BE_PORT")
