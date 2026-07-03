@@ -23,6 +23,22 @@ Cilj je jednostavan: sve što servis treba da prati nalazi se na jednom mestu, b
 
 ---
 
+## Kako radi
+
+**Serversko renderovanje, bez build koraka.** Stranice se renderuju na serveru preko Go-ovog `html/template` (automatski escape, bez klijentskog šablonskog engine-a). [HTMX](https://htmx.org) menja delove stranice preko običnog HTTP-a za SPA-nalik navigaciju, a [Alpine.js](https://alpinejs.dev) pokriva manje delove klijentske interaktivnosti (live zbirovi, dinamički redovi u formama, autocomplete). Nema `npm`/webpack build korak — brauzer dobija čist HTML/CSS/JS, i jedno učitavanje stranice je dovoljno da se koristi cela aplikacija.
+
+**Jedan binarni fajl, bez runtime zavisnosti.** Šabloni, statika (CSS/JS/slike) i SQL migracije su ugrađeni u kompajlirani binarni fajl preko `go:embed`. Deployment znači kopiranje jednog fajla (ili pokretanje jednog Docker image-a) — nema odvojenog build-a statike, nema fajlova šablona koje treba nositi uz izvršni fajl. U razvojnom modu isti kod čita direktno sa diska, pa su izmene šablona/CSS/JS-a odmah vidljive posle osvežavanja stranice, bez rebuild-a.
+
+**Tok zahteva.** `chi` ruter provlači svaki zahtev kroz lanac middleware-a — bezbednosni headeri → CSRF (double-submit cookie) → provera sesije → provera uloge/dozvole — pre nego što stigne do handlera. Provera dozvola se izvršava na nivou rutera (da ruta ne bi slučajno ostala nezaštićena) i ponovo unutar handlera kao dodatni sloj zaštite. Handleri komuniciraju sa bazom kroz repository sloj (čist SQL, bez ORM-a) i prosleđuju obične Go strukture šablonima.
+
+**Baza podataka.** SQLite preko čistog Go drajvera (`modernc.org/sqlite`, bez CGO-a) je podrazumevana i jedina zavisnost — jedan fajl, bez odvojenog servera baze koji treba pokretati ili bekapovati. Svako pokretanje primeni sve nove SQL migracione fajlove po redu i upiše ih u tabelu `migracije`, pa je nadogradnja samo "zameni binarni fajl i restartuj". Opcioni PostgreSQL backend (preko `pgx/v5`) je planiran za višekorisnička okruženja.
+
+**Javne stranice za klijente.** Dva toka ne zahtevaju prijavu, samo jedinstven token koji se ne može pogoditi u URL-u: stranica statusa servisa (klijent prati napredak popravke i dobija QR kod direktno sa reversa) i stranica odobravanja predloga delova/usluga (klijent prihvata ili odbija procenu uz komentar). Oba su capability-bazirana — ko god ima link ima pristup tom jednom nalogu, ničemu drugom.
+
+**Štampani dokumenti.** Radni nalog, predračun, otpremnica, revers i nalepnica uređaja su zasebne, samostalne HTML stranice stilizovane za A4 štampu (`@media print`), svaka sa dugmetom „Štampaj" koje otvara nativni dijalog za štampu u brauzeru — bez PDF biblioteke, bez headless-browser koraka za renderovanje. Dokumenti koji ne stanu na jednu stranicu sami se paginiraju na strani klijenta (merenjem visine sadržaja i ubacivanjem prekida strane sa brojevima strana).
+
+---
+
 ## Funkcionalnosti
 
 ### Implementirano
@@ -39,12 +55,13 @@ Cilj je jednostavan: sve što servis treba da prati nalazi se na jednom mestu, b
 - Evidencija pokušaja prijave — istorija po korisniku, IP, razlog, datum
 - Korisnici i uloge — admin panel, upravljanje korisnicima
 - Magacin — artikli, kategorije, filtriranje, kritični nivoi zaliha, magacinska kartica po artiklu, veza sa dobavljačima, premeštanje artikala
+- Barkod (EAN) po artiklu — pretraživ u magacinu; na ekranu prodaje, skeniranje barkoda (bilo kojim USB/Bluetooth skenerom koji „kuca" kod + Enter) automatski pronalazi artikal i dodaje ga u nalog
 - Servisni nalozi:
   - Forma prijema, statusna traka, arhiva
   - Tok dijagnostike — opis kvara, napomene servisera, urađeno, cena dijagnostike
   - Delovi i radovi — ugrađeni artikli se skidaju sa lagera; predloženi artikli (ponuda klijentu)
   - Odobravanje predloga — klijent dobija javni link (QR kod) da prihvati ili odbije predlog sa komentarom
-  - Javna statusna stranica — klijent prati status naloga putem jedinstvenog linka
+  - Praćenje statusa putem QR koda — nalepnica na uređaju i svaki štampani dokument nose QR kod koji klijent skenira telefonom; otvara se mobilno optimizovana stranica (bez prijave, bez aplikacije) sa trenutnim statusom popravke, kojoj klijent može ponovo da pristupi u bilo kom trenutku istim linkom/kodom
   - Dokumenti — radni nalog, predračun, otpremnica, revers, nalepnica za uređaj (QR + Code128 barkod)
   - Preuzimanje sa naplatom — način plaćanja i iznos avansa
   - Garancija, predviđen datum završetka, serviser, napomena klijentu
@@ -58,6 +75,7 @@ Cilj je jednostavan: sve što servis treba da prati nalazi se na jednom mestu, b
 - PDV evidencija (KIR/KPR) — knjige izdatih i primljenih računa, automatsko punjenje iz prodaje i nabavke
 - PDV obračun za period + mapiranje na obrazac PP-PDV; uvoz robe (JCI) se vodi u poljima 006/106
 - Šifarnik PDV stopa
+- **Fiskalizacija (ESIR/L-PFR)** — pun Go klijent za Teron API fiskalnog uređaja: test konekcije, izdavanje računa (prodaja/servis, uključujući avanse i refund pri stornu), dnevni pazar, zaključenje fiskalnog dana, PDF fiskalni izveštaji, QR verifikacija računa (javna `/v/` stranica), automatski retry pri neuspešnoj fiskalizaciji sa vidljivim statusom greške, i panel za status/reset kartica-emulatora (komunicira sa uređajem za potpisivanje preko TCP-a). Trenutno provereno protiv Teron mock servera (`Fisk/`); nije još testirano na pravom sertifikovanom uređaju.
 - Klijenti i dobavljači — baza kontakata
 - Podsetnici — evidencija sa rokom
 - Izveštaji — pregled prihoda, stanje magacina, vrednost zaliha, prometni list, popis (inventura)
@@ -74,7 +92,7 @@ Cilj je jednostavan: sve što servis treba da prati nalazi se na jednom mestu, b
 
 ### U toku
 
-- **Fiskalizacija (ESIR/PFR)** — Teron L-PFR mock server dostupan u `Fisk/`; integracija Go klijenta u planu
+- **Fiskalizacija na pravom uređaju** — ceo tok (izdavanje, refund, dnevni pazar, zaključenje, izveštaji) je implementiran i proveren protiv Teron mock servera; testiranje na pravom sertifikovanom L-PFR uređaju još nije urađeno.
 
 ### Planirano
 
@@ -104,7 +122,7 @@ Cilj je jednostavan: sve što servis treba da prati nalazi se na jednom mestu, b
 
 ### Zahtevi
 
-- Go 1.24 ili noviji
+- Go 1.26 ili noviji
 - Git
 
 ### Koraci
@@ -158,6 +176,8 @@ Fajl `ntech.env` se **ne commituje** u Git.
 | `NTECH_DSN`      | —             | PostgreSQL connection string                                       |
 | `NTECH_SECRET`   | —             | Ključ za potpisivanje sesija (min. 32 bajta); auto-generiše se     |
 | `NTECH_TOTP_KEY` | —             | AES-256 ključ za šifrovanje TOTP tajni; auto-generiše se          |
+| `BE_ENABLED`     | `true`        | Uključuje ugrađeni kartica-emulator (uređaj za potpisivanje pri fiskalizaciji) |
+| `BE_PORT`        | `4567`        | TCP port ugrađenog kartica-emulatora                               |
 
 `NTECH_SECRET` i `NTECH_TOTP_KEY` se automatski generišu pri prvom pokretanju i upisuju u `ntech.env`. **Sačuvaj backup ovog fajla** — gubitak `NTECH_TOTP_KEY` onemogućuje prijavu svim korisnicima koji imaju 2FA.
 
@@ -323,6 +343,20 @@ Demo takođe zahteva HTTPS (Caddy ili slično) jer su Secure kolačići uključe
 
 ---
 
+### Health check
+
+Aplikacija izlaže neautentifikovan `GET /healthz` endpoint koji proverava dostupnost baze i vraća `200 OK` (ili `503` ako baza nije dostupna). Koristiti za Docker `HEALTHCHECK` ili proveru živosti u reverse proxy-ju/orkestratoru:
+
+```yaml
+healthcheck:
+  test: ["CMD", "wget", "-qO-", "http://localhost:8000/healthz"]
+  interval: 30s
+  timeout: 3s
+  retries: 3
+```
+
+---
+
 ## Struktura projekta
 
 ```
@@ -348,3 +382,34 @@ ntech/
 ├── go.mod
 └── go.sum
 ```
+
+---
+
+## Testiranje
+
+Projekat ima jedinične i integracione testove (nad pravom SQLite bazom) koji pokrivaju kripto funkcije, RBAC, tokove prijave, validatore formi i izveštaje.
+
+```bash
+go test ./...
+```
+
+Migracije su numerisani SQL fajlovi (`migrations/NNN_opis.sql`) koji se primenjuju redom pri pokretanju i prate se u tabeli `migracije` — izvršavaju se tačno jednom i bezbedno je da putuju unutar istog binarnog fajla.
+
+---
+
+## Bezbednosne napomene
+
+- Sesije se čuvaju na serveru (nasumičan token u `HttpOnly`, `SameSite=Strict` kolačiću), ne JWT — opoziv je trenutan (brisanje reda).
+- CSRF token i PIN kartica-emulatora se porede konstantno-vremenski (`crypto/subtle`).
+- Bruteforce zaključavanje važi i za korak lozinke i za korak TOTP/rezervnog koda, po IP adresi klijenta.
+- `X-Real-IP` / `X-Forwarded-For` se veruje samo kada sama konekcija dolazi sa loopback ili privatne adrese (tj. reverse proxy na istom hostu/Docker mreži) — inače se koristi sirovi IP konekcije, pa se header ne može lažirati sa interneta radi zaobilaženja zaključavanja.
+- TOTP tajne su šifrovane u mirovanju (AES-256-GCM); ključ (`NTECH_TOTP_KEY`) se čuva van baze.
+- Ovo je namerno jednokorisnička/jednoorganizaciona aplikacija — nema izolacije podataka između više firmi (multi-tenant) o kojoj treba brinuti.
+
+Pogledaj [`SECURITY.md`](SECURITY.md) za način prijave bezbednosnog propusta.
+
+---
+
+## Licenca
+
+[MIT](LICENSE) © Dalibor Marković

@@ -23,6 +23,22 @@ The goal is simple: everything the repair shop needs to track is located in one 
 
 ---
 
+## How It Works
+
+**Server-rendered, no build step.** Pages are rendered on the server with Go's `html/template` (auto-escaping, no client-side templating engine). [HTMX](https://htmx.org) swaps page fragments over plain HTTP for SPA-like navigation, and [Alpine.js](https://alpinejs.dev) handles small bits of client-side interactivity (live totals, dynamic form rows, autocomplete). There is no `npm`/webpack build — the browser gets plain HTML/CSS/JS, and a single page load is enough to use the whole app.
+
+**Single binary, no runtime dependencies.** Templates, static assets (CSS/JS/images) and SQL migrations are embedded into the compiled binary with `go:embed`. Deploying is copying one file (or running one Docker image) — there's no separate asset build, no template files to ship alongside the executable. In development the same code reads straight from disk instead, so template/CSS/JS edits are visible on refresh without a rebuild.
+
+**Request flow.** `chi` routes each request through a middleware chain — security headers → CSRF (double-submit cookie) → session lookup → role/permission check — before it reaches a handler. Permission checks run at the router level (so a route can't accidentally ship unprotected) and again inside the handler as defense in depth. Handlers talk to the database through a repository layer (plain SQL, no ORM) and pass plain Go structs to templates.
+
+**Database.** SQLite via a pure-Go driver (`modernc.org/sqlite`, no CGO) is the default and only dependency — a single file, no separate database server to run or back up. Every startup applies any new SQL migration files in order and records them in a `migracije` table, so upgrades are just "replace the binary and restart." An optional PostgreSQL backend (via `pgx/v5`) is planned for multi-user setups.
+
+**Client-facing public pages.** Two flows don't require a login, only a unique unguessable token in the URL: the service-status page (a client can check repair progress and get a QR code straight from their receipt) and the parts/service proposal approval page (a client accepts or rejects an estimate with a comment). Both are capability-based — whoever has the link has access to that one order, nothing else.
+
+**Printable documents.** Work orders, pre-invoices, dispatch notes, return slips, and device labels are separate, self-contained HTML pages styled for A4 printing (`@media print`), each with a "Print" button that opens the browser's native print dialog — no PDF library, no headless-browser rendering step. Documents that don't fit one page paginate themselves client-side (measuring content height and inserting page breaks with running page numbers).
+
+---
+
 ## Features
 
 ### Implemented
@@ -39,12 +55,13 @@ The goal is simple: everything the repair shop needs to track is located in one 
 - Login attempt logging — history by user, IP, reason, date
 - Users and roles — admin panel, user management
 - Inventory — items, categories, filtering, critical stock levels, per-item stock card, supplier links, item transfers
+- Barcode (EAN) per item — searchable by barcode in inventory; in the sales screen, scanning a barcode (any USB/Bluetooth scanner that types + Enter) looks the item up and adds it to the order automatically
 - Service orders:
   - Intake form, status bar, archive
   - Diagnostic workflow — fault description, technician notes, work done, diagnostic fee
   - Parts and services — used items deducted from stock; suggested items (proposal to client)
   - Client proposal approval — client receives a public link (QR code) to accept or reject a parts/service proposal with a comment
-  - Public status page — client can check order status and receive notifications via a unique link
+  - Public status tracking via QR code — the device label and every printed document carry a QR code the client scans with their phone; it opens a mobile-optimized page (no login, no app) showing the current repair status, which they can revisit any time by the same link/code
   - Documents — work order, pre-invoice (estimate), dispatch note, return slip, device label (QR + Code128 barcode)
   - Pickup with payment — tracks payment method and advance amount
   - Guarantee period, expected completion date, technician assignment, client notes
@@ -58,6 +75,7 @@ The goal is simple: everything the repair shop needs to track is located in one 
 - VAT records (KIR/KPR) — books of issued and received invoices, auto-filled from sales and procurement
 - VAT calculation per period + mapping to the PP-PDV form; imports (customs declaration) tracked in fields 006/106
 - VAT rate code list
+- **Fiscalization (ESIR/L-PFR)** — full Go client for the Teron fiscal device API: connection test, invoice issuing (sale/service, including advances and refunds on cancellation), daily till summary, end-of-day closure, PDF fiscal reports, QR-code invoice verification (public `/v/` page), automatic retry on failed fiscalization with a visible error state, and a card-emulator status/reset panel (talks to the signing device over TCP). Currently verified against the Teron mock server (`Fisk/`); not yet tested against real certified hardware.
 - Clients and suppliers — contact database
 - Reminders — records with deadlines
 - Reports — revenue overview, inventory status, inventory value report, stock movement list, stocktake (physical count)
@@ -74,7 +92,7 @@ The goal is simple: everything the repair shop needs to track is located in one 
 
 ### In Progress
 
-- **Fiscalization (ESIR/PFR)** — Teron L-PFR mock server included in `Fisk/`; Go client integration planned
+- **Fiscalization on real hardware** — the full flow (issuing, refunds, daily till, closure, reports) is implemented and verified against the Teron mock server; testing against a real certified L-PFR device is still pending.
 
 ### Planned
 
@@ -104,7 +122,7 @@ The goal is simple: everything the repair shop needs to track is located in one 
 
 ### Requirements
 
-- Go 1.24 or newer
+- Go 1.26 or newer
 - Git
 
 ### Steps
@@ -158,6 +176,8 @@ The application reads environment variables on startup. In development, place th
 | `NTECH_DSN`      | —             | PostgreSQL connection string                                      |
 | `NTECH_SECRET`   | —             | Session signing key (min. 32 bytes); auto-generated if missing    |
 | `NTECH_TOTP_KEY` | —             | AES-256 key for TOTP secret encryption; auto-generated if missing |
+| `BE_ENABLED`     | `true`        | Enables the built-in card-emulator (fiscalization signing device) |
+| `BE_PORT`        | `4567`        | TCP port for the built-in card-emulator                          |
 
 `NTECH_SECRET` and `NTECH_TOTP_KEY` are generated automatically on the first run and saved to `ntech.env`. **Back this file up** — losing `NTECH_TOTP_KEY` invalidates all 2FA secrets stored in the database.
 
@@ -323,6 +343,20 @@ Demo also requires HTTPS (Caddy or similar) because Secure cookies are enabled.
 
 ---
 
+### Health Check
+
+The app exposes an unauthenticated `GET /healthz` endpoint that pings the database and returns `200 OK` (or `503` if the database is unreachable). Use it for a Docker `HEALTHCHECK` or a reverse-proxy/orchestrator liveness probe:
+
+```yaml
+healthcheck:
+  test: ["CMD", "wget", "-qO-", "http://localhost:8000/healthz"]
+  interval: 30s
+  timeout: 3s
+  retries: 3
+```
+
+---
+
 ## Project Structure
 
 ```
@@ -348,3 +382,34 @@ ntech/
 ├── go.mod
 └── go.sum
 ```
+
+---
+
+## Testing
+
+The project has unit and integration tests (against a real SQLite database) covering crypto, RBAC, login flows, form validators, and reports.
+
+```bash
+go test ./...
+```
+
+Migrations are numbered SQL files (`migrations/NNN_description.sql`) applied in order at startup and tracked in a `migracije` table, so they run exactly once and are safe to ship inside the same binary.
+
+---
+
+## Security Notes
+
+- Sessions are server-side (random token in an `HttpOnly`, `SameSite=Strict` cookie), not JWT — revocation is immediate (delete the row).
+- CSRF tokens and the card-emulator PIN are compared in constant time (`crypto/subtle`).
+- Brute-force locking applies to both the password step and the TOTP/backup-code step, keyed by client IP.
+- `X-Real-IP` / `X-Forwarded-For` are only trusted when the connection itself comes from a loopback or private address (i.e. a reverse proxy on the same host/Docker network) — otherwise the raw connection IP is used, so the header can't be spoofed from the internet to bypass the lockout.
+- TOTP secrets are encrypted at rest (AES-256-GCM); the key (`NTECH_TOTP_KEY`) is kept outside the database.
+- This is a single-tenant, single-organization application by design — there is no cross-tenant data isolation to reason about.
+
+See [`SECURITY.md`](SECURITY.md) for how to report a vulnerability.
+
+---
+
+## License
+
+[MIT](LICENSE) © Dalibor Marković
