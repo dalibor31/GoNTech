@@ -3,6 +3,12 @@ services:
     image: ghcr.io/dalibor31/ntech-fisk:latest
     container_name: teron_mock
     restart: unless-stopped
+    environment:
+      - BE_HOST=ntech    # naziv NTech servisa na ntech-net mreži — bez ovoga mock ne
+      - BE_PORT=4567     # može da pročita firmu sa kartica emulatora (pada na test podatke)
+      - VERIFY_HOST=https://ntech.tvoja-firma.rs   # ima prednost nad "Podešavanja → Fiskalizacija"
+                                                    # u NTech UI-ju (mock ne vidi ntech.db); bez ovoga
+                                                    # QR vodi na sandbox.suf.purs.gov.rs i redak je
     volumes:
       - teron-data:/app/data
     networks:

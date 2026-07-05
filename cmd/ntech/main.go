@@ -151,7 +151,7 @@ func main() {
 	h.Verzija = Verzija
 	h.JelDemo = os.Getenv("NTECH_ENV") == "demo"
 	if h.JelDemo {
-		h.Verzija = "DEMO verzija"
+		h.Verzija = "DEMO - " + h.Verzija
 		if err := postaviDemoKorisnika(context.Background(), h.KorisniciRepo); err != nil {
 			slog.Warn("demo: greška pri postavljanju demo korisnika", "error", err)
 		}

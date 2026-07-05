@@ -1125,17 +1125,25 @@ func jePrivatnaAdresa(hostname string) bool {
 	if hostname == "localhost" {
 		return true
 	}
-	ip := net.ParseIP(hostname)
-	if ip == nil {
-		// Nije literalna IP adresa (npr. Docker Compose ime servisa poput
-		// "teron-mock") — razrešavamo je preko DNS-a pa proveravamo
-		// razrešenu adresu istim pravilima kao dole.
-		adrese, err := net.LookupIP(hostname)
-		if err != nil || len(adrese) == 0 {
+	if ip := net.ParseIP(hostname); ip != nil {
+		return jePrivatnaIP(ip)
+	}
+	// Hostname (npr. Docker Compose service name kao "teron-mock") — razreši
+	// preko DNS-a i dozvoli samo ako SVE dobijene adrese spadaju u privatne
+	// opsege (localhost/127/10/172.16-31/192.168).
+	ips, err := net.LookupIP(hostname)
+	if err != nil || len(ips) == 0 {
+		return false
+	}
+	for _, ip := range ips {
+		if !jePrivatnaIP(ip) {
 			return false
 		}
-		ip = adrese[0]
 	}
+	return true
+}
+
+func jePrivatnaIP(ip net.IP) bool {
 	ip4 := ip.To4()
 	if ip4 == nil {
 		return false
