@@ -27,6 +27,8 @@ type ArtikalRepository interface {
 	Izmeni(ctx context.Context, a *model.Artikal) error
 	// AzurirajCene menja samo nabavnu i prodajnu cenu (kalkulacija pri nabavci)
 	AzurirajCene(ctx context.Context, id int64, nabavna, prodajna float64) error
+	// AzurirajSifru menja samo šifru artikla
+	AzurirajSifru(ctx context.Context, id int64, sifra string) error
 	PremestiKategoriju(ctx context.Context, id int64, kategorijaID *int64) error
 	Obrisi(ctx context.Context, id int64) error
 	// Arhiviraj označava artikal kao arhiviran (skriva ga iz aktivne liste, čuva istoriju)

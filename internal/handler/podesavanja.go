@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"context"
 	"crypto/rand"
+	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"html"
@@ -20,10 +22,218 @@ import (
 
 	"encoding/json"
 
+	"ntech/internal/auth"
+	"ntech/internal/db"
 	ntechsqlite "ntech/internal/db/sqlite"
 	"ntech/internal/middleware"
 	"ntech/internal/model"
 )
+
+// PostaviDemoKorisnika osigurava da postoji korisnik "Demo" sa ulogom "admin"
+// i podrazumevanom lozinkom. Poziva se pri startu demo instance, i ponovo
+// posle uvoza/vraćanja baze (jer taj hot-swap donosi svoje korisnike iz
+// uvezenog/vraćenog fajla, koji mogu imati drugačiju ili nepoznatu lozinku).
+func PostaviDemoKorisnika(ctx context.Context, repo db.KorisniciRepository) error {
+	const (
+		demoIme     = "Demo"
+		demoLozinka = "Demo1234"
+	)
+	hash, err := auth.HashujLozinku(demoLozinka)
+	if err != nil {
+		return fmt.Errorf("ntech: PostaviDemoKorisnika: %w", err)
+	}
+	korisnik, err := repo.DohvatiPoImenu(ctx, demoIme)
+	if err != nil {
+		// korisnik ne postoji — kreiraj ga
+		if _, err := repo.Kreiraj(ctx, demoIme, hash, "admin"); err != nil {
+			return fmt.Errorf("ntech: PostaviDemoKorisnika: kreiranje: %w", err)
+		}
+		slog.Info("demo korisnik kreiran", "korisnik", demoIme)
+		return nil
+	}
+	// korisnik postoji — resetuj lozinku i osiguraj da je aktivan
+	if err := repo.PromeniLozinku(ctx, korisnik.ID, hash); err != nil {
+		return fmt.Errorf("ntech: PostaviDemoKorisnika: lozinka: %w", err)
+	}
+	if !korisnik.Aktivan {
+		if err := repo.AzurirajAktivan(ctx, korisnik.ID, true); err != nil {
+			return fmt.Errorf("ntech: PostaviDemoKorisnika: aktivan: %w", err)
+		}
+	}
+	slog.Info("demo korisnik resetovan", "korisnik", demoIme)
+	return nil
+}
+
+// lokalniKljuceviPodesavanja su ključevi iz tabele podesavanja koji opisuju
+// OVU instalaciju/server (izgled login ekrana, adresa fiskalnog uređaja,
+// raspored backupa...), a ne podatke firme. Pri uvozu ili vraćanju baze sa
+// drugog računara ovi ključevi se NE prepisuju uvezenim vrednostima — server
+// zadržava svoje. Sve ostalo u podesavanja smatra se podacima firme i putuje
+// sa uvezenom/vraćenom bazom.
+var lokalniKljuceviPodesavanja = []string{
+	"backup_interval_sati",
+	"backup_broj_kopija",
+	"login_pozadina",
+	"login_pozadina_opacity",
+	"login_pozadina_blur_pozadine",
+	"login_pozadina_blur_kartice",
+	"login_pozadina_zatamnjenje_kartice",
+	"topbar_logo_slika",
+	"topbar_logo_tekst",
+	"pfr_url",
+	"pfr_tip",
+	"qr_bazni_url",
+	"verify_host",
+}
+
+// ucitajLokalnaPodesavanja čita trenutne vrednosti lokalnih ključeva iz baze
+// pre nego što se baza zameni uvozom/vraćanjem backupa.
+func ucitajLokalnaPodesavanja(ctx context.Context, db *sql.DB) map[string]string {
+	vrednosti := make(map[string]string, len(lokalniKljuceviPodesavanja))
+	for _, kljuc := range lokalniKljuceviPodesavanja {
+		var vrednost string
+		if err := db.QueryRowContext(ctx, "SELECT vrednost FROM podesavanja WHERE kljuc = ?", kljuc).Scan(&vrednost); err == nil {
+			vrednosti[kljuc] = vrednost
+		}
+	}
+	return vrednosti
+}
+
+// upisiLokalnaPodesavanja upisuje sačuvane lokalne vrednosti nazad u bazu
+// posle zamene, prepisujući preko onoga što je došlo iz uvezene/vraćene baze.
+func upisiLokalnaPodesavanja(ctx context.Context, db *sql.DB, vrednosti map[string]string) {
+	for kljuc, vrednost := range vrednosti {
+		if _, err := db.ExecContext(ctx,
+			"INSERT INTO podesavanja (kljuc, vrednost) VALUES (?, ?) ON CONFLICT(kljuc) DO UPDATE SET vrednost = excluded.vrednost",
+			kljuc, vrednost); err != nil {
+			slog.Error("upis lokalnih podešavanja: greška", "kljuc", kljuc, "error", err)
+		}
+	}
+}
+
+// lokalneTabelePodesavanja su tabele koje opisuju podešavanja OVOG servera, a
+// ne poslovne podatke. Korisnici NAMERNO nisu ovde: poslovni podaci (servisni
+// nalozi, magacinske promene...) referenciraju konkretne korisnike preko ID-a
+// (ko je uradio nalog, ko je izvršio promenu), pa moraju putovati zajedno —
+// razdvajanje bi ili pokidalo FK ili tiho pripisalo tuđe podatke pogrešnoj
+// osobi. Zato korisnici putuju sa uvezenom/vraćenom bazom kao i ostali
+// poslovni podaci; samo dozvole (permisije po ulozi, bez FK ka korisnicima)
+// ostaju lokalne.
+var lokalneTabelePodesavanja = []string{
+	"dozvole",
+}
+
+// volatilneTabeleBezbednosti su sesije i srodno runtime/bezbednosno stanje
+// koje referencira korisnike preko FK. Pošto korisnici putuju sa uvezenom
+// bazom (vidi lokalneTabelePodesavanja), staro stanje ovih tabela bi posle
+// zamene moglo da referencira nepostojeće ili pogrešne korisnike — zato se
+// jednostavno brišu (ne vraćaju iz snimka), što tera sve na ponovnu prijavu.
+var volatilneTabeleBezbednosti = []string{
+	"webauthn_kredencijali",
+	"rezervni_kodovi",
+	"login_istorija",
+	"sesije",
+	"pokusaji_prijave",
+}
+
+// ocistiVolatilneTabele briše sesije i srodno bezbednosno stanje posle zamene
+// baze — vidi volatilneTabeleBezbednosti.
+func ocistiVolatilneTabele(ctx context.Context, db *sql.DB) {
+	for _, tabela := range volatilneTabeleBezbednosti {
+		if _, err := db.ExecContext(ctx, "DELETE FROM "+tabela); err != nil {
+			slog.Error("čišćenje volatilnih tabela: greška", "tabela", tabela, "error", err)
+		}
+	}
+}
+
+// tabelaSnimak čuva sve redove jedne tabele (generički, bez fiksne šeme) radi
+// vraćanja posle zamene baze.
+type tabelaSnimak struct {
+	kolone []string
+	redovi [][]any
+}
+
+// ucitajTabelu učitava sve redove i imena kolona zadate tabele.
+func ucitajTabelu(ctx context.Context, db *sql.DB, tabela string) ([]string, [][]any, error) {
+	rows, err := db.QueryContext(ctx, "SELECT * FROM "+tabela)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer rows.Close()
+
+	kolone, err := rows.Columns()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var redovi [][]any
+	for rows.Next() {
+		vrednosti := make([]any, len(kolone))
+		pokazivaci := make([]any, len(kolone))
+		for i := range vrednosti {
+			pokazivaci[i] = &vrednosti[i]
+		}
+		if err := rows.Scan(pokazivaci...); err != nil {
+			return nil, nil, err
+		}
+		redovi = append(redovi, vrednosti)
+	}
+	return kolone, redovi, rows.Err()
+}
+
+// ucitajLokalneTabele čita trenutni sadržaj naloga/bezbednosnih tabela pre
+// zamene baze.
+func ucitajLokalneTabele(ctx context.Context, db *sql.DB) map[string]tabelaSnimak {
+	snimci := make(map[string]tabelaSnimak, len(lokalneTabelePodesavanja))
+	for _, tabela := range lokalneTabelePodesavanja {
+		kolone, redovi, err := ucitajTabelu(ctx, db, tabela)
+		if err != nil {
+			slog.Error("čuvanje lokalnih tabela: greška pri čitanju", "tabela", tabela, "error", err)
+			continue
+		}
+		snimci[tabela] = tabelaSnimak{kolone: kolone, redovi: redovi}
+	}
+	return snimci
+}
+
+// upisiLokalneTabele vraća sačuvani sadržaj naloga/bezbednosnih tabela posle
+// zamene baze, brišući ono što je stiglo iz uvezene/vraćene baze.
+func upisiLokalneTabele(ctx context.Context, db *sql.DB, snimci map[string]tabelaSnimak) {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		slog.Error("upis lokalnih tabela: greška pri otvaranju transakcije", "error", err)
+		return
+	}
+	defer tx.Rollback()
+
+	for i := len(lokalneTabelePodesavanja) - 1; i >= 0; i-- {
+		tabela := lokalneTabelePodesavanja[i]
+		if _, err := tx.ExecContext(ctx, "DELETE FROM "+tabela); err != nil {
+			slog.Error("upis lokalnih tabela: greška pri brisanju", "tabela", tabela, "error", err)
+			return
+		}
+	}
+
+	for _, tabela := range lokalneTabelePodesavanja {
+		snimak, ok := snimci[tabela]
+		if !ok || len(snimak.redovi) == 0 {
+			continue
+		}
+		upit := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
+			tabela, strings.Join(snimak.kolone, ", "),
+			strings.TrimSuffix(strings.Repeat("?, ", len(snimak.kolone)), ", "))
+		for _, red := range snimak.redovi {
+			if _, err := tx.ExecContext(ctx, upit, red...); err != nil {
+				slog.Error("upis lokalnih tabela: greška pri upisu", "tabela", tabela, "error", err)
+				return
+			}
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		slog.Error("upis lokalnih tabela: greška pri komitovanju", "error", err)
+	}
+}
 
 // podrazumevaniUsloviServisa je podrazumevani tekst uslova servisa koji se
 // štampa na reversu; korisnik ga može izmeniti u Podešavanja → Servis.
@@ -215,6 +425,9 @@ func (h *Handler) VratiBackup(w http.ResponseWriter, r *http.Request) {
 		slog.Error("vrati backup: wal_checkpoint greška", "error", err)
 	}
 
+	lokalnaPodesavanja := ucitajLokalnaPodesavanja(r.Context(), h.DB)
+	lokalneTabele := ucitajLokalneTabele(r.Context(), h.DB)
+
 	// Sama zamena baze (zatvaranje stare, kopiranje, otvaranje nove) radi se u
 	// zasebnoj gorutini pod EKSKLUZIVNIM zaključavanjem (h.mu.Lock). Razlog: ovaj
 	// zahtev još drži deljeno zaključavanje (ZakljucajCitanje middleware), pa bi
@@ -242,7 +455,15 @@ func (h *Handler) VratiBackup(w http.ResponseWriter, r *http.Request) {
 			slog.Error("vrati backup: greška pri otvaranju nove baze (potreban restart)", "error", err)
 			return
 		}
+		upisiLokalnaPodesavanja(context.Background(), novaDB, lokalnaPodesavanja)
+		upisiLokalneTabele(context.Background(), novaDB, lokalneTabele)
+		ocistiVolatilneTabele(context.Background(), novaDB)
 		h.reinicijalizujRepozitorijume(novaDB)
+		if h.JelDemo {
+			if err := PostaviDemoKorisnika(context.Background(), h.KorisniciRepo); err != nil {
+				slog.Error("vrati backup: greška pri resetovanju demo korisnika", "error", err)
+			}
+		}
 		slog.Info("baza uspešno obnovljena", "izvor", ime)
 	}()
 
@@ -265,6 +486,105 @@ func kopiraFajl(izvor, odrediste string) error {
 
 	_, err = io.Copy(dst, src)
 	return err
+}
+
+// UvezizBazu zamenjuje trenutnu bazu fajlom koji korisnik otpremi sa svog računara
+func (h *Handler) UvezizBazu(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "backup.pokreni"); !ok {
+		return
+	}
+
+	const maxVelicinaUvoza = 500 << 20 // 500 MB
+	r.Body = http.MaxBytesReader(w, r.Body, maxVelicinaUvoza)
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		http.Redirect(w, r, "/podesavanja?backup_greska=Fajl+je+prevelik+ili+zahtev+nije+ispravan", http.StatusSeeOther)
+		return
+	}
+
+	fajl, _, err := r.FormFile("baza")
+	if err != nil {
+		http.Redirect(w, r, "/podesavanja?backup_greska=Fajl+nije+izabran", http.StatusSeeOther)
+		return
+	}
+	defer fajl.Close()
+
+	zaglavlje := make([]byte, 16)
+	if _, err := io.ReadFull(fajl, zaglavlje); err != nil || string(zaglavlje) != "SQLite format 3\x00" {
+		http.Redirect(w, r, "/podesavanja?backup_greska=Fajl+nije+ispravna+SQLite+baza", http.StatusSeeOther)
+		return
+	}
+
+	privremena := filepath.Join("backups", fmt.Sprintf("uvoz_%s.db", time.Now().Format("20060102_150405")))
+	odrediste, err := os.Create(privremena)
+	if err != nil {
+		slog.Error("uvezi bazu: greška pri kreiranju privremenog fajla", "error", err)
+		http.Redirect(w, r, "/podesavanja?backup_greska=Greška+pri+čuvanju+otpremljenog+fajla", http.StatusSeeOther)
+		return
+	}
+	if _, err := odrediste.Write(zaglavlje); err != nil {
+		odrediste.Close()
+		http.Redirect(w, r, "/podesavanja?backup_greska=Greška+pri+čuvanju+otpremljenog+fajla", http.StatusSeeOther)
+		return
+	}
+	if _, err := io.Copy(odrediste, fajl); err != nil {
+		odrediste.Close()
+		slog.Error("uvezi bazu: greška pri čuvanju otpremljenog fajla", "error", err)
+		http.Redirect(w, r, "/podesavanja?backup_greska=Greška+pri+čuvanju+otpremljenog+fajla", http.StatusSeeOther)
+		return
+	}
+	odrediste.Close()
+
+	// pre uvoza, sačuvaj trenutno stanje baze
+	sigurnosni := filepath.Join("backups", fmt.Sprintf("ntech_%s_pred_uvozom.db", time.Now().Format("20060102_150405")))
+	if _, err := h.DB.ExecContext(r.Context(), "VACUUM INTO ?", sigurnosni); err != nil {
+		slog.Error("uvezi bazu: greška pri kreiranju sigurnosne kopije", "error", err)
+		os.Remove(privremena)
+		http.Redirect(w, r, "/podesavanja?backup_greska=Greška+pri+kreiranju+sigurnosne+kopije", http.StatusSeeOther)
+		return
+	}
+
+	// isprazni WAL u glavni fajl
+	if _, err := h.DB.ExecContext(r.Context(), "PRAGMA wal_checkpoint(TRUNCATE)"); err != nil {
+		slog.Error("uvezi bazu: wal_checkpoint greška", "error", err)
+	}
+
+	lokalnaPodesavanja := ucitajLokalnaPodesavanja(r.Context(), h.DB)
+	lokalneTabele := ucitajLokalneTabele(r.Context(), h.DB)
+
+	// zamena baze radi se pod ekskluzivnim zaključavanjem — isti obrazac kao VratiBackup
+	go func() {
+		h.mu.Lock()
+		defer h.mu.Unlock()
+		defer os.Remove(privremena)
+
+		if err := h.DB.Close(); err != nil {
+			slog.Error("uvezi bazu: greška pri zatvaranju baze", "error", err)
+		}
+		if err := kopiraFajl(privremena, h.PutanjaBaze); err != nil {
+			slog.Error("uvezi bazu: greška pri kopiranju (baza je zatvorena, potreban restart)", "error", err)
+			return
+		}
+		os.Remove(h.PutanjaBaze + "-wal")
+		os.Remove(h.PutanjaBaze + "-shm")
+
+		novaDB, err := ntechsqlite.OtvoriDB(h.PutanjaBaze)
+		if err != nil {
+			slog.Error("uvezi bazu: greška pri otvaranju nove baze (potreban restart)", "error", err)
+			return
+		}
+		upisiLokalnaPodesavanja(context.Background(), novaDB, lokalnaPodesavanja)
+		upisiLokalneTabele(context.Background(), novaDB, lokalneTabele)
+		ocistiVolatilneTabele(context.Background(), novaDB)
+		h.reinicijalizujRepozitorijume(novaDB)
+		if h.JelDemo {
+			if err := PostaviDemoKorisnika(context.Background(), h.KorisniciRepo); err != nil {
+				slog.Error("uvezi bazu: greška pri resetovanju demo korisnika", "error", err)
+			}
+		}
+		slog.Info("baza uspešno uvezena")
+	}()
+
+	http.Redirect(w, r, "/podesavanja?sacuvano=vraceno", http.StatusSeeOther)
 }
 
 // validirajMaticniBroj proverava da li uneti matični broj ima tačno 8 cifara.

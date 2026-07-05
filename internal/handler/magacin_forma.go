@@ -23,8 +23,11 @@ type PodaciFormeArtikla struct {
 	KategorijaIDStr    string
 	Dobavljaci         []model.Dobavljac // svi dobavljači za izbor
 	IzabraniDobavljaci map[int64]bool    // dobavljači vezani za artikal (za checked stanje)
-	Greska             string
-	Izmena             bool
+	PredlogSifre       string            // prikazuje se kao placeholder, NIKAD kao stvarna vrednost polja —
+	// polje šifre mora ostati prazno da bi server na čuvanju sam izračunao
+	// tačan prefiks na osnovu izabrane kategorije (vidi SacuvajArtikal)
+	Greska string
+	Izmena bool
 }
 
 // NoviArtikal prikazuje formu za unos novog artikla
@@ -62,7 +65,8 @@ func (h *Handler) NoviArtikal(w http.ResponseWriter, r *http.Request) {
 		PodaciStranice: ps,
 		Kategorije:     kategorije,
 		Dobavljaci:     dobavljaci,
-		Artikal:        model.Artikal{Sifra: predlogSifre, Tip: tip, JedinicaMere: "kom", PdvStopa: h.podrazumevanaPdvStopa(r.Context())},
+		Artikal:        model.Artikal{Tip: tip, JedinicaMere: "kom", PdvStopa: h.podrazumevanaPdvStopa(r.Context())},
+		PredlogSifre:   predlogSifre,
 		Izmena:         false,
 	})
 }

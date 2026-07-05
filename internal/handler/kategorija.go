@@ -17,9 +17,11 @@ import (
 // PodaciKategorija su podaci za stranicu kategorija
 type PodaciKategorija struct {
 	model.PodaciStranice
-	Kategorije []model.Kategorija
-	Sacuvano   bool
-	Obrisana   bool
+	Kategorije      []model.Kategorija
+	Sacuvano        bool
+	Obrisana        bool
+	SifreDodeljene  int
+	PrikaziSifreDod bool
 }
 
 // Kategorije renderuje listu kategorija
@@ -39,14 +41,51 @@ func (h *Handler) Kategorije(w http.ResponseWriter, r *http.Request) {
 	ps := h.popuniPodaciStranice(r, podesavanja)
 	ps.Stranica = "magacin"
 	ps.NaslovStranice = "Kategorije"
+	sifreDodeljeneStr := r.URL.Query().Get("sifre_dodeljene")
+	sifreDodeljene, _ := strconv.Atoi(sifreDodeljeneStr)
 	podaci := PodaciKategorija{
-		PodaciStranice: ps,
-		Kategorije:     kategorije,
-		Sacuvano:       r.URL.Query().Get("sacuvano") == "1",
-		Obrisana:       r.URL.Query().Get("obrisana") == "1",
+		PodaciStranice:  ps,
+		Kategorije:      kategorije,
+		Sacuvano:        r.URL.Query().Get("sacuvano") == "1",
+		Obrisana:        r.URL.Query().Get("obrisana") == "1",
+		SifreDodeljene:  sifreDodeljene,
+		PrikaziSifreDod: sifreDodeljeneStr != "",
 	}
 
 	h.renderujTemplate(w, "kategorije", podaci)
+}
+
+// DodeliSifreArtiklima prolazi kroz sve artikle bez šifre i dodeljuje im
+// šifru na osnovu prefiksa njihove kategorije (isti generator kao za nove
+// artikle). Radi sekvencijalno — jedan artikal se upiše pre nego što se za
+// sledeći izračuna predlog — da artikli iz iste kategorije ne bi dobili isti broj.
+func (h *Handler) DodeliSifreArtiklima(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.zahtevajDozvolu(w, r, "artikal.izmeni"); !ok {
+		return
+	}
+
+	artikli, err := h.Artikli.Lista(r.Context(), db.ArtikalFilter{})
+	if err != nil {
+		http.Error(w, "Greška pri učitavanju artikala", http.StatusInternalServerError)
+		return
+	}
+
+	broj := 0
+	for _, a := range artikli {
+		if a.Sifra != "" {
+			continue
+		}
+		sifra, err := h.Artikli.SledecaSifra(r.Context(), a.KategorijaID)
+		if err != nil {
+			continue
+		}
+		if err := h.Artikli.AzurirajSifru(r.Context(), a.ID, sifra); err != nil {
+			continue
+		}
+		broj++
+	}
+
+	http.Redirect(w, r, "/magacin/kategorije?sacuvano=1&sifre_dodeljene="+strconv.Itoa(broj), http.StatusSeeOther)
 }
 
 // DodajKategoriju prima POST i čuva novu kategoriju

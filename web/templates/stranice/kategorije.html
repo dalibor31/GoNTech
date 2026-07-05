@@ -25,12 +25,27 @@
     {{if .Obrisana}}
     <div class="poruka-uspeh poruka-animacija">Kategorija je uspešno obrisana.</div>
     {{end}}
+    {{if .PrikaziSifreDod}}
+    <div class="poruka-uspeh poruka-animacija">
+        {{if eq .SifreDodeljene 0}}Svi artikli već imaju šifru.{{else}}Dodeljena šifra za {{.SifreDodeljene}} artikal(a).{{end}}
+    </div>
+    {{end}}
 
     <!-- nazad dugme -->
-    <a href="/magacin" class="nazad-link" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-        Nazad na magacin
-    </a>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+        <a href="/magacin" class="nazad-link" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Nazad na magacin
+        </a>
+        {{if index $.Dozvole "artikal.izmeni"}}
+        <form method="POST" action="/magacin/kategorije/dodeli-sifre">
+            <button type="submit" class="btn-sekundarno" style="font-size:13px;padding:8px 16px;"
+                data-potvrda="Proći kroz sve artikle bez šifre i dodeliti im šifru na osnovu prefiksa njihove kategorije?">
+                Dodeli šifre artiklima bez šifre
+            </button>
+        </form>
+        {{end}}
+    </div>
 
     {{if index $.Dozvole "kategorija.dodaj"}}
     <!-- forma za novu kategoriju -->
