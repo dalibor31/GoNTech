@@ -26,6 +26,16 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><polyline points="7 5 12 10 17 5"/></svg>
                     Vrati backup baze
                 </button>
+                <button type="button" onclick="document.getElementById('uvezi-bazu-input').click()"
+                    style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--kartica);border:0.5px solid var(--ivica);border-radius:8px;font-size:13px;color:var(--tekst-sporedni);cursor:pointer;transition:background 0.2s;"
+                    onmouseover="this.style.background='var(--pozadina)'" onmouseout="this.style.background='var(--kartica)'">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    Uvezi bazu
+                </button>
+                <form id="uvezi-bazu-forma" method="POST" action="/podesavanja/uvezi-bazu" enctype="multipart/form-data" style="display:none;">
+                    <input type="file" id="uvezi-bazu-input" name="baza" accept=".db" required
+                           onchange="window._ntechPotvrdi('Uvoz će zameniti CELU trenutnu bazu podataka fajlom koji ste izabrali.\n\nTrenutna baza će automatski biti sačuvana pre zamene.\n\nNastaviti?').then((ok) => { if (ok) { document.getElementById('uvezi-bazu-forma').requestSubmit(); } else { this.value = ''; } })">
+                </form>
             </div>
         </div>
 
@@ -77,11 +87,11 @@
                             <td style="padding:8px 12px;color:var(--tekst-sporedni);">{{.Datum}}</td>
                             <td style="padding:8px 12px;text-align:right;color:var(--tekst-sporedni);">{{.Velicina}}</td>
                             <td style="padding:8px 12px;text-align:right;">
-                                <form method="POST" action="/podesavanja/backup/vrati"
-                                      onsubmit="return confirm('Vratiti bazu na stanje od: {{.Datum}}?\n\nTrenutna baza će biti automatski sačuvana pre obnove.')">
+                                <form method="POST" action="/podesavanja/backup/vrati">
                                     <input type="hidden" name="ime" value="{{.Ime}}">
                                     <button type="submit"
-                                        class="btn-obrisi-ghost">
+                                        class="btn-obrisi-ghost"
+                                        data-potvrda="Vratiti bazu na stanje od: {{.Datum}}? Trenutna baza će biti automatski sačuvana pre obnove.">
                                         Vrati
                                     </button>
                                 </form>

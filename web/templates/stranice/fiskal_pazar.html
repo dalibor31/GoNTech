@@ -93,10 +93,10 @@
                 <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/fiskal/pazar" class="btn-sekundarno" style="font-size:13px;padding:8px 16px;">Osveži</a>
 
                 {{if index .Dozvole "fiskal.zakljucenje"}}
-                <form method="POST" action="/fiskal/pazar/zakljuci" style="display:inline;" data-full-reload
-                      onsubmit="return confirm('Resetovati brojače na ekranu? Ovo NIJE zakonska obaveza — izveštaj po periodu radi nezavisno od ovoga. Samo svodi prikaz Promet od poslednjeg preseka na nulu.')">
+                <form method="POST" action="/fiskal/pazar/zakljuci" style="display:inline;" data-full-reload>
                     <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
-                    <button type="submit" class="btn-sekundarno" style="font-size:13px;padding:8px 16px;color:var(--tekst-sporedni);">Resetuj brojače (opciono)</button>
+                    <button type="submit" class="btn-sekundarno" style="font-size:13px;padding:8px 16px;color:var(--tekst-sporedni);"
+                        data-potvrda="Resetovati brojače na ekranu? Ovo NIJE zakonska obaveza — izveštaj po periodu radi nezavisno od ovoga. Samo svodi prikaz Promet od poslednjeg preseka na nulu.">Resetuj brojače (opciono)</button>
                 </form>
                 {{end}}
             </div>

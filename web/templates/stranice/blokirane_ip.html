@@ -30,11 +30,11 @@
             <td style="padding: 10px 20px; font-size: 13px; color: var(--tekst-sporedni); white-space: nowrap">{{.PoslednjiPokusaj.Format "02.01.2006. 15:04:05"}}</td>
             <td style="padding: 10px 20px; font-size: 13px; color: var(--tekst-sporedni)">{{.Preostalo}}</td>
             <td style="padding: 10px 20px; text-align: right">
-              <form method="POST" action="/admin/blokirane-ip/odblokiraj" style="display:inline;" data-full-reload
-                    onsubmit="return confirm('Odblokirati IP adresu {{.IP}}? Ovo odmah briše sve neuspele pokušaje prijave za nju.')">
+              <form method="POST" action="/admin/blokirane-ip/odblokiraj" style="display:inline;" data-full-reload>
                 <input type="hidden" name="_csrf" value="{{$.CsrfToken}}">
                 <input type="hidden" name="ip" value="{{.IP}}">
-                <button type="submit" class="btn-sekundarno" style="font-size: 13px; padding: 6px 14px">Odblokiraj</button>
+                <button type="submit" class="btn-sekundarno" style="font-size: 13px; padding: 6px 14px"
+                    data-potvrda="Odblokirati IP adresu {{.IP}}? Ovo odmah briše sve neuspele pokušaje prijave za nju.">Odblokiraj</button>
               </form>
             </td>
           </tr>

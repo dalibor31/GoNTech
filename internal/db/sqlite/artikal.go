@@ -304,6 +304,15 @@ func (r *ArtikalRepo) SledecaSifra(ctx context.Context, kategorijaID *int64) (st
 	return fmt.Sprintf("%s-%04d", prefiks, maxBroj+1), nil
 }
 
+// AzurirajSifru menja samo šifru artikla.
+func (r *ArtikalRepo) AzurirajSifru(ctx context.Context, id int64, sifra string) error {
+	_, err := r.db.ExecContext(ctx, "UPDATE artikli SET sifra = ? WHERE id = ?", sifra, id)
+	if err != nil {
+		return fmt.Errorf("ntech: ArtikalRepo.AzurirajSifru: %w", err)
+	}
+	return nil
+}
+
 // AzurirajCene menja samo nabavnu i prodajnu cenu artikla (kalkulacija pri prijemu robe).
 func (r *ArtikalRepo) AzurirajCene(ctx context.Context, id int64, nabavna, prodajna float64) error {
 	_, err := r.db.ExecContext(ctx,

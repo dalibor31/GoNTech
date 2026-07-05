@@ -88,8 +88,8 @@
 					<div style="font-size: 14px; color: #16a34a; margin-bottom: 4px; font-weight: 500">✓ Dvostepena verifikacija je uključena</div>
 					<div style="font-size: 13px; color: var(--tekst-sporedni)">Prijava zahteva TOTP kod pored lozinke.</div>
 				</div>
-				<form method="POST" action="/admin/profil/totp/deaktiviraj" onsubmit="return confirm('Da li ste sigurni? Ovo će isključiti dvostepenu verifikaciju.');">
-					<button type="submit" class="btn-opasno">Deaktiviraj 2FA</button>
+				<form method="POST" action="/admin/profil/totp/deaktiviraj">
+					<button type="submit" class="btn-opasno" data-potvrda="Da li ste sigurni? Ovo će isključiti dvostepenu verifikaciju.">Deaktiviraj 2FA</button>
 				</form>
 			</div>
 
@@ -105,8 +105,8 @@
 				{{ else }}
 					<div style="font-size: 13px; color: var(--tekst-sporedni); margin-bottom: 10px">Rezervni kodovi: preostalo <strong>{{ .BrojRezervnih }}</strong>. Koriste se za prijavu kada nemate pristup aplikaciji sa kodovima.</div>
 				{{ end }}
-				<form method="POST" action="/admin/profil/totp/kodovi" onsubmit="return confirm('Generisati nove rezervne kodove? Stari kodovi više neće važiti.');">
-					<button type="submit" class="btn-sekundarno">Regeneriši rezervne kodove</button>
+				<form method="POST" action="/admin/profil/totp/kodovi">
+					<button type="submit" class="btn-sekundarno" data-potvrda="Generisati nove rezervne kodove? Stari kodovi više neće važiti.">Regeneriši rezervne kodove</button>
 				</form>
 			</div>
 

@@ -30,7 +30,7 @@
                     <div>
                         <label class="polje-labela">Šifra artikla</label>
                         <input type="text" name="sifra" id="sifra-input" value="{{.Artikal.Sifra}}"
-                            placeholder="npr. KOMP-0001"
+                            placeholder="{{if .PredlogSifre}}{{.PredlogSifre}}{{else}}npr. KOMP-0001{{end}}"
                             style="width:100%;font-family:monospace;">
                         <div style="font-size:11px;color:var(--tekst-slabi);margin-top:4px;">Ako ostaviš prazno, šifra se automatski dodeljuje.</div>
                     </div>

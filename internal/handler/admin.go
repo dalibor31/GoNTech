@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"ntech/internal/auth"
 	"ntech/internal/db/sqlite"
@@ -104,13 +105,15 @@ func (h *Handler) AdminSacuvajKorisnika(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	ime := r.FormValue("korisnicko_ime")
+	korisnickoIme := r.FormValue("korisnicko_ime")
 	lozinka := r.FormValue("lozinka")
 	uloga := r.FormValue("uloga")
+	ime := strings.TrimSpace(r.FormValue("ime"))
+	prezime := strings.TrimSpace(r.FormValue("prezime"))
 
 	// superadmin uloga se ne može kreirati kroz interfejs — jedini superadmin postoji od setup-a
 	validneUloge := map[string]bool{"admin": true, "radnik": true}
-	if len(ime) < 3 || len(lozinka) < 8 || !validneUloge[uloga] {
+	if len(korisnickoIme) < 3 || len(lozinka) < 8 || !validneUloge[uloga] || ime == "" || prezime == "" {
 		middleware.SetFlash(w, r, h.DB, "greska", "Proverite unete podatke.")
 		http.Redirect(w, r, "/admin/korisnici", http.StatusSeeOther)
 		return
@@ -123,7 +126,13 @@ func (h *Handler) AdminSacuvajKorisnika(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if _, err := h.KorisniciRepo.Kreiraj(r.Context(), ime, hash, uloga); err != nil {
+	noviKorisnik, err := h.KorisniciRepo.Kreiraj(r.Context(), korisnickoIme, hash, uloga)
+	if err != nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju. Pokušajte ponovo.")
+		http.Redirect(w, r, "/admin/korisnici", http.StatusSeeOther)
+		return
+	}
+	if err := h.KorisniciRepo.AzurirajImePrezime(r.Context(), noviKorisnik.ID, ime, prezime); err != nil {
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju. Pokušajte ponovo.")
 		http.Redirect(w, r, "/admin/korisnici", http.StatusSeeOther)
 		return

@@ -20,7 +20,6 @@ import (
 	"ntech/internal/auth"
 	"ntech/internal/be"
 	"ntech/internal/config"
-	"ntech/internal/db"
 	"ntech/internal/db/sqlite"
 	"ntech/internal/handler"
 	ntechmw "ntech/internal/middleware"
@@ -152,7 +151,7 @@ func main() {
 	h.JelDemo = os.Getenv("NTECH_ENV") == "demo"
 	if h.JelDemo {
 		h.Verzija = "DEMO - " + h.Verzija
-		if err := postaviDemoKorisnika(context.Background(), h.KorisniciRepo); err != nil {
+		if err := handler.PostaviDemoKorisnika(context.Background(), h.KorisniciRepo); err != nil {
 			slog.Warn("demo: greška pri postavljanju demo korisnika", "error", err)
 		}
 	}
@@ -338,6 +337,7 @@ func main() {
 
 		r.Get("/podesavanja/backup", h.BackupBaze)
 		r.With(doz("backup.pokreni")).Post("/podesavanja/backup/vrati", h.VratiBackup)
+		r.With(doz("backup.pokreni")).Post("/podesavanja/uvezi-bazu", h.UvezizBazu)
 
 		// PDV evidencija — KIR (knjiga izdatih računa). Dostupno samo kada je modul
 		// „pdv" uključen za firmu (RequireModul), uz RBAC dozvolu pdv.*.
@@ -391,6 +391,7 @@ func main() {
 		r.With(doz("kategorija.dodaj")).Post("/magacin/kategorije/dodaj", h.DodajKategoriju)
 		r.With(doz("kategorija.izmeni")).Post("/magacin/kategorije/izmeni/{id}", h.IzmeniKategoriju)
 		r.With(doz("kategorija.obrisi")).Post("/magacin/kategorije/obrisi/{id}", h.ObrisiKategoriju)
+		r.With(doz("artikal.izmeni")).Post("/magacin/kategorije/dodeli-sifre", h.DodeliSifreArtiklima)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "nabavka.pregled")).Get("/nabavke", h.Nabavke)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "nabavka.pregled")).Get("/nabavke/nova", h.NovaNabavka)
 		r.With(doz("nabavka.dodaj")).Post("/nabavke/nova", h.SacuvajNabavku)
@@ -554,39 +555,6 @@ func ucitajTotpKljuc(envFajl string) ([]byte, error) {
 	os.Setenv("NTECH_TOTP_KEY", enkodiran)
 	slog.Info("generisan nov NTECH_TOTP_KEY i upisan u ntech.env")
 	return kljuc, nil
-}
-
-// postaviDemoKorisnika osigurava da pri pokretanju demo instance postoji korisnik "Demo"
-// sa ulogom "admin" i resetovanom lozinkom. Poziva se samo kada je NTECH_ENV=demo.
-func postaviDemoKorisnika(ctx context.Context, repo db.KorisniciRepository) error {
-	const (
-		demoIme     = "Demo"
-		demoLozinka = "Demo1234"
-	)
-	hash, err := auth.HashujLozinku(demoLozinka)
-	if err != nil {
-		return fmt.Errorf("ntech: postaviDemoKorisnika: %w", err)
-	}
-	korisnik, err := repo.DohvatiPoImenu(ctx, demoIme)
-	if err != nil {
-		// korisnik ne postoji — kreiraj ga
-		if _, err := repo.Kreiraj(ctx, demoIme, hash, "admin"); err != nil {
-			return fmt.Errorf("ntech: postaviDemoKorisnika: kreiranje: %w", err)
-		}
-		slog.Info("demo korisnik kreiran", "korisnik", demoIme)
-		return nil
-	}
-	// korisnik postoji — resetuj lozinku i osiguraj da je aktivan
-	if err := repo.PromeniLozinku(ctx, korisnik.ID, hash); err != nil {
-		return fmt.Errorf("ntech: postaviDemoKorisnika: lozinka: %w", err)
-	}
-	if !korisnik.Aktivan {
-		if err := repo.AzurirajAktivan(ctx, korisnik.ID, true); err != nil {
-			return fmt.Errorf("ntech: postaviDemoKorisnika: aktivan: %w", err)
-		}
-	}
-	slog.Info("demo korisnik resetovan", "korisnik", demoIme)
-	return nil
 }
 
 // napraviBackup kreira konzistentnu kopiju baze i briše najstarije preko zadatog broja kopija.

@@ -303,11 +303,11 @@
                             <td style="padding:8px 12px;color:var(--tekst-sporedni);">{{.Datum}}</td>
                             <td style="padding:8px 12px;text-align:right;color:var(--tekst-sporedni);">{{.Velicina}}</td>
                             <td style="padding:8px 12px;text-align:right;">
-                                <form method="POST" action="/podesavanja/backup/vrati"
-                                      onsubmit="return confirm('Vratiti bazu na stanje od: {{.Datum}}?\n\nTrenutna baza će biti automatski sačuvana pre obnove.')">
+                                <form method="POST" action="/podesavanja/backup/vrati">
                                     <input type="hidden" name="ime" value="{{.Ime}}">
                                     <button type="submit"
-                                        class="btn-obrisi-ghost">
+                                        class="btn-obrisi-ghost"
+                                        data-potvrda="Vratiti bazu na stanje od: {{.Datum}}? Trenutna baza će biti automatski sačuvana pre obnove.">
                                         Vrati
                                     </button>
                                 </form>

@@ -14,7 +14,7 @@
 <div class="kolona" style="gap:16px;">
 
     <!-- lista korisnika -->
-    <div class="kartica animiraj" style="padding:0;overflow:hidden;">
+    <div id="lista-korisnika-kartica" class="kartica animiraj" style="padding:0;overflow:hidden;">
         <div style="padding:16px 20px;border-bottom:0.5px solid var(--ivica);">
             <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Korisnici sistema</span>
         </div>
@@ -81,10 +81,10 @@
                                 </button>
                             </form>
                             {{if eq .Uloga "radnik"}}
-                            <form method="POST" action="/admin/korisnici/{{.ID}}/obrisi" style="display:inline;"
-                                  onsubmit="return confirm('Obrisati korisnika {{.KorisnickoIme}}? Ova radnja je trajna.')">
+                            <form method="POST" action="/admin/korisnici/{{.ID}}/obrisi" style="display:inline;">
                                 <button type="submit"
-                                    class="btn-obrisi-ghost">
+                                    class="btn-obrisi-ghost"
+                                    data-potvrda="Obrisati korisnika {{.KorisnickoIme}}? Ova radnja je trajna.">
                                     Obriši
                                 </button>
                             </form>
@@ -103,8 +103,18 @@
         <div style="font-size:15px;font-weight:500;color:var(--tekst-glavni);margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
             Novi korisnik
         </div>
-        <form method="POST" action="/admin/korisnici/novi">
+        <form method="POST" action="/admin/korisnici/novi" data-refresh="#lista-korisnika-kartica">
             <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:14px;margin-bottom:16px;">
+                <div>
+                    <label class="polje-labela">Ime</label>
+                    <input type="text" name="ime" required autocomplete="off"
+                        style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
+                <div>
+                    <label class="polje-labela">Prezime</label>
+                    <input type="text" name="prezime" required autocomplete="off"
+                        style="width:100%;padding:8px 12px;border:0.5px solid var(--ivica);border-radius:8px;font-size:14px;background:var(--pozadina);color:var(--tekst-glavni);outline:none;">
+                </div>
                 <div>
                     <label class="polje-labela">Korisničko ime</label>
                     <input type="text" name="korisnicko_ime" required minlength="3" autocomplete="off"
