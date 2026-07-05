@@ -228,6 +228,15 @@
                                     }
                                     var observer = new MutationObserver(function(){
                                         observer.disconnect();
+                                        // fiskalizacija je best-effort — ako ESIR/PFR nije bio dostupan,
+                                        // .fiskalni-racun kartica se neće pojaviti (v. FiskalGreska upozorenje
+                                        // na stranici); tada ne navigiramo tab na nepostojeći račun (praznina/404),
+                                        // nego prazan tab zatvorimo.
+                                        var imaRacun = sadrzaj.querySelector('.fiskalni-racun');
+                                        if (!imaRacun) {
+                                            if (tab && !tab.closed) tab.close();
+                                            return;
+                                        }
                                         // jedan prozor — server u istu stranicu ubacuje i povraćaj viška
                                         // avansa (ako postoji), da brauzer ne blokira drugi popup
                                         if (tab && !tab.closed) {
@@ -1015,7 +1024,7 @@
     </div>
 
     {{if .FiskalniRacun}}
-        <div class="kartica detalji-kartica animiraj">
+        <div class="kartica detalji-kartica animiraj fiskalni-racun">
             <div style="margin-bottom:12px;padding-bottom:10px;border-bottom:0.5px solid var(--ivica);display:flex;justify-content:space-between;align-items:center;">
                 <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">
                     {{if eq .FiskalniRacun.TipRacuna "Advance"}}Avansni fiskalni račun{{else}}Fiskalni račun{{end}}
@@ -1046,7 +1055,7 @@
         {{end}}
 
     {{if .AvansRacun}}
-        <div class="kartica detalji-kartica animiraj">
+        <div class="kartica detalji-kartica animiraj fiskalni-racun">
             <div style="margin-bottom:12px;padding-bottom:10px;border-bottom:0.5px solid var(--ivica);display:flex;justify-content:space-between;align-items:center;">
                 <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Avansni fiskalni račun</span>
                 <a href="/servis/{{.Nalog.ID}}/fiskalni-racun?tip=avans" target="_blank" class="btn-sekundarno" style="font-size:12px;padding:4px 12px;">Štampaj kopiju</a>
@@ -1068,7 +1077,7 @@
         {{end}}
 
     {{if .PovracajAvansa}}
-        <div class="kartica detalji-kartica animiraj">
+        <div class="kartica detalji-kartica animiraj fiskalni-racun">
             <div style="margin-bottom:12px;padding-bottom:10px;border-bottom:0.5px solid var(--ivica);display:flex;justify-content:space-between;align-items:center;">
                 <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Povraćaj viška avansa</span>
                 <a href="/servis/{{.Nalog.ID}}/fiskalni-racun?tip=povracaj" target="_blank" class="btn-sekundarno" style="font-size:12px;padding:4px 12px;">Štampaj kopiju</a>

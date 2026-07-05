@@ -253,6 +253,13 @@ services:
     image: ghcr.io/dalibor31/ntech-fisk:latest
     container_name: teron_mock
     restart: unless-stopped
+    environment:
+      - BE_HOST=ntech    # naziv NTech servisa na deljenoj mreži — neophodno da bi mock
+      - BE_PORT=4567     # mogao da pročita podatke firme (naziv/PIB/adresa) sa kartica emulatora
+      - VERIFY_HOST=https://ntech.tvoja-firma.rs   # ima prednost nad podešavanjem "verify_host" u
+                                                    # NTech UI-ju (mock ne vidi ntech.db) — bez ovoga
+                                                    # QR vodi na sandbox.suf.purs.gov.rs i redak je
+                                                    # umesto da enkoduje ceo račun
     volumes:
       - teron-data:/app/data
     networks:
@@ -267,6 +274,8 @@ networks:
 
 Servis `teron-mock` je dostupan iz `ntech` kontejnera na adresi `http://teron-mock:4566` preko interne Docker mreže — port nije izložen spolja.
 
+`BE_HOST`/`BE_PORT` moraju pokazivati na kartica emulator NTech kontejnera (`internal/be`, TCP port 4567). Bez toga, `teron-mock` po defaultu koristi `127.0.0.1:4567`, što unutar sopstvenog kontejnera nikad ne stiže do NTech-a — mock onda tiho pada na test podatke firme ("Test Company DOO", PIB `RS000000000`) umesto tvog stvarnog profila firme.
+
 Za pokretanje kao samostalni Docker kontejner:
 
 ```yaml
@@ -276,6 +285,10 @@ services:
     image: ghcr.io/dalibor31/ntech-fisk:latest
     container_name: teron_mock
     restart: unless-stopped
+    environment:
+      - BE_HOST=ntech    # prilagodi imenu/hostname-u NTech kontejnera na ovoj mreži
+      - BE_PORT=4567
+      - VERIFY_HOST=https://ntech.tvoja-firma.rs
     ports:
       - "4566:4566"
     volumes:

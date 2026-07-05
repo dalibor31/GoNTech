@@ -392,7 +392,7 @@ def _build_invoice_response(req, request_id):
             json.dumps(vl_payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         ).decode("ascii")
         scheme = "https" if VERIFY_HOST.startswith("https://") else "http"
-        host = VERIFY_HOST.removeprefix("https://").removeprefix("http://")
+        host = VERIFY_HOST.removeprefix("https://").removeprefix("http://").rstrip("/")
         verification_url = f"{scheme}://{host}/v/?vl={urllib.parse.quote(vl, safe='')}"
     else:
         verification_url = f"https://sandbox.suf.purs.gov.rs/v/?vl={invoice_number}"

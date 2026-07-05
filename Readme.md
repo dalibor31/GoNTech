@@ -253,6 +253,13 @@ services:
     image: ghcr.io/dalibor31/ntech-fisk:latest
     container_name: teron_mock
     restart: unless-stopped
+    environment:
+      - BE_HOST=ntech    # NTech service name on the shared network — required so the
+      - BE_PORT=4567     # mock can read company data (name/PIB/address) from the card emulator
+      - VERIFY_HOST=https://ntech.your-domain.com   # takes precedence over the "verify_host" setting
+                                                     # in NTech's UI (the mock can't see ntech.db) —
+                                                     # without it the QR links to sandbox.suf.purs.gov.rs
+                                                     # and is sparse instead of encoding the full invoice
     volumes:
       - teron-data:/app/data
     networks:
@@ -267,6 +274,8 @@ networks:
 
 The `teron-mock` service is reachable from `ntech` at `http://teron-mock:4566` over the internal Docker network — the port is not exposed to the host.
 
+`BE_HOST`/`BE_PORT` must point to the NTech container's card emulator (`internal/be`, TCP port 4567). Without them, `teron-mock` defaults to `127.0.0.1:4567`, which inside its own container never reaches NTech — the mock then silently falls back to placeholder company data ("Test Company DOO", TIN `RS000000000`) instead of your real business profile.
+
 To run as a standalone Docker container:
 
 ```yaml
@@ -276,6 +285,10 @@ services:
     image: ghcr.io/dalibor31/ntech-fisk:latest
     container_name: teron_mock
     restart: unless-stopped
+    environment:
+      - BE_HOST=ntech    # adjust to the NTech container's name/hostname on this network
+      - BE_PORT=4567
+      - VERIFY_HOST=https://ntech.your-domain.com
     ports:
       - "4566:4566"
     volumes:
