@@ -441,6 +441,23 @@
                                         });
                                     }
                                 });
+                                // flash poruka (SetFlash, npr. greška validacije) možda NIJE postojala
+                                // u trenutnom DOM-u pre ovog zahteva — replaceWith gore je ne bi ubacio
+                                // (menja samo postojeće elemente), pa je ovde dodajemo posebno ako se
+                                // pojavila u svežem odgovoru.
+                                var flashNovi = doc.getElementById('flash-toast');
+                                if (flashNovi) {
+                                    var flashStari = document.getElementById('flash-toast');
+                                    if (flashStari) flashStari.remove();
+                                    var glavni = document.getElementById('sadrzaj');
+                                    if (glavni) {
+                                        glavni.insertBefore(flashNovi, glavni.firstChild);
+                                        setTimeout(function () {
+                                            flashNovi.classList.add('flash-izlaz');
+                                            setTimeout(function () { if (flashNovi.parentElement) flashNovi.remove(); }, 350);
+                                        }, 4000);
+                                    }
+                                }
                                 if (sc) sc.scrollTop = syDoc;
                                 var gsNovi = document.getElementById('sadrzaj');
                                 if (gsNovi) gsNovi.scrollTop = syGs;

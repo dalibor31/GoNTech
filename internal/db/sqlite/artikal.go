@@ -227,6 +227,9 @@ func (r *ArtikalRepo) Kreiraj(ctx context.Context, a *model.Artikal) (int64, err
 		a.Lokacija, a.NabavnaCena, a.ProdajnaCena, a.PdvStopa, a.CenaSaPdv, a.Marza, a.Napomena,
 	)
 	if err != nil {
+		if jeUnique(err) {
+			return 0, db.ErrArtikalDuplikatSifre
+		}
 		return 0, fmt.Errorf("ntech: ArtikalRepo.Kreiraj: %w", err)
 	}
 
@@ -259,6 +262,9 @@ func (r *ArtikalRepo) Izmeni(ctx context.Context, a *model.Artikal) error {
 		a.NabavnaCena, a.ProdajnaCena, a.PdvStopa, a.CenaSaPdv, a.Marza, a.Napomena, a.ID,
 	)
 	if err != nil {
+		if jeUnique(err) {
+			return db.ErrArtikalDuplikatSifre
+		}
 		return fmt.Errorf("ntech: ArtikalRepo.Izmeni: %w", err)
 	}
 

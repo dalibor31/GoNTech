@@ -276,14 +276,7 @@ func (h *Handler) SacuvajProdaju(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	brojNaloga, err := h.ProdajaRepo.SledeciBroj(r.Context())
-	if err != nil {
-		slog.Error("greška pri generisanju broja naloga", "error", err)
-		renderujGresku("Greška pri generisanju broja naloga.")
-		return
-	}
-
-	nalog.BrojNaloga = brojNaloga
+	// broj naloga generiše ProdajaRepo.Kreiraj unutar transakcije upisa
 	nalog.Datum = time.Now()
 
 	var ukupno float64

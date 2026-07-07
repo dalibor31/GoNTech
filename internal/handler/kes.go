@@ -23,7 +23,7 @@ var saSidebar = []string{
 	"dashboard",
 	"dobavljaci", "dobavljac_forma",
 	"izvestaji", "prometni_list", "stanje_zaliha", "popis",
-	"kategorije",
+	"kategorije", "kategorije_uskladi_sifre",
 	"klijenti", "klijent_forma",
 	"magacin", "magacin_forma", "magacin_kartica",
 	"nabavke", "nabavka_forma", "nabavka_detalji",

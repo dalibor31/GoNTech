@@ -117,6 +117,9 @@ func (r *UslugaRepo) Kreiraj(ctx context.Context, u *model.Usluga) (int64, error
 		sifra, u.Naziv, u.Kategorija, u.JedinicaMere, u.Cena, u.PdvStopa, u.Opis,
 	)
 	if err != nil {
+		if jeUnique(err) {
+			return 0, db.ErrUslugaDuplikatSifre
+		}
 		return 0, fmt.Errorf("ntech: UslugaRepo.Kreiraj: %w", err)
 	}
 	id, err := rez.LastInsertId()
@@ -138,6 +141,9 @@ func (r *UslugaRepo) Izmeni(ctx context.Context, u *model.Usluga) error {
 		sifra, u.Naziv, u.Kategorija, u.JedinicaMere, u.Cena, u.PdvStopa, u.Opis, u.ID,
 	)
 	if err != nil {
+		if jeUnique(err) {
+			return db.ErrUslugaDuplikatSifre
+		}
 		return fmt.Errorf("ntech: UslugaRepo.Izmeni: %w", err)
 	}
 	return nil

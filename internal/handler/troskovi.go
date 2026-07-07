@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -91,7 +92,11 @@ func (h *Handler) SacuvajTrosak(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err := h.TroskoviRepo.Kreiraj(r.Context(), &trosak); err != nil {
-		h.renderujFormuTroska(w, r, trosak, false, "Greška pri čuvanju troška. Pokušajte ponovo.")
+		poruka := "Greška pri čuvanju troška. Pokušajte ponovo."
+		if errors.Is(err, db.ErrTrosakDuplikatSifre) {
+			poruka = "Šifra već postoji kod drugog troška."
+		}
+		h.renderujFormuTroska(w, r, trosak, false, poruka)
 		return
 	}
 	http.Redirect(w, r, "/troskovi?sacuvano=1", http.StatusSeeOther)
@@ -114,7 +119,11 @@ func (h *Handler) SacuvajIzmenuTroska(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.TroskoviRepo.Izmeni(r.Context(), &trosak); err != nil {
-		h.renderujFormuTroska(w, r, trosak, true, "Greška pri čuvanju troška. Pokušajte ponovo.")
+		poruka := "Greška pri čuvanju troška. Pokušajte ponovo."
+		if errors.Is(err, db.ErrTrosakDuplikatSifre) {
+			poruka = "Šifra već postoji kod drugog troška."
+		}
+		h.renderujFormuTroska(w, r, trosak, true, poruka)
 		return
 	}
 	http.Redirect(w, r, "/troskovi?sacuvano=1", http.StatusSeeOther)

@@ -31,8 +31,16 @@ func NoviServisRepo(db *sql.DB) *ServisRepo {
 }
 
 // SledeciBroj generiše sledeći broj naloga u formatu SN-GGMM-NNN
-// (GG dvocifrena godina, MM mesec); brojač NNN se resetuje svakog meseca
+// (GG dvocifrena godina, MM mesec); brojač NNN se resetuje svakog meseca.
+// Koristi se samo za PRIKAZ predloga na praznoj formi (NoviNalog) — stvarni
+// broj koji se upisuje generiše Kreiraj iznova, unutar svoje transakcije.
 func (r *ServisRepo) SledeciBroj(ctx context.Context) (string, error) {
+	return sledeciBrojServisa(ctx, r.db)
+}
+
+func sledeciBrojServisa(ctx context.Context, q interface {
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}) (string, error) {
 	sada := time.Now()
 	// prefiks "SN-GGMM-" je dug 8 karaktera, pa brojač počinje od 9. karaktera
 	prefiks := fmt.Sprintf("SN-%02d%02d-", sada.Year()%100, int(sada.Month()))
@@ -40,12 +48,12 @@ func (r *ServisRepo) SledeciBroj(ctx context.Context) (string, error) {
 
 	// COALESCE(MAX, 0)+1 → prvi nalog u mesecu dobija 001
 	var sledeci int
-	err := r.db.QueryRowContext(ctx, `
+	err := q.QueryRowContext(ctx, `
 		SELECT COALESCE(MAX(CAST(SUBSTR(broj_naloga, 9) AS INTEGER)), 0) + 1
 		FROM servisni_nalozi
 		WHERE broj_naloga LIKE ?`, uzorak).Scan(&sledeci)
 	if err != nil {
-		return "", fmt.Errorf("ntech: ServisRepo.SledeciBroj: %w", err)
+		return "", fmt.Errorf("ntech: sledeciBrojServisa: %w", err)
 	}
 
 	return fmt.Sprintf("%s%03d", prefiks, sledeci), nil
@@ -120,14 +128,30 @@ func (r *ServisRepo) DohvatiID(ctx context.Context, id int64) (*model.ServisniNa
 	return &n, nil
 }
 
-// Kreiraj upisuje novi servisni nalog u bazu i generiše javni token
+// Kreiraj upisuje novi servisni nalog u bazu i generiše javni token.
+// Broj naloga se generiše OVDE, unutar transakcije upisa, i ne veruje se
+// vrednosti iz forme (koja je samo predlog prikazan pri otvaranju prazne
+// forme) — tako dupliran/ponovljen POST zahtev ne pravi dva zasebna naloga
+// sa istim brojem/sadržajem.
 func (r *ServisRepo) Kreiraj(ctx context.Context, n *model.ServisniNalog) (int64, error) {
 	token, err := generisiJavniToken()
 	if err != nil {
 		return 0, fmt.Errorf("ntech: ServisRepo.Kreiraj: token: %w", err)
 	}
 
-	rezultat, err := r.db.ExecContext(ctx, `
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, fmt.Errorf("ntech: ServisRepo.Kreiraj: begin tx: %w", err)
+	}
+	defer tx.Rollback()
+
+	brojNaloga, err := sledeciBrojServisa(ctx, tx)
+	if err != nil {
+		return 0, fmt.Errorf("ntech: ServisRepo.Kreiraj: broj naloga: %w", err)
+	}
+	n.BrojNaloga = brojNaloga
+
+	rezultat, err := tx.ExecContext(ctx, `
 		INSERT INTO servisni_nalozi
 			(klijent_id, tehnicar_id, broj_naloga, uredjaj, serijski_broj, opis_kvara, trazene_nadogradnje,
 			 status, cena_od, cena_do, cena_konacna, avans, napomena, garancija_do, garancija_dana, datum_zavrsetka, predvidjen_datum,
@@ -148,6 +172,10 @@ func (r *ServisRepo) Kreiraj(ctx context.Context, n *model.ServisniNalog) (int64
 	id, err := rezultat.LastInsertId()
 	if err != nil {
 		return 0, fmt.Errorf("ntech: ServisRepo.Kreiraj: last insert id: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("ntech: ServisRepo.Kreiraj: commit: %w", err)
 	}
 
 	return id, nil

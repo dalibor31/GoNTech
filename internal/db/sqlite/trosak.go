@@ -96,6 +96,9 @@ func (r *TrosakRepo) Kreiraj(ctx context.Context, t *model.Trosak) (int64, error
 		sifra, t.Naziv, t.Cena, t.Opis,
 	)
 	if err != nil {
+		if jeUnique(err) {
+			return 0, db.ErrTrosakDuplikatSifre
+		}
 		return 0, fmt.Errorf("ntech: TrosakRepo.Kreiraj: %w", err)
 	}
 	id, err := rez.LastInsertId()
@@ -117,6 +120,9 @@ func (r *TrosakRepo) Izmeni(ctx context.Context, t *model.Trosak) error {
 		sifra, t.Naziv, t.Cena, t.Opis, t.ID,
 	)
 	if err != nil {
+		if jeUnique(err) {
+			return db.ErrTrosakDuplikatSifre
+		}
 		return fmt.Errorf("ntech: TrosakRepo.Izmeni: %w", err)
 	}
 	return nil

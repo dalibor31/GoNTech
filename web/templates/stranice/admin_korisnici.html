@@ -38,7 +38,7 @@
                             {{if eq .Uloga "superadmin"}}
                             <span class="pomocni-tekst">Superadmin</span>
                             {{else if eq $.KorisnikUloga "superadmin"}}
-                            <form method="POST" action="/admin/korisnici/{{.ID}}/uloga" style="display:inline;">
+                            <form method="POST" action="/admin/korisnici/{{.ID}}/uloga" data-refresh="#lista-korisnika-kartica" style="display:inline;">
                                 <select name="uloga" onchange="this.form.submit()"
                                     style="padding:4px 8px;border:0.5px solid var(--ivica);border-radius:6px;background:var(--pozadina);color:var(--tekst-glavni);font-size:12px;">
                                     <option value="admin" {{if eq .Uloga "admin"}}selected{{end}}>Admin</option>
@@ -74,14 +74,14 @@
                                 Istorija prijava
                             </a>
                             {{if ne .KorisnickoIme $.KorisnikIme}}
-                            <form method="POST" action="/admin/korisnici/{{.ID}}/aktivan" style="display:inline;">
+                            <form method="POST" action="/admin/korisnici/{{.ID}}/aktivan" data-refresh="#lista-korisnika-kartica" style="display:inline;">
                                 <button type="submit"
                                     style="padding:5px 12px;border:0.5px solid var(--ivica);border-radius:6px;background:transparent;color:var(--tekst-sporedni);font-size:12px;cursor:pointer;">
                                     {{if .Aktivan}}Deaktiviraj{{else}}Aktiviraj{{end}}
                                 </button>
                             </form>
                             {{if eq .Uloga "radnik"}}
-                            <form method="POST" action="/admin/korisnici/{{.ID}}/obrisi" style="display:inline;">
+                            <form method="POST" action="/admin/korisnici/{{.ID}}/obrisi" data-refresh="#lista-korisnika-kartica" style="display:inline;">
                                 <button type="submit"
                                     class="btn-obrisi-ghost"
                                     data-potvrda="Obrisati korisnika {{.KorisnickoIme}}? Ova radnja je trajna.">

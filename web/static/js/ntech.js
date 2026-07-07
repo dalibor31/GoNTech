@@ -1,3 +1,26 @@
+// generička zaštita od duplog slanja forme: onemogući submit dugme(ad) čim
+// forma krene da se šalje (spor internet/dupli klik/Enter+klik ne pravi drugi
+// POST). Dodaj data-ne-onemoguci="1" na formu da se isključi (npr. forme sa
+// više imenovanih submit dugmadi gde različit klik nosi različitu vrednost).
+document.addEventListener('submit', function(e) {
+    var forma = e.target;
+    if (!(forma instanceof HTMLFormElement)) return;
+    if (forma.dataset.neOnemoguci === '1') return;
+    var dugmad = forma.querySelectorAll('button[type="submit"]:not([name]), input[type="submit"]:not([name])');
+    setTimeout(function() {
+        dugmad.forEach(function(btn) { btn.disabled = true; });
+    }, 0);
+}, true);
+
+// ako se stranica vrati iz bfcache-a (dugme nazad/napred), vrati dugmad u
+// normalno stanje da forma ostane upotrebljiva
+window.addEventListener('pageshow', function(e) {
+    if (!e.persisted) return;
+    document.querySelectorAll('button[type="submit"]:disabled, input[type="submit"]:disabled').forEach(function(btn) {
+        btn.disabled = false;
+    });
+});
+
 // otvara/zatvara podmeni u sidebaru — radi i kad je sidebar skupljen i kad je proširen
 // (sidebar ostaje u zatečenom stanju). U isto vreme sme biti otvoren samo jedan podmeni.
 function ntechTogglePodmeni(btn) {

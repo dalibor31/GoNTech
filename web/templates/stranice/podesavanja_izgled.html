@@ -16,20 +16,22 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sb-akcent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
             <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Pozadinska slika prijave</span>
         </div>
-        {{if .LoginPozadina}}
-        <div style="margin-bottom:14px;display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;">
-            <img src="{{.LoginPozadina}}" alt="Trenutna pozadina"
-                style="width:160px;height:90px;object-fit:cover;border:0.5px solid var(--ivica);border-radius:8px;">
-            <form method="POST" action="/podesavanja/login-pozadina/ukloni">
-                <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
-                <button type="submit"
-                    class="btn-obrisi-ghost" style="padding:7px 14px;border-radius:8px;"
-                    data-potvrda="Ukloniti pozadinsku sliku?">
-                    Ukloni sliku
-                </button>
-            </form>
+        <div id="login-pozadina-blok">
+            {{if .LoginPozadina}}
+            <div style="margin-bottom:14px;display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;">
+                <img src="{{.LoginPozadina}}" alt="Trenutna pozadina"
+                    style="width:160px;height:90px;object-fit:cover;border:0.5px solid var(--ivica);border-radius:8px;">
+                <form method="POST" action="/podesavanja/login-pozadina/ukloni" data-refresh="#login-pozadina-blok">
+                    <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+                    <button type="submit"
+                        class="btn-obrisi-ghost" style="padding:7px 14px;border-radius:8px;"
+                        data-potvrda="Ukloniti pozadinsku sliku?">
+                        Ukloni sliku
+                    </button>
+                </form>
+            </div>
+            {{end}}
         </div>
-        {{end}}
         <form method="POST" action="/podesavanja/login-pozadina" enctype="multipart/form-data">
             <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">

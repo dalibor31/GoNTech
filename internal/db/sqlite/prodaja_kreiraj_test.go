@@ -98,8 +98,10 @@ func TestProdajaKreiraj_PdvAutoKalkulacija(t *testing.T) {
 		{ArtikalID: artID, Kolicina: 1, CenaPoKomadu: 1200, PdvStopa: 20},
 		// CenaBezPdv=0 namerno — treba da se auto-izračuna
 	}
-	_, err := prodRepo.Kreiraj(ctx, &model.ProdajniNalog{
-		BrojNaloga: "PR-PDV-001", Ukupno: 1200, NacinPlacanja: "gotovina", Datum: time.Now(),
+	// BrojNaloga se namerno NE prosleđuje — Kreiraj ga uvek sam generiše
+	// (broj_naloga se ne veruje pozivaocu, vidi ProdajaRepo.Kreiraj)
+	nalogID, err := prodRepo.Kreiraj(ctx, &model.ProdajniNalog{
+		Ukupno: 1200, NacinPlacanja: "gotovina", Datum: time.Now(),
 	}, stavke, nil)
 	if err != nil {
 		t.Fatalf("Kreiraj: %v", err)
@@ -107,7 +109,7 @@ func TestProdajaKreiraj_PdvAutoKalkulacija(t *testing.T) {
 
 	var cenaBezPdv, pdvIznos float64
 	baza.QueryRowContext(ctx,
-		"SELECT cena_bez_pdv, pdv_iznos FROM stavke_prodaje WHERE nalog_id = (SELECT id FROM prodajni_nalozi WHERE broj_naloga='PR-PDV-001')",
+		"SELECT cena_bez_pdv, pdv_iznos FROM stavke_prodaje WHERE nalog_id = ?", nalogID,
 	).Scan(&cenaBezPdv, &pdvIznos)
 
 	const ocekivanaNeto = 1000.0

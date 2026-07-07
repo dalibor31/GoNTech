@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"ntech/internal/db"
 	"ntech/internal/db/sqlite"
 	"ntech/internal/middleware"
 	"ntech/internal/model"
@@ -121,7 +123,32 @@ func (h *Handler) SacuvajArtikal(w http.ResponseWriter, r *http.Request) {
 
 	id, err := h.Artikli.Kreiraj(r.Context(), &artikal)
 	if err != nil {
-		http.Error(w, "Greška pri čuvanju artikla", http.StatusInternalServerError)
+		poruka := "Greška pri čuvanju artikla."
+		if errors.Is(err, db.ErrArtikalDuplikatSifre) {
+			poruka = "Šifra ili barkod već postoji kod drugog artikla."
+		} else {
+			slog.Error("čuvanje artikla nije uspelo", "error", err)
+		}
+		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+		kategorije, _ := h.KategorijeRepo.Lista(r.Context())
+		dobavljaci, _ := h.DobavljaciRepo.Lista(r.Context(), "")
+		katIDStr := ""
+		if artikal.KategorijaID != nil {
+			katIDStr = strconv.FormatInt(*artikal.KategorijaID, 10)
+		}
+		ps := h.popuniPodaciStranice(r, podesavanja)
+		ps.Stranica = "magacin"
+		ps.NaslovStranice = "Novi artikal"
+		h.renderujFormuArtikla(w, PodaciFormeArtikla{
+			PodaciStranice:     ps,
+			Artikal:            artikal,
+			Kategorije:         kategorije,
+			KategorijaIDStr:    katIDStr,
+			Dobavljaci:         dobavljaci,
+			IzabraniDobavljaci: mapaDobavljaca(citajDobavljaceForme(r)),
+			Greska:             poruka,
+			Izmena:             false,
+		})
 		return
 	}
 	artikal.ID = id
@@ -262,7 +289,32 @@ func (h *Handler) SacuvajIzmenuArtikla(w http.ResponseWriter, r *http.Request) {
 
 	artikal.ID = id
 	if err := h.Artikli.Izmeni(r.Context(), &artikal); err != nil {
-		http.Error(w, "Greška pri čuvanju izmene", http.StatusInternalServerError)
+		poruka := "Greška pri čuvanju izmene."
+		if errors.Is(err, db.ErrArtikalDuplikatSifre) {
+			poruka = "Šifra ili barkod već postoji kod drugog artikla."
+		} else {
+			slog.Error("čuvanje izmene artikla nije uspelo", "artikal_id", id, "error", err)
+		}
+		podesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+		kategorije, _ := h.KategorijeRepo.Lista(r.Context())
+		dobavljaci, _ := h.DobavljaciRepo.Lista(r.Context(), "")
+		katIDStr := ""
+		if artikal.KategorijaID != nil {
+			katIDStr = strconv.FormatInt(*artikal.KategorijaID, 10)
+		}
+		ps := h.popuniPodaciStranice(r, podesavanja)
+		ps.Stranica = "magacin"
+		ps.NaslovStranice = "Izmeni artikal"
+		h.renderujFormuArtikla(w, PodaciFormeArtikla{
+			PodaciStranice:     ps,
+			Artikal:            artikal,
+			Kategorije:         kategorije,
+			KategorijaIDStr:    katIDStr,
+			Dobavljaci:         dobavljaci,
+			IzabraniDobavljaci: mapaDobavljaca(citajDobavljaceForme(r)),
+			Greska:             poruka,
+			Izmena:             true,
+		})
 		return
 	}
 

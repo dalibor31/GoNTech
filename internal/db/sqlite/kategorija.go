@@ -53,6 +53,14 @@ func (r *KategorijaRepo) Lista(ctx context.Context) ([]model.Kategorija, error) 
 	return rezultat, nil
 }
 
+// jeUnique proverava da li greška iz SQLite drajvera potiče od povrede
+// UNIQUE indeksa (naziv ili kôd kategorije već postoji — vidi migraciju
+// 104_kategorije_unique.sql).
+func jeUnique(err error) bool {
+	var sqliteErr *mosqlite.Error
+	return errors.As(err, &sqliteErr) && sqliteErr.Code() == 2067 // SQLITE_CONSTRAINT_UNIQUE
+}
+
 // Kreiraj dodaje novu kategoriju
 func (r *KategorijaRepo) Kreiraj(ctx context.Context, k *model.Kategorija) (int64, error) {
 	var kod any
@@ -64,6 +72,9 @@ func (r *KategorijaRepo) Kreiraj(ctx context.Context, k *model.Kategorija) (int6
 		k.Naziv, k.Opis, kod, k.Marza,
 	)
 	if err != nil {
+		if jeUnique(err) {
+			return 0, db.ErrKategorijaDuplikat
+		}
 		return 0, fmt.Errorf("ntech: KategorijaRepo.Kreiraj: %w", err)
 	}
 
@@ -109,6 +120,9 @@ func (r *KategorijaRepo) Izmeni(ctx context.Context, k *model.Kategorija) error 
 		k.Naziv, k.Opis, kod, k.Marza, k.ID,
 	)
 	if err != nil {
+		if jeUnique(err) {
+			return db.ErrKategorijaDuplikat
+		}
 		return fmt.Errorf("ntech: KategorijaRepo.Izmeni: %w", err)
 	}
 	return nil
