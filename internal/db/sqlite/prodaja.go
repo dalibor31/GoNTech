@@ -23,18 +23,29 @@ func NoviProdajaRepo(db *sql.DB) *ProdajaRepo {
 // SledeciBroj generiše sledeći broj naloga u formatu PR-GGMM-NNNN
 // (GG dvocifrena godina, MM mesec); brojač NNNN se resetuje svakog meseca
 func (r *ProdajaRepo) SledeciBroj(ctx context.Context) (string, error) {
+	return sledeciBrojProdaje(ctx, r.db)
+}
+
+// sledeciBrojProdaje čita i generiše sledeći broj naloga preko prosleđenog
+// izvršioca upita (r.db ili tx). Kreiraj je poziva NAD ISTOM transakcijom
+// u kojoj upisuje nalog — pošto konekcija koristi _txlock=immediate, write
+// lock se drži od BeginTx, pa je ovo čitanje-pa-upis atomsko i bez race-a
+// između dva konkurentna/duplirana zahteva.
+func sledeciBrojProdaje(ctx context.Context, q interface {
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}) (string, error) {
 	sada := time.Now()
 	// prefiks "PR-GGMM-" je dug 8 karaktera, pa brojač počinje od 9. karaktera
 	prefiks := fmt.Sprintf("PR-%02d%02d-", sada.Year()%100, int(sada.Month()))
 	uzorak := prefiks + "%"
 
 	var sledeci int
-	err := r.db.QueryRowContext(ctx, `
+	err := q.QueryRowContext(ctx, `
 		SELECT COALESCE(MAX(CAST(SUBSTR(broj_naloga, 9) AS INTEGER)), 0) + 1
 		FROM prodajni_nalozi
 		WHERE broj_naloga LIKE ?`, uzorak).Scan(&sledeci)
 	if err != nil {
-		return "", fmt.Errorf("ntech: ProdajaRepo.SledeciBroj: %w", err)
+		return "", fmt.Errorf("ntech: sledeciBrojProdaje: %w", err)
 	}
 
 	return fmt.Sprintf("%s%04d", prefiks, sledeci), nil
@@ -183,6 +194,16 @@ func (r *ProdajaRepo) Kreiraj(ctx context.Context, n *model.ProdajniNalog, stavk
 		return 0, fmt.Errorf("ntech: ProdajaRepo.Kreiraj: begin tx: %w", err)
 	}
 	defer tx.Rollback()
+
+	// broj naloga se generiše OVDE, unutar iste transakcije kao insert —
+	// ne sme se prosleđivati kao unapred generisana vrednost iz handlera,
+	// jer bi dupliran/ponovljen POST zahtev tada napravio dva zasebna,
+	// validna naloga sa istim stavkama umesto da drugi bude odbijen.
+	brojNaloga, err := sledeciBrojProdaje(ctx, tx)
+	if err != nil {
+		return 0, fmt.Errorf("ntech: ProdajaRepo.Kreiraj: broj naloga: %w", err)
+	}
+	n.BrojNaloga = brojNaloga
 
 	// insert zaglavlja naloga pre stavki da bismo imali nalogID za magacin
 	rezultat, err := tx.ExecContext(ctx, `

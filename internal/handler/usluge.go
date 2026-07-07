@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -92,7 +93,11 @@ func (h *Handler) SacuvajUslugu(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err := h.UslugeRepo.Kreiraj(r.Context(), &usluga); err != nil {
-		h.renderujFormuUsluge(w, r, usluga, false, "Greška pri čuvanju usluge. Pokušajte ponovo.")
+		poruka := "Greška pri čuvanju usluge. Pokušajte ponovo."
+		if errors.Is(err, db.ErrUslugaDuplikatSifre) {
+			poruka = "Šifra već postoji kod druge usluge."
+		}
+		h.renderujFormuUsluge(w, r, usluga, false, poruka)
 		return
 	}
 	http.Redirect(w, r, "/usluge?sacuvano=1", http.StatusSeeOther)
@@ -115,7 +120,11 @@ func (h *Handler) SacuvajIzmenuUsluge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.UslugeRepo.Izmeni(r.Context(), &usluga); err != nil {
-		h.renderujFormuUsluge(w, r, usluga, true, "Greška pri čuvanju usluge. Pokušajte ponovo.")
+		poruka := "Greška pri čuvanju usluge. Pokušajte ponovo."
+		if errors.Is(err, db.ErrUslugaDuplikatSifre) {
+			poruka = "Šifra već postoji kod druge usluge."
+		}
+		h.renderujFormuUsluge(w, r, usluga, true, poruka)
 		return
 	}
 	http.Redirect(w, r, "/usluge?sacuvano=1", http.StatusSeeOther)

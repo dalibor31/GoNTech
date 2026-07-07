@@ -16,6 +16,19 @@ var ErrArtikalUUpotrebi = errors.New("ntech: artikal je u upotrebi")
 // referencirana od strane artikla.
 var ErrKategorijaUUpotrebi = errors.New("ntech: kategorija je u upotrebi")
 
+// ErrKategorijaDuplikat se vraća kad naziv ili kôd kategorije već postoji
+// kod druge kategorije (vidi migraciju 104_kategorije_unique.sql).
+var ErrKategorijaDuplikat = errors.New("ntech: kategorija sa tim nazivom ili kodom već postoji")
+
+// ErrArtikalDuplikatSifre se vraća kad šifra ili barkod artikla već postoji
+// kod drugog artikla (vidi migraciju 055_artikal_sifra_barkod.sql).
+var ErrArtikalDuplikatSifre = errors.New("ntech: šifra ili barkod artikla već postoji kod drugog artikla")
+
+// ErrUslugaDuplikatSifre i ErrTrosakDuplikatSifre se vraćaju kad šifra usluge/
+// troška već postoji kod drugog reda (vidi migraciju 105_usluge_troskovi_sifra_unique.sql).
+var ErrUslugaDuplikatSifre = errors.New("ntech: šifra usluge već postoji")
+var ErrTrosakDuplikatSifre = errors.New("ntech: šifra troška već postoji")
+
 // ArtikalRepository definiše operacije nad artiklima
 type ArtikalRepository interface {
 	Lista(ctx context.Context, filter ArtikalFilter) ([]model.ArtikalSaKategorijom, error)

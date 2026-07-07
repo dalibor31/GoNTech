@@ -19,17 +19,19 @@
 {{define "sadrzaj"}}
 <div class="kolona" style="gap:16px;">
 
-    {{if .Sacuvano}}
-    <div class="poruka-uspeh poruka-animacija">Kategorija je uspešno sačuvana.</div>
-    {{end}}
-    {{if .Obrisana}}
-    <div class="poruka-uspeh poruka-animacija">Kategorija je uspešno obrisana.</div>
-    {{end}}
-    {{if .PrikaziSifreDod}}
-    <div class="poruka-uspeh poruka-animacija">
-        {{if eq .SifreDodeljene 0}}Svi artikli već imaju šifru.{{else}}Dodeljena šifra za {{.SifreDodeljene}} artikal(a).{{end}}
+    <div id="kat-poruke">
+        {{if .Sacuvano}}
+        <div class="poruka-uspeh poruka-animacija">Kategorija je uspešno sačuvana.</div>
+        {{end}}
+        {{if .Obrisana}}
+        <div class="poruka-uspeh poruka-animacija">Kategorija je uspešno obrisana.</div>
+        {{end}}
+        {{if .PrikaziSifreDod}}
+        <div class="poruka-uspeh poruka-animacija">
+            {{if eq .SifreDodeljene 0}}Svi artikli već imaju šifru.{{else}}Dodeljena šifra za {{.SifreDodeljene}} artikal(a).{{end}}
+        </div>
+        {{end}}
     </div>
-    {{end}}
 
     <!-- nazad dugme -->
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
@@ -38,12 +40,18 @@
             Nazad na magacin
         </a>
         {{if index $.Dozvole "artikal.izmeni"}}
-        <form method="POST" action="/magacin/kategorije/dodeli-sifre">
-            <button type="submit" class="btn-sekundarno" style="font-size:13px;padding:8px 16px;"
-                data-potvrda="Proći kroz sve artikle bez šifre i dodeliti im šifru na osnovu prefiksa njihove kategorije?">
-                Dodeli šifre artiklima bez šifre
-            </button>
-        </form>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <form method="POST" action="/magacin/kategorije/dodeli-sifre" data-refresh="#kat-poruke, #kategorije-lista">
+                <button type="submit" class="btn-sekundarno" style="font-size:13px;padding:8px 16px;"
+                    data-potvrda="Proći kroz sve artikle bez šifre i dodeliti im šifru na osnovu prefiksa njihove kategorije?">
+                    Dodeli šifre artiklima bez šifre
+                </button>
+            </form>
+            <a href="/magacin/kategorije/uskladi-sifre" class="btn-sekundarno" style="font-size:13px;padding:8px 16px;"
+                hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML">
+                Uskladi šifre sa kategorijama
+            </a>
+        </div>
         {{end}}
     </div>
 
@@ -53,7 +61,7 @@
         <div style="margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--ivica);">
             <span style="font-size:15px;font-weight:500;color:var(--tekst-glavni);">Nova kategorija</span>
         </div>
-        <form method="POST" action="/magacin/kategorije/dodaj">
+        <form method="POST" action="/magacin/kategorije/dodaj" data-refresh="#kat-poruke, #kategorije-lista">
             <div class="kolona" style="gap:12px;">
                 <div>
                     <label class="polje-labela">
@@ -90,7 +98,7 @@
     {{end}}
 
     <!-- lista kategorija -->
-    <div class="kartica" style="padding:0;overflow:hidden;">
+    <div id="kategorije-lista" class="kartica" style="padding:0;overflow:hidden;">
         <div style="padding:14px 16px;border-bottom:0.5px solid var(--ivica);">
             <span style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">Postojeće kategorije</span>
         </div>
@@ -116,7 +124,7 @@
                     <h3>Izmeni kategoriju</h3>
                     <button type="submit" class="premesti-zatvori" aria-label="Zatvori">&times;</button>
                 </form>
-                <form method="POST" action="/magacin/kategorije/izmeni/{{.ID}}" style="display:flex;flex-direction:column;gap:12px;padding:16px;">
+                <form method="POST" action="/magacin/kategorije/izmeni/{{.ID}}" data-refresh="#kat-poruke, #kategorije-lista" style="display:flex;flex-direction:column;gap:12px;padding:16px;">
                     <div>
                         <label class="polje-labela">Naziv <span style="color:#dc2626;">*</span></label>
                         <input type="text" name="naziv" value="{{.Naziv}}" required

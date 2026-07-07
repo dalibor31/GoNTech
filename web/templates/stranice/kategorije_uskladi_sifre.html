@@ -1,0 +1,63 @@
+{{template "base" .}}
+
+{{define "naslov"}}Usklađivanje šifri — NTech{{end}}
+
+{{define "sadrzaj"}}
+<div class="kolona" style="gap:16px;">
+
+    <!-- nazad dugme -->
+    <div>
+        <a href="/magacin/kategorije" class="nazad-link" hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Nazad na kategorije
+        </a>
+    </div>
+
+    {{if not .Plan}}
+    <div class="kartica animiraj">
+        <p style="margin:0;color:var(--tekst-sekundarni);">Sve šifre su već usklađene sa prefiksima svojih kategorija.</p>
+    </div>
+    {{else}}
+    <div class="kartica animiraj" style="padding:0;overflow:hidden;">
+        <div style="padding:14px 16px;border-bottom:0.5px solid var(--ivica);">
+            <span style="font-size:14px;font-weight:500;color:var(--tekst-glavni);">Predložene izmene ({{len .Plan}})</span>
+            <p class="pomocni-tekst" style="margin:4px 0 0;">Ovo su artikli čija šifra ne odgovara prefiksu njihove kategorije. Pregledaj i potvrdi.</p>
+        </div>
+        <div style="overflow-x:auto;">
+            <table class="tabela">
+                <thead>
+                    <tr>
+                        <th>Artikal</th>
+                        <th>Kategorija</th>
+                        <th>Stara šifra</th>
+                        <th>Nova šifra</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Plan}}
+                    <tr>
+                        <td>{{.Naziv}}</td>
+                        <td>{{if .KategorijaNaziv}}{{.KategorijaNaziv}}{{else}}—{{end}}</td>
+                        <td>{{if .StaraSifra}}{{.StaraSifra}}{{else}}<em>(bez šifre)</em>{{end}}</td>
+                        <td><strong>{{.NovaSifra}}</strong></td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <form method="POST" action="/magacin/kategorije/uskladi-sifre" style="align-self:flex-end;">
+        {{range .Plan}}
+        <input type="hidden" name="artikal_id" value="{{.ArtikalID}}">
+        <input type="hidden" name="nova_sifra" value="{{.NovaSifra}}">
+        {{end}}
+        <button type="submit" class="btn-sekundarno" style="font-size:13px;padding:8px 20px;"
+            data-potvrda="Primeniti prikazane izmene šifri za {{len .Plan}} artikal(a)?">
+            Potvrdi izmenu
+        </button>
+    </form>
+    {{end}}
+
+</div>
+{{end}}

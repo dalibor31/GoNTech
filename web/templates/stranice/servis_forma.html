@@ -25,7 +25,11 @@
     <div class="poruka-greska greska-animacija" style="margin-bottom:16px;">{{.Greska}}</div>
     {{end}}
 
-    <form id="forma-nalog" method="POST" action="{{if .Izmena}}/servis/izmeni/{{.Nalog.ID}}{{else}}/servis/novi{{end}}"{{if .Izmena}} data-autosave="1"{{end}}>
+    <!-- data-autosave-custom (NE data-autosave) — ova forma ima SOPSTVENI auto-save skript
+     ispod (šalje X-Autosave header, prikazuje status "Čuvam.../Sačuvano ✓"). Generički
+     data-autosave mehanizam iz base.html bi se kačio na isti 'change' event i slao
+     DRUGI, konfliktni POST bez tog headera — otud namerno drugačije ime atributa. -->
+<form id="forma-nalog" method="POST" action="{{if .Izmena}}/servis/izmeni/{{.Nalog.ID}}{{else}}/servis/novi{{end}}"{{if .Izmena}} data-autosave-custom="1"{{end}}>
 
         <!-- broj naloga ide kao hidden — server ga je generisao, vraćamo ga pri POST-u -->
         <input type="hidden" name="broj_naloga" value="{{.Nalog.BrojNaloga}}">
@@ -311,7 +315,7 @@
     // a za select/date/checkbox na izbor — jedan slušalac pokriva sve tipove.
     (function () {
         var forma = document.getElementById('forma-nalog');
-        if (!forma || forma.dataset.autosave !== '1') return;
+        if (!forma || forma.dataset.autosaveCustom !== '1') return;
         var status = document.getElementById('autosave-status');
         var slanjeUToku = false;
         var ponoviPoZavrsetku = false;

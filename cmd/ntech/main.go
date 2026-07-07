@@ -392,6 +392,8 @@ func main() {
 		r.With(doz("kategorija.izmeni")).Post("/magacin/kategorije/izmeni/{id}", h.IzmeniKategoriju)
 		r.With(doz("kategorija.obrisi")).Post("/magacin/kategorije/obrisi/{id}", h.ObrisiKategoriju)
 		r.With(doz("artikal.izmeni")).Post("/magacin/kategorije/dodeli-sifre", h.DodeliSifreArtiklima)
+		r.With(doz("artikal.izmeni")).Get("/magacin/kategorije/uskladi-sifre", h.PregledUskladjivanjaSifri)
+		r.With(doz("artikal.izmeni")).Post("/magacin/kategorije/uskladi-sifre", h.PotvrdiUskladjivanjeSifri)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "nabavka.pregled")).Get("/nabavke", h.Nabavke)
 		r.With(ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "nabavka.pregled")).Get("/nabavke/nova", h.NovaNabavka)
 		r.With(doz("nabavka.dodaj")).Post("/nabavke/nova", h.SacuvajNabavku)
