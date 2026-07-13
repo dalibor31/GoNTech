@@ -262,6 +262,11 @@ func (k *Kartica) cmdVerifyPin(pin string) map[string]any {
 	return map[string]any{"status": "ok"}
 }
 
+// cmdResetAudit namerno NE zahteva pinUnesen: koristi ga isključivo admin panel
+// (BeResetAudit, već iza "podesavanja.izmeni" RBAC provere) preko sopstvene TCP
+// konekcije koja nikad ne zove verify_pin — zahtevanje PIN-a ovde bi trajno
+// pokvarilo dugme "Resetuj audit" u Podešavanjima. cmdSign ostaje PIN-zaštićen
+// jer njega poziva eksterni fiskalni klijent ("Fisk") koji prethodno zove verify_pin.
 func (k *Kartica) cmdResetAudit() map[string]any {
 	k.mu.Lock()
 	defer k.mu.Unlock()
@@ -273,6 +278,10 @@ func (k *Kartica) cmdResetAudit() map[string]any {
 func (k *Kartica) cmdSign(invoiceType, transactionType string, totalAmount float64) map[string]any {
 	k.mu.Lock()
 	defer k.mu.Unlock()
+
+	if !k.pinUnesen {
+		return map[string]any{"status": "error", "code": "2101", "message": "PIN nije verifikovan"}
+	}
 
 	// blokada limite
 	if k.unreadAmount >= k.Limit {

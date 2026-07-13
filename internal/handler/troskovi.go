@@ -38,7 +38,7 @@ func (h *Handler) Troskovi(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pretraga := r.URL.Query().Get("pretraga")
+	pretraga := ignorisiKratkuPretragu(r.URL.Query().Get("pretraga"))
 	troskovi, err := h.TroskoviRepo.Lista(r.Context(), db.TrosakFilter{Pretraga: pretraga})
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju troškova", http.StatusInternalServerError)

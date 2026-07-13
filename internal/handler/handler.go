@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"ntech/internal/config"
 	"ntech/internal/db"
@@ -276,9 +277,9 @@ func (h *Handler) popuniPodaciStranice(r *http.Request, podesavanja map[string]s
 // fiskalKlijent vraća inicijalizovan fiskalni HTTP klijent na osnovu trenutnih
 // podešavanja. Vraća nil ako pfr_url nije podešen. URL se čita dinamički pri
 // svakom pozivu — nema keširanja, pa promena podešavanja stupa na snagu odmah.
-func (h *Handler) fiskalKlijent() *fiskal.Klijent {
-	url, _ := sqlite.DohvatiPodesavanje(context.Background(), h.DB, "pfr_url")
-	key, _ := sqlite.DohvatiPodesavanje(context.Background(), h.DB, "pfr_api_key")
+func (h *Handler) fiskalKlijent(ctx context.Context) *fiskal.Klijent {
+	url, _ := sqlite.DohvatiPodesavanje(ctx, h.DB, "pfr_url")
+	key, _ := sqlite.DohvatiPodesavanje(ctx, h.DB, "pfr_api_key")
 	if url == "" {
 		return nil
 	}
@@ -286,6 +287,17 @@ func (h *Handler) fiskalKlijent() *fiskal.Klijent {
 		key = "test"
 	}
 	return fiskal.NoviKlijent(url, key)
+}
+
+// odvojenKontekstFiskalizacije vraća kontekst koji preživljava otkazivanje/prekid
+// originalnog HTTP zahteva (npr. korisnik zatvori tab, proxy timeout) — fiskalni
+// poziv ka PFR serveru i upis lokalnog zapisa moraju da se završe i kad browser
+// konekcija padne, jer je fiskalizacija nepovratna radnja (ponovni pokušaj bez
+// ovoga bi mogao izdati duplirani fiskalni račun). Vrednosti iz ctx (npr. korisnik
+// iz middleware) ostaju dostupne; samo se otkazivanje/deadline originalnog ctx
+// ignoriše u korist sopstvenog, ograničenog roka.
+func odvojenKontekstFiskalizacije(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.WithoutCancel(ctx), 20*time.Second)
 }
 
 // imeKasira vraća ime i prezime prijavljenog korisnika za polje "kasir" na fiskalnom

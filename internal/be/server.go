@@ -8,7 +8,18 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"time"
 )
+
+// maxKonekcija ograničava broj istovremenih TCP konekcija — bez ovoga bi klijent
+// koji samo otvori konekciju i ništa ne pošalje mogao da drži neograničen broj
+// gorutina/file descriptor-a (v. BUG.md #36).
+const maxKonekcija = 32
+
+// citanjeTimeout je rok po redu (komandi) koji se osvežava pre svakog čitanja —
+// klijent koji ćuti duže od ovoga se prekida umesto da drži konekciju zauvek.
+// var (ne const) da bi testovi mogli da ga privremeno skrate.
+var citanjeTimeout = 30 * time.Second
 
 // JeUkljucen vraća true ako emulator treba da se pokrene.
 // Prioritet: env var BE_ENABLED > DB podesavanje be_enabled > podrazumevano true.
@@ -35,6 +46,7 @@ func Pokreni(db *sql.DB) {
 	slog.Info("kartica emulator sluša", "addr", addr)
 
 	k := novaKartica(db)
+	sem := make(chan struct{}, maxKonekcija)
 
 	for {
 		conn, err := ln.Accept()
@@ -42,7 +54,16 @@ func Pokreni(db *sql.DB) {
 			slog.Warn("be: greška pri Accept()", "error", err)
 			continue
 		}
-		go obradiKonekciju(conn, k)
+		select {
+		case sem <- struct{}{}:
+			go func() {
+				defer func() { <-sem }()
+				obradiKonekciju(conn, k)
+			}()
+		default:
+			slog.Warn("be: dostignut limit konekcija, odbijam klijenta", "limit", maxKonekcija)
+			conn.Close()
+		}
 	}
 }
 
@@ -50,7 +71,14 @@ func obradiKonekciju(conn net.Conn, k *Kartica) {
 	defer conn.Close()
 
 	scanner := bufio.NewScanner(conn)
-	for scanner.Scan() {
+	for {
+		// SetDeadline (ne samo SetReadDeadline) da rok pokrije i odgovori() Write
+		// koji sledi posle čitanja — klijent koji šalje komande a nikad ne čita
+		// odgovore bi inače mogao da blokira Write zauvek i iscrpi semafor konekcija.
+		conn.SetDeadline(time.Now().Add(citanjeTimeout))
+		if !scanner.Scan() {
+			return
+		}
 		line := scanner.Bytes()
 		if len(line) == 0 {
 			continue

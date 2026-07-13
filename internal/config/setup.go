@@ -45,6 +45,29 @@ func nadjiLokalneAdrese() []string {
 	return adrese
 }
 
+// obradiSetupPotvrdi prima izabrani port sa setup stranice, upisuje ntech.env i
+// signalizira gotov kanalu da server može da se ugasi. Odbija nevažeći JSON i
+// portove van dozvoljenog opsega (v. BUG.md #38 — ranije se greška dekodiranja
+// tiho gutala i upisivala port 0).
+func obradiSetupPotvrdi(envFajl string, gotov chan<- struct{}) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		var telo struct {
+			Port int `json:"port"`
+		}
+		if err := json.NewDecoder(req.Body).Decode(&telo); err != nil || telo.Port <= 0 || telo.Port > 65535 {
+			http.Error(w, "Neispravan port", http.StatusBadRequest)
+			return
+		}
+		if err := SacuvajEnv(telo.Port, envFajl); err != nil {
+			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]bool{"ok": true})
+		close(gotov)
+	}
+}
+
 // PokreniSetup pokreće HTTP server za prvo podešavanje i čeka da korisnik završi
 func PokreniSetup(fsys fs.FS, envFajl string) {
 	port := NadjiSlobodanPort()
@@ -86,19 +109,7 @@ func PokreniSetup(fsys fs.FS, envFajl string) {
 	})
 
 	// prima izabrani port, upisuje ntech.env i signalizira završetak
-	r.Post("/setup/potvrdi", func(w http.ResponseWriter, req *http.Request) {
-		var telo struct {
-			Port int `json:"port"`
-		}
-		json.NewDecoder(req.Body).Decode(&telo)
-		if err := SacuvajEnv(telo.Port, envFajl); err != nil {
-			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]bool{"ok": true})
-		close(gotov)
-	})
+	r.Post("/setup/potvrdi", obradiSetupPotvrdi(envFajl, gotov))
 
 	srv := &http.Server{Addr: adresa, Handler: r}
 

@@ -31,6 +31,7 @@ ESIR_ID = "NTECH001"  # naš 8-char ESIR identifikator
 # Kartica emulator (NTech goroutine)
 BE_HOST = os.environ.get("BE_HOST", "127.0.0.1")
 BE_PORT = int(os.environ.get("BE_PORT", "4567"))
+BE_PIN  = os.environ.get("BE_PIN", "1234")
 
 DATA_DIR     = Path(__file__).parent / "data"
 INVOICES_DIR = DATA_DIR / "invoices"
@@ -84,6 +85,25 @@ def _ucitaj_fiskalni_pismo():
 
 # Pismo fiskalnog računa: 'latin' ili 'cyrillic'
 FISKALNI_PISMO = _ucitaj_fiskalni_pismo()
+
+
+_be_pin_verifikovan = False
+
+
+def _osiguraj_be_pin() -> bool:
+    """Verifikuje PIN kod kartica emulatora ako to još nije učinjeno u ovom
+    procesu — emulator (NTech, internal/be/kartica.go) posle be#34 odbija
+    "sign" dok se prethodno ne pozove "verify_pin". pinUnesen je stanje na
+    deljenoj Kartica instanci (globalno za sve TCP konekcije), pa je dovoljno
+    da se verifikacija uspešno izvrši jednom po životnom veku NTech procesa."""
+    global _be_pin_verifikovan
+    if _be_pin_verifikovan:
+        return True
+    resp = be_command({"command": "verify_pin", "pin": BE_PIN})
+    _be_pin_verifikovan = resp.get("status") == "ok"
+    if not _be_pin_verifikovan:
+        log(f"  ⚠️  automatska PIN verifikacija ka kartica emulatoru nije uspela: {resp}")
+    return _be_pin_verifikovan
 
 
 def be_command(cmd: dict) -> dict:
@@ -338,6 +358,7 @@ def _build_invoice_response(req, request_id):
 
     # Kartica emulator: podatke firme i potpis/brojače
     cert = be_command({"command": "certificate"})
+    _osiguraj_be_pin()
     sign = be_command({
         "command":          "sign",
         "invoice_type":     invoice_type,
@@ -347,6 +368,11 @@ def _build_invoice_response(req, request_id):
 
     if sign.get("status") == "blocked":
         raise RuntimeError(f"Kartica blokirana: {sign.get('message')}")
+    if sign.get("status") != "ok":
+        # npr. "error"/2101 (PIN nije verifikovan) — ne sme tiho da propadne u
+        # podrazumevane vrednosti counter=1 (v. BUG.md #34), jer bi to izdalo
+        # fiskalni broj koji se ponavlja iz računa u račun.
+        raise RuntimeError(f"Kartica potpis nije uspeo: {sign.get('message', sign.get('status'))}")
 
     jid          = cert.get("jid", ESIR_ID)
     total_cnt    = sign.get("counter", 1)

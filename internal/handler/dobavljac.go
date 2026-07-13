@@ -36,7 +36,7 @@ func (h *Handler) Dobavljaci(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pretraga := r.URL.Query().Get("pretraga")
+	pretraga := ignorisiKratkuPretragu(r.URL.Query().Get("pretraga"))
 
 	dobavljaci, err := h.DobavljaciRepo.Lista(r.Context(), pretraga)
 	if err != nil {

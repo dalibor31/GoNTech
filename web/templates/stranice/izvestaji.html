@@ -46,7 +46,7 @@
             <canvas id="grafikon-prihod"></canvas>
         </div>
 
-        <div style="overflow-x:auto;">
+        <div class="tabela-skrol">
             <table class="tabela">
                 <thead>
                     <tr style="border-bottom:0.5px solid var(--ivica);">
@@ -98,7 +98,7 @@
     <div class="kartica izv-sekcija animiraj">
         <div class="izv-naslov">Stari otvoreni nalozi — bez završetka duže od 14 dana</div>
         {{if .StariNalozi}}
-        <div style="overflow-x:auto;">
+        <div class="tabela-skrol">
             <table class="tabela">
                 <thead>
                     <tr style="border-bottom:0.5px solid var(--ivica);">
@@ -143,6 +143,7 @@
         <div class="kartica izv-grid-kartica animiraj">
             <div class="izv-naslov">Najprodavaniji artikli — top 10</div>
             {{if .TopArtikli}}
+            <div class="tabela-skrol">
             <table class="tabela">
                 <thead>
                     <tr style="border-bottom:0.5px solid var(--ivica);">
@@ -168,6 +169,7 @@
                     {{end}}
                 </tbody>
             </table>
+            </div>
             {{else}}
             <div style="font-size:13px;color:var(--tekst-sporedni);padding:8px 0;">Nema podataka o prodaji.</div>
             {{end}}
@@ -177,6 +179,7 @@
         <div class="kartica izv-grid-kartica animiraj">
             <div class="izv-naslov">Najvažniji klijenti — top 10</div>
             {{if .TopKlijenti}}
+            <div class="tabela-skrol">
             <table class="tabela">
                 <thead>
                     <tr style="border-bottom:0.5px solid var(--ivica);">
@@ -199,6 +202,7 @@
                     {{end}}
                 </tbody>
             </table>
+            </div>
             {{else}}
             <div style="font-size:13px;color:var(--tekst-sporedni);padding:8px 0;">Nema podataka o klijentima.</div>
             {{end}}

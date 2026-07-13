@@ -320,7 +320,7 @@ func (h *Handler) SacuvajProdaju(w http.ResponseWriter, r *http.Request) {
 	// Fiskalizacija — ako je modul uključen (best-effort: prodaja ostaje validna i bez fiskalizacije)
 	racunKreiran := false
 	if h.modulUkljucen(r.Context(), config.ModulFiskalizacija) {
-		if klijent := h.fiskalKlijent(); klijent != nil {
+		if klijent := h.fiskalKlijent(r.Context()); klijent != nil {
 			primljeno, _ := strconv.ParseFloat(strings.TrimSpace(r.FormValue("primljeno")), 64)
 			h.fiskalizujProdaju(r.Context(), id, klijent, primljeno)
 			if fr, _ := h.FiskalRepo.DohvatiPoProdaji(r.Context(), id); fr != nil {
@@ -729,6 +729,8 @@ func (h *Handler) stornirajProdaju(ctx context.Context, id int64, razlog string,
 // stornirajProdaju (odmah posle storna) i ručni retry (PokusajRefundProdaje) kad prvi
 // pokušaj padne. poreskiBrojKupca se koristi samo ako klijent nema PIB/JMBG na kartici.
 func (h *Handler) posaljiFiskalniRefundProdaje(ctx context.Context, id int64, poreskiBrojKupca string) error {
+	ctx, cancel := odvojenKontekstFiskalizacije(ctx)
+	defer cancel()
 	fr, err := h.FiskalRepo.DohvatiPoProdaji(ctx, id)
 	if err != nil {
 		return err
@@ -736,7 +738,7 @@ func (h *Handler) posaljiFiskalniRefundProdaje(ctx context.Context, id int64, po
 	if fr == nil || fr.Storniran || fr.TipTransakcije != "Sale" {
 		return nil
 	}
-	fk := h.fiskalKlijent()
+	fk := h.fiskalKlijent(ctx)
 	if fk == nil {
 		return errors.New("fiskalizacija nije podešena")
 	}
@@ -827,6 +829,8 @@ func (h *Handler) PokusajRefundProdaje(w http.ResponseWriter, r *http.Request) {
 // primljeno je iznos koji je kupac predao (za tačan povraćaj na računu) — 0 ako
 // nije poznat (npr. ručni retry), tada se šalje tačan dug bez povraćaja.
 func (h *Handler) fiskalizujProdaju(ctx context.Context, prodajaID int64, klijent *fiskal.Klijent, primljeno float64) {
+	ctx, cancel := odvojenKontekstFiskalizacije(ctx)
+	defer cancel()
 	nalog, err := h.ProdajaRepo.DohvatiID(ctx, prodajaID)
 	if err != nil {
 		slog.Error("fiskalizujProdaju: nije pronađen nalog", "prodaja_id", prodajaID, "error", err)
@@ -905,7 +909,7 @@ func (h *Handler) RetryFiskalizacijaProdaje(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	klijent := h.fiskalKlijent()
+	klijent := h.fiskalKlijent(r.Context())
 	if klijent == nil {
 		middleware.SetFlash(w, r, h.DB, "greska", "Fiskalni servis nije dostupan. Proverite vezu sa ESIR/PFR.")
 		http.Redirect(w, r, "/prodaja/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
