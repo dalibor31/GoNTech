@@ -613,9 +613,8 @@ func parseFormuProdaje(r *http.Request, validneStope map[float64]bool) (model.Pr
 
 // StornoProdaje stornira prodajni nalog: vraća artikle na stanje i označava nalog kao storniran
 func (h *Handler) StornoProdaje(w http.ResponseWriter, r *http.Request) {
-	k := middleware.KorisnikIzKonteksta(r.Context())
-	if !h.DozvoleRepo.ImaDozvolu(r.Context(), k.Uloga, "prodaja.storno") {
-		http.Error(w, "Nemate dozvolu za storniranje prodaje.", http.StatusForbidden)
+	k, ok := h.zahtevajDozvolu(w, r, "prodaja.storno")
+	if !ok {
 		return
 	}
 	id, err := parseID(chi.URLParam(r, "id"))

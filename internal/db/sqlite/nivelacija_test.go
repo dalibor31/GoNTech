@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"ntech/internal/db"
 	"ntech/internal/model"
 )
 
@@ -62,7 +63,7 @@ func TestPromeniCenu_NepostojeciArtikal(t *testing.T) {
 	nivRepo := NoviNivelacijaRepo(baza)
 
 	_, err := nivRepo.PromeniCenu(ctx, 9999, 500, "test", nil)
-	if !errors.Is(err, ErrArtikalNePostoji) {
+	if !errors.Is(err, db.ErrArtikalNePostoji) {
 		t.Errorf("greška = %v, očekivano ErrArtikalNePostoji", err)
 	}
 

@@ -10,7 +10,7 @@ import (
 	"unicode"
 
 	"ntech/internal/config"
-	ntechsqlite "ntech/internal/db/sqlite"
+	"ntech/internal/db/sqlite"
 	"ntech/internal/fiskal"
 	"ntech/internal/middleware"
 	"ntech/internal/model"
@@ -46,7 +46,7 @@ func (h *Handler) FiskalniPazar(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.zahtevajDozvolu(w, r, "fiskal.pazar"); !ok {
 		return
 	}
-	podesavanja, err := ntechsqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
 		return
