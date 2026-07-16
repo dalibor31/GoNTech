@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"ntech/internal/db"
 	"ntech/internal/model"
 )
 
@@ -20,9 +21,6 @@ func NoviNivelacijaRepo(db *sql.DB) *NivelacijaRepo {
 	return &NivelacijaRepo{db: db}
 }
 
-// ErrArtikalNePostoji se vraća kada se menja cena nepostojećeg artikla
-var ErrArtikalNePostoji = errors.New("artikal ne postoji")
-
 // PromeniCenu transakciono menja prodajnu cenu artikla i upisuje nivelacioni zapis.
 // Stara cena se čita iz baze unutar transakcije; izvor je "rucno".
 func (r *NivelacijaRepo) PromeniCenu(ctx context.Context, artikalID int64, novaCena float64, razlog string, korisnikID *int64) (*model.Nivelacija, error) {
@@ -35,7 +33,7 @@ func (r *NivelacijaRepo) PromeniCenu(ctx context.Context, artikalID int64, novaC
 	var stara float64
 	err = tx.QueryRowContext(ctx, "SELECT prodajna_cena FROM artikli WHERE id = ?", artikalID).Scan(&stara)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, ErrArtikalNePostoji
+		return nil, db.ErrArtikalNePostoji
 	}
 	if err != nil {
 		return nil, fmt.Errorf("ntech: NivelacijaRepo.PromeniCenu: čitanje cene: %w", err)

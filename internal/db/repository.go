@@ -29,6 +29,9 @@ var ErrArtikalDuplikatSifre = errors.New("ntech: šifra ili barkod artikla već 
 var ErrUslugaDuplikatSifre = errors.New("ntech: šifra usluge već postoji")
 var ErrTrosakDuplikatSifre = errors.New("ntech: šifra troška već postoji")
 
+// ErrArtikalNePostoji se vraća kada se menja cena nepostojećeg artikla
+var ErrArtikalNePostoji = errors.New("ntech: artikal ne postoji")
+
 // ArtikalRepository definiše operacije nad artiklima
 type ArtikalRepository interface {
 	Lista(ctx context.Context, filter ArtikalFilter) ([]model.ArtikalSaKategorijom, error)

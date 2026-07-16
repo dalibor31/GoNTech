@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"ntech/internal/db"
 	"ntech/internal/db/sqlite"
 	"ntech/internal/middleware"
 	"ntech/internal/model"
@@ -91,7 +92,7 @@ func (h *Handler) PromeniCenuArtikla(w http.ResponseWriter, r *http.Request) {
 	korisnikID := &k.ID
 	_, err = h.NivelacijaRepo.PromeniCenu(r.Context(), id, novaCena, razlog, korisnikID)
 	switch {
-	case errors.Is(err, sqlite.ErrArtikalNePostoji):
+	case errors.Is(err, db.ErrArtikalNePostoji):
 		middleware.SetFlash(w, r, h.DB, "greska", "Artikal nije pronađen.")
 		http.Redirect(w, r, "/magacin", http.StatusSeeOther)
 	case err != nil:
