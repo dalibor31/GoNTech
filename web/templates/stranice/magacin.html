@@ -317,7 +317,7 @@ function toggleCenaPdv() {
         <h3>Promeni prodajnu cenu</h3>
         <button type="submit" class="premesti-zatvori" aria-label="Zatvori">&times;</button>
     </form>
-    <form method="POST" action="/magacin/promeni-cenu/{{.ID}}" style="display:flex;flex-direction:column;gap:12px;padding:16px;">
+    <form method="POST" action="/magacin/promeni-cenu/{{.ID}}" data-refresh="#magacin-rezultati" style="display:flex;flex-direction:column;gap:12px;padding:16px;">
         <div style="font-size:13px;color:var(--tekst-sporedni);">Trenutna cena: <strong>{{dinariCeli .Cena}} din</strong></div>
         <div>
             <label class="polje-labela">Nova cena (din)</label>
