@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	ntechsqlite "ntech/internal/db/sqlite"
+	"ntech/internal/db/sqlite"
 	"ntech/internal/middleware"
 	"ntech/internal/model"
 )
@@ -28,7 +28,7 @@ func (h *Handler) AdminBlokiraneIP(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.zahtevajDozvolu(w, r, "bezbednost.odblokiraj"); !ok {
 		return
 	}
-	podesavanja, err := ntechsqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
 		return
