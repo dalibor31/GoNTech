@@ -324,6 +324,7 @@ func main() {
 		r.With(modul("fiskalizacija"), ntechmw.RequireDozvola(h.DozvoleRepo.ImaDozvolu, "fiskal.pazar")).Get("/fiskal/pazar", h.FiskalniPazar)
 		r.With(modul("fiskalizacija"), doz("fiskal.pazar")).Post("/fiskal/pazar/izvestaj", h.FiskalniIzvestaj)
 		r.With(modul("fiskalizacija"), doz("fiskal.zakljucenje")).Post("/fiskal/pazar/zakljuci", h.ZakljuciFiskalniDan)
+		r.With(modul("fiskalizacija"), doz("prodaja.dodaj")).Post("/fiskal/batch-fiskalizuj", h.BatchFiskalizacija)
 		r.With(pregledPodesavanja).Get("/admin/podesavanja/kalkulacija-pdv", h.PdvStope)
 		r.With(doz("podesavanja.izmeni")).Post("/podesavanja/pdv-stope/dodaj", h.DodajPdvStopu)
 		r.With(doz("podesavanja.izmeni")).Post("/podesavanja/pdv-stope/{id}/izmeni", h.IzmeniPdvStopu)

@@ -6,5 +6,5 @@ type ErrNedovoljnoKolicine struct {
 }
 
 func (e *ErrNedovoljnoKolicine) Error() string {
-	return "Nedovoljno količine na stanju za artikal: " + e.ArtikalNaziv
+	return "ntech: nedovoljno količine na stanju za artikal: " + e.ArtikalNaziv
 }

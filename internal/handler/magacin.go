@@ -53,7 +53,7 @@ func (h *Handler) magacinPrikaz(w http.ResponseWriter, r *http.Request, tip, str
 	}
 
 	filter := db.ArtikalFilter{
-		Pretraga:     r.URL.Query().Get("pretraga"),
+		Pretraga:     ignorisiKratkuPretragu(r.URL.Query().Get("pretraga")),
 		Tip:          tip,
 		SamoKriticni: r.URL.Query().Get("kriticni") == "1",
 		Arhivirani:   r.URL.Query().Get("arhivirani") == "1",

@@ -95,6 +95,7 @@ type PrazninaKnjigovodstva struct {
 	BezRefundaProdajaID   []int64 // ID-jevi stornirane prodaje bez refunda — za direktan link sa dashboard-a
 	BezRefundaServisID    []int64 // ID-jevi storniranih servisa bez refunda — za direktan link sa dashboard-a
 	SumnjiviDupli         int
+	SumnjiviFiskalID      []int64 // ID-jevi sumnjivih duplikata u fiskalizaciji — preskaču se u automatskoj batch fiskalizaciji
 }
 
 // BezKir vraća ukupan broj naloga (prodaja + servis) bez KIR upisa.

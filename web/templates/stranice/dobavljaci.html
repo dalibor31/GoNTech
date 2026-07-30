@@ -20,7 +20,7 @@
             <input type="text" name="pretraga" value="{{.Pretraga}}"
                 placeholder="Pretraži dobavljače..."
                 style="flex:1;"
-                hx-trigger="keyup[target.value.length==0||target.value.length>=3] changed delay:150ms, search"
+                hx-trigger="keyup changed delay:150ms, search"
                 hx-get="/dobavljaci" hx-target="#dobavljaci-rezultati" hx-select="#dobavljaci-rezultati" hx-swap="innerHTML" hx-push-url="true">
         </form>
     </div>

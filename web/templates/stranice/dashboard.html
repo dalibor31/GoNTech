@@ -51,7 +51,19 @@
 			<div style="display:flex;gap:8px;flex-wrap:wrap;">
 				{{ if gt .PrazninaKnjige.BezKir 0 }}<a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/pdv/kir" class="btn-sekundarno" style="font-size:13px;">KIR — pokreni usklađivanje</a>{{ end }}
 				{{ if gt .PrazninaKnjige.BezKpo 0 }}<a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/kpo" class="btn-sekundarno" style="font-size:13px;">KPO — pokreni usklađivanje</a>{{ end }}
-			</div>
+				{{ if or (gt .PrazninaKnjige.BezFiskalnogProdaja 0) (gt .PrazninaKnjige.BezFiskalnogServis 0) }}
+				<form method="POST" action="/fiskal/batch-fiskalizuj" style="margin:0;">
+					<input type="hidden" name="_csrf" value="{{ $.CsrfToken }}">
+					<button type="submit" class="btn-primarno" style="font-size:13px;">Fiskalizuj sve</button>
+				</form>
+					{{ end }}
+					{{ if and .PrazninaKnjige.SumnjiviFiskalID (gt (len .PrazninaKnjige.SumnjiviFiskalID) 0) }}
+					<div style="margin-top:4px;font-size:12px;opacity:0.7;">
+						⚠ Sumnjivi duplikati (preskaču se):
+						{{ range $i, $id := .PrazninaKnjige.SumnjiviFiskalID }}{{ if $i }}, {{ end }}<a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/prodaja/{{ $id }}" style="color:#b45309;text-decoration:line-through;">Prodaja #{{ $id }}</a>{{ end }}
+					</div>
+					{{ end }}
+				</div>
 		</div>
 	</div>
 {{ end }}

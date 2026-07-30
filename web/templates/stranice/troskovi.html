@@ -28,7 +28,7 @@
         <input type="text" name="pretraga" value="{{.Pretraga}}"
             placeholder="Pretraži troškove po nazivu ili šifri..."
             style="width:100%;"
-            hx-get="/troskovi" hx-trigger="keyup[target.value.length==0||target.value.length>=3] changed delay:150ms, search"
+            hx-get="/troskovi" hx-trigger="keyup changed delay:150ms, search"
             hx-target="#troskovi-rezultati" hx-select="#troskovi-rezultati" hx-swap="innerHTML" hx-push-url="true">
     </form>
 

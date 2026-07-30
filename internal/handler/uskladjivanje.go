@@ -2,9 +2,12 @@ package handler
 
 import (
 	"context"
+	"net/http"
+	"strconv"
 	"time"
 
 	appdb "ntech/internal/db"
+	"ntech/internal/middleware"
 	"ntech/internal/model"
 )
 
@@ -174,12 +177,14 @@ func (h *Handler) kirKandidatiServisa(ctx context.Context) ([]model.ServisniNalo
 // (double-submit) pa ih automatski backfill preskače.
 func (h *Handler) PraznineKnjigovodstva(ctx context.Context) (model.PrazninaKnjigovodstva, error) {
 	var p model.PrazninaKnjigovodstva
+	var kandidatiP []kandidatUskladjivanja
 
 	if h.modulUkljucen(ctx, "pdv") {
-		_, postojiMapP, kandidatiP, err := h.kirKandidatiProdaje(ctx)
+		_, postojiMapP, kp, err := h.kirKandidatiProdaje(ctx)
 		if err != nil {
 			return p, err
 		}
+		kandidatiP = kp
 		_, postojiMapS, kandidatiS, err := h.kirKandidatiServisa(ctx)
 		if err != nil {
 			return p, err
@@ -211,10 +216,11 @@ func (h *Handler) PraznineKnjigovodstva(ctx context.Context) (model.PrazninaKnji
 	}
 
 	if h.modulUkljucen(ctx, "kpo") {
-		_, postojiMapP, kandidatiP, err := h.kpoKandidatiProdaje(ctx)
+		_, postojiMapP, kp, err := h.kpoKandidatiProdaje(ctx)
 		if err != nil {
 			return p, err
 		}
+		kandidatiP = kp
 		_, postojiMapS, kandidatiS, _, err := h.kpoKandidatiServisa(ctx)
 		if err != nil {
 			return p, err
@@ -258,6 +264,17 @@ func (h *Handler) PraznineKnjigovodstva(ctx context.Context) (model.PrazninaKnji
 			}
 			p.BezFiskalnogServis = len(p.BezFiskalnogServisID)
 		}
+
+		// sumnjivi duplikati za fiskal — isti kandidati kao za KPO/PDV,
+		// ako su već učitani; ako ne, učitavamo iz prodaje (samo brojimo,
+		// preskaču se u automatskoj batch fiskalizaciji)
+		if len(kandidatiP) > 0 {
+			dupli := sumnjiviDuplikati(kandidatiP)
+			for id := range dupli {
+				p.SumnjiviFiskalID = append(p.SumnjiviFiskalID, id)
+			}
+		}
+
 		if idsP, idsS, err := h.stornoBezRefunda(ctx); err == nil {
 			p.BezRefundaProdajaID = idsP
 			p.BezRefundaServisID = idsS
@@ -329,4 +346,37 @@ func istKlijent(a, b *int64) bool {
 		return false
 	}
 	return *a == *b
+}
+
+// BatchFiskalizacija pokreće fiskalizaciju svih prodaja i servisa koji nemaju
+// fiskalni račun. Best-effort: ako neka fiskalizacija padne, nastavlja se.
+func (h *Handler) BatchFiskalizacija(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	klijent := h.fiskalKlijent(ctx)
+	if klijent == nil {
+		middleware.SetFlash(w, r, h.DB, "greska", "Fiskalni servis nije dostupan. Proverite vezu sa ESIR/PFR.")
+		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+		return
+	}
+
+	izdato := 0
+	if m, err := h.FiskalRepo.ProdajeBezFiskalnog(ctx); err == nil {
+		for id := range m {
+			h.fiskalizujProdaju(ctx, id, klijent, 0)
+			izdato++
+		}
+	}
+	if m, err := h.FiskalRepo.ServisiBezFiskalnog(ctx); err == nil {
+		for id := range m {
+			h.fiskalizujServis(ctx, id, klijent, "Gotovina", 0, 0)
+			izdato++
+		}
+	}
+
+	if izdato == 0 {
+		middleware.SetFlash(w, r, h.DB, "uspeh", "Svi nalozi već imaju fiskalni račun.")
+	} else {
+		middleware.SetFlash(w, r, h.DB, "uspeh", "Pokrenuta fiskalizacija za "+strconv.Itoa(izdato)+" naloga.")
+	}
+	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 }

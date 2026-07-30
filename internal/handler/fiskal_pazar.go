@@ -10,7 +10,7 @@ import (
 	"unicode"
 
 	"ntech/internal/config"
-	ntechsqlite "ntech/internal/db/sqlite"
+	"ntech/internal/db/sqlite"
 	"ntech/internal/fiskal"
 	"ntech/internal/middleware"
 	"ntech/internal/model"
@@ -46,7 +46,7 @@ func (h *Handler) FiskalniPazar(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.zahtevajDozvolu(w, r, "fiskal.pazar"); !ok {
 		return
 	}
-	podesavanja, err := ntechsqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
 		return
@@ -63,7 +63,7 @@ func (h *Handler) FiskalniPazar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	klijent := h.fiskalKlijent()
+	klijent := h.fiskalKlijent(r.Context())
 	if klijent == nil {
 		podaci.Greska = "Fiskalizacija nije podešena — unesi URL PFR servera u Podešavanja → Fiskalizacija."
 		h.renderujTemplate(w, "fiskal_pazar", podaci)
@@ -94,7 +94,7 @@ func (h *Handler) ZakljuciFiskalniDan(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/fiskal/pazar", http.StatusSeeOther)
 		return
 	}
-	klijent := h.fiskalKlijent()
+	klijent := h.fiskalKlijent(r.Context())
 	if klijent == nil {
 		middleware.SetFlash(w, r, h.DB, "greska", "Fiskalizacija nije podešena.")
 		http.Redirect(w, r, "/fiskal/pazar", http.StatusSeeOther)
@@ -127,7 +127,7 @@ func (h *Handler) FiskalniIzvestaj(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/fiskal/pazar", http.StatusSeeOther)
 		return
 	}
-	klijent := h.fiskalKlijent()
+	klijent := h.fiskalKlijent(r.Context())
 	if klijent == nil {
 		middleware.SetFlash(w, r, h.DB, "greska", "Fiskalizacija nije podešena.")
 		http.Redirect(w, r, "/fiskal/pazar", http.StatusSeeOther)

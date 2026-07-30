@@ -656,7 +656,7 @@ func (h *Handler) StornoNaloga(w http.ResponseWriter, r *http.Request) {
 
 	// fiskalni refund — best-effort
 	if originalniFiskal != nil {
-		if fk := h.fiskalKlijent(); fk != nil {
+		if fk := h.fiskalKlijent(ctx); fk != nil {
 			if err := h.refundujServis(ctx, id, fk, originalniFiskal.ID, originalniFiskal.PfrBroj, poreskiBrojKupca); err != nil {
 				slog.Error("fiskalni refund servisa nije uspeo", "servis_id", id, "error", err)
 			}
@@ -691,7 +691,7 @@ func (h *Handler) PokusajRefundServisa(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
 		return
 	}
-	fk := h.fiskalKlijent()
+	fk := h.fiskalKlijent(ctx)
 	if fk == nil {
 		middleware.SetFlash(w, r, h.DB, "greska", "Fiskalizacija nije podešena.")
 		http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
@@ -2447,7 +2447,7 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 		// konačan račun da zatvori avans i pokrene eventualni povraćaj viška.
 		if h.modulUkljucen(r.Context(), config.ModulFiskalizacija) {
 			if fr, _ := h.FiskalRepo.DohvatiPoServisuITip(r.Context(), id, "Normal", "Sale"); fr == nil {
-				klijent := h.fiskalKlijent()
+				klijent := h.fiskalKlijent(r.Context())
 				if klijent != nil {
 					h.fiskalizujServis(r.Context(), id, klijent, nacin, iznos, primljeno)
 				}
@@ -2512,6 +2512,8 @@ func (h *Handler) PromeniStatus(w http.ResponseWriter, r *http.Request) {
 // avansa ne fiskalizuje ceo iznos ponovo. Bez efekta ako razlika nije pozitivna
 // (smanjenje avansa se ne fiskalizuje automatski — v. razgovor o povraćaju).
 func (h *Handler) fiskalizujAvansServisa(ctx context.Context, servisID int64, noviAvans float64, nacinPlacanja string) {
+	ctx, cancel := odvojenKontekstFiskalizacije(ctx)
+	defer cancel()
 	if noviAvans <= 0 {
 		return
 	}
@@ -2527,7 +2529,7 @@ func (h *Handler) fiskalizujAvansServisa(ctx context.Context, servisID int64, no
 	if delta <= 0 {
 		return
 	}
-	klijent := h.fiskalKlijent()
+	klijent := h.fiskalKlijent(ctx)
 	if klijent == nil {
 		return
 	}
@@ -2580,6 +2582,8 @@ func (h *Handler) fiskalizujAvansServisa(ctx context.Context, servisID int64, no
 // na računu se iskazuje stvarno primljen iznos i PFR sam izračunava povraćaj
 // (isto kao fiskal.NapraviZahtev za Prodaju); 0 ili manje od duga → bez povraćaja.
 func (h *Handler) fiskalizujServis(ctx context.Context, servisID int64, klijent *fiskal.Klijent, nacinPlacanja string, iznos, primljeno float64) {
+	ctx, cancel := odvojenKontekstFiskalizacije(ctx)
+	defer cancel()
 	nalog, err := h.ServisRepo.DohvatiID(ctx, servisID)
 	if err != nil {
 		slog.Error("fiskalizujServis: nije pronađen nalog", "id", servisID, "error", err)
@@ -2782,6 +2786,8 @@ func stavkeFiskalnogServisa(radovi []model.ServisniRad, delovi []model.ServisniD
 // refunda; PraznineKnjigovodstva prati takve slučajeve preko stornoBezRefunda). Vraća
 // grešku i pozivaocu (npr. PokusajRefundServisa) da bi ručni retry mogao da je prikaže.
 func (h *Handler) refundujServis(ctx context.Context, servisID int64, klijent *fiskal.Klijent, originalniFiskalID int64, referentBroj, poreskiBrojKupca string) error {
+	ctx, cancel := odvojenKontekstFiskalizacije(ctx)
+	defer cancel()
 	nalog, err := h.ServisRepo.DohvatiID(ctx, servisID)
 	if err != nil {
 		slog.Error("refundujServis: nije pronađen nalog", "id", servisID, "error", err)
@@ -2902,7 +2908,7 @@ func (h *Handler) RetryFiskalizacija(w http.ResponseWriter, r *http.Request) {
 	// Naplaceno==0 je dozvoljeno kad avans u potpunosti pokriva cenu — konačan
 	// račun se i tada mora izdati da zatvori avans (i eventualno vrati višak)
 
-	klijent := h.fiskalKlijent()
+	klijent := h.fiskalKlijent(r.Context())
 	if klijent == nil {
 		middleware.SetFlash(w, r, h.DB, "greska", "Fiskalni servis nije dostupan. Proverite vezu sa ESIR/PFR.")
 		http.Redirect(w, r, "/servis/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
@@ -2974,10 +2980,11 @@ func (h *Handler) StampaFiskalnog(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Fiskalni račun</title>
 <style>
 *{box-sizing:border-box;}
-body{font-family:monospace;font-size:12px;padding:20px;max-width:max-content;margin:0 auto;}
-pre{white-space:pre;margin:0;padding:0;font-family:inherit;font-size:inherit;display:block;}
-.ntech-razdvajac{margin:24px 0;border-top:2px dashed #999;padding-top:24px;}
-@media print{body{font-size:11px;padding:10px;}.ntech-razdvajac{page-break-before:always;}}
+body{font-family:monospace;font-size:10px;padding:20px;max-width:max-content;margin:0 auto;}
+pre{white-space:pre;margin:0;padding:0;font-family:inherit;font-size:inherit;}
+pre img{width:53.5mm;height:auto;}
+@media screen{pre img{width:289px;}}
+@media print{body{font-size:7px;padding:10px;}.ntech-razdvajac{page-break-before:always;}}
 </style></head><body>`)
 
 	const qrPlaceholder = "{{{{QR-KOD}}}}"
@@ -3001,13 +3008,9 @@ pre{white-space:pre;margin:0;padding:0;font-family:inherit;font-size:inherit;dis
 
 		fmt.Fprint(w, `<pre>`)
 		fmt.Fprint(w, pre)
-		fmt.Fprint(w, `</pre>`)
-
 		if hasQR && fr.QRKod != "" {
-			fmt.Fprintf(w, `<div style="margin:10px 0;"><img src="data:image/png;base64,%s" style="display:block;margin:0 auto;width:72mm;height:72mm;"></div>`, fr.QRKod)
+			fmt.Fprintf(w, `<img src="data:image/png;base64,%s">`, fr.QRKod)
 		}
-
-		fmt.Fprint(w, `<pre>`)
 		fmt.Fprint(w, post)
 		fmt.Fprint(w, `</pre>`)
 	}

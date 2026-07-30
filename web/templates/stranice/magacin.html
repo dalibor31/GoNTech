@@ -40,7 +40,7 @@
         <input type="text" name="pretraga" value="{{.Filter.Pretraga}}"
             placeholder="Pretraži po nazivu, šifri, barkodu, lokaciji..."
             style="width:100%;"
-            hx-trigger="keyup[target.value.length==0||target.value.length>=3] changed delay:150ms, search"
+            hx-trigger="keyup changed delay:150ms, search"
             hx-get="{{.OsnovniUrl}}" hx-include="closest form" hx-target="#magacin-rezultati" hx-select="#magacin-rezultati" hx-swap="innerHTML" hx-push-url="true">
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
             <select name="kategorija" style="flex:1;min-width:140px;"
@@ -317,7 +317,7 @@ function toggleCenaPdv() {
         <h3>Promeni prodajnu cenu</h3>
         <button type="submit" class="premesti-zatvori" aria-label="Zatvori">&times;</button>
     </form>
-    <form method="POST" action="/magacin/promeni-cenu/{{.ID}}" style="display:flex;flex-direction:column;gap:12px;padding:16px;">
+    <form method="POST" action="/magacin/promeni-cenu/{{.ID}}" data-refresh="#magacin-rezultati" style="display:flex;flex-direction:column;gap:12px;padding:16px;">
         <div style="font-size:13px;color:var(--tekst-sporedni);">Trenutna cena: <strong>{{dinariCeli .Cena}} din</strong></div>
         <div>
             <label class="polje-labela">Nova cena (din)</label>

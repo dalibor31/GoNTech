@@ -21,6 +21,18 @@ window.addEventListener('pageshow', function(e) {
     });
 });
 
+// otvara nativni date/time picker na BILO KOJI klik unutar polja, ne samo na
+// malu kalendar/sat ikonicu koju browser crta — u Firefoxu (i na nekim
+// sistemima/rezolucijama) ta ikonica ima vrlo uzak klik-hitbox, pa korisnik
+// klikne tik pored nje i pomisli da "klik na kalendar ne radi ništa".
+// showPicker() zahteva user-gesture kontekst — click handler to ispunjava.
+document.addEventListener('click', function(e) {
+    var el = e.target.closest('input[type="date"], input[type="time"], input[type="datetime-local"], input[type="month"], input[type="week"]');
+    if (el && typeof el.showPicker === 'function') {
+        try { el.showPicker(); } catch (err) { /* readonly/disabled i sl. — ignoriši */ }
+    }
+});
+
 // otvara/zatvara podmeni u sidebaru — radi i kad je sidebar skupljen i kad je proširen
 // (sidebar ostaje u zatečenom stanju). U isto vreme sme biti otvoren samo jedan podmeni.
 function ntechTogglePodmeni(btn) {

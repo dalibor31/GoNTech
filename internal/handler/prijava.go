@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"ntech/internal/auth"
-	ntechsqlite "ntech/internal/db/sqlite"
+	"ntech/internal/db/sqlite"
 	"ntech/internal/middleware"
 )
 
@@ -39,7 +39,7 @@ func (h *Handler) PrikazPrijave(w http.ResponseWriter, r *http.Request) {
 	loginBlurPozadine := "0"
 	loginBlurKartice := "12"
 	loginZatamnjenjeKartice := "0"
-	if podesavanja, err := ntechsqlite.DohvatiSvaPodesavanja(context.Background(), h.DB); err == nil {
+	if podesavanja, err := sqlite.DohvatiSvaPodesavanja(context.Background(), h.DB); err == nil {
 		loginPozadina = podesavanja["login_pozadina"]
 		if v := podesavanja["login_pozadina_opacity"]; v != "" {
 			loginOpacity = v

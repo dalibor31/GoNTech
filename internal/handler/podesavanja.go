@@ -24,7 +24,7 @@ import (
 
 	"ntech/internal/auth"
 	"ntech/internal/db"
-	ntechsqlite "ntech/internal/db/sqlite"
+	"ntech/internal/db/sqlite"
 	"ntech/internal/middleware"
 	"ntech/internal/model"
 )
@@ -287,6 +287,7 @@ type PodaciPodesavanja struct {
 	PfrUrl                          string
 	PfrTip                          string
 	PfrKasir                        string
+	PfrApiKey                       string
 	VerifyHost                      string
 	BePin                           string
 	BeLimit                         string
@@ -314,7 +315,7 @@ func (h *Handler) Podesavanja(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.zahtevajDozvolu(w, r, "podesavanja.pregled"); !ok {
 		return
 	}
-	podesavanja, err := ntechsqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju podešavanja", http.StatusInternalServerError)
 		return
@@ -450,7 +451,7 @@ func (h *Handler) VratiBackup(w http.ResponseWriter, r *http.Request) {
 		os.Remove(h.PutanjaBaze + "-wal")
 		os.Remove(h.PutanjaBaze + "-shm")
 
-		novaDB, err := ntechsqlite.OtvoriDB(h.PutanjaBaze)
+		novaDB, err := sqlite.OtvoriDB(h.PutanjaBaze)
 		if err != nil {
 			slog.Error("vrati backup: greška pri otvaranju nove baze (potreban restart)", "error", err)
 			return
@@ -567,7 +568,7 @@ func (h *Handler) UvezizBazu(w http.ResponseWriter, r *http.Request) {
 		os.Remove(h.PutanjaBaze + "-wal")
 		os.Remove(h.PutanjaBaze + "-shm")
 
-		novaDB, err := ntechsqlite.OtvoriDB(h.PutanjaBaze)
+		novaDB, err := sqlite.OtvoriDB(h.PutanjaBaze)
 		if err != nil {
 			slog.Error("uvezi bazu: greška pri otvaranju nove baze (potreban restart)", "error", err)
 			return
@@ -689,6 +690,7 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 		"pfr_tip":        r.FormValue("pfr_tip"),
 		"pfr_kasir":      r.FormValue("pfr_kasir"),
 		"verify_host":    r.FormValue("verify_host"),
+		"pfr_api_key":    r.FormValue("pfr_api_key"),
 		"be_pin":         r.FormValue("be_pin"),
 		"be_limit":       r.FormValue("be_limit"),
 		"be_enabled":     r.FormValue("be_enabled"),
@@ -699,7 +701,7 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 		if vrednost == "" {
 			continue
 		}
-		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, kljuc, vrednost); err != nil {
+		if err := sqlite.SacuvajPodesavanje(r.Context(), h.DB, kljuc, vrednost); err != nil {
 			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
 			return
 		}
@@ -728,7 +730,7 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, sledeci, http.StatusSeeOther)
 			return
 		}
-		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "backup_interval_sati", strconv.Itoa(n)); err != nil {
+		if err := sqlite.SacuvajPodesavanje(r.Context(), h.DB, "backup_interval_sati", strconv.Itoa(n)); err != nil {
 			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
 			return
 		}
@@ -740,7 +742,7 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, sledeci, http.StatusSeeOther)
 			return
 		}
-		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "backup_broj_kopija", strconv.Itoa(n)); err != nil {
+		if err := sqlite.SacuvajPodesavanje(r.Context(), h.DB, "backup_broj_kopija", strconv.Itoa(n)); err != nil {
 			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
 			return
 		}
@@ -754,7 +756,7 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, sledeci, http.StatusSeeOther)
 			return
 		}
-		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "kalkulacija_marza", strconv.FormatFloat(marza, 'f', -1, 64)); err != nil {
+		if err := sqlite.SacuvajPodesavanje(r.Context(), h.DB, "kalkulacija_marza", strconv.FormatFloat(marza, 'f', -1, 64)); err != nil {
 			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
 			return
 		}
@@ -768,7 +770,7 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, sledeci, http.StatusSeeOther)
 			return
 		}
-		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "servis_garancija_dana", strconv.Itoa(n)); err != nil {
+		if err := sqlite.SacuvajPodesavanje(r.Context(), h.DB, "servis_garancija_dana", strconv.Itoa(n)); err != nil {
 			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
 			return
 		}
@@ -782,7 +784,7 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, sledeci, http.StatusSeeOther)
 			return
 		}
-		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "servis_cena_dijagnostike", strconv.FormatFloat(cena, 'f', -1, 64)); err != nil {
+		if err := sqlite.SacuvajPodesavanje(r.Context(), h.DB, "servis_cena_dijagnostike", strconv.FormatFloat(cena, 'f', -1, 64)); err != nil {
 			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
 			return
 		}
@@ -796,7 +798,7 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, sledeci, http.StatusSeeOther)
 			return
 		}
-		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "predracun_rok_dana", strconv.Itoa(n)); err != nil {
+		if err := sqlite.SacuvajPodesavanje(r.Context(), h.DB, "predracun_rok_dana", strconv.Itoa(n)); err != nil {
 			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
 			return
 		}
@@ -809,7 +811,7 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, sledeci, http.StatusSeeOther)
 			return
 		}
-		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "predvidjen_rok_dana", strconv.Itoa(n)); err != nil {
+		if err := sqlite.SacuvajPodesavanje(r.Context(), h.DB, "predvidjen_rok_dana", strconv.Itoa(n)); err != nil {
 			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
 			return
 		}
@@ -819,7 +821,7 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 	// pa korisnik može i da skrati ili isprazni tekst
 	if _, ima := r.Form["servis_uslovi"]; ima {
 		uslovi := strings.TrimSpace(r.FormValue("servis_uslovi"))
-		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "servis_uslovi", uslovi); err != nil {
+		if err := sqlite.SacuvajPodesavanje(r.Context(), h.DB, "servis_uslovi", uslovi); err != nil {
 			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
 			return
 		}
@@ -828,7 +830,7 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 	// klauzula na predračunu (slobodan tekst); čuva se uvek
 	if _, ima := r.Form["servis_klauzula_predracuna"]; ima {
 		klauzula := strings.TrimSpace(r.FormValue("servis_klauzula_predracuna"))
-		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "servis_klauzula_predracuna", klauzula); err != nil {
+		if err := sqlite.SacuvajPodesavanje(r.Context(), h.DB, "servis_klauzula_predracuna", klauzula); err != nil {
 			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
 			return
 		}
@@ -837,7 +839,7 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 	// bazna adresa za QR kod (npr. http://192.168.1.25:3000); prazno → koristi se host iz zahteva
 	if _, ima := r.Form["qr_bazni_url"]; ima {
 		bazni := strings.TrimSpace(r.FormValue("qr_bazni_url"))
-		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "qr_bazni_url", bazni); err != nil {
+		if err := sqlite.SacuvajPodesavanje(r.Context(), h.DB, "qr_bazni_url", bazni); err != nil {
 			http.Error(w, "Greška pri čuvanju podešavanja", http.StatusInternalServerError)
 			return
 		}
@@ -943,7 +945,7 @@ func (h *Handler) OtpremiLogo(w http.ResponseWriter, r *http.Request) {
 
 	// timestamp u URL-u sprečava browser da koristi staru keširanu sliku
 	putanja := fmt.Sprintf("/static/uploads/logo%s?v=%d", ext, time.Now().Unix())
-	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "logo_putanja", putanja); err != nil {
+	if err := sqlite.SacuvajPodesavanje(r.Context(), h.DB, "logo_putanja", putanja); err != nil {
 		slog.Error("upload loga: greška pri čuvanju putanje", "error", err)
 		http.Redirect(w, r, "/admin/podesavanja/opste?logo_greska=Greška+pri+čuvanju+podešavanja", http.StatusSeeOther)
 		return
@@ -961,7 +963,7 @@ func (h *Handler) UkloniLogo(w http.ResponseWriter, r *http.Request) {
 	for _, s := range stari {
 		os.Remove(s)
 	}
-	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "logo_putanja", ""); err != nil {
+	if err := sqlite.SacuvajPodesavanje(r.Context(), h.DB, "logo_putanja", ""); err != nil {
 		slog.Error("ukloni logo: greška pri čuvanju", "error", err)
 	}
 	http.Redirect(w, r, "/admin/podesavanja/opste?sacuvano=1", http.StatusSeeOther)
@@ -1047,7 +1049,7 @@ func (h *Handler) OtpremiLoginPozadinu(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// briše staru pozadinu sa diska ako postoji
-	staraPodesavanja, _ := ntechsqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	staraPodesavanja, _ := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	if stara := staraPodesavanja["login_pozadina"]; stara != "" {
 		// putanja u bazi je oblika /static/uploads/ime.ext?v=..., izvlačimo samo ime fajla
 		deoBezverzije, _, _ := strings.Cut(stara, "?")
@@ -1081,7 +1083,7 @@ func (h *Handler) OtpremiLoginPozadinu(w http.ResponseWriter, r *http.Request) {
 	}
 
 	putanja := fmt.Sprintf("/static/uploads/%s?v=%d", novoIme, time.Now().Unix())
-	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "login_pozadina", putanja); err != nil {
+	if err := sqlite.SacuvajPodesavanje(r.Context(), h.DB, "login_pozadina", putanja); err != nil {
 		slog.Error("upload login pozadine: greška pri čuvanju putanje", "error", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju podešavanja.")
 		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
@@ -1098,7 +1100,7 @@ func (h *Handler) UkloniLoginPozadinu(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	podesavanja, err := ntechsqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	if err == nil {
 		if stara := podesavanja["login_pozadina"]; stara != "" {
 			deoBezverzije, _, _ := strings.Cut(stara, "?")
@@ -1107,7 +1109,7 @@ func (h *Handler) UkloniLoginPozadinu(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, "login_pozadina", ""); err != nil {
+	if err := sqlite.SacuvajPodesavanje(r.Context(), h.DB, "login_pozadina", ""); err != nil {
 		slog.Error("ukloni login pozadinu: greška pri čuvanju", "error", err)
 		middleware.SetFlash(w, r, h.DB, "greska", "Greška pri uklanjanju slike.")
 		http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
@@ -1164,7 +1166,7 @@ func (h *Handler) SacuvajLoginPozadinaStilove(w http.ResponseWriter, r *http.Req
 		"login_pozadina_opacity":             opacityStr,
 		"login_pozadina_zatamnjenje_kartice": zatamnjenjeKarticeStr,
 	} {
-		if err := ntechsqlite.SacuvajPodesavanje(r.Context(), h.DB, kljuc, vrednost); err != nil {
+		if err := sqlite.SacuvajPodesavanje(r.Context(), h.DB, kljuc, vrednost); err != nil {
 			slog.Error("greška pri čuvanju stila login pozadine", "kljuc", kljuc, "error", err)
 			middleware.SetFlash(w, r, h.DB, "greska", "Greška pri čuvanju podešavanja.")
 			http.Redirect(w, r, "/admin/podesavanja/izgled", http.StatusSeeOther)
@@ -1177,7 +1179,7 @@ func (h *Handler) SacuvajLoginPozadinaStilove(w http.ResponseWriter, r *http.Req
 
 // napuniPodaciPodesavanja učitava sva podešavanja i kreira strukturu za template
 func (h *Handler) napuniPodaciPodesavanja(r *http.Request, naslov string) (PodaciPodesavanja, error) {
-	podesavanja, err := ntechsqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+	podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 	if err != nil {
 		return PodaciPodesavanja{}, err
 	}
@@ -1225,6 +1227,7 @@ func (h *Handler) napuniPodaciPodesavanja(r *http.Request, naslov string) (Podac
 		PfrUrl:                          vrednostIliDefault(podesavanja, "pfr_url", "http://127.0.0.1:4566"),
 		PfrTip:                          vrednostIliDefault(podesavanja, "pfr_tip", "teron"),
 		PfrKasir:                        podesavanja["pfr_kasir"],
+		PfrApiKey:                       podesavanja["pfr_api_key"],
 		VerifyHost:                      podesavanja["verify_host"],
 		BePin:                           vrednostIliDefault(podesavanja, "be_pin", "1234"),
 		BeLimit:                         vrednostIliDefault(podesavanja, "be_limit", "500000"),
@@ -1282,7 +1285,7 @@ func (h *Handler) TestFiskalizacije(w http.ResponseWriter, r *http.Request) {
 	}
 	pfrURL := strings.TrimSpace(r.FormValue("pfr_url"))
 	if pfrURL == "" {
-		podesavanja, err := ntechsqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
+		podesavanja, err := sqlite.DohvatiSvaPodesavanja(r.Context(), h.DB)
 		if err != nil {
 			http.Error(w, "Greška", http.StatusInternalServerError)
 			return

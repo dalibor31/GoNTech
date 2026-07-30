@@ -54,6 +54,14 @@
                     </div>
                 </div>
 
+                <div>
+                    <label for="pfr_api_key" class="polje-labela">API ključ</label>
+                    <input type="text" id="pfr_api_key" name="pfr_api_key" value="{{.PfrApiKey}}"
+                        placeholder="mock-api-key-0000"
+                        style="width:100%;padding:8px 12px;background:var(--pozadina);border:0.5px solid var(--ivica);border-radius:8px;color:var(--tekst-glavni);font-size:14px;box-sizing:border-box;font-family:monospace;">
+                    <div class="pomocni-tekst" style="margin-top:4px;">Bearer token koji NTech šalje PFR serveru. Mock podrazumevano: <code>mock-api-key-0000</code>.</div>
+                </div>
+
                 <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
                     <button type="submit"
                         style="padding:9px 18px;background:var(--sb-akcent);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:500;cursor:pointer;">

@@ -39,7 +39,7 @@ func (h *Handler) Usluge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pretraga := r.URL.Query().Get("pretraga")
+	pretraga := ignorisiKratkuPretragu(r.URL.Query().Get("pretraga"))
 	usluge, err := h.UslugeRepo.Lista(r.Context(), db.UslugaFilter{Pretraga: pretraga})
 	if err != nil {
 		http.Error(w, "Greška pri učitavanju usluga", http.StatusInternalServerError)
