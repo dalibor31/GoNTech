@@ -287,6 +287,7 @@ type PodaciPodesavanja struct {
 	PfrUrl                          string
 	PfrTip                          string
 	PfrKasir                        string
+	PfrApiKey                       string
 	VerifyHost                      string
 	BePin                           string
 	BeLimit                         string
@@ -689,6 +690,7 @@ func (h *Handler) SacuvajPodesavanja(w http.ResponseWriter, r *http.Request) {
 		"pfr_tip":        r.FormValue("pfr_tip"),
 		"pfr_kasir":      r.FormValue("pfr_kasir"),
 		"verify_host":    r.FormValue("verify_host"),
+		"pfr_api_key":    r.FormValue("pfr_api_key"),
 		"be_pin":         r.FormValue("be_pin"),
 		"be_limit":       r.FormValue("be_limit"),
 		"be_enabled":     r.FormValue("be_enabled"),
@@ -1225,6 +1227,7 @@ func (h *Handler) napuniPodaciPodesavanja(r *http.Request, naslov string) (Podac
 		PfrUrl:                          vrednostIliDefault(podesavanja, "pfr_url", "http://127.0.0.1:4566"),
 		PfrTip:                          vrednostIliDefault(podesavanja, "pfr_tip", "teron"),
 		PfrKasir:                        podesavanja["pfr_kasir"],
+		PfrApiKey:                       podesavanja["pfr_api_key"],
 		VerifyHost:                      podesavanja["verify_host"],
 		BePin:                           vrednostIliDefault(podesavanja, "be_pin", "1234"),
 		BeLimit:                         vrednostIliDefault(podesavanja, "be_limit", "500000"),

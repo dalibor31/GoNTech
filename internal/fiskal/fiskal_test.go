@@ -89,7 +89,7 @@ func TestIzdajRacunKontekstIstekao(t *testing.T) {
 }
 
 func TestIzdajRacunPrezivljavaOtkazivanjeOriginalnogKonteksta(t *testing.T) {
-	// simulira #35 iz BUG.md: HTTP handler-ov r.Context() se otkaže (npr. klijent
+	// simulira: HTTP handler-ov r.Context() se otkaže (npr. klijent
 	// zatvori konekciju), ali fiskalni poziv nastavlja preko odvojenog konteksta.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(30 * time.Millisecond)

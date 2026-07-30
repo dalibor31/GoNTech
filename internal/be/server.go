@@ -13,7 +13,7 @@ import (
 
 // maxKonekcija ograničava broj istovremenih TCP konekcija — bez ovoga bi klijent
 // koji samo otvori konekciju i ništa ne pošalje mogao da drži neograničen broj
-// gorutina/file descriptor-a (v. BUG.md #36).
+// gorutina/file descriptor-a.
 const maxKonekcija = 32
 
 // citanjeTimeout je rok po redu (komandi) koji se osvežava pre svakog čitanja —

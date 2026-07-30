@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// TestObradiKonekcijaZatvaraNakonTisine proverava ispravku BUG.md #36 — konekcija
+// TestObradiKonekcijaZatvaraNakonTisine proverava — konekcija
 // koja ništa ne pošalje mora biti zatvorena posle citanjeTimeout-a, ne držana
 // zauvek.
 func TestObradiKonekcijaZatvaraNakonTisine(t *testing.T) {

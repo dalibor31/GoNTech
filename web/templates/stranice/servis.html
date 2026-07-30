@@ -48,7 +48,7 @@
             <div class="kanban-kartice">
                 {{range $.Nalozi}}
                 {{if eq .Status $status}}
-                <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/servis/{{.ID}}" class="kartica kanban-karta{{if .ImaPredlog}} kanban-ceka-odobrenje{{end}}">
+                <a hx-boost="true" hx-target="#glavni-sadrzaj" hx-select="#glavni-sadrzaj" hx-swap="outerHTML" href="/servis/{{.ID}}" class="kartica kanban-karta animiraj{{if .ImaPredlog}} kanban-ceka-odobrenje{{end}}">
                     <div style="display:flex;align-items:center;gap:6px;">
                         {{if .ImaPredlog}}<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0;" title="Čeka odobrenje klijenta"></span>{{end}}
                         <span style="font-size:14px;font-weight:500;color:var(--sb-akcent);font-family:monospace;">{{.BrojNaloga}}</span>

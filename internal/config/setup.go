@@ -47,7 +47,7 @@ func nadjiLokalneAdrese() []string {
 
 // obradiSetupPotvrdi prima izabrani port sa setup stranice, upisuje ntech.env i
 // signalizira gotov kanalu da server može da se ugasi. Odbija nevažeći JSON i
-// portove van dozvoljenog opsega (v. BUG.md #38 — ranije se greška dekodiranja
+// portove van dozvoljenog opsega (ranije se greška dekodiranja
 // tiho gutala i upisivala port 0).
 func obradiSetupPotvrdi(envFajl string, gotov chan<- struct{}) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {

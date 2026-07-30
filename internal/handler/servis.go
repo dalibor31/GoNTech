@@ -2980,10 +2980,11 @@ func (h *Handler) StampaFiskalnog(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Fiskalni račun</title>
 <style>
 *{box-sizing:border-box;}
-body{font-family:monospace;font-size:12px;padding:20px;max-width:max-content;margin:0 auto;}
-pre{white-space:pre;margin:0;padding:0;font-family:inherit;font-size:inherit;display:block;}
-.ntech-razdvajac{margin:24px 0;border-top:2px dashed #999;padding-top:24px;}
-@media print{body{font-size:11px;padding:10px;}.ntech-razdvajac{page-break-before:always;}}
+body{font-family:monospace;font-size:10px;padding:20px;max-width:max-content;margin:0 auto;}
+pre{white-space:pre;margin:0;padding:0;font-family:inherit;font-size:inherit;}
+pre img{width:53.5mm;height:auto;}
+@media screen{pre img{width:289px;}}
+@media print{body{font-size:7px;padding:10px;}.ntech-razdvajac{page-break-before:always;}}
 </style></head><body>`)
 
 	const qrPlaceholder = "{{{{QR-KOD}}}}"
@@ -3007,13 +3008,9 @@ pre{white-space:pre;margin:0;padding:0;font-family:inherit;font-size:inherit;dis
 
 		fmt.Fprint(w, `<pre>`)
 		fmt.Fprint(w, pre)
-		fmt.Fprint(w, `</pre>`)
-
 		if hasQR && fr.QRKod != "" {
-			fmt.Fprintf(w, `<div style="margin:10px 0;"><img src="data:image/png;base64,%s" style="display:block;margin:0 auto;width:72mm;height:72mm;"></div>`, fr.QRKod)
+			fmt.Fprintf(w, `<img src="data:image/png;base64,%s">`, fr.QRKod)
 		}
-
-		fmt.Fprint(w, `<pre>`)
 		fmt.Fprint(w, post)
 		fmt.Fprint(w, `</pre>`)
 	}

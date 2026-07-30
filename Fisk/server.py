@@ -227,7 +227,10 @@ def log(msg):
 # ── QR ──────────────────────────────────────────────────────
 
 def generate_qr(url):
-    img = qrcode.make(url)
+    qr = qrcode.QRCode(box_size=4, border=2)
+    qr.add_data(url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return base64.b64encode(buf.getvalue()).decode("utf-8")
@@ -366,12 +369,22 @@ def _build_invoice_response(req, request_id):
         "total_amount":     total_amount,
     })
 
+    # Ako je BE restovan posle naše PIN verifikacije, pinUnesen je opet False —
+    # resetuj flag, ponovo verifikuj PIN, pa probaj sign još jednom.
+    if sign.get("status") != "ok" and "PIN" in (sign.get("message") or ""):
+        global _be_pin_verifikovan
+        _be_pin_verifikovan = False
+        _osiguraj_be_pin()
+        sign = be_command({
+            "command":          "sign",
+            "invoice_type":     invoice_type,
+            "transaction_type": transaction_type,
+            "total_amount":     total_amount,
+        })
+
     if sign.get("status") == "blocked":
         raise RuntimeError(f"Kartica blokirana: {sign.get('message')}")
     if sign.get("status") != "ok":
-        # npr. "error"/2101 (PIN nije verifikovan) — ne sme tiho da propadne u
-        # podrazumevane vrednosti counter=1 (v. BUG.md #34), jer bi to izdalo
-        # fiskalni broj koji se ponavlja iz računa u račun.
         raise RuntimeError(f"Kartica potpis nije uspeo: {sign.get('message', sign.get('status'))}")
 
     jid          = cert.get("jid", ESIR_ID)

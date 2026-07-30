@@ -65,7 +65,7 @@ func TestIzvestajPraznaBaza(t *testing.T) {
 	}
 }
 
-// ─── BUG-01: stornirani prodajni nalozi ne smeju ući u prihod ───────────────
+// ─── stornirani prodajni nalozi ne smeju ući u prihod ────────────────────────
 
 func TestPrihodTekuciMesec_IgnorisuSeStornirani(t *testing.T) {
 	ctx := context.Background()
@@ -160,7 +160,7 @@ func TestTopKlijenti_IgnorisuSeStornirani(t *testing.T) {
 	}
 }
 
-// ─── BUG-02/03: servis prihod koristi naplaceno (bruto, uključuje delove) ───
+// ─── servis prihod koristi naplaceno (bruto, uključuje delove) ────────────────
 
 func TestPrihodTekuciMesec_ServisKoristiNaplaceno(t *testing.T) {
 	ctx := context.Background()
@@ -221,7 +221,7 @@ func TestMesecniPrihodServis_KoristiNaplaceno(t *testing.T) {
 	}
 }
 
-// ─── BUG-10: avans se uračunava u prihod (naplaceno + avans) ─────────────────
+// ─── avans se uračunava u prihod (naplaceno + avans) ──────────────────────────
 
 func TestPrihodTekuciMesec_ServisSaAvansom(t *testing.T) {
 	ctx := context.Background()
@@ -280,7 +280,7 @@ func TestPrihodTekuciMesec_GarancijaNeUlazi(t *testing.T) {
 	}
 }
 
-// ─── BUG-08: TopKlijenti broji samo preuzete naloge sa naplatom/avansom ──────
+// ─── TopKlijenti broji samo preuzete naloge sa naplatom/avansom ───────────────
 
 func TestTopKlijenti_SamoPreuzetiNalozi(t *testing.T) {
 	ctx := context.Background()
@@ -343,7 +343,7 @@ func TestPrihodTekuciMesec_Kombinovani(t *testing.T) {
 	}
 }
 
-// ─── BUG-04: auto-izračun cena_konacna ne sme da uključuje delove ────────────
+// ─── auto-izračun cena_konacna ne sme da uključuje delove ─────────────────────
 //
 // Testiramo repo sloj direktno: simuliramo šta handler radi pri prelasku u
 // Preuzeto kad CenaKonacna == nil — upisujemo samo dijagnostiku+radove, pa
@@ -381,7 +381,7 @@ func TestServisAutoIzracunCeneKonacne_BezDuplogDela(t *testing.T) {
 		`INSERT INTO servisni_delovi (nalog_id, artikal_id, kolicina, cena_komada, predlozeno)
 		 VALUES (%d, %d, 1, 300.0, 0)`, nalogID, artID))
 
-	// simuliramo ispravnu handler logiku (BUG-04 fix):
+	// simuliramo ispravnu handler logiku:
 	// cena_konacna = dijagnostika + radovi (BEZ delova)
 	cenaKonacna := 200.0 + 200.0 // dijagnostika + rad
 	if err := servisRepo.AzurirajCenuKonacnu(ctx, nalogID, cenaKonacna); err != nil {
