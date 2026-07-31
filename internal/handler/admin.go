@@ -250,7 +250,7 @@ func (h *Handler) AdminPromeniUlogu(w http.ResponseWriter, r *http.Request) {
 // AdminObrisiKorisnika briše korisnika sa ulogom radnik
 func (h *Handler) AdminObrisiKorisnika(w http.ResponseWriter, r *http.Request) {
 	k := middleware.KorisnikIzKonteksta(r.Context())
-	if k == nil || k.Uloga != "superadmin" {
+	if !middleware.JeAdmin(k) {
 		http.Error(w, "Pristup odbijen", http.StatusForbidden)
 		return
 	}

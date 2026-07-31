@@ -511,6 +511,11 @@
                         }
                         // promena teme zahteva reload (menja se ceo CSS fajl)
                         if (f.querySelector('[name="lokalna_tema"]')) location.reload();
+                    } else if (!res.ok) {
+                        // greška bez redirekta (http.Error — 403/404/500/...) — obavesti korisnika,
+                        // ne navigiraj na POST-only rutu (izaziva 405 kod GET-a)
+                        window.ntechToast('Došlo je do greške. Pokušajte ponovo.', 'greska');
+                        if (btn) btn.disabled = false;
                     } else {
                         // redirect na drugu stranicu ili bez sacuvano — navigiraj normalno
                         location.href = res.url;
