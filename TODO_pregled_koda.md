@@ -50,7 +50,8 @@ Legenda ozbiljnosti: 🔴 visok · 🟡 srednji · 🟢 nizak
 
 ## 4. Handler sloj — validacija, CSRF, autorizacija
 
-- [ ] 🔴 **IDOR / broken access control na podsetnicima (ličnim podsetnicima).**
+- [x] 🔴 **IDOR / broken access control na podsetnicima (ličnim podsetnicima). ISPRAVLJENO.**
+  Dodata `korisnikSmeDaMenjaPodsetnik(k, p)` provera (`internal/handler/podsetnici.go`) — dozvoljava izmenu/završavanje/brisanje ako je korisnik admin/superadmin (`middleware.JeAdmin`) ili je `p.KorisnikID` tačno njegov ID; u suprotnom `403 Forbidden`. Primenjeno u sve tri funkcije: `SacuvajIzmenePodsetnika` (sad prvo učitava postojeći podsetnik pre izmene), `OznaciPodsetnik` i `ObrisiPodsetnik` (sad prvo učitava podsetnik pre brisanja, ranije je brisao direktno po ID-u bez čitanja). Dodat `internal/handler/podsetnici_test.go` sa 6 test-slučajeva (radnik/tuđi radnik/admin × svoj/tuđi/nedodeljen podsetnik) — svi prolaze.
   `internal/handler/podsetnici.go`:
   - `SacuvajIzmenePodsetnika` (red 166-195) — učitava `id` iz URL-a, poziva `PodsetnikRepo.Izmeni` BEZ provere da `podsetnik.KorisnikID` pripada ulogovanom korisniku (ili je izmenilac admin/superadmin).
   - `OznaciPodsetnik` (red 198-218) — isto, menja status završenosti bilo kog podsetnika po ID-u bez provere vlasništva.

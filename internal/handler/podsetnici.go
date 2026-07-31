@@ -172,6 +172,16 @@ func (h *Handler) SacuvajIzmenePodsetnika(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	postojeci, err := h.PodsetnikRepo.DohvatiID(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Podsetnik nije pronađen", http.StatusNotFound)
+		return
+	}
+	if !korisnikSmeDaMenjaPodsetnik(k, postojeci) {
+		http.Error(w, "Nemate dozvolu da menjate ovaj podsetnik", http.StatusForbidden)
+		return
+	}
+
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Greška pri čitanju forme", http.StatusBadRequest)
 		return
@@ -196,6 +206,8 @@ func (h *Handler) SacuvajIzmenePodsetnika(w http.ResponseWriter, r *http.Request
 
 // OznaciPodsetnik prima POST zahtev i menja status završenosti podsetnika
 func (h *Handler) OznaciPodsetnik(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+
 	id, err := parseID(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Neispravan ID podsetnika", http.StatusBadRequest)
@@ -206,6 +218,10 @@ func (h *Handler) OznaciPodsetnik(w http.ResponseWriter, r *http.Request) {
 	podsetnik, err := h.PodsetnikRepo.DohvatiID(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Podsetnik nije pronađen", http.StatusNotFound)
+		return
+	}
+	if !korisnikSmeDaMenjaPodsetnik(k, podsetnik) {
+		http.Error(w, "Nemate dozvolu da menjate ovaj podsetnik", http.StatusForbidden)
 		return
 	}
 
@@ -219,9 +235,21 @@ func (h *Handler) OznaciPodsetnik(w http.ResponseWriter, r *http.Request) {
 
 // ObrisiPodsetnik prima POST zahtev i briše podsetnik po ID-u
 func (h *Handler) ObrisiPodsetnik(w http.ResponseWriter, r *http.Request) {
+	k := middleware.KorisnikIzKonteksta(r.Context())
+
 	id, err := parseID(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Neispravan ID podsetnika", http.StatusBadRequest)
+		return
+	}
+
+	podsetnik, err := h.PodsetnikRepo.DohvatiID(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Podsetnik nije pronađen", http.StatusNotFound)
+		return
+	}
+	if !korisnikSmeDaMenjaPodsetnik(k, podsetnik) {
+		http.Error(w, "Nemate dozvolu da brišete ovaj podsetnik", http.StatusForbidden)
 		return
 	}
 
@@ -231,6 +259,17 @@ func (h *Handler) ObrisiPodsetnik(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/podsetnici?obrisan=1", http.StatusSeeOther)
+}
+
+// korisnikSmeDaMenjaPodsetnik proverava vlasništvo nad podsetnikom — sprečava da jedan
+// korisnik (npr. radnik) menja/završava/briše tuđi podsetnik pogađanjem ID-a u URL-u.
+// Admin/superadmin smeju sve (isti kriterijum kao za dodelu podsetnika drugom korisniku
+// u parseFormuPodsetnika); radnik sme samo podsetnik dodeljen njemu lično.
+func korisnikSmeDaMenjaPodsetnik(k *model.Korisnik, p *model.Podsetnik) bool {
+	if middleware.JeAdmin(k) {
+		return true
+	}
+	return p.KorisnikID != nil && k != nil && *p.KorisnikID == k.ID
 }
 
 // parseFormuPodsetnika čita polja iz HTTP forme, validira ih i vraća model i eventualnu grešku
