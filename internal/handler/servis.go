@@ -1324,6 +1324,9 @@ func parseFormuNaloga(r *http.Request) (model.ServisniNalog, string) {
 		PinUredjaja:        strings.TrimSpace(r.FormValue("pin_uredjaja")),
 		Pribor:             strings.TrimSpace(r.FormValue("pribor")),
 		DatumPrijema:       time.Now(),
+		// idempotency_key: UUID koji frontend generiše po otvaranju forme (skriveno polje);
+		// koristi ga samo ServisRepo.Kreiraj (zaštita od duplog POST-a), Izmeni ga ignoriše
+		IdempotencyKey: strings.TrimSpace(r.FormValue("idempotency_key")),
 	}
 
 	// datum prijema — korisnik može da unese drugi datum (npr. retroaktivno)

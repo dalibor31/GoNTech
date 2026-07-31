@@ -62,6 +62,11 @@ type ServisniNalog struct {
 	Naplaceno          float64 // iznos koji je naplaćen pri preuzimanju
 	Stornirano         bool
 	RazlogStorniranja  string
+	// IdempotencyKey je UUID koji frontend generiše po otvaranju forme (skriveno polje).
+	// Ako isti ključ već postoji u bazi, Kreiraj ne pravi novi nalog nego vraća postojeći —
+	// štiti od duplog POST-a (dupli klik, "Nazad" pa ponovni submit, mrežni retry, dva taba).
+	// Prazan string znači da pozivalac ne koristi zaštitu (npr. testovi, budući pozivaoci).
+	IdempotencyKey string
 }
 
 // ServisniLog je jedan zapis u istoriji događaja servisnog naloga.

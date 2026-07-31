@@ -35,6 +35,17 @@
         <input type="hidden" name="broj_naloga" value="{{.Nalog.BrojNaloga}}">
         <!-- CSRF token — bez njega middleware odbija POST sa 403 -->
         <input type="hidden" name="_csrf" value="{{.CsrfToken}}">
+        {{if not .Izmena}}
+        <!-- idempotency_key: generiše se jednom po otvaranju forme (samo za NOVI nalog —
+             izmena ide kroz Izmeni, ne kroz Kreiraj, pa joj ključ nije potreban); server ga
+             koristi da prepozna dupli POST i vrati postojeći nalog umesto da napravi drugi -->
+        <input type="hidden" name="idempotency_key" id="idempotency-key-servis">
+        <script>
+            document.getElementById('idempotency-key-servis').value =
+                (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID()
+                : (Date.now().toString(36) + Math.random().toString(36).slice(2));
+        </script>
+        {{end}}
 
         <!-- ===================== KARTICA: UREĐAJ ===================== -->
         <div class="kartica forma-kartica animiraj" style="margin-bottom:20px;">

@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"time"
 
@@ -145,6 +146,21 @@ func (r *ServisRepo) Kreiraj(ctx context.Context, n *model.ServisniNalog) (int64
 	}
 	defer tx.Rollback()
 
+	// idempotency zaštita: isti obrazac kao ProdajaRepo.Kreiraj — ako pozivalac pošalje
+	// ključ i nalog sa tim ključem već postoji, to je dupliran POST — vraćamo postojeći ID.
+	if n.IdempotencyKey != "" {
+		var postojeciID int64
+		err := tx.QueryRowContext(ctx,
+			"SELECT id FROM servisni_nalozi WHERE idempotency_key = ?", n.IdempotencyKey,
+		).Scan(&postojeciID)
+		if err == nil {
+			return postojeciID, nil
+		}
+		if !errors.Is(err, sql.ErrNoRows) {
+			return 0, fmt.Errorf("ntech: ServisRepo.Kreiraj: provera idempotency key: %w", err)
+		}
+	}
+
 	brojNaloga, err := sledeciBrojServisa(ctx, tx)
 	if err != nil {
 		return 0, fmt.Errorf("ntech: ServisRepo.Kreiraj: broj naloga: %w", err)
@@ -155,15 +171,15 @@ func (r *ServisRepo) Kreiraj(ctx context.Context, n *model.ServisniNalog) (int64
 		INSERT INTO servisni_nalozi
 			(klijent_id, tehnicar_id, broj_naloga, uredjaj, serijski_broj, opis_kvara, trazene_nadogradnje,
 			 status, cena_od, cena_do, cena_konacna, avans, napomena, garancija_do, garancija_dana, datum_zavrsetka, predvidjen_datum,
-			 ostecenja, pin_uredjaja, pribor, datum_prijema, javni_token)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			 ostecenja, pin_uredjaja, pribor, datum_prijema, javni_token, idempotency_key)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		nullInt64(n.KlijentID), nullInt64(n.TehnicarID), n.BrojNaloga, n.Uredjaj,
 		nullString(n.SerijskiBroj), n.OpisKvara, n.TrazeneNadogradnje, n.Status,
 		nullFloat64(n.CenaOd), nullFloat64(n.CenaDo), nullFloat64(n.CenaKonacna),
 		nullFloat64(n.Avans), nullString(n.Napomena),
 		nullTime(n.GarancijaDo), nullInt(n.GarancijaDana), nullTime(n.DatumZavrsetka), nullTime(n.PredvidjenDatum),
 		nullString(n.Ostecenja), nullString(n.PinUredjaja), nullString(n.Pribor),
-		n.DatumPrijema, token,
+		n.DatumPrijema, token, nullString(n.IdempotencyKey),
 	)
 	if err != nil {
 		return 0, fmt.Errorf("ntech: ServisRepo.Kreiraj: %w", err)
