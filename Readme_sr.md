@@ -86,6 +86,7 @@ Cilj je jednostavan: sve što servis treba da prati nalazi se na jednom mestu, b
 - Flash poruke — jednokratne povratne informacije nakon akcije
 - Automatski backup SQLite baze — sa podešavanjem broja čuvanih kopija; vraćanje baze iz kopije (bezbedno, bez prekida rada)
 - Grafikoni — mesečni prihod na izveštajima (Chart.js)
+- KPO knjiga (knjiga prihoda i rashoda)
 - Strukturisano logovanje — `log/slog` (JSON u produkciji, tekst u razvoju); zaseban auth log u fail2ban formatu
 - Automatski testovi — jedinični i integracioni nad SQLite bazom (kripto, RBAC, tokovi prijave, validatori forme, izveštaji)
 - **Demo mod** (`NTECH_ENV=demo`) — automatski kreiran demo korisnik, pre-popunjeni login, ograničen bekap, blokirana promena lozinke i 2FA
@@ -96,8 +97,8 @@ Cilj je jednostavan: sve što servis treba da prati nalazi se na jednom mestu, b
 
 ### Planirano
 
-- KPO knjiga i dvojno knjigovodstvo (opciono, kasnija faza)
-- Podrška za PostgreSQL (za višekorisničko okruženje)
+- Dvojno knjigovodstvo (opciono, kasnija faza)
+- Podrška za PostgreSQL (za višekorisničko okruženje) — prazan `internal/db/postgres` paket postoji kao mesto za buduću implementaciju, ali `pgx` još nije zavisnost projekta, a `NTECH_DB`/`NTECH_DSN` aplikacija trenutno ne čita
 - WebAuthn / Passkey prijava (šema baze je pripremljena)
 - Obaveštenja (e-pošta / WhatsApp) — odloženo za kasniju fazu
 - Skeniranje barkodova putem kamere — odloženo za kasniju fazu
@@ -114,7 +115,7 @@ Cilj je jednostavan: sve što servis treba da prati nalazi se na jednom mestu, b
 | [HTMX](https://htmx.org)                                                             | dinamički HTML preko HTTP-a     |
 | [Alpine.js](https://alpinejs.dev)                                                    | UI logika na strani klijenta    |
 | [SQLite](https://sqlite.org) + [modernc.org/sqlite](https://gitlab.com/cznic/sqlite) | glavna baza (čisti Go, bez CGO) |
-| [PostgreSQL](https://www.postgresql.org) + [pgx/v5](https://github.com/jackc/pgx)    | opciona baza za produkciju      |
+| [PostgreSQL](https://www.postgresql.org) + [pgx/v5](https://github.com/jackc/pgx)    | planirana baza za produkciju (još nije implementirano) |
 
 ---
 
@@ -171,9 +172,7 @@ Fajl `ntech.env` se **ne commituje** u Git.
 | ---------------- | ------------- | ------------------------------------------------------------------ |
 | `NTECH_ENV`      | `development` | Mod: `development`, `production` ili `demo`                        |
 | `NTECH_PORT`     | `8080`        | HTTP port                                                          |
-| `NTECH_DB`       | `sqlite`      | Tip baze: `sqlite` ili `postgres`                                  |
 | `NTECH_SQLITE`   | `ntech.db`    | Putanja do SQLite fajla                                            |
-| `NTECH_DSN`      | —             | PostgreSQL connection string                                       |
 | `NTECH_SECRET`   | —             | Ključ za potpisivanje sesija (min. 32 bajta); auto-generiše se     |
 | `NTECH_TOTP_KEY` | —             | AES-256 ključ za šifrovanje TOTP tajni; auto-generiše se          |
 | `BE_ENABLED`     | `true`        | Uključuje ugrađeni kartica-emulator (uređaj za potpisivanje pri fiskalizaciji) |
@@ -378,9 +377,11 @@ ntech/
 │   └── ntech/          # ulazna tačka programa
 ├── internal/
 │   ├── auth/           # prijava, sesije, fail2ban log
+│   ├── be/             # ugrađeni kartica-emulator (uređaj za potpisivanje pri fiskalizaciji)
 │   ├── config/         # podešavanja, setup wizard
 │   ├── db/             # sloj baze podataka
 │   │   └── sqlite/     # SQLite implementacija
+│   ├── fiskal/         # klijent za fiskalizaciju (ESIR/L-PFR)
 │   ├── handler/        # HTTP handleri
 │   ├── middleware/      # CSRF, bezbednost headeri, autentifikacija
 │   └── model/          # zajednički tipovi podataka
@@ -388,6 +389,7 @@ ntech/
 │   ├── static/         # CSS, JavaScript, slike, logotipi
 │   └── templates/      # HTML šabloni
 ├── migrations/         # SQL migracije (001_opis.sql, 002_opis.sql, ...)
+├── Fisk/               # Teron L-PFR mock server (Python) za testiranje fiskalizacije
 ├── logs/               # auth.log i ostali logovi
 ├── backups/            # rezervne kopije baze
 ├── start.sh            # interaktivna skripta za build i Docker push

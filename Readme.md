@@ -86,6 +86,7 @@ The goal is simple: everything the repair shop needs to track is located in one 
 - Flash messages — one-time feedback after an action
 - Automatic SQLite backup — with configurable number of retained copies; restore from a copy (safe, with no downtime)
 - Charts — monthly revenue on reports (Chart.js)
+- KPO book (ledger of income and expenses)
 - Structured logging — `log/slog` (JSON in production, text in development); separate auth log in fail2ban format
 - Automated tests — unit and integration over a SQLite database (crypto, RBAC, login flows, form validators, reports)
 - **Demo mode** (`NTECH_ENV=demo`) — auto-created demo user, pre-filled login form, restricted backup count, blocked password/2FA changes
@@ -96,8 +97,8 @@ The goal is simple: everything the repair shop needs to track is located in one 
 
 ### Planned
 
-- KPO book and double-entry bookkeeping (optional, later phase)
-- PostgreSQL support (for multi-user environments)
+- Double-entry bookkeeping (optional, later phase)
+- PostgreSQL support (for multi-user environments) — an empty `internal/db/postgres` package exists as a placeholder, but there is no `pgx` dependency yet and `NTECH_DB`/`NTECH_DSN` are not read by the app
 - WebAuthn / Passkey login (database schema is already prepared)
 - Notifications (email / WhatsApp) — deferred to a later phase
 - Barcode scanning via camera — deferred to a later phase
@@ -114,7 +115,7 @@ The goal is simple: everything the repair shop needs to track is located in one 
 | [HTMX](https://htmx.org)                                                             | dynamic HTML over HTTP          |
 | [Alpine.js](https://alpinejs.dev)                                                    | client-side UI logic            |
 | [SQLite](https://sqlite.org) + [modernc.org/sqlite](https://gitlab.com/cznic/sqlite) | main database (pure Go, no CGO) |
-| [PostgreSQL](https://www.postgresql.org) + [pgx/v5](https://github.com/jackc/pgx)    | optional production database    |
+| [PostgreSQL](https://www.postgresql.org) + [pgx/v5](https://github.com/jackc/pgx)    | planned production database (not implemented yet) |
 
 ---
 
@@ -171,9 +172,7 @@ The application reads environment variables on startup. In development, place th
 | ---------------- | ------------- | ----------------------------------------------------------------- |
 | `NTECH_ENV`      | `development` | Mode: `development`, `production`, or `demo`                      |
 | `NTECH_PORT`     | `8080`        | HTTP port                                                         |
-| `NTECH_DB`       | `sqlite`      | Database type: `sqlite` or `postgres`                             |
 | `NTECH_SQLITE`   | `ntech.db`    | Path to the SQLite file                                           |
-| `NTECH_DSN`      | —             | PostgreSQL connection string                                      |
 | `NTECH_SECRET`   | —             | Session signing key (min. 32 bytes); auto-generated if missing    |
 | `NTECH_TOTP_KEY` | —             | AES-256 key for TOTP secret encryption; auto-generated if missing |
 | `BE_ENABLED`     | `true`        | Enables the built-in card-emulator (fiscalization signing device) |
@@ -378,9 +377,11 @@ ntech/
 │   └── ntech/          # entry point
 ├── internal/
 │   ├── auth/           # login, sessions, fail2ban log
+│   ├── be/             # built-in card-emulator (fiscalization signing device)
 │   ├── config/         # settings, setup wizard
 │   ├── db/             # database layer
 │   │   └── sqlite/     # SQLite implementation
+│   ├── fiskal/         # fiscalization (ESIR/L-PFR) client
 │   ├── handler/        # HTTP handlers
 │   ├── middleware/      # CSRF, security headers, authentication
 │   └── model/          # shared data types
@@ -388,6 +389,7 @@ ntech/
 │   ├── static/         # CSS, JavaScript, images, logos
 │   └── templates/      # HTML templates
 ├── migrations/         # SQL migrations (001_desc.sql, 002_desc.sql, ...)
+├── Fisk/               # Teron L-PFR mock server (Python) for fiscalization testing
 ├── logs/               # auth.log and other logs
 ├── backups/            # database backups
 ├── start.sh            # interactive build and Docker push script
