@@ -122,6 +122,60 @@ func TestProdajaKreiraj_PdvAutoKalkulacija(t *testing.T) {
 	}
 }
 
+// TestProdajaKreiraj_IdempotencyKey: dva poziva Kreiraj sa istim IdempotencyKey
+// (simulira dupliran POST — dupli klik, "Nazad" pa ponovni submit, mrežni retry)
+// vraćaju ISTI nalogID, ne prave drugi nalog i ne skidaju stanje dvaput.
+func TestProdajaKreiraj_IdempotencyKey(t *testing.T) {
+	ctx := context.Background()
+	baza := testDB(t)
+	artRepo := NoviArtikalRepo(baza)
+	prodRepo := NoviProdajaRepo(baza)
+
+	artID, _ := artRepo.Kreiraj(ctx, &model.Artikal{
+		Naziv: "Slušalice", Tip: model.TipProizvod, Kolicina: 10,
+	})
+
+	nalog := &model.ProdajniNalog{
+		Ukupno: 1000, NacinPlacanja: "gotovina", Datum: time.Now(),
+		IdempotencyKey: "test-kljuc-123",
+	}
+	stavke := []model.StavkaProdaje{
+		{ArtikalID: artID, Kolicina: 2, CenaPoKomadu: 500},
+	}
+
+	id1, err := prodRepo.Kreiraj(ctx, nalog, stavke, nil)
+	if err != nil {
+		t.Fatalf("prvi Kreiraj: %v", err)
+	}
+
+	// drugi poziv sa ISTIM ključem (nov nalog/stavke, kao pri ponovljenom POST-u)
+	id2, err := prodRepo.Kreiraj(ctx, &model.ProdajniNalog{
+		Ukupno: 1000, NacinPlacanja: "gotovina", Datum: time.Now(),
+		IdempotencyKey: "test-kljuc-123",
+	}, []model.StavkaProdaje{
+		{ArtikalID: artID, Kolicina: 2, CenaPoKomadu: 500},
+	}, nil)
+	if err != nil {
+		t.Fatalf("drugi Kreiraj (dupliran POST): %v", err)
+	}
+
+	if id1 != id2 {
+		t.Errorf("drugi poziv sa istim idempotency ključem vratio drugačiji ID: %d != %d — napravljen dupli nalog", id1, id2)
+	}
+
+	var brNaloga int
+	baza.QueryRowContext(ctx, "SELECT COUNT(*) FROM prodajni_nalozi WHERE idempotency_key = ?", "test-kljuc-123").Scan(&brNaloga)
+	if brNaloga != 1 {
+		t.Errorf("broj naloga sa ovim idempotency ključem = %d, očekivano 1", brNaloga)
+	}
+
+	// stanje skinuto SAMO jednom (2 kom), ne dvaput (4 kom)
+	a, _ := artRepo.DohvatiID(ctx, artID)
+	if a.Kolicina != 8 {
+		t.Errorf("stanje = %d, očekivano 8 (10-2, skinuto samo jednom)", a.Kolicina)
+	}
+}
+
 func absF(x float64) float64 {
 	if x < 0 {
 		return -x

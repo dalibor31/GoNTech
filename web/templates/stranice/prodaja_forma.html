@@ -34,6 +34,7 @@
 
   <form method="POST" action="/prodaja/nova" @submit.prevent="posaljiProdaju($event)">
     <input type="hidden" name="_csrf" value="{{.CsrfToken}}" />
+    <input type="hidden" name="idempotency_key" :value="idempotencyKey" />
     {{if .Greska}}
     <div class="poruka-greska greska-animacija">{{.Greska}}</div>
     {{end}}
@@ -128,7 +129,7 @@
             <template x-for="(stavka, i) in stavke" :key="i">
               <tr style="border-bottom: 0.5px solid var(--ivica)">
                 <td style="padding: 8px 10px; position: relative;">
-                  <input type="hidden" :name="'pdv_stopa[]'" :value="stavka.pdv_stopa">
+                  <input type="hidden" :name="'pdv_stopa[]'" :value="stavka.pdv_stopa" :disabled="isMobile">
                   <input type="hidden" :name="'artikal_id[]'" :value="stavka.artikal_id" :disabled="isMobile">
                   <template x-if="stavka.artikal_id">
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;padding:7px 10px;border:0.5px solid var(--ivica);border-radius:8px;">
@@ -220,7 +221,7 @@
                 style="background: none; border: 0.5px solid #dc2626; color: #dc2626; cursor: pointer; font-size: 13px; padding: 2px 8px; border-radius: 4px;">Ukloni</button>
             </div>
             <div style="display: flex; flex-direction: column; gap: 10px">
-              <input type="hidden" :name="'pdv_stopa[]'" :value="stavka.pdv_stopa">
+              <input type="hidden" :name="'pdv_stopa[]'" :value="stavka.pdv_stopa" :disabled="!isMobile">
               <div style="position: relative;">
                 <label class="polje-labela">Artikal</label>
                 <input type="hidden" :name="'artikal_id[]'" :value="stavka.artikal_id" :disabled="!isMobile">

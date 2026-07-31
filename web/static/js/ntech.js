@@ -177,6 +177,10 @@ document.addEventListener('alpine:init', () => {
         primljenoIznos: '',
         prikaziRacun: true,
         saljemSe: false,
+        // generisan jednom po otvaranju forme; server ga koristi da prepozna dupli POST
+        // (dupli klik, "Nazad" pa ponovni submit, mrežni retry, dva otvorena taba) i
+        // vrati postojeći nalog umesto da napravi drugi — v. ProdajaRepo.Kreiraj
+        idempotencyKey: (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2)),
         _fiskalniTab: null,
         artikliOpcije: [],
         pretragaArtikal: '',

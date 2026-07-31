@@ -13,6 +13,11 @@ type ProdajniNalog struct {
 	Stornirano        bool
 	RazlogStorniranja string
 	Datum             time.Time
+	// IdempotencyKey je UUID koji frontend generiše po otvaranju forme (skriveno polje).
+	// Ako isti ključ već postoji u bazi, Kreiraj ne pravi novi nalog nego vraća postojeći —
+	// štiti od duplog POST-a (dupli klik, "Nazad" pa ponovni submit, mrežni retry, dva taba).
+	// Prazan string znači da pozivalac ne koristi zaštitu (npr. testovi, budući pozivaoci).
+	IdempotencyKey string
 }
 
 // StavkaProdaje predstavlja jednu liniju (artikal) unutar prodaje

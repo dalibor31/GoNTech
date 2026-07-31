@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -195,6 +196,23 @@ func (r *ProdajaRepo) Kreiraj(ctx context.Context, n *model.ProdajniNalog, stavk
 	}
 	defer tx.Rollback()
 
+	// idempotency zaštita: ako je pozivalac poslao ključ (frontend ga generiše po
+	// otvaranju forme) i nalog sa tim ključem već postoji, to znači da je ovo dupliran
+	// POST (dupli klik, "Nazad" pa ponovni submit, mrežni retry, dva otvorena taba) —
+	// vraćamo ID postojećeg naloga umesto da pravimo drugi, identičan.
+	if n.IdempotencyKey != "" {
+		var postojeciID int64
+		err := tx.QueryRowContext(ctx,
+			"SELECT id FROM prodajni_nalozi WHERE idempotency_key = ?", n.IdempotencyKey,
+		).Scan(&postojeciID)
+		if err == nil {
+			return postojeciID, nil
+		}
+		if !errors.Is(err, sql.ErrNoRows) {
+			return 0, fmt.Errorf("ntech: ProdajaRepo.Kreiraj: provera idempotency key: %w", err)
+		}
+	}
+
 	// broj naloga se generiše OVDE, unutar iste transakcije kao insert —
 	// ne sme se prosleđivati kao unapred generisana vrednost iz handlera,
 	// jer bi dupliran/ponovljen POST zahtev tada napravio dva zasebna,
@@ -207,9 +225,9 @@ func (r *ProdajaRepo) Kreiraj(ctx context.Context, n *model.ProdajniNalog, stavk
 
 	// insert zaglavlja naloga pre stavki da bismo imali nalogID za magacin
 	rezultat, err := tx.ExecContext(ctx, `
-		INSERT INTO prodajni_nalozi (klijent_id, broj_naloga, napomena, ukupno, nacin_placanja, datum)
-		VALUES (?, ?, ?, ?, ?, ?)`,
-		nullInt64(n.KlijentID), n.BrojNaloga, nullString(n.Napomena), n.Ukupno, n.NacinPlacanja, n.Datum,
+		INSERT INTO prodajni_nalozi (klijent_id, broj_naloga, napomena, ukupno, nacin_placanja, datum, idempotency_key)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		nullInt64(n.KlijentID), n.BrojNaloga, nullString(n.Napomena), n.Ukupno, n.NacinPlacanja, n.Datum, nullString(n.IdempotencyKey),
 	)
 	if err != nil {
 		return 0, fmt.Errorf("ntech: ProdajaRepo.Kreiraj: insert nalog: %w", err)

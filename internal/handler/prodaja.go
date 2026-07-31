@@ -543,6 +543,9 @@ func parseFormuProdaje(r *http.Request, validneStope map[float64]bool) (model.Pr
 	if nalog.NacinPlacanja != "gotovina" && nalog.NacinPlacanja != "kartica" && nalog.NacinPlacanja != "prenos" {
 		nalog.NacinPlacanja = "gotovina"
 	}
+	// idempotency_key: UUID koji frontend generiše po otvaranju forme (skriveno polje);
+	// prosleđen dalje do ProdajaRepo.Kreiraj radi zaštite od duplog POST-a
+	nalog.IdempotencyKey = strings.TrimSpace(r.FormValue("idempotency_key"))
 
 	artikalIDovi := r.Form["artikal_id[]"]
 	kolicine := r.Form["kolicina[]"]
