@@ -32,7 +32,10 @@
     Nazad na prodaju
   </a>
 
-  <form method="POST" action="/prodaja/nova" @submit.prevent="posaljiProdaju($event)">
+  <!-- data-full-reload: isključuje formu iz generičkog AJAX submit-interceptora u base.html
+       (koji se inače kači na SVAKU form[method=POST]) — bez ovoga su i generički handler i
+       Alpine-ov @submit.prevent slali po jedan POST na isti klik (dupli zahtev ka /prodaja/nova) -->
+  <form method="POST" action="/prodaja/nova" data-full-reload @submit.prevent="posaljiProdaju($event)">
     <input type="hidden" name="_csrf" value="{{.CsrfToken}}" />
     <input type="hidden" name="idempotency_key" :value="idempotencyKey" />
     {{if .Greska}}

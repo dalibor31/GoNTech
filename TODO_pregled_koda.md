@@ -1,0 +1,97 @@
+# TODO — opšti pregled koda (NTech)
+
+Pregled urađen bez izmena koda (samo istraga). Fokus: dual-render forme, transakciona
+ispravnost repository sloja, handler validacija/CSRF/dozvole, neslaganja model↔baza↔šablon,
+JS logika (duple registracije, double-submit zaštita), i ostalo sumnjivo.
+
+Legenda ozbiljnosti: 🔴 visok · 🟡 srednji · 🟢 nizak
+
+---
+
+## 1. Dual-submit / duple registracije event listenera
+
+- [x] 🔴 **`prodaja_forma.html` — dva nezavisna 'submit' listenera na istoj formi, mogući DUPLI POST po jednom kliku. ISPRAVLJENO.**
+  Dodat `data-full-reload` atribut na `<form>` (`web/templates/stranice/prodaja_forma.html:35`) — generički AJAX submit-interceptor u `base.html:401` sad tu formu preskače (rani `return`), pa jedini submit-put ostaje Alpine-ov `@submit.prevent="posaljiProdaju($event)"` (native `e.target.submit()`). Potvrđeno statičkom analizom (browser extension nije bio dostupan u ovoj sesiji za live Network-tab proveru): pre izmene, `f.hasAttribute('data-full-reload')` je bilo `false` za ovu formu pa bi generički handler nastavio na `fetch()` POST — sad je `true` i handler odmah izlazi. Proverено `curl`-om da se atribut ispravno renderuje u serviranom HTML-u (`/prodaja/nova`).
+  `web/templates/stranice/prodaja_forma.html:35` — `<form method="POST" action="/prodaja/nova" @submit.prevent="posaljiProdaju($event)">` nema `data-full-reload` atribut.
+  `web/templates/teme/podrazumevana/base.html:396-410` — generički AJAX submit-interceptor se kači na **SVAKU** `form[method="POST"]` u dokumentu (osim multipart ili `data-full-reload`), uključujući ovu formu, i pri submit-u odmah šalje sopstveni `fetch()` POST.
+  `web/static/js/ntech.js:400-410` (`posaljiProdaju`) — Alpine-ov `@submit.prevent` handler ODVOJENO zakazuje `e.target.submit()` (pravi native POST, pun page-reload) preko `$nextTick`.
+  Pošto nijedan od handlera ne zove `stopImmediatePropagation()`, oba se izvršavaju na isti klik → **dva POST zahteva** ka `/prodaja/nova` (jedan preko `fetch`, jedan preko native submit-a). Ovo je najverovatniji PRAVI uzrok originalno prijavljenog bug-a "prodaja se upiše dva puta" — raniji nalaz (nedostajući `:disabled` na `pdv_stopa[]`, već ispravljen) je stvaran, ali verovatno NIJE bio glavni uzrok dupliranja REDOVA u bazi.
+  Napomena: upravo dodati `idempotency_key` (migracija 106, `ProdajaRepo.Kreiraj`) verovatno already prikriva VIDLJIV simptom (drugi zahtev se sad prepoznaje i vraća isti nalog) — ali dupli HTTP zahtev i dalje postoji (nepotrebno opterećenje, mogući flash pogrešnog tosta/greške ako prvi fetch stigne sa nepočišćenim praznim stavkama pre nego što Alpine stigne da ih filtrira).
+  Postojeća konvencija za ovakav slučaj već postoji u repo-u: `data-full-reload` (v. `nabavka_detalji.html:197`, `pdv_kir.html:29`, `kpo.html:24` itd.) — forma bi trebalo da dobije taj atribut da se isključi iz generičkog handlera, ili se custom `@submit.prevent` mehanizam treba ukloniti u korist generičkog.
+  **Preporuka**: potvrditi u browseru (Network tab) da li se zaista šalju 2 zahteva pri klik na "Naplati", pa dodati `data-full-reload` na `<form>` (ili ukloniti dupli mehanizam).
+
+- [ ] 🟢 Ostale forme (`nabavka_forma.html`, `servis_forma.html`, itd.) ne koriste `@submit` Alpine direktivu (potvrđeno: `grep -rln "@submit" web/templates/` vraća samo `prodaja_forma.html`) — generički AJAX handler u `base.html` je jedini submit-put za njih, nema konflikta. Bez akcije.
+
+---
+
+## 2. Dual-render forme (desktop tabela + mobilna kartica) — `:disabled="isMobile"` obrazac
+
+- [x] ✅ **`prodaja_forma.html:131,223` — `pdv_stopa[]` bez `:disabled` — VEĆ ISPRAVLJENO** u prethodnom zadatku (dodato `:disabled="isMobile"` / `:disabled="!isMobile"` analogno susednim poljima).
+
+- [ ] 🟢 `nabavka_forma.html` (jedina druga stranica sa `isMobile` dual-render obrascem, `stavke` blok) — svi `[]` inputi (`artikal_id[]`, `kolicina[]`, `cena_po_komadu[]`, `marza[]`, `prodajna[]`) imaju simetričan `:disabled="isMobile"`/`:disabled="!isMobile"` par (redovi 135-161 desktop, 208-233 mobilni). **Nema iste greške.**
+  Zavisni troškovi (`trosak_naziv[]`, `trosak_iznos[]`, redovi 274-278) NISU dual-render (samo jedan `x-for` blok, bez posebne mobilne kopije) — nema rizika duplog slanja.
+
+- [ ] 🟢 Nijedna druga `stranice/*.html` stranica ne koristi `isMobile` dual-render Alpine obrazac (servis, klijenti, artikli/magacin liste koriste responsive CSS/HTMX pristup, ne duplo renderovanje `x-for` sa `:disabled` prekidačem) — obrazac bug-a je specifičan za prodaju/nabavku, oba pokrivena.
+
+---
+
+## 3. Repository sloj — transakciona ispravnost i race conditions
+
+- [ ] Svih **20** `BeginTx(...)` poziva u `internal/db/sqlite/*.go` ima `defer tx.Rollback()` odmah posle provere greške (provereno u: `artikal.go`, `rezervni_kodovi.go`, `servisni_potrazivani_delovi.go`, `nabavka.go`, `prodaja.go`, `nivelacija.go`, `servisni_radovi.go`, `servisni_delovi.go`, `servis.go`) — **nema propusta**, bez akcije.
+
+- [ ] 🟡 **`ServisRepo.Kreiraj` (`internal/db/sqlite/servis.go:142`) nema idempotency zaštitu** kakva je upravo dodata za `ProdajaRepo.Kreiraj` (migracija 106, `idempotency_key`). Broj naloga (`sledeciBrojServisa`) se generiše unutar iste tx (ispravno, sprečava koliziju brojeva), ali DVA nezavisna HTTP POST zahteva (mrežni retry, "Nazad" pa resubmit, dva otvorena taba) i dalje mogu napraviti DVA validna servisna naloga sa istim podacima ali različitim brojevima — isti arhitekturni gep koji je upravo zatvoren za prodaju. Handler: `internal/handler/servis.go` `SacuvajNalog` (red ~218).
+  **Preporuka**: primeniti isti obrazac (idempotency_key kolona + parcijalni UNIQUE indeks + skriveno polje u `servis_forma.html`) ako se želi potpuna zaštita, konzistentno sa prodajom.
+
+- [ ] 🟢 `NabavkaRepo.Kreiraj` (`internal/db/sqlite/nabavka.go:178`) nema interni sekvencijalni broj (koristi `broj_racuna` dobavljača, korisnički unet) — nema race-a oko generisanja broja, ali isti opšti rizik "dva odvojena POST-a = dve nabavke" postoji arhitekturno kao i svuda gde nema idempotency ključa. Niži prioritet jer nema poznatu žalbu/simptom.
+
+- [ ] 🟢 Parametrizacija SQL upita — nasumičan pregled `fmt.Sprintf`/string-concat obrazaca u `internal/db/sqlite/*.go` (magacin.go:112, artikal.go:167,191, klijent.go, trosak.go, usluga.go) — svi slučajevi concat-uju samo **hardkodovane** identifikatore kolona/tabela (const liste, fiksni literali iz poziva) ili grade `?` placeholder nizove; korisnički unos ide isključivo kroz `args`. **Nema SQL injection rizika** u pregledanim mestima.
+
+---
+
+## 4. Handler sloj — validacija, CSRF, autorizacija
+
+- [ ] 🔴 **IDOR / broken access control na podsetnicima (ličnim podsetnicima).**
+  `internal/handler/podsetnici.go`:
+  - `SacuvajIzmenePodsetnika` (red 166-195) — učitava `id` iz URL-a, poziva `PodsetnikRepo.Izmeni` BEZ provere da `podsetnik.KorisnikID` pripada ulogovanom korisniku (ili je izmenilac admin/superadmin).
+  - `OznaciPodsetnik` (red 198-218) — isto, menja status završenosti bilo kog podsetnika po ID-u bez provere vlasništva.
+  - `ObrisiPodsetnik` (red 221-234) — isto, briše bilo koji podsetnik po ID-u bez provere vlasništva.
+  Lista (`filter.KorisnikID = &k.ID`, red 51) i kreiranje ISPRAVNO vezuju podsetnik za korisnika (osim kad admin/superadmin eksplicitno dodeli drugom korisniku, red 260-269), ali IZMENA/ZAVRŠI/BRISANJE nemaju tu proveru — bilo koji ulogovan korisnik (uključujući najniže privilegovanu ulogu) može menjati/brisati/označavati kao završene tuđe (pa i admin/superadmin) podsetnike prostim pogađanjem/iteracijom numeričkog ID-a u POST ruti.
+  **Preporuka**: u sve tri funkcije dohvatiti postojeći podsetnik, proveriti `postojeci.KorisnikID == &k.ID` (ili `k.Uloga` je admin/superadmin), vratiti 403/redirect sa greškom ako ne odgovara — isti obrazac kao provera vlasništva koja bi trebalo da postoji za bilo koji "moj" resurs.
+
+- [ ] 🟢 CSRF pokrivenost rutera (`cmd/ntech/main.go`) — sve mutating rute (`POST/PUT/DELETE`) su unutar jednog od dva `r.Group` bloka koji uključuju `ntechmw.CsrfMiddleware` (redovi 255-263 javne, 285-515 zaštićene), OSIM `/status/{token}/prihvati|odbij|odluka-odabrano` (redovi 270-281) — ovo je **namerno i dokumentovano** (komentar red 265-268): autentikacija je jednokratni tajni token u URL-u, capability model, ne sesijski kolačić, pa klasičan CSRF model napada ne važi. Logika je zdrava, bez akcije, samo zabeleženo radi potpunosti pregleda.
+
+- [ ] 🟢 Raw Go greške korisniku — pregled `http.Error(w, err.Error(), ...)` / sličnih obrazaca u `internal/handler/*.go`: **nije pronađen nijedan slučaj** curenja sirove Go greške korisniku; svuda se koriste fiksne srpske poruke uz `slog.Error` za internu dijagnostiku. Bez akcije.
+
+- [ ] 🟢 Sistematski `_ = ...`/`x, _ = ...` obrasci u `internal/handler/*.go` (npr. `podsetnici.go:91,154,287` — `korisnici, _ = h.KorisniciRepo.Lista(...)` za popunu dropdown-a; `prijava.go` — best-effort audit logovanje neuspešnih pokušaja prijave) — namerno "best-effort" ponašanje (log/dropdown ne sme blokirati glavni tok), prihvatljivo. Jedini blagi rizik: ako `KorisniciRepo.Lista` padne, dropdown za dodelu podsetnika drugom korisniku će tiho biti prazan bez indikacije greške korisniku — kozmetički, nizak prioritet.
+
+---
+
+## 5. Neslaganja model ↔ baza ↔ šablon
+
+- [ ] 🟢 Spot-provera `model.ProdajniNalog` ↔ `SELECT` u `ProdajaRepo.DohvatiID` (`internal/db/sqlite/prodaja.go:121-147`) — polja se poklapaju 1:1 (uklj. i novo `IdempotencyKey`, namerno izostavljeno iz SELECT-a jer se ne prikazuje nigde — ne predstavlja bug). Nije pronađeno neslaganje na ovom mestu.
+  Dublja/iscrpna provera SVIH modul-tabela-šablon trojki nije urađena u ovom prolazu zbog obima repoa (~40+ tabela) — vredi ponoviti ciljano po modulu ako se posumnja na konkretno polje.
+
+---
+
+## 6. Ostalo
+
+- [ ] 🟢 Nema zaostalih `TODO`/`FIXME`/`XXX`/`HACK` komentara u `internal/`, `web/`, `cmd/` (pretraga bez pogotka) — kod je već "čist" po tom kriterijumu.
+- [ ] 🟢 Data-refresh re-izvršavanje `<script>` blokova (`base.html:437-441`) — ugrađeni inline skriptovi unutar `data-refresh` regiona (npr. `servis_detalji.html` naplata-dijalog skripta oko reda 100-234) su ispravno vezani za NOVI DOM čvor pri svakom `replaceWith`, pa ne dolazi do akumulacije listenera na istom, trajnom elementu — obrazac je ispravan, bez akcije.
+
+---
+
+## Sažetak
+
+| Kategorija | Nalaza | 🔴 Visok | 🟡 Srednji | 🟢 Nizak |
+|---|---|---|---|---|
+| 1. Dual-submit / listeneri | 2 | 1 | 0 | 1 |
+| 2. Dual-render forme | 3 | 0 | 0 | 3 (1 već ispravljen) |
+| 3. Repository / transakcije | 4 | 0 | 1 | 3 |
+| 4. Handler / CSRF / dozvole | 4 | 1 | 0 | 3 |
+| 5. Model↔baza↔šablon | 1 | 0 | 0 | 1 |
+| 6. Ostalo | 2 | 0 | 0 | 2 |
+| **Ukupno** | **16** | **2** | **1** | **13** |
+
+**Najozbiljniji nalazi (visok rizik):**
+1. Mogući dupli POST na `/prodaja/nova` zbog dva nezavisna 'submit' listenera (generički AJAX handler u `base.html` + Alpine `@submit.prevent` u `prodaja_forma.html`) — verovatan pravi uzrok originalno prijavljenog bug-a dupliranja prodaje.
+2. IDOR na podsetnicima — izmena/završavanje/brisanje tuđih podsetnika bez provere vlasništva (`internal/handler/podsetnici.go`).
