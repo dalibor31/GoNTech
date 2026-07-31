@@ -6,6 +6,18 @@ JS logika (duple registracije, double-submit zaštita), i ostalo sumnjivo.
 
 Legenda ozbiljnosti: 🔴 visok · 🟡 srednji · 🟢 nizak
 
+> **Napomena o mestu ovog fajla (2026-07-31):** ostaje u root-u repoa, ne premešta se u `docs/`.
+> `docs/` folder je na ovoj mašini u celosti isključen iz git-a preko `.git/info/exclude` (lokalna,
+> lična konfiguracija — nije `.gitignore`, pa se ne deli sa timom/remote-om) — premeštanje ovog
+> fajla tamo bi ga tiho izbacilo iz verzionisane istorije. Isto važi za `BUG.md` (postojeći,
+> opsežniji numerisani spisak nalaza projekta) i sve `AGENTS.md`/`CLAUDE.md` fajlove — svi su
+> lokalno-isključeni na ovoj mašini. Nalazi #45–#47 iz ove serije (dupli POST na prodaji, IDOR na
+> podsetnicima, idempotency za servis) su zato, radi konzistentnosti, dodati i u `BUG.md` (ista
+> numeracija/format kao ostali nalazi tog fajla) — ali ta izmena, kao ni ostale izmene AGENTS.md
+> fajlova (osvežen broj migracija i LOC, dokumentovan `idempotency_key` i `data-full-reload`
+> obrazac), NIJE deo git istorije na ovoj mašini zbog gorenavedenog isključenja. Ovaj fajl
+> (`TODO_pregled_koda.md`) ostaje jedini **verzionisani** zapis ove serije ispravki.
+
 ---
 
 ## 1. Dual-submit / duple registracije event listenera
