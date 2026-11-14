@@ -4,7 +4,7 @@ go 1.26.3
 
 require (
 	github.com/boombuler/barcode v1.1.0
-	github.com/go-chi/chi/v5 v5.3.0
+	github.com/go-chi/chi/v5 v5.4.0
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/pquerna/otp v1.5.0
